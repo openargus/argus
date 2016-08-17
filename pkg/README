@@ -1,0 +1,98 @@
+########################################################################
+  Note: These materials are a work-in-progress and not yet 
+        meant for production use.
+########################################################################
+
+/*
+ * Argus Software. Tools to read, analyze and manage Argus data.
+ * Copyright (c) 2000-2015 QoSient, LLC
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
+ *
+ */
+
+Argus 3.0
+QoSient, LLC
+argus@qosient.com
+http://qosient.com/argus
+
+This directory tree contains files used to create standard install materials
+for various operating system distributions.   The idea is to be able to 
+install and configure argus in the ways familiar to system administrators.
+
+Files that reside in this directory are default argus configurations which
+are common across all distributions.  Files that differ by distribution
+are stored in sub-directories.  For most distributions, the initial bootstrap
+for the packaging instructions lies in fixed directories at the root of
+the source tarball.  
+
+In order to do packaging, one must install distribution-specific packaging tools
+in addition to the normal complement of development tools, e.g. compilers.
+The tools can be used to create both source and binary packages.
+
+The rest of this README discusses the individual distributions.  
+Look also at the README files in the subdirectories.
+
+########################################################################
+   RedHat Enterprise Linux (and derivatives such as Fedora and CentOS )
+########################################################################
+subdirectory:         rhel/
+bootstrap packaging:  lib/argus.spec
+default prefix:       /usr
+
+argus has for some time provided the .spec file which can be used
+to build RPMs directly from the compressed tarball with:
+    rpmbuild -ta argus-n.n.n.tar.gz
+
+Descriptions of RPM packaging for RHEL-based distibutions can be found at:
+  http://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/index.html
+
+The .spec file is divided into a number of sections describing how to build
+binaries, where production binaries and configuration files will be placed,
+and commands to be executed pre- and post-installation.
+
+A single .spec file can describe building multiple RPMS
+
+########################################################################
+  Debian Linux ( here the Ubuntu variant )
+########################################################################
+
+subdirectory:         ubuntu/
+bootstrap packaging:  debian/
+default prefix:       /usr
+
+Debian-based distribution use a directory of files to specify the
+build, install, pre- and post-installation commands. There can
+be multiple versions of the files describing multiple packages.
+
+To learn about the packaging files in the 'debian' directory, see:
+  http://packaging.ubuntu.com/html/debian-dir-overview.html
+
+Note: The debian/control needs work, especially Build-Depends
+
+Note: Pay particular attention the formatting instructions for
+      the debian/changelog file.  In particular, the line describing
+      the maintainer must *exactly* match your GPG-key when
+      signing a package.
+
+Canonical, the overseer of Ubuntu, provides via Launchpad.net a
+place where one can practice building and distributing packages
+either as group projects or Personal Package Archives (PPA).
+For information and instructions, see:
+ http://packaging.ubuntu.com/html/packaging-new-software.html
+and for package naming conventions
+ https://help.launchpad.net/Packaging/PPA/BuildingASourcePackage
+

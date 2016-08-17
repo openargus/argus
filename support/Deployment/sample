@@ -1,0 +1,158 @@
+/*
+ * Argus Software
+ * Copyright (c) 2000-2015 QoSient, LLC
+ * All rights reserved.
+ *
+ * Permission to use, copy, modify, and distribute this software and
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation, and that the name of QoSient not be
+ * used in advertising or publicity pertaining to distribution of the
+ * software without specific, written prior permission.  
+ * 
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+ * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ */
+
+Example Argus Deployments 
+
+1, Getting Started - Host Network Auditing and Saving the Records
+
+   In the first and simplest configuration, the Argus daemon is run on a host with a
+   single network interface and writes its network activity status flow records directly
+   to a file on the local disk.  
+   
+      argus -Xw /path/to/argus/argus.file.out
+   
+   The "-X" option is used to ignore any system Argus configurations, such as
+   /etc/argus, and all options are the defaults.
+   
+   Argus will open the single interface, in promiscuous mode, and write the comprehensive
+   argus network flow status records into the output file.
+   
+   With this strategy, argus will run forever, in the foreground of the shell where you
+   ran it, and the file, argus.file.out, will grow as network traffic is monitored.  In
+   Argus-3.x, just like all earlier versions of Argus, the argus.file.out can be renamed
+   or moved, and argus will simply recreate the missing file and continue to write Argus
+   data records.
+   
+   In earlier versions of Argus a simple archive strategy was supported, where you would
+   periodically move the single target output file into an archive directory structure, 
+   using commands like this:
+   
+         mv /var/log/argus/argus.out /var/log/argus/archive/argus.`date +%Y%m.%d.%H`:00
+   
+   This command was usually run from a script, which cron(8) would run periodically.
+   Today, there are a large number of support programs and strategies to provide much
+   more sophisticated archive mechanisms.  See the argus-clients distribution for details.
+
+   One can simply examine the Argus audit records using ra(1), for example,
+
+	ra -nr /var/log/argus/archive/argus.2010.03.04.10:00 - 
+
+2. Creating a Host Daemon and Saving the Records
+
+   Today, the standard method of running argus in argus-3.x, is for argus to run
+   as a daemon, providing socket access to its output data stream, and using
+   argus client programs to collect the data.
+   
+      argus -X -d -P 561
+   
+   To recreate the simple example above, and write argus data to a single
+   target output file, you would use the argus client program radium.1, to
+   collect and then distribute the data to the file.
+   
+      radium -X -d -S localhost -w /path/to/argus/argus.file.out
+   
+   With this configuration, Argus will run in the background as a daemon,
+   and listen on port 561, the default argus port, for local or remote
+   Argus client connections.  Radium, will run in the background as a daemon,
+   connecting to the argus data server, and write its data stream to the
+   argus.file.out file.  Like Argus, Radium will recreate the file,
+   if you rename or move the file.
+   
+   This approach requires that the host's access control mechanism 
+   allow port 561/tcp connections. 
+
+   Note: example daemon startup files for both Argus and Radium
+   can be found in the distribution under support/Startup.
+
+
+Argus Configuration Examples:
+
+3. Creating an Argus Record Archive
+
+   Standard Argus data collection systems normally do not write its output
+   stream to a single target output file, but rather, it writes its data
+   into a local argus archive using the program rasplit.1.
+   
+      rasplit -d -S localhost -M time 5m \
+           -w /archive/$srcid/%Y/%m/%d/argus.%Y.%m.%d.%H.%M.%S
+   
+   rasplit.1 will run as a daemon, connecting to the local argus, and it will
+   distributed its data into a native OS file system that is structured
+   to support 5 minute log files, organized by argus source id, year, month
+   and day.
+   
+   This is a typical configuration for auditing a single host's traffic
+   (such as a file server or mail host) and its internal ra.1 events.
+
+   There are a number argus clients designed to support much more complex
+   strategies, such as rastream.1 and rasqlinsert.1.  Please see the argus-client
+   distribution for detailed descriptions.
+
+
+4. Auditing a DMZ - Creating a Argus Probe
+
+   This example configuration is designed to monitor a network segment,
+   rather than the traffic seen by a single host, generating network activity
+   audit records for all the traffic.  It can be used to perform critical
+   functions such as verifying a DMZ network service policy.  In this configuration
+   the host is converted to an Argus probe.  It is stripped of all non-essential
+   network services and given additional network interface(s).  The extra interface(s)
+   is/are attached directly to the DMZ network by configuring the switch to mirror all
+   interfaces attached to the DMZ VLAN to the Argus host's additional network interface(s).
+   Argus is then configured to read data from the additional network interface(s) which
+   are not assigned IP address(es).
+   
+                                  |
+                             -----------
+                             | Gateway |
+                             |         |
+                             -----------
+                                  | 
+                    DMZ Network   |  10.1.1.1
+                                  |
+            |--------------------------------------------| [switch - port mirroring]
+                          |                |                
+                          | 10.1.1.2       | [no assigned addr.]
+                          |                |                
+                     -----------      -----------
+                     | Gateway |      |  Argus  |
+                     |         |      |  Probe  |
+                     -----------      -----------
+                          |                |                
+                          | 192.0.0.1      | 192.0.0.2
+                          |                |                
+            |--------------------------------------------|
+                           Internal Network  |
+                                             |
+                                             |
+                                       _____________
+                                       |   Argus   | [using radium & rasplit(1)]
+                                       |  Archive  |
+                                       -------------
+
+   This configuration should be used with the configuration in example 2 where both Argus and
+   Radium are used except Radium is not saving the files locally as it will act a an Argus
+   record distribution daemon. This enable remote Argus clients can connect directly to observe
+   Argus records in real-time or as in the above illustration, collecting and archiving the 
+   Argus records into an archive on a remote host using radium(1) and rasplit(1). 
+

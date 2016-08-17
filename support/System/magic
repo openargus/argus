@@ -1,0 +1,28 @@
+# 
+#  Argus Software
+#  Copyright (c) 2000-2015 QoSient, LLC
+#  All rights reserved.
+# 
+#  QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+#  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+#  FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+#  SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+#  RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+#  CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+#  CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# 
+#
+#------------------------------------------------------------------------------
+# argus:  file(1) magic for argus-3.*;
+# From: carter@qosient.com (Carter Bullard)
+#
+# Argus magic file entry for linux public domain file(1) command.
+#
+8       belong          0xE5712DCB      Argus data
+>40     byte            x               - version %d
+>41     byte            x               \b.%d
+
+8       belong          0xE5617ACB      Argus data
+>32     byte            x               - version %d
+>33     byte            x               \b.%d
+

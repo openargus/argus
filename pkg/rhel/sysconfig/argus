@@ -1,0 +1,19 @@
+#
+# Local configuration sample options for argus daemons 
+#
+# This file is sourced by /etc/init.d/argus
+#
+# Sample values
+# Default option - just be a daemon and read config from /etc/argus.conf
+  DAEMON_ARGS="-d"
+#
+# Monitoring with local-only ra client access on default port
+#
+# DAEMON_ARGS="-d -B 127.0.0.1 -P 561"
+#
+# Monitoring span port on eth1 with local-only access remapping port so radium can multiplex over default 
+#
+# DAEMON_ARGS="-d -i eth1 -B 127.0.0.1 -P 562"
+#
+#  Where argus is installed (override for testing)
+  ARGUSDIR=/usr/sbin

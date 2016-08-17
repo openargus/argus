@@ -1,0 +1,356 @@
+/*
+ * Copyright (c) 2000-2015 QoSient, LLC
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+
+QUICK MAKE
+
+If all things are ready, distribution untarred, and you have libpcap
+and bison installed on your system, you should be able to make
+argus by simply typing:
+
+   % ./configure
+   % make
+
+If you have any problems with this procedure, read further, if not
+congratulations.  You can proceed to INSTALLATION.
+
+
+DEPENDENCIES
+
+The argus distribution is dependant on two public domain packages; libpcap,
+which provides the argus server's portable packet capture interface, and flex/bison()
+which are used for to build the filter compilers.  Both of these sets of
+packages must be installed in order to compile argus.  Most versions of 
+Linux/Unix/Mac OS X/xBSD have these packages installed by default, so 
+hopefully it won't be a problem.
+
+Below is the offical source of libpcap and current version:
+
+libpcap-1.5.3
+http://www.tcpdump.org/release/libpcap-1.5.3.tar.gz
+
+
+The official site and current version of bison is:
+
+bison-3.0.1
+http://ftp.gnu.org/gun/bison/
+
+
+And the offical site for Flex: The Fast Lexical Analyzer is:
+
+flex-2.5.39
+http://flex.sourceforge.net
+http://sourceforge.net/projects/flex/files
+
+
+
+Because argus is dependant on libpcap and flex/bison, you will need to
+have them available prior to building the package.  Please refer to the
+individual packages for installation instructions.  If you are not
+interested in performing a system installtion for libpcap, then you
+can simply untar libpcap in the same directory where you untared argus.
+Argus's ./configure will find the package and use it accordingly.
+
+For some operating systems, such as Fedora, you may have to install the
+developement versions of some packages in order to get all the supporting
+files.  On Fedora, the libpcap library is provided, however, compilers
+etc... can't find the library at compile time.  Installing libpcap-devel
+fixes this problem:
+
+   yum install libpcap-devel
+   apt-get install libpcap-devel
+
+Argus supports block compression for some of its functions.  To support
+this, argus will look for a usable zlib.  If not found, it will not
+use the functions.
+
+Argus can link to the public domain package tcp_wrappers to
+provide remote access control.  At this time, the lastest version
+is tcp_wrappers-7.6.  If tcp_wrappers in not installed on your
+system, then installing this package in the same directory as
+libpcap and argus is recommended.
+
+tcp_wrappers.7.6
+Wietse Venema (wietse@wzv.win.tue.nl)
+Department of Mathematics and Computing Science
+Eindhoven University of Technology
+P.O. Box 513
+5600 MB Eindhoven
+The Netherlands
+ftp://ftp.porcupine.org/pub/security
+
+
+Argus can also link to the cryptographic package SASL, the Simple
+Authentication and Security Layer, which provides strong authentication
+and wireline confidentiality for argus data.  Because of its features
+and flexibility, we highly recommend using SASL, and becoming experienced
+with its administration.
+
+cyrus-sasl-2.1.23
+Carnegie Mellon Univeristy
+http://ftp.andrew.cmu.edu/pub/cyrus-mail/
+
+
+
+CONFIGURE
+
+The program, ./configure, will scan the file system, looking for a lot
+of things, including the libpcap and tcp_wrapper directories and libraries and
+make assumptions about the platform which will allow ./configure to choose
+between gcc, acc, cc, flex, lex, bison, yacc, pcre, sasl and where your specific
+version of Perl.
+
+If the libpcap or bison packages are not discovered, the ./configure
+script will fail, as these packages are required.
+
+Argus can be compiled with support for Sasl, to provide strong
+authentication and confidentiality protection for data "on the wire".
+This can be turned on using the option "--with-sasl[=DIR]".  If you do
+not provide the optional directory, ./configure will guess where
+sasl could be, using the standard installation directories as
+a guide.
+
+You can also specify that ./configure should not use gcc as the
+compiler, which the default.  For Solaris, the sun c compiler is
+much better for various reasons, and so providing the "--without-gcc"
+option may generate more efficient code, when a native compiler
+is available.
+
+Configure will create links for the libpcap.a and libwrap.a libraries
+in ./lib, and will create links to the distribution directories as
+./libpcap and ./wrapper.  Configure will attempt to find the libpcap
+and tcp_wrappers distribution directories, and their corresponding
+libraries.  The path used to find these dependancies is ./libpcap,
+./wrapper, /usr/lib, /usr/local/lib, ../libpcap, ../wrapper,
+../tcp_wrappers, ../libpcap-[0-9]*.[0-9ab]*, and
+../tcp_wrappers[-.][0-9]*.[0-9ab]*.
+
+Because of major changes between tcp_wrappers-6 and tcp_wrappers-7,
+./configure needs to discover the tcp_wrappers version number.  It
+does this by scanning the patchlevel.h file in the tcp_wrapper
+distribution, as a result, ./configure will attempt to find and then
+establish a link to your tcp_wrappers distribution directory.
+
+Again, we recommend that you install your libpcap and tcp_wrappers
+distribution directories, or links to them, in either the same
+directory as the Argus distribution, or as the directories
+./libpcap and ./wrapper, in the Argus directory.
+
+
+
+BUILDING ARGUS
+
+So, after all that, to build Argus on a supported platform, first run
+./configure.  ./configure will determine your system attributes and
+generate subdirectories and the appropriate Makefiles from the Makefile.in
+files found in the distribution.  After this, run "make".  If everything
+goes well, appropriate libraries and binaries will be found in the ./bin
+and ./lib subdirectories.  So, ....
+
+   % ./configure
+   % make
+
+The argus will be found as ./bin/argus.
+
+So, at this point you should have all the execuables needed.  But,
+if you are having problems, it may be related to your compiler or
+the flex and bison utilities.  So, ...
+
+You will need an ANSI C compiler to build argus.  If your compiler
+is not ANSI compliant, we highly recommend using the GNU C compiler,
+available via anonymous ftp:
+
+	ftp://prep.ai.mit.edu/pub/gnu/gcc-*.tar.gz
+
+
+Argus requires bison and flex.  For flex, version 2.4.6 or higher
+is recommended.  The current version of flex and bison are available
+via anonymous ftp:
+
+        ftp://prep.ai.mit.edu/pub/gnu/bison-*.tar.gz
+        ftp://prep.ai.mit.edu/pub/non-gnu/flex/flex-*.tar.gz
+
+
+Now, if you are still having problems, ..., well its hard to say
+from here what it might be.  So, you may want to send us some
+mail.
+
+
+
+
+INSTALLATION
+
+QUICK INSTALL
+
+If all things are well at this point, and you will be using
+the installation strategy that we use, all you need do now
+is:
+
+   # make install
+
+This will create the /usr/local/argus directory and move all
+the binaries, supporting programs, man pages and
+documenation into it.
+
+If you are unsure about the standard installtion, run
+
+   % make -n install
+
+to review what make will try to do.  If you would like to
+do something other than the standard install, then please
+continue to read through this file.
+
+
+If you are planning on running the argus as a persistant
+daemon on your machine, then one additional step is recommended,
+and that is setting up system wide argus configuration files;
+/etc/argus.conf.conf.
+ 
+   # cp ./support/Config/argus.conf /etc
+ 
+You must edit /etc/argus.conf file for argus to work, as
+the default configuration will have argus do a lot of work
+but not output anything.
+
+Argus writes its data either to an output file, or if you intend
+argus to monitor traffic in realtime, to a socket port that client
+programs can attach to.  You specify either, or both, in the
+argus.conf file, by uncommenting the appropriate line.
+ 
+At this point your ready to run the argus.
+
+But if you wanted to do something different, then read on.
+
+Argus does not have any installation retrictions, so you can
+install Argus anywhere.  There are some conventions that have
+been established, and I'll present them here, but you can, of
+course, do your own thing.
+
+I have found it useful to have an argus home directory to hold
+the binaries, argus configuration files, the argus output file,
+and hold my argus data archive.  If you would like to use this
+strategy, create your directory, and create the environment
+variable ARGUSHOME and set it to this directory.
+
+I use /usr/local/argus.  I prefer putting the argus binary in
+/usr/local/sbin (system binaries).
+
+After making, as root, I just:
+
+   # mkdir /usr/local/argus
+   # cp bin/argusbug /usr/local/argus/bin
+   # cp bin/argus /usr/local/sbin/argus
+
+It is convenient to chmod argus so that it is "setuid root",
+but many feel that this is a security problem, as any user
+could then start an argus on the system.  Use this technique at
+at your discretion.
+ 
+   # chown root /usr/local/sbin/argus
+   # chmod 4755 /usr/local/sbin/argus
+
+Argus has a system configuration file that normally resides
+as /etc/argus.conf.  You can install this file anywhere, but
+the scripts that are provided in the ./support directory
+will assume that the configuration is at /etc/argus.conf.
+
+   # cp ./support/Config/argus.conf /etc/argus.conf
+
+You will want to edit this file to choose values of your
+liking.  The sample has all the common values set and is
+a good suggestion.
+
+
+Copying the man and doc directories is nice.
+   
+   # tar cf - doc man | (cd /usr/local/argus; tar xvpf -)
+
+
+This should handle the basic installion.
+
+Any comments, patches, bug reports or additions should be sent to 
+argus@lists.andrew.cmu.edu.
+
+
+
+PORTABILITY
+
+Argus and its supporting routines have been developed on Sparc
+architectures under SunOS 4.1.x and Solaris 2.7, and have been successfully
+ported to Solaris, SGI, Ultrix, Linux, OpenBSD and FreeBSD platforms.
+ 
+No claim is made as to the portability of Argus to other platforms, although
+it is much easier now that we've addressed the big endian little endian
+issues.  If you make any modifications to support installing and running
+Argus in any other environment, please send us comments and/or patches.
+We will be most grateful.
+
+
+OPENWRT
+
+Argus has been ported to OpenWrt, and a specific configure program is
+provided to assist in making for OpenWrt.
+
+First, untar the argus distribution into your OpenWrt-SDK-Linux-i686-1/package
+directory.  Be sure that the libpcap library is installed in the
+OpenWrt-SDK-Linux-i686-1/staging_dir_mipsel/usr/lib, and your ready.
+
+   % ./configure.openwrt
+   % make
+
+That should make an argus binary that can be installed on an openwrt system.
+You will still need to provide an /etc/argus.conf file, and any type
+of startup script to get argus going.
+
+
+CYGWIN
+
+Argus has been ported to Cygwin, the RedHat Linux environment for Windows.
+Cygwin can be found at  http://www.cygwin.com. Install the latest version
+of Cygwin, modifying the default install to include the developement support.
+
+As noted above, you will need bison and flex and optionally tcpwrappers,
+which are available for Cygwin.
+
+On CYGWIN, the libpcap function is provided by the WinPcap Developers Pack.
+The current version can be found at:
+
+   http://www.winpcap.org/devel.htm
+
+Place the unzipped WpdPack folder in the same directory that you
+untared argus, and the argus ./configure script will find it
+and do the right thing.  At this point, to make argus:
+
+   % ./configure
+   % make
+
+That should make an argus binary that can be installed as a Windows
+service, using the cygrunsrv() program.  
+
+Because interface names are so difficult to use on Windows, the Cygwin
+port of argus allows you to specify an index for the interface you want
+to monitor.  By running argus without an interface specification, argus
+will print out the available interfaces, with thier indexes.  Use the
+index number on the command line, or in the argus.conf file.
+
+To setup argus as a system service under CYGWIN, use the cygrunsvc()
+program.  Argus will write its output to /var/log/argus.log, so check
+there is you have any problems.
+

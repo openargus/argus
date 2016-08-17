@@ -1,0 +1,40 @@
+/*
+ * Argus Software
+ * Copyright (c) 2000-2015 QoSient, LLC
+ * All rights reserved.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+ * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ */
+
+All documenation for argus-3.0 can be found on the argus home website:
+   http://qosient.com/argus/
+
+If you find that any documentation is either not current, or incorrect,
+please don't hesitate to send email to the argus developers mailing list,
+or argus@qosient.com.
+
+Man page conversion to pdf's is done with the shell script below, using 
+Ghostscript's ps2pdf on Linux and pstopdf on Mac OS X.  Both use 
+"man -t" to generates postscript output.  This maybe the case on all
+Unix's but not sure about that.
+
+for i in man/*/*; \
+do echo $i; \
+   man -t $i | ps2pdf - `echo $i | sed -e "s/man/doc\/pdf\/man/"`.pdf; \
+done
+
+For Mac OS X, use pstopdf.
+
+for i in man/*/*; \
+do echo $i; \
+   man -t $i | pstopdf -i -o `echo $i | sed -e "s/man/doc\/pdf\/man/"`.pdf; \
+done
+
+

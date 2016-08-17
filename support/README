@@ -1,0 +1,49 @@
+/*
+ * Argus Software
+ * Copyright (c) 2000-2015 QoSient, LLC
+ * All rights reserved.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+ * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ */
+
+The files in these directories are sample configuration, system startup
+scripts, filters, etc... to support the use of argus and its clients.
+These files are simple examples, and may need to be modified to support
+your specific system.  These files have been tested primarily on Linux.
+
+Archive
+   argusarchive - An sh shell script for moving the argus daemon's output
+                  file into a date based archive.  The archive file
+                  system is created when needed and the output file
+                  is compressed and moved into the file system.
+
+Config
+       excel.rc - Excel.rc is a ra configuration file to write output so 
+                  that it can be imported by Microsoft's Excel.
+                  Basically generates a comma-separated-file (csv)
+                  with appropriate titles for the columns and a
+                  date format that Excel understands.
+
+    fmodel.conf - A sample flow aggregation configuration for ragator().
+
+
+Deployment
+         sample - This is a description of a tradtional argus probe
+                  deployment strategy.  Describes placement on an
+                  ethernet DMZ and interface configurations that address
+                  issues that you may find important.
+
+Startup
+          argus - This is a system boot startup script that does a very
+                  nice job.
+
+System
+          magic - magic file entry support file(1) recognizing argus
+                  data files.

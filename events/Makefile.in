@@ -1,0 +1,124 @@
+# 
+#  Argus Software
+#  Copyright (c) 2000-2015 QoSient, LLC
+#  All rights reserved.
+# 
+#  QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+#  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+#  AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+#  SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+#  IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+#  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+#  THIS SOFTWARE.
+# 
+# Various configurable paths (remember to edit Makefile.in, not Makefile)
+#
+NOOP = $(SHELL) -c true
+NOECHO = @
+
+# Top level hierarchy
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+datarootdir = @datarootdir@
+
+# Pathname of directory to install the system binaries
+SBINDIR = @sbindir@
+# Pathname of directory to install the system binaries
+BINDIR = @bindir@
+# Pathname of directory to install the include files
+INCLDEST = @includedir@
+# Pathname of directory to install the library
+LIBDEST =  @libdir@
+# Pathname of directory to install the man page
+MANDEST = @mandir@
+
+# Pathname of preferred perl to use for perl scripts
+PERL = @V_PERL@
+
+# VPATH
+srcdir = @srcdir@
+VPATH = @srcdir@
+
+COMPATLIB = @COMPATLIB@
+WRAPLIBS = @WRAPLIBS@
+
+#
+# You shouldn't need to edit anything below.
+#
+
+CC = @CC@
+CCOPT = @V_CCOPT@
+INCLS = -I$(srcdir) @V_INCLS@ -I$(srcdir)/../include 
+DEFS = @DEFS@
+#DEFS = -DARGUSPERFMETRICS=1 @DEFS@
+
+
+# Standard CFLAGS
+CFLAGS = $(CCOPT) @LBL_CFLAGS@ $(INCLS) $(DEFS)
+LDFLAGS = @LDFLAGS@
+
+INSTALL = @INSTALL@
+RANLIB = @V_RANLIB@
+
+#
+# Flex and bison allow you to specify the prefixes of the global symbols
+# used by the generated parser.  This allows programs to use lex/yacc
+# and link against libpcap.  If you don't have flex or bison, get them.
+#
+LEX = @V_LEX@
+YACC = @V_YACC@
+
+# Explicitly define compilation rule since SunOS 4's make doesn't like gcc.
+# Also, gcc does not remove the .o before forking 'as', which can be a
+# problem if you don't own the file but can write to the directory.
+.c.o:
+	@rm -f $@
+	$(CC) $(CFLAGS) -c $<
+
+SRC =	argus-extip.pl argus-lsof.pl argus-snmp.sh argus-vmstat.sh
+
+PROG =	@INSTALL_BIN@/argus-extip @INSTALL_BIN@/argus-lsof @INSTALL_BIN@/argus-snmp @INSTALL_BIN@/argus-vmstat
+
+CLEANFILES = $(PROG)
+
+all: $(PROG)
+
+@INSTALL_BIN@/argus-extip: argus-extip.pl
+	sed 's+@PERLBIN@+$(PERL)+' argus-extip.pl > $@
+	chmod +x $@
+
+@INSTALL_BIN@/argus-lsof: argus-lsof.pl
+	sed 's+@PERLBIN@+$(PERL)+' argus-lsof.pl > $@
+	chmod +x $@
+
+@INSTALL_BIN@/argus-snmp: argus-snmp.sh
+	cp -f argus-snmp.sh $@
+
+@INSTALL_BIN@/argus-vmstat: argus-vmstat.sh
+	cp -f argus-vmstat.sh $@
+
+install: all force
+	[ -d $(DESTDIR)$(SBINDIR) ] || \
+		(mkdir -p $(DESTDIR)$(SBINDIR); chmod 755 $(DESTDIR)$(SBINDIR))
+	$(INSTALL) $(srcdir)/../bin/argus-extip  $(DESTDIR)$(BINDIR)/argus-extip
+	$(INSTALL) $(srcdir)/../bin/argus-lsof   $(DESTDIR)$(BINDIR)/argus-lsof
+	$(INSTALL) $(srcdir)/../bin/argus-snmp   $(DESTDIR)$(BINDIR)/argus-snmp
+	$(INSTALL) $(srcdir)/../bin/argus-vmstat $(DESTDIR)$(BINDIR)/argus-vmstat
+
+uninstall: all force
+	rm -f $(DESTDIR)$(BINDIR)/argus-extip
+	rm -f $(DESTDIR)$(BINDIR)/argus-lsof
+	rm -f $(DESTDIR)$(BINDIR)/argus-snmp
+	rm -f $(DESTDIR)$(BINDIR)/argus-vmstat
+
+clean:
+	rm -f $(CLEANFILES)
+
+distclean:
+	rm -f $(CLEANFILES) Makefile
+
+force:	/tmp
+depend:	force
+	$(NOECHO) $(NOOP)

@@ -1,0 +1,296 @@
+Mon Mar 21 14:08:52 EDT 2016
+Snap encapsulation header processing fixes
+
+Wed Jan 13 09:32:04 EST 2016
+ICMPv6 processing fixes
+
+Thu Oct  1 12:19:11 EDT 2015
+Mods for duplicate processing in TCP
+
+Mon Jun 29 16:16:11 EDT 2015
+Mods to remove use of ArgusLog(LOG_ERR, ...) in ArgusUdt.c
+
+Fri Apr 17 08:11:43 EDT 2015
+Modify outer header parsing to deal with GRE arp packets.
+
+Sat Apr 11 11:39:22 EDT 2015
+Fixes for specific syntax errors generating fault.
+
+Fri Apr 10 14:29:17 EDT 2015
+Fixes for idle timer when no packets on interface
+
+Sat Apr 04 17:32:51 EDT 2015
+Fixes to support Vmware using GRE Transparent Bridging encapsulations.
+
+Tue Jan 20 10:12:29 EST 2015
+Fix for filter syntax error message in front of the filter.
+
+Tue Dec 23 16:47:41 EST 2014
+Added dna zc and eth+@ to polling interfaces
+
+Thu Nov 20 08:13:22 EST 2014
+Added pcap_set_buffer_size support in argus.
+
+Tue Jul  8 14:51:13 EDT 2014
+Mods for packaging for ubuntu, redhat, etc....
+Added debian and pkg directories, mods to spec file.
+
+Tue Jun 17 10:42:07 EDT 2014
+Update and Fixes for remote argus data filter support
+
+Mon Jun  9 20:18:12 EDT 2014
+Changes for netflow packet parsing to fix netflow in clients.
+
+Mon May 12 15:46:24 EDT 2014
+Fixes for wild metric counts in new flow data.
+Update filter logic to be consistent with client filters.
+Modifications for timeout issues when in non-select polling.
+
+Wed Dec 11 16:50:25 EST 2013
+Fix for source id type assignement from commandline
+Change for compiler timeout values
+
+Mon Nov 25 12:11:47 EST 2013
+Fixes for ARP direction processing
+Back out of duplicate packet tracking logic
+
+Thu Oct 17 15:45:31 EDT 2013
+Mods for duplicate packet reporting
+
+Thu Aug 22 08:39:26 EDT 2013
+Modify configure.ac for pcap_dump_flush for older libpcaps
+
+Mon Jul 22 16:09:35 EDT 2013
+Modify timeouts within "nonselectable" packet processing loop.
+
+Tue Jul  9 22:24:01 EDT 2013
+Use VID for the VLAN identifer for the key.
+
+Tue Jun 18 23:39:12 EDT 2013
+Fix syslog while daemonized
+
+Tue Jun 11 16:42:18 EDT 2013
+Remove nanosleep() to improve performance.
+
+Thu Apr  4 16:38:50 EDT 2013
+Major addtions for SDN tracking.  New Flow model specifications in argus.conf.
+
+Wed Mar  6 16:33:47 EST 2013
+Fixes for solaris port, to avoid scheduling problems with record timeouts
+
+Fri Oct 19 13:14:13 EDT 2012
+Fix documentation in ./include/argus_def.h to get Cause and Vers in right order.
+
+Mon Oct  8 17:17:39 EDT 2012
+Fix for argus TCP state machine issue with very out of order
+SYN, SYN_ACK, RST volleys.
+
+Thu Jun 21 15:33:22 EDT 2012
+Fix for country code aggregation problem, where dst co would be zero'd out.
+
+Mon Jun 11 16:07:53 EDT 2012
+Fix for ArgusOutput deadlock, when congested.
+
+Mon Jun 09 08:21:16 EDT 2012
+Netflow V9 support transitioned and mostly integrated.
+Need more packet data.
+
+Tue Apr 10 08:19:44 EDT 2012
+Prepare for argus-3.0.6 release.
+Modify usage to use stdout, instead of stderr
+
+Mon Feb 13 11:11:32 EST 2012
+Fixed embedded comments parsing in argus.conf file.
+Updated argus client filter to be in sync with clients.
+Fixed issue with ArgusSourceID parsing.
+
+Wed Feb  1 22:25:37 EST 2012
+Fixed loss reporting bug.  Adjusted TCP PERF DSR to support
+gap estimates better.  Need to modify for argus-3.1.0 so
+that we track retransmitted bytes, rather than packets (possibly).
+
+Tue Jan  3 18:47:20 EST 2012
+Added better double quote handling in the argus resource file.
+Removed all options in the sample argus.conf file.
+Preliminary Juniper encapsulation support added
+
+Tue Dec  6 20:19:24 EST 2011
+Fixed argus.conf parsing bug, when using `hostname`.
+Added some additional logging and packet dumping if the timestamps are wayyyy
+out of the wayyyy.  Did a bit more cleanup on PSIZE DSR type reporting, due
+to error messages when using PF_RING.
+
+Thu Dec  1 17:32:30 EST 2011
+Updated ifdef's for available pcap functions
+Added back support for pcap_dispatch() to support older version of Bivio.
+
+Mon Nov 14 14:29:08 EST 2011
+Fixed problem with fragment tracking and reporting
+Added stub for process Juniper TTP protocol
+
+Mon Sep 19 10:01:48 EDT 2011
+Modified output global status timer management to deal with sleeping laptops.
+
+Fri Jun 30 10:22:43 EDT 2011
+Fixed pid file code to create correct pid files.
+
+Mon Jun 20 15:36:17 EDT 2011
+Added 4 byte string and fixed int as probe id.
+
+Mon May 16 18:44:22 EDT 2011
+Added v1, 5, and 6 to this list of cisco formats.
+
+Mon May  9 23:02:38 EDT 2011
+Added parsing cisco flow records from packet payload (currently support v7).
+
+Mon Apr 18 19:38:02 EDT 2011
+Fix for ArgusMallocListRecord when we've run out of memory
+
+Fri Feb 25 13:34:59 EST 2011
+Added timeout variables to argus.conf, and removed the init timeout value.
+
+Fri Feb 25 11:08:49 EST 2011
+Fixes for Argus events, DAG interface support and configure.ac
+Ready to go
+
+Tue Oct 12 14:58:13 EDT 2010
+Tuning for timeout queues
+
+Mon Oct 11 15:53:47 EDT 2010
+Updated for changes in argus-3.x.3.24
+Merged in argus-3.0.3.17 into argus-3.x.3.
+
+Thu Sep 30 19:29:40 EDT 2010
+An amazing set of bugs relating to List records.
+Should make argus much better under load
+
+Mon Aug 16 14:36:54 EDT 2010
+Reimplemenation of keystroke algorithm
+
+Tue Aug 10 23:54:21 EDT 2010
+Rework autoconf and autoheader support
+
+Tue Aug 10 01:33:30 EDT 2010
+Mods from John's email and added debuging
+
+Thu Jul 29 14:04:51 EDT 2010
+Finished first round implementation for keystroke algorithm
+
+Sat Jul 17 17:33:42 EDT 2010
+Fix to get localnet and netmask back into management record
+
+Tue Jul  6 18:12:57 EDT 2010
+Fix for fragmentation support
+
+Wed Jun 23 14:20:18 EDT 2010
+Fix for jitter value reporting.
+
+Thu Jun 10 11:02:57 EDT 2010
+Fix for "bond" interface support in ArgusSource.
+
+Wed Jun  2 15:31:54 EDT 2010
+Added multiple bind address support
+Added udt packet stream processing
+Added control plane capture support using -C
+Fix for arp flow record reporting (missing answer)
+Correct AI_NUMERICSERV change to AI_NUMERICHOST
+
+Mon May 10 18:37:42 EDT 2010
+Finishing threaded ArgusSource strategy.
+Added back ArgusOutput udp strategy.
+Updated argus.conf.5 man page.
+Updated argus.8 man page.
+Fixed gentoo configure support.
+
+Tue May  4 10:31:14 EDT 2010
+Added back threaded ArgusSource strategy.
+
+Tue May  4 00:30:47 EDT 2010
+Added gentoo bug reports for configure and compile
+Added better syslog support.
+
+Fri Apr 23 11:10:59 EDT 2010
+Added ISIS flow generation for tony.
+
+Added backtrace for argus exiting, and added a few checks for pcap_dispatch()
+returning an ignorable error.
+
+Thu Apr 22 11:38:09 EDT 2010
+Mods to fix TCP loss reporting error due to incomplete implementation
+of Mar 8 fixes for modifing the packet.
+Mod to fix TCP state machine when FIN alone is sent from dst.
+
+Mon Apr 12 22:45:54 EDT 2010
+Mods to fix Teredo parsing error
+
+Mon Mar  8 23:40:34 EST 2010
+Mods to not modify the packet itself while processing.
+
+Tue Feb 16 23:16:53 EST 2010
+Modify teredo support to be turned on via argus.conf
+Indicate teredo tunnel encapsulation by default.
+
+Wed Feb 10 17:41:58 EST 2010
+Added Teredo tunnel parsing.  Exclude udp domain as candidate.
+
+Mon Feb  8 21:46:32 EST 2010
+Starting argus-3.0.3
+Added argus events data generation
+Fixed apple libpcap performance issues.
+Updated argusarchive with Peter's version (thanks Peter!!!)
+
+Changes from Argus-3.0.0
+Thu Oct 15 12:15:17 EDT 2009
+Mod to support Bivio7000 default device processing.
+
+Thu Sep 24 01:23:02 EDT 2009
+Fixes for ipid roll-over and TCP loss detection
+
+Thu Aug 13 00:40:12 EDT 2009
+Fixes for GRE flow reporting when the upper protocol is incomplete
+Fixes for over counting some fragments.
+
+Tue Aug 11 01:05:23 EDT 2009
+Mods to fix retrans reporting for tcp when packets are out of order
+
+Sun Aug  9 19:32:27 EDT 2009
+Mods to fix poor header parsing logic in pppoe protocols.
+
+Tue Jul 28 10:57:18 EDT 2009
+Mods to support older libpcap libraries, aka Bivio 7500
+Mods to fix loss reporting for ESP flows.
+
+Tue Jul  7 14:02:35 EDT 2009
+OK, seems like a year has passed, and here we are for argus-3.0.2.
+The changes include:
+   Syslog support fixes
+   Modifications to rpm argus.spec file.
+   Modificiations to support Bivio 7500.
+   Fixes for arp processing.
+   Fixes for icmpv6 processing.
+   Restructure timeout queue processing.
+   Attempted fixes for dealing with system time bug.
+   Fixes for Radiotap header parsing.
+   Mods to ArgusProcessEtherHdr logic for PPP processing.
+   Reimplement ARGUS_SRC_MULTIPATH;
+   Fix packet size reporting error.
+
+   Set ARGUS_INITTIMEOUT from 0 to 5 seconds.
+   Restructure Listen strategy.
+   Minor changes to coping of timestruct from libpcap to us.
+   Better handling of pcap fileno.
+   Correct MAX_SNAPLEN byte length to 65535
+   Fix TCP flags reporting
+   Fix TCP Reinitialization on RST.
+   Corrections for long long variables by using LL in constants.
+   Restructured source id porsing.
+   Mods to ./common/Makefile.in for datarootdir.
+   Fixed floating point reporting for stat DSR.
+   Update aclocal.m4
+
+
+Tue Jul  8 11:55:37 EDT 2008
+   Fixed LLC header parsing issues.
+   Fixed argus.spec issue with man page installation
+   Fixed argus.spec issue with argusbug
+

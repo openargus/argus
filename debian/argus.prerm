@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+#
+# stop the daemon before uninstall
+#
+if [ -x "/etc/init.d/argus" ]; then
+	invoke-rc.d argus stop || exit $?
+fi
+
+#DEBHELPER#
+
+exit 0

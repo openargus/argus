@@ -1,0 +1,19 @@
+[Unit]
+Description=Start Argus daemon
+After=network.target
+
+# You may need to change the ExecStartPre below to manage the
+# interface that argus is going to use.  You may also need to
+# change the ExecStart line to point to where argus is installed
+# on your system, as well as any other arguments to argus.  Note
+# that this assumes that you are not using -d or setting
+# ARGUS_DAEMON=yes in the config file.
+#
+# This was tested on Fedora 16
+
+[Service]
+ExecStartPre=/sbin/ifconfig em2 up
+ExecStart=/usr/local/sbin/argus
+
+[Install]
+WantedBy=multi-user.target

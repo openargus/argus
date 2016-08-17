@@ -1,0 +1,8 @@
+pkg/argus.conf /etc/
+pkg/ubuntu/init.d/argus /etc/init.d/
+pkg/ubuntu/default/argus /etc/default/
+
+debian/tmp/usr/bin/ usr/
+debian/tmp/usr/sbin/ usr/
+
+support/  usr/share/doc/argus

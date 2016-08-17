@@ -1,0 +1,494 @@
+#!/bin/sh
+#  Argus Software
+#  Copyright (c) 2000-2015 QoSient, LLC
+#  All rights reserved.
+# 
+#  QoSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+#  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+#  FITNESS, IN NO EVENT SHALL QoSIENT, LLC BE LIABLE FOR ANY
+#  SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+#  RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+#  CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+#  CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# 
+#*/
+
+#  14 Jan 2010 - Peter Van Epp (vanepp@sfu.ca):
+#  	Modified for perl traffic scripts and to make it work again
+
+# In case we are running from cron set an appropriate PATH 
+
+PATH=/bin:/usr/bin:/usr/local/bin
+
+# If there is an argument on the command line set it as the argus prefix which
+# will modify the names of the various data files (for the case where a machine
+# is collecting for more than one argus instance). If there is no argument, 
+# then the prefix is set to argus so as to be compatible with the original
+# version of argusarchive.
+
+if [ "$1"x = x ]; then
+  INSTANCE=argus
+else
+  INSTANCE="$1_argus"
+fi
+
+# User setable options:
+
+#
+# Try to use $ARGUSDATA and $ARGUSARCHIVE where possible.
+# If these are available, the only thing that we need to
+# know is what is the name of the argus output file.
+#
+# If ARGUSDATA set then don't need to define below.  For
+# cron scripts however, $ARGUSDATA may not be defined, so
+# lets do that here if it isn't already.
+
+# where to find the data argus is writing
+
+if [ "$ARGUSDATA"x = x ]; then
+  ARGUSDATA=/var/log/argus			# not set by user, so set it
+fi
+
+if [ "$ARGUSARCHIVE"x = x ]; then
+  ARGUSARCHIVEBASE=/usr/local/argus		# not set by user so set it
+else 
+  ARGUSARCHIVEBASE=$ARGUSARCHIVE		# else us the user's value
+fi
+
+DATAFILE=${INSTANCE}.out   # argus must be writing data in /$ARGUSDATA/$DATAFILE
+
+# set the program paths for your OS (this is FreeBSD)
+
+ARGUSBIN=/usr/local/bin	# location of argus programs 
+AWK=/usr/bin/awk
+MV=/bin/mv
+MKDIR=/bin/mkdir
+CHOWN=/usr/sbin/chown
+SU=/usr/bin/su
+TOUCH=/usr/bin/touch
+
+# Data file compression
+
+COMPRESS=yes		# compress the archived data files yes or no
+
+# pick one of the below
+
+COMPRESSOR=/usr/bin/gzip  # using this compression program
+COMPRESSFILEEX=gz
+
+#COMPRESSOR=/usr/bin/bzip2  # using this compression program
+#COMPRESSFILEEX=bz2
+
+#COMPRESSOR=/usr/bin/compress  # using this compression program
+#COMPRESSFILEEX=Z
+
+# options for perl traffic processing scripts
+
+ARGUSREPORTS=$ARGUSDATA	# post processing directory
+POSTPROCESS=no		# run the traffic scripts 
+SPOOL=$ARGUSREPORTS/spool	# spool directory name		
+POSTPROG=/usr/local/bin/argus3_post_drv.pl
+POSTLOG=/var/log/argus.logs/argus3_post_drv.log
+ACCOUNT=argus		# account used to run the post scripts (needs only
+			# read access to the archive files)
+
+# optionally anonymize the argus data before post processing it
+
+ANONPOSTPROCESS=no	# run the traffic scripts on the anon data as well
+ANONYMIZE=$ARGUSBIN/ranonymize		# $ARGUSBIN/ranonymize or no 
+ANONCONF=$ARGUSDATA/ranonymize.conf  	# using this config file if anonimizing
+ANONDATADIR=$ARGUSREPORTS/anondata	# anonymized data storage directory name
+
+# end of options
+
+# Set ARGUSARCHIVE according to the settings above
+
+ARGUSARCHIVE=$ARGUSARCHIVEBASE/${INSTANCE}.archive
+
+# create the archive directory 
+
+if [ ! -d $ARGUSARCHIVE ]; then
+  $MKDIR $ARGUSARCHIVE
+  if [ ! -d $ARGUSARCHIVE ]; then
+    echo "Could not create archive directory $ARGUSARCHIVE"
+    exit
+  fi
+fi
+
+if [ -d $ARGUSDATA ] ; then
+   cd $ARGUSDATA
+   echo "cd $ARGUSDATA"
+   if [ $ARGUSDATA != `pwd` ]; then 
+     echo "couldn't change to directory $ARGUSDATA, got `pwd` instead"
+     exit
+   fi
+else
+   echo "argus data directory $ARGUSDATA not found"
+   exit
+fi
+
+# If there is an argument on the command line set it as the argus prefix which
+# will modify the names of the various data files (for the case where a machine
+# is collecting for more than one argus instance). If there is no argument, 
+# then the prefix is set to argus so as to be compatible with the original
+# version of argusarchive.
+
+if [ "$1"x = x ]; then
+  INSTANCE=argus
+else
+  INSTANCE="$1_argus"
+fi
+
+# In order to have the archive be date consistant (i.e. the first file of the
+# day starts at or close to midnight instead of 23:00 of the day before as
+# was originally the case), take the archive file name from a file called
+# $ARGUSDATA/${INSTANCE}.start.date (which is supposed to be created by the
+# startup scripts at boot, and every time this script is run). To provide for
+# the case where the file doesn't exist when this script runs, set the file
+# to the current time (with a .0 appended to the end) and the next cycles file
+# name to the current time with a .1 appended. This makes sure that the two
+# close to identically named files sort in the correct date order for processing
+# even after the compression suffix is tagged on the end. All the files need
+# to have the .0 appended to them so they remain the same length and thus 
+# sort correctly. 
+
+if [ ! -f $ARGUSDATA/${INSTANCE}.start.date ]; then 
+
+  # File doesn't exist so create a current archive file with the current time
+  # and a .0 suffix, and the new archive file (for next cycle) with the current
+  # time and a .1 suffix. The purpose of the suffixes is to maintain file 
+  # time order on a sort after the compression suffix is appended to the 
+  # file name. Without the suffixes at the next cycle the script would 
+  # overwrite the data we archived this time (bad!) because the file names
+  # would be identical.
+
+  echo "$ARGUSDATA/${INSTANCE}.start.date doesn't exist creating files"
+  ARCHIVE=${INSTANCE}.`date '+%Y.%m.%d.%H.%M.%S'`.0
+  NEWARCHIVE=${INSTANCE}.`date '+%Y.%m.%d.%H.%M.%S'`.1
+
+else
+
+  # The file exists, so check the contents are of the form 
+  # $INSTANCE.yy.mm.hh.mm.ss.0|1 as it should be. If not set both file names
+  # as above to create a correct pair of file names and log the invalid 
+  # contents of the file.
+
+  ARCHIVE=`cat $ARGUSDATA/${INSTANCE}.start.date`
+
+  # since I can't figure out how to escape the $ to match eol, cheat ...
+
+  ESC=$
+  RESULT=`egrep -c "^$INSTANCE\.[0-9][0-9][0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]\.[0-9]$ESC" $ARGUSDATA/${INSTANCE}.start.date`
+
+  if [ "$RESULT" = "1" ]; then
+
+    # the file appears valid so use the contents as the current archive name
+    # and create the next one from the current time with .0 appended. This 
+    # should be the normal case when all is well.
+
+    NEWARCHIVE=${INSTANCE}.`date '+%Y.%m.%d.%H.%M.%S'`.0
+
+  else
+
+    # The format of the saved file looks invalid (perhaps because someone 
+    # external messed with it), so recreate a proper current and new archive
+    # file. Log the corrupted version.
+ 
+    echo "$ARCHIVE is invalid, recreated"
+    ARCHIVE=${INSTANCE}.`date '+%Y.%m.%d.%H.%M.%S'`.0
+    NEWARCHIVE=${INSTANCE}.`date '+%Y.%m.%d.%H.%M.%S'`.1
+
+  fi
+fi
+
+TIMESTAMP=`date '+%Y.%m.%d.%H.%M.%S'`
+
+# and write the next cycle's archive file name to file for the next cycle. 
+
+`echo $NEWARCHIVE > $ARGUSDATA/${INSTANCE}.start.date`
+
+echo "$TIMESTAMP ${INSTANCE}_argusarchive started"
+
+YEAR=`echo $ARCHIVE | $AWK 'BEGIN {FS="."}{print $2}'`
+MONTH=`echo $ARCHIVE | $AWK 'BEGIN {FS="."}{print $3}'`
+DAY=`echo $ARCHIVE | $AWK 'BEGIN {FS="."}{print $4}'`
+
+
+if [ ! -d $ARGUSARCHIVE ] ; then
+   $MKDIR $ARGUSARCHIVE
+   if [ ! -d $ARGUSARCHIVE ] ; then
+      echo "could not create archive directory $ARGUSARCHIVE"
+      exit
+   else
+      echo "archive directory $ARGUSARCHIVE created"
+   fi
+else
+   echo "archive directory $ARGUSARCHIVE found"
+fi
+
+ARGUSARCHIVE=$ARGUSARCHIVE/$YEAR
+
+if [ ! -d $ARGUSARCHIVE ]; then
+   $MKDIR $ARGUSARCHIVE
+   if [ ! -d $ARGUSARCHIVE ]; then
+      echo "could not create archive directory structure."
+      exit
+   fi
+fi
+
+ARGUSARCHIVE=$ARGUSARCHIVE/$MONTH
+
+if [ ! -d $ARGUSARCHIVE ]; then
+   $MKDIR $ARGUSARCHIVE
+   if [ ! -d $ARGUSARCHIVE ]; then
+      echo "could not create archive directory structure."
+      exit
+   fi
+fi
+
+ARGUSARCHIVE=$ARGUSARCHIVE/$DAY
+
+if [ ! -d $ARGUSARCHIVE ]; then
+  $MKDIR $ARGUSARCHIVE
+   if [ ! -d $ARGUSARCHIVE ]; then
+      echo "could not create archive directory structure."
+      exit
+   fi
+fi
+
+# Presumably this is for mysql, but I don't know how to create it so 
+# it is currently commented out 
+
+# if [ ! -d $ARGUSARCHIVE/$INDEX ]; then
+#   $MKDIR $ARGUSARCHIVE/$INDEX
+#   if [ ! -d $ARGUSARCHIVE/$INDEX ]; then
+#      echo "could not create archive index directory."
+#      exit
+#   fi
+# fi
+
+if [ -f $ARGUSDATA/$DATAFILE ] ; then
+   if [ -f $ARGUSARCHIVE/$ARCHIVE ] ; then
+      echo "argus archive file $ARGUSARCHIVE/$ARCHIVE exists, leaving data"
+      exit
+   else
+      $MV $ARGUSDATA/$DATAFILE $ARGUSARCHIVE/$ARCHIVE 2>/dev/null
+   fi
+else
+   echo "argus data file $ARGUSDATA/$DATAFILE not found"
+   exit
+fi
+
+TIMESTAMP=`date '+%Y.%m.%d.%H.%M.%S'`
+
+if [ -f $ARGUSARCHIVE/$ARCHIVE ]; then
+   echo "$TIMESTAMP argus data file $ARGUSARCHIVE/$ARCHIVE moved successfully"
+else 
+   echo "argus data file $ARGUSDATA/$DATAFILE move failed"
+   exit
+fi
+
+# Now compress and/or post process the data file if that has been requested
+
+# save a copy of the archive filename (which will change and be updated if
+# compression is requested) for later processing
+
+ARCHIVEFILE=$ARCHIVE
+ARCHIVEPATHFILE=$ARGUSARCHIVE/$ARCHIVE
+
+# compression first if requested
+
+if [ $COMPRESS = yes ]; then
+   if [ "$COMPRESSOR"x = x ]; then
+     echo "Compression requested but COMPRESSOR not set"
+     exit
+   fi
+
+   if [ -f $ARGUSARCHIVE/$ARCHIVE.$COMPRESSFILEEX ]; then
+     echo "Compressed file $ARGUSARCHIVE/$ARCHIVE.$COMPRESSFILEEX already exists, leaving data file"
+     exit
+   fi
+
+   $COMPRESSOR $ARGUSARCHIVE/$ARCHIVE
+
+   TIMESTAMP=`date '+%Y.%m.%d.%H.%M.%S'`
+
+   if [ -f $ARGUSARCHIVE/$ARCHIVE ]; then
+     echo "$TIMESTAMP Original data file $ARGUSARCHIVE/$ARCHIVE still exists compression failed?"
+     exit
+   fi
+
+   if [ -f $ARGUSARCHIVE/$ARCHIVE.$COMPRESSFILEEX ]; then
+     echo "$TIMESTAMP $ARGUSARCHIVE/$ARCHIVE.$COMPRESSFILEEX compression completed"
+
+     # so update the data file name for futher processing if requested
+
+     ARCHIVE=$ARCHIVE.$COMPRESSFILEEX
+     ARCHIVEPATHFILE=$ARGUSARCHIVE/$ARCHIVE
+
+   else
+     echo "$TIMESTAMP no compressed file $ARGUSARCHIVE/$ARCHIVE.$COMPRESSFILEEX compression failed?"
+     exit
+   fi
+fi
+
+# if we got this far things seem to have worked correctly so do the 
+# anonymizing and post processing if requested
+
+if [ $POSTPROCESS = yes ] || [ $ANONPOSTPROCESS = yes ]; then
+
+ # check the reports directories creating as needed and requested
+
+ if [ ! -d $ARGUSREPORTS ] ; then
+
+   $MKDIR $ARGUSREPORTS
+
+   if [ ! -d $ARGUSREPORTS ] ; then
+
+     echo "could not create reports directory $ARGUSREPORTS"
+     exit
+   else
+     echo "report directory $ARGUSREPORTS created"
+   fi
+ fi
+
+ # check and create the spool directory if needed
+
+ if [ ! -d $SPOOL ] ; then
+
+   $MKDIR $SPOOL
+
+   if [ ! -d $SPOOL ] ; then
+
+     echo "could not create reports directory $SPOOL"
+     exit
+   else
+     echo "report directory $SPOOL created"
+   fi
+ fi
+fi
+
+if [ $POSTPROCESS = yes ]; then
+
+  # If postprocessing of the unanonymized files has been requested create
+  # the appropriate workfile in the spool directory. 
+
+  echo "$ARCHIVEPATHFILE" > $ARGUSREPORTS/spool/w$ARCHIVE
+fi
+
+# If anonymization has been requested, anonymize and (if requested) compress
+# the data file 
+
+if [ $ANONYMIZE = $ARGUSBIN/ranonymize ]; then
+
+  # Check and create the data directory as needed
+
+  if [ ! -d $ANONDATADIR ] ; then
+
+    $MKDIR $ANONDATADIR
+
+    if [ ! -d $ANONDATADIR ] ; then
+
+      echo "could not create reports directory $ANONDATADIR"
+      exit
+    else
+      echo "report directory $ANONDATADIR created"
+    fi
+  fi
+
+  # anonymize the data file as requested and save it (compressed if requestedi) 
+  # in to the anondata directory as anonfilename (to differentiate it from the
+  # unanonympized data file)
+
+  ARCHIVEFILE=anon$ARCHIVEFILE
+
+  $ANONYMIZE -f $ANONCONF -r $ARGUSARCHIVE/$ARCHIVE -w $ANONDATADIR/$ARCHIVEFILE
+
+  # update the full path to the now anonymized data file to pass to post 
+  # processing if requested
+
+  ARCHIVEPATHFILE=$ANONDATADIR/$ARCHIVEFILE
+
+  if [ $COMPRESS = yes ]; then
+
+    if [ -f $ANONDATADIR/$ARCHIVEFILE.$COMPRESSFILEEX ]; then
+      echo "Compressed file  $ANONDATADIR/$ARCHIVEFILE.$COMPRESSFILEEX already exists, leaving data file"
+      exit
+    fi
+
+    TIMESTAMP=`date '+%Y.%m.%d.%H.%M.%S'`
+    echo "$TIMESTAMP starting compression of $ANONDATADIR/$ARCHIVEFILE"
+
+    $COMPRESSOR $ANONDATADIR/$ARCHIVEFILE
+
+    TIMESTAMP=`date '+%Y.%m.%d.%H.%M.%S'`
+
+    if [ -f $ANONDATADIR/$ARCHIVEFILE ]; then
+      echo "$TIMESTAMP Original data file $ANONDATADIR/$ARCHIVEFILE still exists compression failed?"
+      exit
+    fi
+
+    if [ -f $ANONDATADIR/$ARCHIVEFILE.$COMPRESSFILEEX ]; then
+      echo "$TIMESTAMP compression of $ANONDATADIR/$ARCHIVEFILE.$COMPRESSFILEEX completed"
+      ARCHIVEFILE=$ARCHIVEFILE.$COMPRESSFILEEX
+    else 
+      echo "$TIMESTAMP compression of $ANONDATADIR/$ARCHIVEFILE failed"
+      exit
+    fi
+
+    # update the full path to the now anonymized data file to pass to post 
+    # processing if requested
+
+    ARCHIVEPATHFILE=$ANONDATADIR/$ARCHIVEFILE
+  fi  # end of anon compression
+
+ if [ $ANONPOSTPROCESS = yes ]; then
+
+   # Write the workfile in to the spool directory to cause this file to be 
+   # post processed when the post processing script is run later. 
+
+   echo "$ARCHIVEPATHFILE" > $ARGUSREPORTS/spool/w$ARCHIVEFILE
+ fi
+fi
+
+# At this point the appropriate work files have been written to the spool
+# directory so change the ownership of the files to the post processing
+# user and launch post processing if requested
+
+if [ $POSTPROCESS = yes ] || [ $ANONPOSTPROCESS = yes ]; then
+
+ # Check for and try and create an appropriate log file
+
+ if [ ! -f $POSTLOG ]; then
+
+   $TOUCH $POSTLOG
+   if [ ! -f $POSTLOG ]; then
+     echo "Log file $POSTLOG can't be created"
+     exit
+   fi
+ fi
+
+ # Correct the ownership of the directories we have been writing as root to
+ # the post processing user
+
+ $CHOWN $ACCOUNT $POSTLOG
+ $CHOWN -R $ACCOUNT $ARGUSREPORTS/spool
+ $CHOWN -R $ACCOUNT $ANONDATADIR
+
+ # then run the post processing command
+
+ TIMESTAMP=`date '+%Y.%m.%d.%H.%M.%S'`
+
+ echo "$TIMESTAMP Post processing started"
+
+ $SU $ACCOUNT -c "$POSTPROG >> $POSTLOG"
+
+ TIMESTAMP=`date '+%Y.%m.%d.%H.%M.%S'`
+
+ echo "$TIMESTAMP Post processing completed"
+
+fi
+
+TIMESTAMP=`date '+%Y.%m.%d.%H.%M.%S'`
+echo "$TIMESTAMP argusarchive completed successfully"
+

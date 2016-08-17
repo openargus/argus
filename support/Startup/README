@@ -1,0 +1,100 @@
+/*
+ * Argus Software
+ * Copyright (c) 2000-2015 QoSient, LLC
+ * All rights reserved.
+ *
+ * Permission to use, copy, modify, and distribute this software and
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation, and that the name of QoSient not be
+ * used in advertising or publicity pertaining to distribution of the
+ * software without specific, written prior permission.  
+ * 
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+ * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ */
+
+These scripts are intended to help manage the starting/stopping of
+Argus daemons, both during system boot as well as in normal operation,
+on a number of platforms, such as Linux, using the chkconfig
+system, and Mac OS X, with /Library/StartupItems packages.
+
+
+Under Linux 
+
+Systemctl
+
+The argus.service file can be used on Fedora (and RedHat Linux?) to automatically
+start argus at boot time.  Put the file argus.service in /lib/systemd/system, then
+run these two commands as root:
+
+ # systemctl enable argus.service
+ # systemctl start argus.service
+
+After that, argus should be automatically started when the system boots.
+
+
+Chkconfig
+
+The ./argus script takes one of four arguments, start, stop, restart
+and status.  If the specific /etc configuration file is not found,
+the daemon will be run with some assumptions about the system configuration
+and writes its logs to /var/log/argus.
+
+For installation on Linux:
+
+The linux chkconfig system, assumes that the scripts that are run from
+the /etc/init.d directory return, as the boot process runs each script
+sequentially, and doesn't progress until each process returns.
+
+This means that argus and radium need to run as daemons, in the background.
+As a result, do check that the individual /etc/ configuration files,
+argus.conf and radium.conf, set the [ARGUS|RADIUM}_DAEMON variable to
+"yes".
+
+Edit the PATH variable in the script to the directory the binary is
+located in.
+
+Then, install the script in /etc/rc.d/init.d.  After this, if your system
+supports the chkconfig() utility, you can use that to install argus and
+then have it start when the system boots.
+
+
+      # cp argus /etc/rc.d/init.d
+      # chkconfig --add argus
+      # chkconfig --level 2345 argus on
+
+
+If your system doesn't have chkconfig(), then simply create a link to the
+/etc/rc.d/init.d/argus file in the run level that you want the daemon to
+run in.  Most systems will have this as run level 3.
+ 
+      # cd /etc/rc.d/rc3.d
+      # ln -s ../init.d/argus argus
+
+
+
+Mac OS X
+
+Launchctl
+
+The com.qosient.argus.plist is a configuration file used with the Mac OS X
+launchctl system.  This file should be installed into the /Library/LaunchDaemons
+directory on the target machine.  This will allow Mac OS X to start argus when
+the machine boots, and to ensure that it is always running.
+
+The included scripts assume that argus has been installed in the default
+/usr/local/sbin directory, so if you have done something out of the ordinary,
+you will need to modify the scripts.
+
+For installation on Mac OS X:
+   # cp com.qosient.argus.plist /Library/LaunchDaemons
+   # launchctl load  /Library/LaunchDaemons/com.qosient.argus.plist
+

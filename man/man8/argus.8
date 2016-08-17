@@ -1,0 +1,358 @@
+.\"
+.\" Argus Software
+.\" Copyright (c) 2000-2015 QoSient, LLC
+.\" All rights reserved.
+.\"
+.TH ARGUS 8 "10 November 2000" "argus 3.0.8"
+.SH NAME
+argus \- audit record generation and utilization system
+.SH SYNOPSIS
+.B argus
+[
+.B options
+] [
+.B filter expression
+]
+.SH COPYRIGHT
+Copyright (c) 2000-2015 QoSient, LLC   All rights reserved.
+.SH DESCRIPTION
+.IX  "argus command"  ""  "\fLargus\fP \(em Internet audit facility"
+.IX  servers  argus  ""  "\fLargus\fP \(em Internet audit facility"
+.LP
+.B Argus
+is a data network transaction auditing tool that categorizes
+and tracks network packets that match the libpcap filter 
+.I expression
+into a protocol-specific network flow transaction model.
+.B Argus
+reports on the transactions that it discovers, as periodic network flow data,
+that is suitable for historical and near real-time processing for forensics,
+trending and alarm/alerting.
+.LP
+Designed to run as a daemon,
+.B argus
+reads packets directly from a network interface, classifies the packets into
+network transacations and appends the resulting network flow data to a log file
+or open socket connected to an
+.B argus
+client (such as
+.BR ra(1) ).
+.B Argus
+can also read packet information from
+.B tcpdump(1)
+,
+.B snoop(1)
+,
+.B NLANR's Moat Time Sequence Header
+or
+.B Endaces ERF 
+raw packet files.  \fBArgus\fP can also be configured to append its
+transaction logs to stdout.
+.LP
+.B Argus
+can provide address based access control for its socket connection facility using
+.B tcp_wrappers
+, and it can provide strong authentication and confidentiality protection
+using 
+.B SASL2
+technology. Refer to package documentation to enable each of these services.
+
+.SH OPTIONS
+.TP 5 5
+.B \-A
+Generate application byte metrics in each audit record.
+.TP 5 5
+.B \-b
+Dump the compiled packet-matching code to stdout and stop.  This is
+used to debug filter expressions.
+.TP 5 5
+.B \-B
+<addr>
+Specify the bind interface address for remote access.  Acceptable values
+are IP version 4 addresses.  The default is to bind to INADDR_ANY
+address.
+.TP 5 5
+.BI \-c
+<dir>
+Specify a chroot directory to use after privilege access is complete.
+Must be super user to use this option.
+.TP 5 5
+.BI \-C
+Run argus in control plane capture mode.  This sets the interface packet
+snap length to capture full packets, and to enable detailed flow tracking
+for supported control plane protocols.
+.TP 5 5
+.BI \-d
+Run argus as a daemon.  This will cause argus to do the things that
+Unix daemons do and return, if there were no errors, with argus
+running as a detached process.
+.TP 5 5
+.BI \-D
+<level>
+Print debug messages to stderr.  The higher the \fB<level>\fP the more
+information printed.  Acceptable levels are 1-8.
+.TP 5 5
+.BI \-e
+<value>
+Specify the source identifier for this \fBargus\fP.  Acceptable values are
+numbers, strings, hostnames or ip address. Double quotes around the parameter
+are used to designate the string format.  The longest supported string is 4
+characeters long.  Be sure and single quote or 'escape' the double quotes so
+that the shell doesn't gooble up the delimiters.
+
+This option sets a global Source identifier that can be overriden by
+specific -i options.
+
+.nf
+   argus -e '"arg1"'
+   argus -e \\"arg2\\"
+.fi
+
+.TP 5 5
+.B \-f
+When reading packets from a packet capture file, the -f option causes argus
+to not stop when end of file is reached, but rather to wait for additional
+packets to be appended to the input. The -f option is ignored if the standard
+input is a pipe, but not if it is a FIFO.
+
+.TP 5 5
+.B \-F
+Use \fIconffile\fP as a source of configuration information.
+Options set in this file override any other specification, and so 
+this is the last word on option values.
+.TP 5 5
+.B \-g
+<group>
+Specify a group name to change to after privilege access is complete.
+.TP 5 5
+.B \-h
+Print an explanation of all the arguments.
+.TP 5 5
+.BI \-i
+<interface>
+Specify the physical network \fB<interface>\fP to be audited.
+The default is the first network interface that is up and running.
+
+The syntax for specifying the interface is the same format used
+in the argus.conf.5 file. The optional source id specification can
+be an IPv4 address, an integer, or a string denoted using double
+quotes.
+.nf
+
+  -i interface[/srcid]
+  -i all[/srcid]
+  -i dup:en0,en1/"ap01"               ( en0 and en1 are in ingress and egress interfaces )
+  -i bond:en0,en1/2.3.4.5             ( en0 and en1 are bonded interfaces )
+  -i en0 en1                          ( equivalent '-i bond:en0,en1' )
+  -i dup:[bond:en0,en1],en2/3         ( in this case 3 is the srcid )
+  -i en0/"en0" -i en1/"en1"           ( equivalent '-i ind:en0/srcid,en1/srcid' )
+.fi
+.TP 5 5
+.BI \-J\ 
+Generate packet peformance data in each audit record.
+.TP 5 5
+.B \-M
+<secs>
+Specify the interval in <secs> of argus status records.  These records
+are used to report the internal status of argus itself.  The default is
+300 seconds.
+.TP 5 5
+.B \-m
+Provide MAC addresses information in \fBargus\fP records.
+.TP 5 5
+.B \-N <packet count>|<packet range>
+Specify the number of packets to process.  You can give an absolute
+number, or a range with the syntax "start-stop".  Examples are:
+   -N 27         - read the first 27 packets.
+   -N 1034-1434  - read 100 packets starting with 1034.
+.TP 5 5
+.B \-O
+Turn off Berkeley Packet Filter optimizer.  No reason to do this unless
+you think the optimizer generates bad code.
+.TP 5 5
+.B \-p
+Do not set the physical network interface in promiscuous mode.  If the
+interface is already in promiscuous mode, this option may have no effect.
+Do this to audit only the traffic coming to and from the system argus
+is running on.
+.TP 5 5
+.BI \-P
+<portnum>
+Specifies the \fB<portnum>\fP for remote client connection.
+The default is to not support remote access.
+Setting the value to zero (0) will forceably turn off the
+facility.
+.TP 5 5
+.B \-r <[type:]file [type:]file ... >
+Read from
+.B tcpdump(1) ,
+.B snoop(1)
+or
+.B NLANR's Moat Time Sequence Header
+(tsh) packet capture files.  If the packet capture file is a \fBtsh\fP
+format file, then the \fB-t\fP option must also be used.  The file "-"
+specifies stdin as the source of packets.
+
+The \fBtype\fP provides the opportunity to specify what type of packet source to
+expect and process.  Supported types are '' (default) and 'cisco', where argus will
+process the payload of packets as netflow records, when found.
+
+Argus will read from only one input packet file at a time, and will open the files
+in lexigraphic order.  Care should be taken to ensure that the timestamps
+in the packets are ordered, or unexpected behavior may result.
+If the
+.B \-r
+option is specified,
+.B argus
+will not put down a
+.B listen(2)
+to support remote access.
+.TP 5 5
+.BI \-R
+Generate argus records such that response times can be derived from
+transaction data.
+.TP 5 5
+.B \-s
+<bytes>
+Specify the packet snaplen.
+.TP 5 5
+.B \-S
+<secs>
+Specify the status reporting interval in <secs> for all traffic flows.
+.TP 5 5
+.B \-t
+Indicate that the expected packet capture input file is a
+.B NLANR's Moat Time Sequence Header
+(tsh) packet capture file.
+.TP 5 5
+.B \-T timescale
+Specify a playback timescale for realtime processing of input packets.
+.TP 5 5
+.B \-u
+<user>
+Specify an account name to change to after privilege access is complete.
+.TP 5 5
+.B \-U
+Specify the number of user bytes to capture.
+.TP 5 5
+.B \-w
+<file | stream ["filter"]>
+Append transaction status records to \fIoutput-file\fP or write records to the URL
+based stream.  Supported stream URLs are 'argus-udp://host[:port]', where the default
+port is 561. An \fIoutput-file\fP of '-' directs \fBargus\fP to write the resulting 
+\fIargus-file\fP output to \fIstdout\fP.
+.TP 5 5
+.B \-X
+Clear existing argus configuration.  This removes any initialization done prior
+to encountering this flag.  Allows you to eliminate the effects of the
+\fI/etc/argus.conf\fP file, or any argus.conf files that may have been loaded.
+.TP 5 5
+.B \-Z
+Collect packet size information.  This options turns on packet size reporting
+for all flows.  Argus will provide the mean, max, min and standard deviation
+of the packet sizes seen during the flow status interval.
+.TP 5 5
+.B \fIexpression\fP
+This
+.B tcpdump(1)
+expression
+specifies which transactions will be selected.  If no \fIexpression\fP
+is given, all transactions are selected.  Otherwise,
+only transactions for which \fIexpression\fP is `true' will be dumped.
+For a complete \fIexpression\fP format description, please refer to the
+.B tcpdump(1)
+man page.
+
+.SH SIGNALS
+\fBArgus\fP catches a number of \fBsignal(3)\fP events.
+The three signals \fBSIGHUP\fP, \fBSIGINT\fP, and \fBSIGTERM\fP
+cause \fBargus\fP to exit, writing TIMEDOUT status records for
+all currently active transactions.  The signal \fBSIGUSR1\fP
+will turn on \fBdebug\fP reporting, and subsequent \fBSIGUSR1\fP
+signals, will increment the \fBdebug-level\fP. The signal \fBSIGUSR2\fP
+will cause \fBargus\fP to turn off all \fBdebug\fP reporting.
+
+.SH FILES
+.nf
+/etc/argus.conf         - argus daemon configuration file 
+/var/run/argus.#.#.pid  - PID file 
+.fi
+
+.SH EXAMPLES
+.LP
+Run \fBargus\fP as a daemon, writing all its transaction status reports to
+\fIoutput-file\fP.  This is the typical mode.
+.RS
+.nf
+\fBargus -d -e `hostname` -w \fIoutput-file\fP
+.fi
+.RE
+.LP
+If ICMP traffic is not of interest to you, you can filter out ICMP
+packets on input.
+.RS
+.nf
+\fBargus -w \fIoutput-file\fP - ip and not icmp
+.fi
+.RE
+.LP
+Argus supports both input filtering and output filtering,
+and argus supports multiple output streams, each with their
+own independant filters.  Output streams can be written to
+udp based sockets, to unicast or multicast addresses.
+
+If you are interested in tracking IP traffic only (input
+filter) and want to report ICMP traffic to one output stream,
+and all other IP traffic in another output stream.
+.RS
+.nf
+\fBargus -w \fIargus-udp://224.0.20.21:561\fP "icmp" \\
+      -w \fIargus-udp://224.0.20.21:562\fP "not icmp" - ip
+.fi
+.RE
+.LP
+Audit the network activity that is flowing between the two
+gateway routers, whose ethernet addresses are 00:08:03:2D:42:01 and
+00:00:0C:18:29:F1.  Without specifying an \fIoutput-file\fP, it is
+assumed that the transaction status reports will be written to a 
+remote client.  In this case we have changed the port that the
+remote client will use to port 430/tcp.
+.RS
+.nf
+\fBargus -P 430 ether host (0:8:3:2d:42:1 and 0:0:c:18:29:f1)\fP &
+.fi
+.RE
+.LP
+Audit each individual ICMP ECHO transaction from data in <dir>.  You would do
+this to gather Round Trip Time (RTT) data within your network.  Append the output
+to \fIoutput-file\fP.
+.RS
+.nf
+\fBargus -R dir -w \fIoutput-file\fP "echo" - icmp
+.fi
+.RE
+.LP
+Audit all NFS transactions involving the server \fIfileserver\fP
+and increase the reporting interval to 3600 seconds (to provide high
+data reduction).  Append the output to \fIoutput-file\fP.
+.RS
+.nf
+\fBargus -S 3600 -w \fIoutput-file\fP - host fileserver and udp and port 2049\fP &
+.fi
+.RE
+.LP
+Import flow data from pcap file containing Cisco flow data packets. Write output to
+stdout, to a \fIra.1\fP instance.
+.RS
+.nf
+\fBargus -r \fIcisco:pcap-file\fP -w - | ra 
+.f
+.RE
+.SH AUTHORS
+.nf
+Carter Bullard (carter@qosient.com)
+.SH SEE ALSO
+.BR hosts_access (5),
+.BR hosts_options (5),
+.BR tcpd (8),
+.BR tcpdump (1)

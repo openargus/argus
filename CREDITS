@@ -1,0 +1,333 @@
+/*
+ * Argus Software - README
+ * Copyright (c) 2000-2015 QoSient, LLC
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+CREDITS
+
+This list of people are just some of the people that contributed
+significantly to the Argus Project, over its 30 years.
+
+The individuals that have contributed the most to the theory 
+of Argus and its applications in networking and computer science
+have been:
+   Dr. Tony Przygienda
+   Rob Coltun
+   Lou Berger
+
+The great people at Carenegie Mellon Univeristy who provided
+great support with all things, emotion, time and resources:
+   Mark Poepping
+   Chas DiFatta
+
+The amazing group at Georgia Tech, where Argus got it start.
+   Ron Hutchins
+   Ed Coleman
+   Mark Johnson
+   Ted Hope
+
+The Stanford group that have provided the richest source
+for Argus innovation in the areas of behavior and dynamism
+over the last 10 years
+   John Gerth
+   MN
+   Joseph Little
+   Johan van Reijendam
+
+The group at GLORIAD that have implemented the largest
+geographic area covered by Argus ... the entire Planet !!
+   Greg Cole
+   Harika Tandra
+
+Academics and cyber security professionals that have used and
+written about Argus in their research, books, and work !!
+   Richard Bejtilch
+   CS Lee
+   Doug Burk
+ 
+
+With the greatest thanks to the late Dr. Hank Dardy, Cheif
+Scientist of the U.S. Naval Research Laboratory for his amazing
+visonary support of flow monitoring and his group at NRL
+that provided support, opinions, suggestions, criticisms
+and/or attitude about flows:
+   Basil Decina
+   Chas Williams 
+   Eric Kinzie 
+   Heidi Hornstein
+   Dharmesh Shah
+
+
+Much of the work on argus has been done by the members of the
+argus developers mailing list. All have contributed so much
+over all the years.  But two stand out over the many.
+
+   Peter Van Epp
+   Russell Fulton
+
+
+Here is the remaining, very distinguished list, in alphabetical order.
+(I hope I didn't miss anyone):
+
+   0100 (four)
+   Aashish Sharma
+   Abdun Mahmood
+   Adrian Bool
+   Alfredo Laguna Vazquez
+   Alexander Bochmann
+   Andreas Ostling
+   Andrew Kompanek
+   Andrew Pollock
+   Andrew Thompson
+   Avi Freedman
+   Ba Ru
+   Bamm Visscher
+   Berry Kolts
+   Bart Roos
+   Benet Leong
+   Berkay Celik
+   Bjoern Weiland
+   Blake Mattern
+   Borjz Marcos
+   Brian Zeigler
+   Can Desem
+   Carl Andrews
+   Carlw
+   Cedric Vieau
+   Charles Fair
+   Charles King
+   Chris Keladis
+   Chris Sanders
+   Chris Wakelin
+   Chris Wilson
+   Christoph Badura
+   Christopher Jones
+   Chungen Li
+   Clauss Strauch
+   Claudio Luck
+   Conor McGrath
+   Corey Smith
+   Craig Merchant
+   Darren Spruell
+   Dave Plonka
+   David A. J. Ripley
+   David Binderman
+   David Edelman
+   Derek Ditch
+   Dez Blanchfield
+   Dietmar Goldbeck
+   Digital Ninja
+   dn1nj4
+   Douglas Pichardo
+   Dustin
+   E.J. Gamarro
+   Earl
+   El Draco
+   Elof2
+   Eric Graham
+   Eric Pancer
+   Ernie Johanson
+   Esteban G
+   Estuardo Gamarro
+   Fabrice Fothe Fopa
+   Florenzi Alessandro
+   Fyodor
+   George Jones
+   George Nychis
+   Georgios Pallis
+   Giles Chauvin
+   Gilson Soares
+   Glen Bojaza
+   Graeme Russ
+   Greg Lapchenko
+   Guilsson
+   Guy Dickinson
+   Harry Hoffman
+   Henrik Strom
+   Ignas Kazlauskas
+   Jaime Vargas
+   Jaime Nebrera
+   Jake Babbin
+   James A Robinson
+   James Grace
+   Janusz Urbanowicz
+   Jason Baekey
+   Jason Carr
+   Jason Cook
+   Jason Ish
+   Javier Almiliategul
+   JD Durick
+   Jean Michel Rizzardi
+   Jean-Marc Pouchoulon
+   Jeff Atkinson
+   Jeff Wolf
+   Jeroen Roovers
+   Jesper Skou Jensen
+   Jesse Bowling
+   Jim Gargani
+   Jim O'Gorman
+   Johannes Russek
+   Joel Bergstein
+   Joel Ebrahimi
+   John Jenkinson
+   John Lauro
+   John Kennedy
+   John Nagro
+   John Rodenbiker
+   John Wade
+   Jon Denton
+   Jonathan Towne
+   Joost Bijl
+   Kevin Kadow
+   Karl Schuster
+   Karl Tatgenhorst
+   Kaustubh Gadkari
+   Keir Novik  
+   Kevin Branch
+   Kieran Rhysling
+   Kjell Tore Fossbakk
+   Kulwant Sohi
+   Laird Anglesey
+   Lee Zelyck
+   Lei Wei
+   Makatesi
+   Manaf Gharalbeh
+   Mark Bartlett
+   Mark Borrie
+   Markus De Shon
+   Martijn van Oosterhout
+   Martin Bauer
+   Martin Holste
+   Martin Olsson
+   Matt Brown
+   Matthew Derenski
+   Matthew Weiner
+   mel
+   Michael Arcamone
+   Michael Hornung
+   Michael Meisel
+   Michael Sandee
+   Michael Sanderson
+   Michal Purzynaski
+   Mike Iglesias
+   Mike Patterson
+   Mike Slifcak
+   Mike Tancsa
+   miodek (Michael)
+   modversion
+   morfoh (Chris)
+   Morgan DeRodeff
+   Morten Christensen
+   Murali Raju
+   Nate Hausrath
+   Neal Welland
+   Nenaudoti Ignas Kazlauskas
+   Neil Long
+   Neslog
+   Niall Murphy
+   Nichole K. Boscia
+   Nick Diel
+   Nick Giordano
+   Ning Shi
+   Nyuk Loong Kiw
+   Oguz Yanmtepe
+   Olaf Gellert
+   OlRoy
+   Pablo Rebollo-Sosa
+   Patrick Forsberg
+   Patrick Green
+   Paul Halliday
+   Paul Schmehl
+   Pengiran Awang
+   Pete Troxell
+   Peter Hill
+   Peter Moody
+   Peter Volkov
+   Phillip G Deneault
+   Phillip Letschert
+   Poncenby Smythe
+   Prashanth Prahalad
+   Rafael Barbosa
+   Raphael Campos Silva
+   Raffael Marty
+   Rahimeh Kodadadi
+   Ralf Spenneberg
+   Ramon Kagan
+   Real Melancon
+   Reykjavik Hindisvik
+   Riccardo Dias
+   Riccardo Veraldi
+   Richard Johnson
+   Rick Denton
+   Robert E. Smith Jr.
+   Robert Kerr
+   Robert Leyba
+   Robin Gruyters
+   Rodney McKee
+   Russ Harvey
+   Russ McRee
+   Ruvin Gottlieb
+   Sajeev Nair
+   Sam Davis
+   Saptarshi Guha
+   Saya Peng
+   Scott Dexter
+   Scott McIntyre
+   ScottO
+   Sean Malone
+   Sean McCreary
+   Sebastian Garcia
+   Sebastian Yepes Fernandez
+   Sergio Luis Moreira De Silva
+   Shaheen Bakhtiar
+   Shahram Esfahani
+   shailwe19
+   Silas Porterfield
+   Stefan Esser
+   Stephane Peters
+   Steve McInerney
+   Stewart Gray
+   Sunjeet Singh
+   Suraj M
+   Susan Mcgill
+   Terry Burton
+   Tim Lavoie
+   Tim Waters
+   Timo Schilling
+   Timo Suhl
+   Tim-Fang Yen
+   Todd Michael
+   Tom Briglia
+   Tony Stout
+   Tony Webster
+   Torbin Wictorin
+   Tu Nguyen
+   unFrigidaire Americain
+   Urtho
+   Vaibhav Kaware
+   Vlad Grigorescu
+   Wictorin Torbjorn
+   William S. Cleveland
+   William Setzer
+   Wolfgang Barth
+   Woody K.
+   Wimmie
+   Wolfgang Barth
+   Yotam Rubin
+   Zi Hu

@@ -1,0 +1,121 @@
+Feb 2010
+
+	Some minimal documentation for the argusarchive script. First off 
+(ignoring the new options for post processing for now) the purpose of this
+script is to be run from cron on the argus archive machine (which may be
+the same as the sensor machine if the load is low enough) and create an
+archive of argus files (I usually use 1 hour, your link speed may need 
+that to be much shorter). This is the cron entry I've been using for many
+years now (although parts of this script are new, I've been using one like
+it for 10 years or more):
+
+0 * * * * 	/usr/local/bin/argusarchive >> /var/log/argus.logs/argusarchive.log 2>&1
+
+which creates an archive like this:
+
+ls /usr/local/argus
+
+argus.archive
+
+ls /usr/local/argus/argus.archive
+
+2009 2010
+
+ls /usr/local/argus/argus.archive/2010
+
+01 02 
+
+ls /usr/local/argus/argus.archive/2010/02
+
+01 02 03 04 05 06
+
+ls /usr/local/argus/argus.archive/2010/02/04
+
+argus.2010.02.04.00.00.00.0.gz
+argus.2010.02.04.01.00.00.0.gz
+...
+argus.2010.02.04.23.00.00.0.gz
+
+The script creates new directories as needed and via the use of a file
+(by default in /var/log/argus) remembers the start time of the file 
+(because when the file is processed it only has the end time). The
+reason for that is so that the first file starts at midnight rather
+than 23:00 of the day before as using the time the script runs to 
+set the file name does and ends at midnight (rather than 23:00). 
+The starttime file is also the reason that there is a .0 in the file name 
+before the .gz. In the case of a reboot or restart the startup script that
+starts argus should write a new start time file so to log a record that
+the restart happened and to mark the appropriate hour of the new data
+file (in case of an outage that crosses an hour boundary). As well the 
+startup script needs to call argusarchive to move the current output file
+(using the current value in the start.date file) to the archive and then
+set the current time in to the argus.start.time file as the start time
+for the current record. If the crash / restart should occur just as the
+current file changed the file names may be identical. To fix that problem
+a ".0" is normally appended to the archive file name. If that file already
+exists when the restart happens the new file name is set to the ".1" 
+extension so that the files will sort in the correct time order in the 
+archive. This covers the case where the outage crosses an hour boundary 
+as well, the first file will have the correct start time (but possibly 
+less than an hour's data) and the new file will have the correct (possibly
+several hours later) start time and possibly less than an hour's data. 
+In normal operation all files will end in the .0.gz. This is all that the 
+original argus archive script used to do (although as noted it used the 
+end time and thus ran from 23:00 on day-1 til 23:00 on day). This script 
+by default matches (other than the times) the original script. 
+	I added some features to suit how I was running argus. You may or
+may not want to use some of them. First this script started in the days 
+of argus 2.0.6 (or possibly earlier :-) around 2002 or so. 
+
+	There wasn't an argus ID option in 2.0.6 and I was running multiple 
+argus instances on a single machine. Thus if you add an instance name to the 
+command running from cron like this:
+
+0 * * * * 	/usr/local/bin/argusarchive com >> /var/log/argus.logs/argusarchive.log 2>&1
+
+then the instance supplied (com for commodity Internet as opposed to CA*net
+in this case) is appended to all the archive names so the data is separated
+by instance name (the "com" is replaced by "c4" for the Ca*net link in my
+case):
+
+ls /usr/local/argus
+
+argus.archive
+
+would become 
+
+ls /usr/local/argus
+
+com_argus.archive
+
+and
+
+ls /usr/local/argus/argus.archive/2010/02/04
+
+argus.2010.02.04.00.00.00.0.gz
+
+would become 
+
+ls /usr/local/argus/com_argus.archive/2010/02/04
+
+com_argus.2010.02.04.00.00.00.0.gz
+
+	Then because processing an entire days worth of argus records at one
+time was taking too much time and memory I added the code to launch post
+processing code (perl in my case) against the file just archived when 
+argusarchive runs. There is also the option to run the post processing on
+this machine (probably not advised if it is your capture machine as well)
+or to cause it to be transferred to a remote machine via ssh and processed
+there. You can modify this to your taste.     
+	New in this version is the option to anonymize the archive data using
+ranonymize and pass the anonymized data to the post processing programs (which
+incidentally can and should be run on an id that only has read access to the
+archived data!). This allows traffic analysis of the data to occur (as only
+the IPs are anonymized in my case) without the analyist knowing what machines
+are creating the data. This is useful when a client has a traffic problem but
+isn't comfortable (or possibly even allowed) to let the analyist see the real
+IP addresses. If the client runs the same non anonymized traffic through 
+the post processing scripts, they should get the same reports with the real
+IP addresses from which they can take appropriate action. 
+
+Peter Van Epp (vanepp@sfu.ca)

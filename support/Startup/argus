@@ -1,0 +1,123 @@
+#!/bin/sh
+#
+#  Copyright (c) 2000-2015 QoSient, LLC
+#  All rights reserved.
+#
+#  Permission to use, copy, modify, and distribute this software and
+#  its documentation for any purpose and without fee is hereby granted,
+#  provided that the above copyright notice appear in all copies and
+#  that both that copyright notice and this permission notice appear
+#  in supporting documentation, and that the name of QoSient not be
+#  used in advertising or publicity pertaining to distribution of the
+#  software without specific, written prior permission.
+#
+#  QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+#  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+#  FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+#  SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+#  RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+#  CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+#  CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# argus      This shell script takes care of starting and stopping
+#            argus, on RH Linux.  Should be useful for other versions.
+#
+# chkconfig: 2345 55 45
+# description: argus-3.0 generates network transaction audit records.
+# processname: argus
+# config: /etc/argus.conf
+
+#
+# The assumption here is that /etc/argus.conf specifies ARGUS_DAEMON=no.
+# If not the system will hang running argus.  If this is not set to the
+# default, change "argus -d" below to "argus"
+#
+
+# Source function library.
+if [ -f /etc/init.d/functions ]; then 
+. /etc/init.d/functions
+else
+if [ -f /etc/rc.d/init.d/functions ]; then 
+. /etc/init.d/functions
+fi
+fi
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 1
+
+
+# Set argus path by defining $ARGUSHOME for this script.
+# If argus was installed in another way, modify PATH to
+# include the directory where the argus binary was installed.
+
+ARGUSDIR=/usr/local/sbin
+ARGUSHOME=$ARGUSDIR
+export PATH=$ARGUSHOME:$PATH
+
+[ -f $ARGUSHOME/argus ] || exit 1
+
+RETVAL=0
+
+start() {
+	# Start daemons.
+
+	echo -n "Starting argus: "
+        if [ ! -e /etc/argus.conf ]
+        then
+                if [ ! -d /var/log/argus ]
+                then
+                        mkdir /var/log/argus
+                fi
+                argus -de `hostname` -w /var/log/argus/argus.out \
+                        > /dev/null 2>&1
+                RETVAL=$?
+        else
+		argus -d > /dev/null 2>&1 && success || failure
+		RETVAL=$?
+	fi
+	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/argus
+	echo
+}
+
+stop() {
+	# Stop daemons.
+	echo -n "Shutting down argus: "
+	killproc argus
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/argus
+	echo
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	stop
+	start
+	RETVAL=$?
+	;;
+  condrestart)
+	if [ -f /var/lock/subsys/argus ]; then
+	    stop
+	    start
+	    RETVAL=$?
+	fi
+	;;
+  status)
+	status argus
+	RETVAL=$?
+	;;
+  *)
+	echo "Usage: argus {start|stop|restart|condrestart|status}"
+	exit 1
+	;;
+esac
+exit $RETVAL
