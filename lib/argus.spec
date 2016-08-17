@@ -15,6 +15,7 @@ Source: %{name}-%{version}.%{rel}.tar%{srcext}
 URL: http://qosient.com/argus
 Buildroot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: libpcap-devel
+Requires: wget
 
 %description
 The ARGUS (Audit Record Generation And Utilization System) is an data 
@@ -69,6 +70,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %{argussbin}/argus
+%{argusbin}/argus-extip
 %{argusbin}/argus-lsof
 %{argusbin}/argus-snmp
 %{argusbin}/argus-vmstat
