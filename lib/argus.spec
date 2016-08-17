@@ -14,6 +14,7 @@ Group: Applications/Internet
 Source: %{name}-%{version}.%{rel}.tar%{srcext}
 URL: http://qosient.com/argus
 Buildroot: %{_tmppath}/%{name}-%{version}-root
+BuildRequires: libpcap-devel
 
 %description
 The ARGUS (Audit Record Generation And Utilization System) is an data 
