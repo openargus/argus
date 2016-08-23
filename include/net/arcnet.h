@@ -35,9 +35,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/include/net/arcnet.h#3 $
- * $DateTime: 2011/01/26 17:31:56 $
- * $Change: 2094 $
+ * $Id: //depot/gargoyle/argus/include/net/arcnet.h#1 $
+ * $DateTime: 2012/05/01 14:08:47 $
+ * $Change: 2378 $
  */
 
 /*

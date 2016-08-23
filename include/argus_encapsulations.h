@@ -3,26 +3,28 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
 /* 
- * $Id: //depot/argus/argus/include/argus_encapsulations.h#10 $
- * $DateTime: 2016/06/06 11:06:59 $
- * $Change: 3154 $
+ * $Id: //depot/gargoyle/argus/include/argus_encapsulations.h#7 $
+ * $DateTime: 2015/04/13 16:46:24 $
+ * $Change: 2991 $
  */
 
 
@@ -42,37 +44,31 @@ struct ArgusEncapsulationStruct {
 };
 
 #define ARGUS_ENCAPS_TYPE       28
-
 #define ARGUS_ENCAPS_MPLS       0x01
 #define ARGUS_ENCAPS_ETHER      0x02
 #define ARGUS_ENCAPS_8021Q      0x04
 #define ARGUS_ENCAPS_LLC        0x08
 #define ARGUS_ENCAPS_PPP        0x10
-
 #define ARGUS_ENCAPS_ISL        0x20
 #define ARGUS_ENCAPS_GRE        0x40
 #define ARGUS_ENCAPS_AH         0x80
 #define ARGUS_ENCAPS_IP         0x100
 #define ARGUS_ENCAPS_IPV6       0x200
-
 #define ARGUS_ENCAPS_HDLC       0x400
 #define ARGUS_ENCAPS_CHDLC      0x800
 #define ARGUS_ENCAPS_ATM        0x1000
 #define ARGUS_ENCAPS_SLL        0x2000
 #define ARGUS_ENCAPS_FDDI       0x4000
-
 #define ARGUS_ENCAPS_SLIP       0x8000
 #define ARGUS_ENCAPS_ARCNET     0x10000
 #define ARGUS_ENCAPS_802_11     0x20000
 #define ARGUS_ENCAPS_PRISM      0x40000
 #define ARGUS_ENCAPS_AVS        0x80000
-
 #define ARGUS_ENCAPS_IB_LRH     0x100000
 #define ARGUS_ENCAPS_IB_GRH     0x200000
 #define ARGUS_ENCAPS_TEREDO     0x400000
 #define ARGUS_ENCAPS_UDT        0x800000
 #define ARGUS_ENCAPS_SPI        0x1000000
-
 #define ARGUS_ENCAPS_JUNIPER    0x2000000
 #define ARGUS_ENCAPS_ERSPAN_II  0x4000000
 

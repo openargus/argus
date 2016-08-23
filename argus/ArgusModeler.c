@@ -3,19 +3,18 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -35,6 +34,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include <argus.h>
 
@@ -354,7 +354,7 @@ void
 ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStruct *queue)
 {
    struct ArgusFlowStruct *last = NULL;
-   int done = 0, timedout = 0;
+   int done = 0;
 
    queue->turns++;
 #if defined(ARGUS_THREADS)
@@ -376,7 +376,6 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                if (ArgusCheckTimeout(model, &last->qhdr.qtime, getArgusFarReportInterval(model))) {
                   struct ArgusFlowStruct *frag;
 
-                  timedout++;
                   ArgusRemoveFromQueue(queue, &last->qhdr, ARGUS_NOLOCK);
 
                   if ((frag = (struct ArgusFlowStruct *)last->frag.start) != NULL) {
@@ -426,7 +425,6 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                if (ArgusCheckTimeout(model, &last->qhdr.qtime, &timeout)) {
                   ArgusRemoveFromQueue(queue, &last->qhdr, ARGUS_NOLOCK);
                   ArgusDeleteObject(last);
-                  timedout++;
                } else {
                   done++;
                }
@@ -443,7 +441,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 #endif
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (5, "ArgusProcessQueueTimeout(%p, %d) timedout %d remaining %d\n", model, queue->timeout, timedout, queue->count);
+   ArgusDebug (10, "ArgusProcessQueueTimeout(%p, %p) done with %d records\n", model, queue, queue->count);
 #endif 
 }
 
@@ -598,7 +596,6 @@ int ArgusProcessPPPoEHdr (struct ArgusModelerStruct *, char *, int);
 int ArgusProcessLLCHdr (struct ArgusModelerStruct *, char *, int);
 int ArgusProcess80211Hdr (struct ArgusModelerStruct *, char *, int);
 int ArgusProcessUDToEHdr (struct ArgusModelerStruct *, char *, int);
-int ArgusProcessErspanIIHdr (struct ArgusModelerStruct *, char *, int);
 
 
 int
@@ -607,15 +604,9 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
    int retn = 0;
 
    switch (type) {
-      case ETHERTYPE_ERSPAN_II:
-         model->ArgusThisNetworkFlowType = ETHERTYPE_ERSPAN_II;
-         if ((retn = ArgusProcessErspanIIHdr(model, p, length)) < 0)
-           model->ArgusThisUpHdr = (void *)p;
-         break;
-
       case ETHERTYPE_TRANS_BRIDGE:
       case ARGUS_ETHER_HDR:
-         model->ArgusThisNetworkFlowType =  ARGUS_ETHER_HDR;
+         model->ArgusThisNetworkFlowType = ARGUS_ETHER_HDR;
          if ((retn = ArgusProcessEtherHdr(model, (struct ether_header *)p, length)) < 0)
             model->ArgusThisUpHdr = (void *)p;
          break;
@@ -702,7 +693,7 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
 
          if (STRUCTCAPTURED(model,*ip)) {
             if ((ntohs(ip->ip_len)) >= 20) {
-               if (ip->ip_v == 4)
+               if (ip->ip_v == 4) 
                   model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
                else if (ip->ip_v == 6)
                   model->ArgusThisNetworkFlowType = ETHERTYPE_IPV6;
@@ -864,61 +855,68 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
          struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
          int isipv6 = 0;
 
-         len += sizeof (*up);
+      } else {
+         if (!((sport == 53) || (dport == 53))) {
+            char *ptr = (char *) (up + 1);
+            struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
+            int isipv6 = 0;
 
-         if (STRUCTCAPTURED(model, *ipv6)) {
-            if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-               retn = ETHERTYPE_IPV6;
-               len = ((char *) ipv6 - (char *)ip);
-               model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-               model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-               model->ArgusThisLength -= len;
-               model->ArgusSnapLength -= len;
-            } else {
-               struct teredo *tptr = (struct teredo *) (up + 1);
+            len += sizeof (*up);
 
-               if (STRUCTCAPTURED(model, *tptr)) {
-                  u_short type = ntohs(tptr->tid); 
+            if (STRUCTCAPTURED(model, *ipv6)) {
+               if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
+                  retn = ETHERTYPE_IPV6;
+                  len = ((char *) ipv6 - (char *)ip);
+                  model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
+                  model->ArgusThisUpHdr  = (unsigned char *) ipv6;
+                  model->ArgusThisLength -= len;
+                  model->ArgusSnapLength -= len;
+               } else {
+                  struct teredo *tptr = (struct teredo *) (up + 1);
 
-                  int offset = 0;
-                  switch (type) {
-                     case 0x0000:  offset = 8; break;
-                     case 0x0001:  offset = (4 + (tptr->tauth.idlen + tptr->tauth.aulen) + 8 + 1); break;
-                     default: isipv6 = -1;
-                  }
+                  if (STRUCTCAPTURED(model, *tptr)) {
+                     u_short type = ntohs(tptr->tid); 
 
-                  if (isipv6 == 0) {
-                     ipv6 = (struct ip6_hdr *)(((u_char *)tptr) + offset);
+                     int offset = 0;
+                     switch (type) {
+                        case 0x0000:  offset = 8; break;
+                        case 0x0001:  offset = (4 + (tptr->tauth.idlen + tptr->tauth.aulen) + 8 + 1); break;
+                        default: isipv6 = -1;
+                     }
 
-                     if (STRUCTCAPTURED(model, *ipv6)) {
-                        if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-                           retn = ETHERTYPE_IPV6;
-                           len = ((char *) ipv6 - (char *)ip);
-                           model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-                           model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-                           model->ArgusThisLength -= len;
-                           model->ArgusSnapLength -= len;
+                     if (isipv6 == 0) {
+                        ipv6 = (struct ip6_hdr *)(((u_char *)tptr) + offset);
 
-                        } else {
-                           struct teredo *iptr = (struct teredo *) ((char *)tptr + offset);
-                           if (STRUCTCAPTURED(model, *iptr)) {
-                              u_short type = ntohs(iptr->tid); 
-                              int offset = 0;
-                              switch (type) {
-                                 case 0x0000:  offset = 8; break;
-                                 case 0x0001:  offset = (4 + (iptr->tauth.idlen + iptr->tauth.aulen) + 8 + 1); break;
-                                 default: isipv6 = -1;
-                              }
+                        if (STRUCTCAPTURED(model, *ipv6)) {
+                           if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
+                              retn = ETHERTYPE_IPV6;
+                              len = ((char *) ipv6 - (char *)ip);
+                              model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
+                              model->ArgusThisUpHdr  = (unsigned char *) ipv6;
+                              model->ArgusThisLength -= len;
+                              model->ArgusSnapLength -= len;
 
-                              if (isipv6 == 0) {
-                                 ipv6 = (struct ip6_hdr *)(((u_char *)iptr) + offset);
-                                 if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-                                    retn = ETHERTYPE_IPV6;
-                                    len = ((char *) ipv6 - (char *)ip);
-                                    model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-                                    model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-                                    model->ArgusThisLength -= len;
-                                    model->ArgusSnapLength -= len;
+                           } else {
+                              struct teredo *iptr = (struct teredo *) ((char *)tptr + offset);
+                              if (STRUCTCAPTURED(model, *iptr)) {
+                                 u_short type = ntohs(iptr->tid); 
+                                 int offset = 0;
+                                 switch (type) {
+                                    case 0x0000:  offset = 8; break;
+                                    case 0x0001:  offset = (4 + (iptr->tauth.idlen + iptr->tauth.aulen) + 8 + 1); break;
+                                    default: isipv6 = -1;
+                                 }
+
+                                 if (isipv6 == 0) {
+                                    ipv6 = (struct ip6_hdr *)(((u_char *)iptr) + offset);
+                                    if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
+                                       retn = ETHERTYPE_IPV6;
+                                       len = ((char *) ipv6 - (char *)ip);
+                                       model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
+                                       model->ArgusThisUpHdr  = (unsigned char *) ipv6;
+                                       model->ArgusThisLength -= len;
+                                       model->ArgusSnapLength -= len;
+                                    }
                                  }
                               }
                            }
@@ -1472,28 +1470,6 @@ ArgusProcessUDToEHdr (struct ArgusModelerStruct *model, char *p, int length)
    ArgusDebug (8, "ArgusProcessUDToEHdr(%p, %p, %d) returning %d\n", model, p, length, retn);
 #endif
    return (retn);
-}
-
-
-int ArgusProcessErspanIIHdr(struct ArgusModelerStruct *model, char *p, int length)
-{
-   int retn = 0;
-   struct erspan_ii_header *erspan;
-
-   if ((erspan = (struct erspan_ii_header *) p) != NULL) {
-      if (length <= sizeof (struct erspan_ii_header))
-         return retn;
-    
-      if ( ERSPAN_VER(erspan) != 0x1)
-           return retn;
-    
-      model->ArgusThisEncaps |= ARGUS_ENCAPS_ERSPAN_II;
-      model->ArgusThisUpHdr = (unsigned char *)p + sizeof(struct erspan_ii_header);
-      model->ArgusThisLength -= sizeof(struct erspan_ii_header);
-      model->ArgusSnapLength -= sizeof(struct erspan_ii_header);
-      retn = ARGUS_ETHER_HDR;
-   }
-   return retn;
 }
 
 
@@ -2196,14 +2172,9 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       struct ArgusDeviceStruct *device = model->ArgusSrc->ArgusInterface[model->ArgusSrc->ArgusThisIndex].ArgusDevice;
 
       flow->dsrs[ARGUS_TRANSPORT_INDEX] = &flow->canon.trans.hdr;
-      trans = (struct ArgusTransportStruct *) flow->dsrs[ARGUS_TRANSPORT_INDEX];
-      trans->hdr.type              = ARGUS_TRANSPORT_DSR;
-      trans->hdr.subtype           = ARGUS_SRCID | ARGUS_SEQ;
-      trans->hdr.argus_dsrvl8.len  = 3;
-
-      trans->srcid.a_un.value      = device->ArgusID.a_un.value;
-      trans->hdr.argus_dsrvl8.qual = device->idtype;
-
+      trans                             = (struct ArgusTransportStruct *) flow->dsrs[ARGUS_TRANSPORT_INDEX];
+      trans->hdr                        = device->ArgusTransHdr;
+      trans->srcid                      = device->ArgusID;
       flow->dsrindex |= 0x01 << ARGUS_TRANSPORT_INDEX;
    }
 
@@ -3044,10 +3015,37 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                               break;
                            }
 
-                           default:
-                              for (x = 0; x < len; x++)
-                                 *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+                           default: {
+/*
+                              struct ArgusNetworkStruct *net = (struct ArgusNetworkStruct *)rec->dsrs[i];
+                              struct ArgusTCPObject *tobj = &net->net_union.tcp;
+
+                              if (tobj->status & ARGUS_DUPLICATES) {
+*/
+                                 for (x = 0; x < len; x++)
+                                    *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+/*
+                              } else {
+                                 unsigned int *iptr;
+                                 int dlen = ((sizeof(struct ArgusTCPObjectMetrics) - 4) + 3)/4;
+
+                                 len = 2 * dlen + 6;
+                                 rec->dsrs[i]->argus_dsrvl8.len = len;
+
+                                 for (x = 0; x < 6; x++)
+                                    *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+
+                                 iptr = (unsigned int *) &tobj->src;
+                                 for (x = 0; x < dlen; x++)
+                                    *dsrptr++ = *iptr++;
+
+                                 iptr = (unsigned int *) &tobj->dst;
+                                 for (x = 0; x < dlen; x++)
+                                    *dsrptr++ = *iptr++;
+                              } 
+*/
                               break;
+                           }
                         }
                         break;
                      }
@@ -4600,13 +4598,73 @@ setArgusKeystrokeVariable(struct ArgusModelerStruct *model, char *kstok)
    }
 
 }
+int
+getArgusOSFingerPrinting (struct ArgusModelerStruct *model)
+{
+   return(model->ArgusOSFingerPrinting);
+}
+ 
+void
+setArgusOSFingerPrinting (struct ArgusModelerStruct *model, int value)
+{
+   model->ArgusOSFingerPrinting = value;
+}
+
+
+void
+setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)
+{
+   if (model->cps == NULL)
+      if ((model->cps = (struct ArgusControlProtocols *) ArgusCalloc (1, sizeof (struct ArgusControlProtocols))) == NULL)
+         ArgusLog (LOG_ERR, "setArgusControlPlaneProtocols () ArgusCalloc error %s\n", strerror(errno));
+
+   if (optarg && strlen(optarg)) {
+      char *str = strdup(optarg);
+      char *sptr = str, *tok;
+
+      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
+         char *proto = NULL;
+         int port = 0;
+         char *ptr;
+
+         if ((ptr = strchr(tok, ':')) != NULL) {
+            proto = tok;
+            *ptr++ = '\0';
+            tok = ptr;
+         }
+
+         if (isdigit(*tok)) {
+            if (sscanf((char *)tok, "%d", (int *) &port) != 1)
+               ArgusLog (LOG_ERR, "setArgusControlPlaneProtocols () format error %s\n", optarg);
+
+         } else {
+#if !defined(CYGWIN)
+            struct servent *sv = NULL;
+            if ((sv = getservbyname(tok, proto)) != NULL) {
+               port = ntohs(sv->s_port);
+            }
+#endif
+         }
+         if (proto) {
+            if (!(strncmp(proto, "tcp", 3))) model->cps->tcpport[port] = 1;  else
+            if (!(strncmp(proto, "udp", 3))) model->cps->udpport[port] = 1; 
+         } else {
+            model->cps->udpport[port] = 1; 
+            model->cps->udpport[port] = 1; 
+         }
+         sptr = NULL;
+      }
+
+      free(str);
+   }
+}
 
 int
 getArgusTunnelDiscovery (struct ArgusModelerStruct *model)
 {
    return(model->ArgusTunnelDiscovery);
 }
-
+ 
 void
 setArgusTunnelDiscovery (struct ArgusModelerStruct *model, int value)
 {

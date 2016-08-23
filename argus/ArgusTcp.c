@@ -3,19 +3,21 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
@@ -147,7 +149,9 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                      tcpExt->options |= ARGUS_TCP_SRC_ECN;
                   break;
          
-               case (TH_SYN|TH_ACK): {
+               case (TH_SYN|TH_ACK): 
+               case (TH_SYN|TH_ACK|TH_PUSH):
+               case (TH_SYN|TH_ACK|TH_PUSH|TH_URG): {
                   tcpExt->status      |= ARGUS_SAW_SYN_SENT;
                   tcpExt->state        = TCPS_SYN_RECEIVED;
                   ArgusThisTCPsrc->bytes   += model->ArgusThisLength;
@@ -184,6 +188,9 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
       
                case (TH_FIN):
                case (TH_FIN|TH_ACK):
+               case (TH_FIN|TH_ACK|TH_URG):
+               case (TH_FIN|TH_ACK|TH_PUSH):
+               case (TH_FIN|TH_ACK|TH_PUSH|TH_URG):
                   tcpExt->status      |= ARGUS_FIN;
                   tcpExt->state        = TCPS_FIN_WAIT_1;
                   ArgusThisTCPsrc->bytes   += model->ArgusThisLength;
@@ -196,7 +203,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
       
                default:
                   tcpExt->status      |= ARGUS_CON_ESTABLISHED;
-                  tcpExt->state        = TCPS_CLOSING;
+                  tcpExt->state        = TCPS_ESTABLISHED;
                   ArgusThisTCPsrc->bytes   += model->ArgusThisLength;
                   ArgusThisTCPsrc->flags   |= flags; 
                   ArgusThisTCPsrc->seqbase  = tcp->th_seq - 1;
@@ -283,7 +290,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                            return;
                         }
                         break;
-   
+
                      case TCPS_CLOSED:
                      case TCPS_TIME_WAIT:
                         if (!(tcpExt->status & ARGUS_RESET))
@@ -292,9 +299,10 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                         break;
                   }
                }
+   
+               ArgusThisTCPsrc->lasttime.tv_sec  = model->ArgusGlobalTime.tv_sec;
+               ArgusThisTCPsrc->lasttime.tv_usec = model->ArgusGlobalTime.tv_usec;
             }
-            ArgusThisTCPsrc->lasttime.tv_sec  = model->ArgusGlobalTime.tv_sec;
-            ArgusThisTCPsrc->lasttime.tv_usec = model->ArgusGlobalTime.tv_usec;
          }
       }
    }
@@ -587,10 +595,9 @@ ArgusUpdateTCPSequence (struct ArgusModelerStruct *model, struct ArgusFlowStruct
          ArgusThisTCPsrc->seqbase = seq;
          ArgusThisTCPsrc->seq = newseq;
       } else {
-
          if (len) {
             if (model->ArgusTrackDuplicates && (tipid && ((ipid != 0) && (*tipid == ipid)))) {
-               if (model->ArgusThisDir) 
+               if (model->ArgusThisDir)
                   ArgusThisTCPsrc->status |= ARGUS_SRC_DUPLICATES;
                else
                   ArgusThisTCPdst->status |= ARGUS_DST_DUPLICATES;
@@ -654,7 +661,7 @@ ArgusUpdateTCPSequence (struct ArgusModelerStruct *model, struct ArgusFlowStruct
       if (tcp->th_ack && (flags & TH_ACK)) {
          if (ArgusThisTCPsrc->ack) {
             if (ArgusThisTCPdst->seq > ArgusThisTCPsrc->ack)
-               ArgusThisTCPdst->winbytes = (ArgusThisTCPdst->seq - 1) - ArgusThisTCPsrc->ack;  
+               ArgusThisTCPdst->winbytes = (ArgusThisTCPdst->seq - 1) - ArgusThisTCPsrc->ack;
          }
 
          if (!(ArgusThisTCPsrc->ack == (tcp->th_ack - 1))) {
@@ -706,13 +713,13 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
 
       if (++flowstr->skey.n_pkts < ArgusKeyStroke->n_min) {
 #ifdef ARGUSDEBUG
-         ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld flow_n_pkts(%d) < n_min(%d)\n", 
+         ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld flow_n_pkts(%d) < n_min(%d)\n", 
             flowstr, model->ArgusTotalPacket, flowstr->skey.n_pkts, ArgusKeyStroke->n_min);
 #endif
          return;
       } else {
 #ifdef ARGUSDEBUG
-         ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld flow_n_pkts(%d)\n", 
+         ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld flow_n_pkts(%d)\n", 
             flowstr, model->ArgusTotalPacket, flowstr->skey.n_pkts);
 #endif
       }
@@ -734,7 +741,7 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
             if (tcpdatalen % 4) {
                flowstr->status &= ~ARGUS_SSH_MONITOR;
 #ifdef ARGUSDEBUG
-               ArgusDebug (7, "ArgusTCPKeystroke: packet %lld flow %p ssh monitor and tcpdatalen(%d) not mod 4\n", flowstr->skey.n_pkts, flowstr, tcpdatalen);
+               ArgusDebug (5, "ArgusTCPKeystroke: packet %lld flow %p ssh monitor and tcpdatalen(%d) not mod 4\n", flowstr->skey.n_pkts, flowstr, tcpdatalen);
 #endif
                return;
             }
@@ -753,7 +760,7 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
                if ((tcpdatalen >= ArgusKeyStroke->dc_min) && (tcpdatalen <= ArgusKeyStroke->dc_max)) {
                   int i = 0, found = 0;
 #ifdef ARGUSDEBUG
-                  ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld client packet seq(%u) size(%d) OK\n", flowstr, flowstr->skey.n_pkts, tcp->th_seq, tcpdatalen);
+                  ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld client packet seq(%u) size(%d) OK\n", flowstr, flowstr->skey.n_pkts, tcp->th_seq, tcpdatalen);
 #endif
                   for (i = 0; i < ARGUS_NUM_KEYSTROKE_PKTS && !found; i++) {
                      struct ArgusKeyStrokePacket *pkt = &flowstr->skey.data.pkts[i];
@@ -781,7 +788,7 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
                      }
                      if (npkt < 0) {  // nothing but tentatives, so lets clear the tentative at index = 0
 #ifdef ARGUSDEBUG
-                        ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld no non-tentative packets to reject, clearing first\n", flowstr, flowstr->skey.n_pkts);
+                        ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld no non-tentative packets to reject, clearing first\n", flowstr, flowstr->skey.n_pkts);
 #endif
                         npkt = 0;
                      }
@@ -789,7 +796,7 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
                         struct ArgusKeyStrokePacket *pkt = &flowstr->skey.data.pkts[npkt];
                         struct timeval tvpbuf, *tvp = &tvpbuf;
 #ifdef ARGUSDEBUG
-                        ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld clearing client %d seq(%u)\n", flowstr, flowstr->skey.n_pkts, npkt, pkt->seq);
+                        ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld clearing client %d seq(%u)\n", flowstr, flowstr->skey.n_pkts, npkt, pkt->seq);
 #endif
                         pkt->ts.tv_sec  = model->ArgusGlobalTime.tv_sec;
                         pkt->ts.tv_usec = model->ArgusGlobalTime.tv_usec;
@@ -802,7 +809,7 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
                }
 #ifdef ARGUSDEBUG
                  else {
-                  ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld client packet size(%d) NOK reset\n", flowstr, flowstr->skey.n_pkts, tcpdatalen);
+                  ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld client packet size(%d) NOK reset\n", flowstr, flowstr->skey.n_pkts, tcpdatalen);
                }
 #endif
                break;
@@ -836,14 +843,14 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
                               if ((pkt->n_pno - flowstr->skey.prev_pno) <= ArgusKeyStroke->gpc_max) {
                                  int i;
 #ifdef ARGUSDEBUG
-                                 ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld server keystroke ", flowstr, flowstr->skey.n_pkts);
+                                 ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld server keystroke ", flowstr, flowstr->skey.n_pkts);
 #endif
                                  flowstr->skey.n_strokes++;
                                  for (i = 0; i < ARGUS_NUM_KEYSTROKE_PKTS; i++) {
                                     struct ArgusKeyStrokePacket *tpkt = &flowstr->skey.data.pkts[i];
                                     if (tpkt->status == ARGUS_KEYSTROKE_TENTATIVE) {
 #ifdef ARGUSDEBUG
-                                       ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld TENTATIVE packet %lld keystroke ", flowstr, flowstr->skey.n_pkts, tpkt->n_pno);
+                                       ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld TENTATIVE packet %lld keystroke ", flowstr, flowstr->skey.n_pkts, tpkt->n_pno);
 #endif
                                        flowstr->skey.n_strokes++;
                                        bzero(tpkt, sizeof(*tpkt));
@@ -862,7 +869,7 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
                                  }
                                  pkt->status = ARGUS_KEYSTROKE_TENTATIVE;
 #ifdef ARGUSDEBUG
-                                 ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld server packet pc_gap(%d) > gpc_max(%d) TENTATIVE\n", 
+                                 ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld server packet pc_gap(%d) > gpc_max(%d) TENTATIVE\n", 
                                        flowstr, flowstr->skey.n_pkts, (pkt->n_pno - flowstr->skey.prev_pno) , ArgusKeyStroke->gpc_max);
 #endif
                                  flowstr->skey.prev_pno  = pkt->n_pno;
@@ -874,27 +881,27 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
                            } 
 #ifdef ARGUSDEBUG
                            else {
-                                 ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld server ic_ratio(%f) out of range\n", 
+                                 ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld server ic_ratio(%f) out of range\n", 
                                     flowstr, flowstr->skey.n_pkts, ic_ratio);
                            }
 #endif
                         } 
 #ifdef ARGUSDEBUG
                         else {
-                           ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld rejected server IPA(%lld) < ic_min(%d)\n", 
+                           ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld rejected server IPA(%lld) < ic_min(%d)\n", 
                                     flowstr, flowstr->skey.n_pkts, pkt->intpkt, ArgusKeyStroke->ic_min);
                         }
 #endif
                      } 
 #ifdef ARGUSDEBUG
                      else {
-                        ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld rejected server packet size(%d)\n", flowstr, flowstr->skey.n_pkts, tcpdatalen);
+                        ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld rejected server packet size(%d)\n", flowstr, flowstr->skey.n_pkts, tcpdatalen);
                      }
 #endif
                   } 
 #ifdef ARGUSDEBUG
                   else {
-                     ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld rejected server packet flow s_gap(%d) > gs_gap(%d)\n", 
+                     ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld rejected server packet flow s_gap(%d) > gs_gap(%d)\n", 
                            flowstr, flowstr->skey.n_pkts, (flowstr->skey.n_pkts - pkt->n_pno), ArgusKeyStroke->gs_max);
                   }
 #endif
@@ -909,7 +916,7 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
                } 
 #ifdef ARGUSDEBUG
                else {
-                  ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld server packet ack(%u) no match\n", 
+                  ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld server packet ack(%u) no match\n", 
                      flowstr, flowstr->skey.n_pkts, tcp->th_ack);
                }
 #endif
@@ -919,7 +926,7 @@ ArgusTCPKeystroke (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flo
       } 
 #ifdef ARGUSDEBUG
       else {
-         ArgusDebug (7, "ArgusTCPKeystroke: flow %p packet %lld %s packet rejected tcpdatalen(%d)\n", 
+         ArgusDebug (5, "ArgusTCPKeystroke: flow %p packet %lld %s packet rejected tcpdatalen(%d)\n", 
                flowstr, flowstr->skey.n_pkts, (model->ArgusThisDir ? "server" : "client"), tcpdatalen);
       }
 #endif
@@ -936,7 +943,6 @@ ArgusTCPFlowRecord (struct ArgusNetworkStruct *net, unsigned char state)
    net->hdr.argus_dsrvl8.qual = 0;
 
    tcp->status &= ~(ARGUS_RESET | ARGUS_PKTS_RETRANS | ARGUS_WINDOW_SHUT | ARGUS_OUTOFORDER | ARGUS_DUPLICATES);
-
    if (tcp->src.status & ARGUS_RESET)
       tcp->status |= ARGUS_SRC_RESET;
    if (tcp->dst.status & ARGUS_RESET)

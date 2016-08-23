@@ -3,19 +3,21 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
@@ -133,6 +135,7 @@ usage(void)
    fprintf (stdout, "             Supported formats:                                              \n");
    fprintf (stdout, "                -w argus-udp://hostname[:port]    default port is 561.       \n");
    fprintf (stdout, "                -w udp://hostname[:port]          \n");
+   fprintf (stdout, "                -w domain://path/to/socket        \n");
    fprintf (stdout, "                -w -                              write to stdout \n");
    fprintf (stdout, "         -X                      reset argus configuration.\n");
    fprintf (stdout, "         -Z                      generate packet size data.\n");
@@ -398,7 +401,7 @@ main (int argc, char *argv[])
          }
          case 'd': ArgusDaemon = ArgusDaemon ? 0 : 1; break;
          case 'D': setArgusdflag (ArgusModel, atoi (optarg)); break;
-         case 'e': ArgusParseSourceID(ArgusSourceTask, optarg); break;
+         case 'e': ArgusParseSourceID(ArgusSourceTask, NULL, optarg); break;
          case 'f': setArgusfflag (ArgusSourceTask, 1); break;
          case 'F': ArgusParseResourceFile (ArgusModel, optarg); break;
 
@@ -1131,8 +1134,11 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                         case ARGUS_MONITOR_ID: 
                            if (optarg && quoted) {   // Argus ID is a string.  Limit to date is 4 characters.
                               int slen = strlen(optarg);
-                              if (slen > 4) optarg[4] = '\0';
-                              setArgusID (ArgusSourceTask, optarg, ARGUS_TYPE_STRING);
+                              if (slen > 4) {
+                                 optarg[4] = '\0';
+                                 slen = 4;
+                              }
+                              setArgusID (ArgusSourceTask, optarg, slen, ARGUS_TYPE_STRING);
 
                            } else {
                            if (optarg && (*optarg == '`')) {
@@ -1162,7 +1168,6 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                                           if (strlen(ptr) == strlen(".local"))
                                              *ptr = '\0';
                                        }
-
                                     } else
                                        ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
                                  } else
@@ -1170,7 +1175,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                               } else
                                  ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
                            }
-                           ArgusParseSourceID(ArgusSourceTask, optarg);
+                           ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
                            }
 
                            break;
@@ -1412,9 +1417,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
 
                         case ARGUS_CAPTURE_FULL_CONTROL_DATA:
                            if (!(strncasecmp(optarg, "yes", 3))) {
-                              setArgusCaptureFlag(ArgusSourceTask, 1);
+                              setArgusCaptureFlag (ArgusSourceTask, 1);
                               setArgusControlMonitor(ArgusModel);
-                              setArgusSnapLen(ArgusSourceTask, ARGUS_MAXSNAPLEN);
+                              setArgusSnapLen (ArgusSourceTask, ARGUS_MAXSNAPLEN);
                            } else {
                               setArgusCaptureFlag (ArgusSourceTask, 0);
                            }
@@ -1522,6 +1527,19 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                            break;
                         }
 
+                        case ARGUS_OS_FINGERPRINTING: {
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              setArgusOSFingerPrinting(model, 1);
+                           else
+                              setArgusOSFingerPrinting(model, 0);
+                           break;
+                        }
+
+                        case ARGUS_CONTROLPLANE_PROTO: {
+                           setArgusControlPlaneProtocols(model, optarg);
+                           break;
+                        }
+
                         case ARGUS_TUNNEL_DISCOVERY: {
                            if (!(strncasecmp(optarg, "yes", 3)))
                               setArgusTunnelDiscovery(model, 1);
@@ -1621,7 +1639,7 @@ void
 clearArgusConfiguration (struct ArgusModelerStruct *model)
 {
    daemonflag = 0;
-   setArgusID (ArgusSourceTask, 0, 0);
+   setArgusID (ArgusSourceTask, 0, 0, 0);
    clearArgusWfile ();
    clearArgusDevice (ArgusSourceTask);
    setArgusPortNum(ArgusOutputTask, 0);

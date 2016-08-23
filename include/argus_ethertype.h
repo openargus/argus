@@ -18,13 +18,13 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * @(#) $Header: //depot/argus/argus/include/argus_ethertype.h#13 $ (LBL)
+ * @(#) $Header: //depot/gargoyle/argus/include/argus_ethertype.h#3 $ (LBL)
  */
 
 /* 
- * $Id: //depot/argus/argus/include/argus_ethertype.h#13 $
- * $DateTime: 2016/06/06 11:06:59 $
- * $Change: 3154 $
+ * $Id: //depot/gargoyle/argus/include/argus_ethertype.h#3 $
+ * $DateTime: 2015/04/13 00:39:28 $
+ * $Change: 2980 $
  */
 
 #ifndef  Argus_Ethertype_h
@@ -106,7 +106,7 @@ extern "C" {
 #define ETHERTYPE_SCA		0x6007
 #endif
 #ifndef ETHERTYPE_TRANS_BRIDGE
-#define ETHERTYPE_TRANS_BRIDGE	0x6558
+#define ETHERTYPE_TRANS_BRIDGE  0x6558
 #endif
 #ifndef ETHERTYPE_REVARP
 #define ETHERTYPE_REVARP	0x8035
@@ -158,9 +158,6 @@ extern "C" {
 #endif
 #ifndef ETHERTYPE_PPPOES
 #define ETHERTYPE_PPPOES	0x8864
-#endif
-#ifndef ETHERTYPE_ERSPAN_II 
-#define ETHERTYPE_ERSPAN_II	0x88BE
 #endif
 #ifndef	ETHERTYPE_LOOPBACK
 #define	ETHERTYPE_LOOPBACK	0x9000

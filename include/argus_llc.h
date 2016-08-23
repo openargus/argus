@@ -1,4 +1,26 @@
 /*
+ * Gargoyle Software.  Common include files. Llc defines
+ * Copyright (c) 2000-2015 QoSient, LLC
+ * All rights reserved.
+ *
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
+ *
+ */
+/*
  * Copyright (c) 1993, 1994, 1997
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -21,9 +43,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/include/argus_llc.h#4 $
- * $DateTime: 2011/01/26 17:11:49 $
- * $Change: 2087 $
+ * $Id: //depot/gargoyle/argus/include/argus_llc.h#3 $
+ * $DateTime: 2015/04/13 00:39:28 $
+ * $Change: 2980 $
  */
 
 #if !defined(Argus_llc_h)
@@ -40,21 +62,21 @@
  */
 
 struct llc {
-	u_char dsap;
-	u_char ssap;
-	union {
-		u_char u_ctl;
-		u_short is_ctl;
-		struct {
-			u_char snap_ui;
-			u_char snap_pi[5];
-		} snap;
-		struct {
-			u_char snap_ui;
-			u_char snap_orgcode[3];
-			u_char snap_ethertype[2];
-		} snap_ether;
-	} ctl;
+   u_char dsap;
+   u_char ssap;
+   union {
+      u_char u_ctl;
+      u_short is_ctl;
+      struct {
+         u_char snap_ui;
+         u_char snap_pi[5];
+      } snap;
+      struct {
+         u_char snap_ui;
+         u_char snap_orgcode[3];
+         u_char snap_ethertype[2];
+      } snap_ether;
+   } ctl;
 };
 
 #define	llcui		ctl.snap.snap_ui

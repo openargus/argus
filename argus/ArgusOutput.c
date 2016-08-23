@@ -3,19 +3,18 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -50,6 +49,8 @@
 #endif
 
 void *ArgusOutputProcess(void *);
+
+#define ARGUS_SOCKET_PATH  "/tmp/argus.sock"
 
 #if defined(ARGUS_TILERA)
 extern int ArgusFirstTile;
@@ -175,6 +176,9 @@ static const struct sasl_callback argus_cb[] = {
 };
 #endif
 
+
+
+
 void
 ArgusInitOutput (struct ArgusOutputStruct *output)
 {
@@ -234,6 +238,7 @@ ArgusInitOutput (struct ArgusOutputStruct *output)
 
                   char *baddr = strstr (wfile->filename, "udp://");
                   baddr = &baddr[6];
+                  client->type = ARGUS_DATA_SOURCE;
 
 #if defined(HAVE_GETADDRINFO)
                   struct addrinfo hints, *hp = NULL, *bhp = NULL;
@@ -321,8 +326,15 @@ ArgusInitOutput (struct ArgusOutputStruct *output)
                   } while (hp != NULL);
 #endif
                } else
+               if (!(strncmp (wfile->filename, "domain://", 9))) {
+                  client->type = ARGUS_DOMAIN_SOURCE;
+                  output->type = ARGUS_DOMAIN_SOURCE;
+
+               } else {
                   if ((client->fd = open (wfile->filename, O_WRONLY|O_APPEND|O_CREAT|O_NONBLOCK, 0x1a4)) < 0)
                      ArgusLog (LOG_ERR, "ArgusInitOutput: open %s: %s", wfile->filename, strerror(errno));
+               }
+
             } else {
                client->fd = 1;
                output->ArgusWriteStdOut++;
@@ -524,7 +536,7 @@ ArgusOutputProcess(void *arg)
    while ((list = output->ArgusInputList) == NULL) {
       struct timespec tsbuf = {0, 10000000}, *ts = &tsbuf;
 #ifdef ARGUSDEBUG
-      ArgusDebug (6, "ArgusOutputProcess(%p) waiting for ArgusOutputList\n", output);
+      ArgusDebug (3, "ArgusOutputProcess(%p) waiting for ArgusOutputList\n", output);
 #endif
       nanosleep (ts, NULL);
    }
@@ -759,6 +771,7 @@ ArgusOutputProcess(void *arg)
                            if (tvp->tv_sec >= ARGUS_CLIENT_STARTUP_TIMEOUT) {
                               if (client->sock != NULL) {
                                  ArgusDeleteSocket(output, client);
+
                                  ArgusLog (LOG_WARNING, "ArgusCheckClientMessage: client %s never started: timed out", 
                                     (client->hostname != NULL) ? client->hostname : "noname");
                               }
@@ -781,7 +794,13 @@ ArgusOutputProcess(void *arg)
 
             if (output->ArgusWriteStdOut)
                fflush (stdout);
+
+         } else {
+#ifdef ARGUSDEBUG
+            ArgusDebug (8, "ArgusOutputProcess() no records to output\n");
+#endif
          }
+
 #ifdef ARGUSDEBUG
          ArgusDebug (6, "ArgusOutputProcess() checking out clients\n");
 #endif
@@ -862,6 +881,7 @@ ArgusOutputProcess(void *arg)
 
 
 #include <netdb.h>
+#include <sys/un.h>
 
 int
 ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
@@ -1041,6 +1061,48 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
          }
             
       } while (baddr != NULL);
+
+   } else {
+      struct stat statbuf;
+      struct sockaddr_un server;
+      int retn = -1;
+
+      output->type = ARGUS_DOMAIN_SOURCE;
+
+      switch (stat(ARGUS_SOCKET_PATH, &statbuf)) {
+         case 0:
+            if (unlink(ARGUS_SOCKET_PATH))
+               snprintf(errbuf, 1024, "%s: ArgusEstablishListen: unlink() %s", ArgusProgramName, strerror(errno));
+            break;
+
+         case ENOENT:  break;
+      }
+      
+      if ((s = socket (AF_UNIX, SOCK_STREAM, 0)) >= 0) {
+         int flags = fcntl (s, F_GETFL, 0L);
+         if ((fcntl (s, F_SETFL, flags | O_NDELAY)) >= 0) {
+            server.sun_family = AF_UNIX;
+            strcpy(server.sun_path, ARGUS_SOCKET_PATH);
+
+            if (!(bind (s, (struct sockaddr *) &server, sizeof(struct sockaddr_un)))) {
+               if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
+                  output->ArgusLfd[output->ArgusListens++] = s;
+               } else {
+                  snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() %s", ArgusProgramName, strerror(errno));
+               }
+            } else {
+               snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() %s", ArgusProgramName, strerror(errno));
+            }
+         } else
+            snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() %s", ArgusProgramName, strerror(errno));
+
+         if (retn == -1) {
+            close (s);
+            s = -1;
+         }
+
+      } else
+         snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
    }
      
 #ifdef ARGUSDEBUG
@@ -1081,10 +1143,18 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
 
    if ((fd = accept (s, (struct sockaddr *)&from, (socklen_t *)&len)) > 0) {
       int flags = fcntl (fd, F_GETFL, 0L);
+      int retn = 0;
 
       if ((fcntl (fd, F_SETFL, flags | O_NONBLOCK)) >= 0) {
-         if (ArgusTcpWrapper (fd, &from) >= 0) {
+         if (output->type != ARGUS_DOMAIN_SOURCE) {
+            if ((retn = ArgusTcpWrapper (fd, &from)) < 0) {
+               ArgusLog (LOG_WARNING, "ArgusCheckClientStatus: ArgusTcpWrapper rejects");
+               close (fd);
+            }
+         } else
+            retn = 0;
 
+         if (retn >= 0) {
             if (output->ArgusClients && (output->ArgusClients->count < ARGUS_MAXLISTEN)) {
                struct ArgusClientData *client = (void *) ArgusCalloc (1, sizeof(struct ArgusClientData));
 
@@ -1112,39 +1182,36 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
                ArgusDebug (2, "ArgusCheckClientStatus: SASL enabled\n");
 #endif
                {
-               char hbuf[NI_MAXHOST];
-               int niflags;
-               salen = sizeof(remoteaddr);
+                  char hbuf[NI_MAXHOST];
+                  int niflags;
+                  salen = sizeof(remoteaddr);
 
-               bzero(hbuf, sizeof(hbuf));
+                  bzero(hbuf, sizeof(hbuf));
 
-               if (getpeername(fd, (struct sockaddr *)&remoteaddr, &salen) == 0 &&
-                   (remoteaddr.ss_family == AF_INET || remoteaddr.ss_family == AF_INET6)) {
-                   if (getnameinfo((struct sockaddr *)&remoteaddr, salen, hbuf, sizeof(hbuf), NULL, 0, NI_NAMEREQD) == 0) {
-                       strncpy(clienthost, hbuf, sizeof(hbuf));
-                   } else {
-                       clienthost[0] = '\0';
-                   }
-                   niflags = NI_NUMERICHOST;
+                  if (getpeername(fd, (struct sockaddr *)&remoteaddr, &salen) == 0 && (remoteaddr.ss_family == AF_INET || remoteaddr.ss_family == AF_INET6)) {
+                      if (getnameinfo((struct sockaddr *)&remoteaddr, salen, hbuf, sizeof(hbuf), NULL, 0, NI_NAMEREQD) == 0) {
+                          strncpy(clienthost, hbuf, sizeof(hbuf));
+                      } else {
+                          clienthost[0] = '\0';
+                      }
+                      niflags = NI_NUMERICHOST;
 #ifdef NI_WITHSCOPEID
-                   if (((struct sockaddr *)&remoteaddr)->sa_family == AF_INET6)
-                       niflags |= NI_WITHSCOPEID;
+                      if (((struct sockaddr *)&remoteaddr)->sa_family == AF_INET6)
+                          niflags |= NI_WITHSCOPEID;
 #endif
-                   if (getnameinfo((struct sockaddr *)&remoteaddr, salen, hbuf, sizeof(hbuf), NULL, 0, niflags) != 0)
-                       strncpy(hbuf, "unknown", sizeof(hbuf));
+                      if (getnameinfo((struct sockaddr *)&remoteaddr, salen, hbuf, sizeof(hbuf), NULL, 0, niflags) != 0)
+                          strncpy(hbuf, "unknown", sizeof(hbuf));
 
-                   sprintf(&clienthost[strlen(clienthost)], "[%s]", hbuf);
+                      sprintf(&clienthost[strlen(clienthost)], "[%s]", hbuf);
 
-                   salen = sizeof(localaddr);
-                   if (getsockname(fd, (struct sockaddr *)&localaddr, &salen) == 0) {
-                       if(iptostring((struct sockaddr *)&remoteaddr, salen,
-                                     remoteip, sizeof(remoteip)) == 0
-                          && iptostring((struct sockaddr *)&localaddr, salen,
-                                        localip, sizeof(localip)) == 0) {
-                          argus_have_addr = 1;
-                       }
-                   }
-               }
+                      salen = sizeof(localaddr);
+                      if (getsockname(fd, (struct sockaddr *)&localaddr, &salen) == 0) {
+                          if ((iptostring((struct sockaddr *)&remoteaddr, salen, remoteip, sizeof(remoteip)) == 0) &&
+                              (iptostring((struct sockaddr *)&localaddr, salen, localip, sizeof(localip)) == 0)) {
+                             argus_have_addr = 1;
+                          }
+                      }
+                  }
                }
 
                gethostname(localhostname, 1024);
@@ -1235,9 +1302,6 @@ no_auth:
                }
             }
 
-         } else {
-            ArgusLog (LOG_WARNING, "ArgusCheckClientStatus: ArgusTcpWrapper rejects");
-            close (fd);
          }
          
       } else {

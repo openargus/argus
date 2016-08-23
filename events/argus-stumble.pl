@@ -1,7 +1,7 @@
-#!/bin/bash
+#!@PERLBIN@
 #
-#  Argus Software
-#  Copyright (c) 2006-2020 QoSient, LLC
+#  Gargoyle Software.  Argus Event scripts - stumble
+#  Copyright (c) 2000-2015 QoSient, LLC
 #  All rights reserved.
 #
 #  THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
@@ -20,21 +20,25 @@
 #  Written by Carter Bullard
 #  QoSient, LLC
 #
-#  vmstat - report vmstat output as XML oriented argus event.
-#           This example is provided to show how you can format most programs
-#           to get to the XML oriented output used by the argus events system.
-#
-# Carter Bullard
-# QoSient, LLC
+#  argus-stumble - Report available wireless networks.
 #
 
-output=`vm_stat | sed -e 's/"//g' -e 's/\.//' -e 's/: */:/' | \
-        awk 'BEGIN {FS = ":"}{ if ($1=="Mach Virtual Memory Statistics") \
-        print "   <ArgusEventData Type = \""$1"\" Comment = \""$2"\" >" ; \
-        else print "      < Label = \""$1"\" Value = \""$2"\" />"}'`
-#
-# 
-echo "<ArgusEvent>"
-echo "$output"
-echo "   </ArgusEventData>"
-echo "</ArgusEvent>"
+use POSIX;
+use strict;
+
+my $stumble = "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport"
+my @args = "$stumble -s";
+my $data;
+
+print "<ArgusEvent>\n";
+print "  <ArgusEventData Type = \"Program: argus-stumble\">\n";
+
+open(SESAME, "@args |");
+
+while ($data = <SESAME>) {
+   print "    $data";
+}
+close(SESAME);
+
+print "  </ArgusEventData>\n";
+print "</ArgusEvent>\n";

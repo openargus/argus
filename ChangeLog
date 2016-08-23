@@ -4,35 +4,8 @@ Changes to deal with ekinzie-ccc-analyzer issues.
 Mon Mar 21 14:08:52 EDT 2016
 Snap encapsulation header processing fixes
 
-Wed Jan 13 09:32:04 EST 2016
-ICMPv6 processing fixes
-
-Thu Oct  1 12:19:11 EDT 2015
-Mods for duplicate processing in TCP
-
-Mon Jun 29 16:16:11 EDT 2015
-Mods to remove use of ArgusLog(LOG_ERR, ...) in ArgusUdt.c
-
-Fri Apr 17 08:11:43 EDT 2015
-Modify outer header parsing to deal with GRE arp packets.
-
-Sat Apr 11 11:39:22 EDT 2015
-Fixes for specific syntax errors generating fault.
-
-Fri Apr 10 14:29:17 EDT 2015
-Fixes for idle timer when no packets on interface
-
-Sat Apr 04 17:32:51 EDT 2015
-Fixes to support Vmware using GRE Transparent Bridging encapsulations.
-
-Tue Jan 20 10:12:29 EST 2015
-Fix for filter syntax error message in front of the filter.
-
-Tue Dec 23 16:47:41 EST 2014
-Added dna zc and eth+@ to polling interfaces
-
-Thu Nov 20 08:13:22 EST 2014
-Added pcap_set_buffer_size support in argus.
+Mon Oct 13 11:12:51 EST 2014
+Added vxlan encapsulation parsing
 
 Tue Jul  8 14:51:13 EDT 2014
 Mods for packaging for ubuntu, redhat, etc....

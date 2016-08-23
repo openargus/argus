@@ -3,19 +3,21 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
@@ -272,7 +274,6 @@ strtof (char *str, char **ptr)
 #endif
 
 void ArgusPrintHex (const u_char *, u_int);
-
 #if !defined(ntohll)
   #if defined(_LITTLE_ENDIAN)
     #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__sun__)
@@ -375,11 +376,6 @@ ArgusHtoN (struct ArgusRecord *argus)
                                           flow->ipv6_flow.sport = htons(flow->ipv6_flow.sport);
                                           flow->ipv6_flow.dport = htons(flow->ipv6_flow.dport);
                                           break;
-
-                                       case IPPROTO_ICMPV6:
-                                          flow->icmpv6_flow.id = htons(flow->icmpv6_flow.id);
-                                          break;
-
                                        case IPPROTO_ESP:
                                           flow->esp6_flow.spi = htonl(flow->esp6_flow.spi);
                                           break;
@@ -511,25 +507,32 @@ ArgusHtoN (struct ArgusRecord *argus)
 
                   case ARGUS_TRANSPORT_DSR: {
                      struct ArgusTransportStruct *trans = (struct ArgusTransportStruct *) dsr;
-
-                     if (trans->hdr.subtype & ARGUS_SEQ)
-                           trans->seqnum = htonl(trans->seqnum);
+                     unsigned int *iptr = (unsigned int *)&trans->srcid.a_un.value;
 
                      if (trans->hdr.subtype & ARGUS_SRCID) {
-                        switch (trans->hdr.argus_dsrvl8.qual) {
+                        switch (trans->hdr.argus_dsrvl8.qual & ~ARGUS_TYPE_INTERFACE) {
                            case ARGUS_TYPE_INT:
-                              trans->srcid.a_un.value = htonl(trans->srcid.a_un.value);
-                              break;
                            case ARGUS_TYPE_IPV4:
-                              trans->srcid.a_un.value = htonl(trans->srcid.a_un.value);
+                              *iptr = htonl(*iptr);
+                              iptr += 1;
                               break;
 
                            case ARGUS_TYPE_IPV6:
+                              iptr += 4;
+                              break;
                            case ARGUS_TYPE_ETHER:
+                              iptr += 2;
+                              break;
                            case ARGUS_TYPE_STRING:
+                              iptr += 1;
                               break;
                         }
+                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE)
+                           iptr += 1;
                      }
+
+                     if (trans->hdr.subtype & ARGUS_SEQ)
+                        *iptr = htonl(*iptr);
                      break;
                   }
 

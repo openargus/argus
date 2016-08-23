@@ -3,19 +3,19 @@
 #  Copyright (c) 2000-2020 QoSient, LLC
 #  All rights reserved.
 # 
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2, or (at your option)
-#  any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#  THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+#  AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+#  EXPRESS PERMISSION OF QoSIENT, LLC.
+# 
+#  QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+#  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+#  AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+#  SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+#  IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+#  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+#  THIS SOFTWARE.
+# 
 # 
 #  $Id: //depot/argus/clients/configure.ac#7 $
 #  $DateTime: 2010/07/25 23:19:02 $
@@ -37,6 +37,7 @@ AC_QOSIENT_PERL(V_PERL)
 
 # Checks for programs.
 AC_LBL_C_INIT(V_CCOPT, V_INCLS)
+AC_C_INLINE
 AC_PROG_MAKE_SET
 AC_PROG_LN_S
 AC_PROG_LEX
@@ -66,6 +67,7 @@ AC_CHECK_HEADERS([net/if.h netinet/in.h netinet/if_ether.h netinet/ether.h netin
 AC_CHECK_HEADERS([netinet/ip.h netinet/udp.h netinet/tcp.h])
 AC_CHECK_HEADERS([stdlib.h stddef.h string.h strings.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h])
 AC_CHECK_HEADERS([sys/time.h sys/vfs.h syslog.h termios.h unistd.h values.h features.h])
+AC_CHECK_HEADERS([dns_sd.h])
 
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -153,9 +155,7 @@ fi
 # "gethostbyname() -ish function".
 #
 AC_LBL_LIBRARY_NET
-
 AC_CHECK_FUNCS([ether_hostton getaddrinfo gethostname])
-
 
 if test "$ac_cv_func_ether_hostton" = yes; then
    #

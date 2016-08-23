@@ -4,25 +4,9 @@ dnl
 dnl Copyright (c) 1995, 1996, 1997, 1998
 dnl   The Regents of the University of California.  All rights reserved.
 dnl
-dnl Redistribution and use in source and binary forms, with or without
-dnl modification, are permitted provided that: (1) source code distributions
-dnl retain the above copyright notice and this paragraph in its entirety, (2)
-dnl distributions including binary code include the above copyright notice and
-dnl this paragraph in its entirety in the documentation or other materials
-dnl provided with the distribution, and (3) all advertising materials mentioning
-dnl features or use of this software display the following acknowledgement:
-dnl ``This product includes software developed by the University of California,
-dnl Lawrence Berkeley Laboratory and its contributors.'' Neither the name of
-dnl the University nor the names of its contributors may be used to endorse
-dnl or promote products derived from this software without specific prior
-dnl written permission.
-dnl THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
-dnl WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
-dnl MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
-dnl
-dnl $Id: //depot/argus/argus/acsite.m4#24 $
-dnl $DateTime: 2015/04/13 00:43:29 $
-dnl $Change: 2982 $
+dnl $Id: //depot/gargoyle/argus/acsite.m4#6 $
+dnl $DateTime: 2015/04/13 14:26:55 $
+dnl $Change: 2989 $
 dnl
 
 

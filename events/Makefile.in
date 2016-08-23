@@ -2,7 +2,11 @@
 #  Argus Software
 #  Copyright (c) 2000-2020 QoSient, LLC
 #  All rights reserved.
-# 
+#
+#  THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+#  AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+#  EXPRESS PERMISSION OF QoSIENT, LLC.
+#
 #  QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
 #  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
 #  AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
@@ -11,7 +15,10 @@
 #  IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
 #  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 #  THIS SOFTWARE.
-# 
+#
+#  Written by Carter Bullard
+#  QoSient, LLC
+#
 # Various configurable paths (remember to edit Makefile.in, not Makefile)
 #
 NOOP = $(SHELL) -c true
@@ -77,9 +84,10 @@ YACC = @V_YACC@
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $<
 
-SRC =	argus-extip.pl argus-lsof.pl argus-snmp.sh argus-vmstat.sh
+SRC =	argus-extip.pl argus-lsof.pl argus-stumbler.pl argus-snmp.sh argus-vmstat.sh argus-airport.sh argus-netstat.pl
 
-PROG =	@INSTALL_BIN@/argus-extip @INSTALL_BIN@/argus-lsof @INSTALL_BIN@/argus-snmp @INSTALL_BIN@/argus-vmstat
+PROG =	@INSTALL_BIN@/argus-extip @INSTALL_BIN@/argus-lsof @INSTALL_BIN@/argus-stumbler @INSTALL_BIN@/argus-snmp \
+	@INSTALL_BIN@/argus-vmstat @INSTALL_BIN@/argus-airport @INSTALL_BIN@/argus-netstat
 
 CLEANFILES = $(PROG)
 
@@ -93,25 +101,42 @@ all: $(PROG)
 	sed 's+@PERLBIN@+$(PERL)+' argus-lsof.pl > $@
 	chmod +x $@
 
+@INSTALL_BIN@/argus-netstat: argus-netstat.pl
+	sed 's+@PERLBIN@+$(PERL)+' argus-netstat.pl > $@
+	chmod +x $@
+
+@INSTALL_BIN@/argus-stumbler: argus-stumbler.pl
+	sed 's+@PERLBIN@+$(PERL)+' argus-stumbler.pl > $@
+	chmod +x $@
+
 @INSTALL_BIN@/argus-snmp: argus-snmp.sh
 	cp -f argus-snmp.sh $@
 
 @INSTALL_BIN@/argus-vmstat: argus-vmstat.sh
 	cp -f argus-vmstat.sh $@
 
+@INSTALL_BIN@/argus-airport: argus-airport.sh
+	cp -f argus-airport.sh $@
+
 install: all force
 	[ -d $(DESTDIR)$(SBINDIR) ] || \
 		(mkdir -p $(DESTDIR)$(SBINDIR); chmod 755 $(DESTDIR)$(SBINDIR))
-	$(INSTALL) $(srcdir)/../bin/argus-extip  $(DESTDIR)$(BINDIR)/argus-extip
-	$(INSTALL) $(srcdir)/../bin/argus-lsof   $(DESTDIR)$(BINDIR)/argus-lsof
-	$(INSTALL) $(srcdir)/../bin/argus-snmp   $(DESTDIR)$(BINDIR)/argus-snmp
-	$(INSTALL) $(srcdir)/../bin/argus-vmstat $(DESTDIR)$(BINDIR)/argus-vmstat
+	$(INSTALL) $(srcdir)/../bin/argus-extip    $(DESTDIR)$(BINDIR)/argus-extip
+	$(INSTALL) $(srcdir)/../bin/argus-lsof     $(DESTDIR)$(BINDIR)/argus-lsof
+	$(INSTALL) $(srcdir)/../bin/argus-netstat  $(DESTDIR)$(BINDIR)/argus-netstat
+	$(INSTALL) $(srcdir)/../bin/argus-stumbler $(DESTDIR)$(BINDIR)/argus-stumbler
+	$(INSTALL) $(srcdir)/../bin/argus-snmp     $(DESTDIR)$(BINDIR)/argus-snmp
+	$(INSTALL) $(srcdir)/../bin/argus-vmstat   $(DESTDIR)$(BINDIR)/argus-vmstat
+	$(INSTALL) $(srcdir)/../bin/argus-airport  $(DESTDIR)$(BINDIR)/argus-airport
 
 uninstall: all force
 	rm -f $(DESTDIR)$(BINDIR)/argus-extip
 	rm -f $(DESTDIR)$(BINDIR)/argus-lsof
+	rm -f $(DESTDIR)$(BINDIR)/argus-netstat
+	rm -f $(DESTDIR)$(BINDIR)/argus-stumbler
 	rm -f $(DESTDIR)$(BINDIR)/argus-snmp
 	rm -f $(DESTDIR)$(BINDIR)/argus-vmstat
+	rm -f $(DESTDIR)$(BINDIR)/argus-airport
 
 clean:
 	rm -f $(CLEANFILES)

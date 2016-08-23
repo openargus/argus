@@ -14,9 +14,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/include/argus_gmpls.h#5 $
- * $DateTime: 2011/01/26 17:11:49 $
- * $Change: 2087 $
+ * $Id: //depot/gargoyle/argus/include/argus_gmpls.h#1 $
+ * $DateTime: 2012/05/01 14:08:47 $
+ * $Change: 2378 $
  */
 
 #if !defined(Argus_gmpls_h)
