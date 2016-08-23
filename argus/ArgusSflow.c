@@ -1,28 +1,30 @@
 /*
- * Argus Software.  Argus files - Fragment processing
+ * Gargoyle Software.  Argus files - Sflow record processing
  * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
 /* 
- * $Id: //depot/argus/argus/argus/ArgusSflow.c#6 $
- * $DateTime: 2015/04/06 10:38:44 $
- * $Change: 2973 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusSflow.c#5 $
+ * $DateTime: 2016/02/16 17:07:05 $
+ * $Change: 3096 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -298,18 +300,18 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
                         }
                      }
                      if (model->ArgusThisFlow && (model->ArgusThisFlow->ip_flow.ip_src != 0)) {
-                        struct ArgusTransportStruct *trans = &flow->canon.trans;
-                        trans->hdr.type               = ARGUS_TRANSPORT_DSR;
-                        trans->hdr.subtype            = ARGUS_SRCID | ARGUS_SEQ;
-                        trans->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_IPV4;
-                        trans->hdr.argus_dsrvl8.len   = 3;
-                        trans->srcid.a_un.ipv4        = (model->ArgusThisFlow->hdr.subtype & ARGUS_REVERSE) ?
-                                                        model->ArgusThisFlow->ip_flow.ip_dst :
-                                                        model->ArgusThisFlow->ip_flow.ip_src ;
+                        struct ArgusV3TransportStruct *trans = (struct ArgusV3TransportStruct *)&flow->canon.trans;
+                        trans->hdr.type                      = ARGUS_TRANSPORT_DSR;
+                        trans->hdr.subtype                   = ARGUS_SRCID | ARGUS_SEQ;
+                        trans->hdr.argus_dsrvl8.qual         = ARGUS_TYPE_IPV4;
+                        trans->hdr.argus_dsrvl8.len          = 3;
+                        trans->srcid.a_un.ipv4               = (model->ArgusThisFlow->hdr.subtype & ARGUS_REVERSE) ?
+                                                                model->ArgusThisFlow->ip_flow.ip_dst :
+                                                                model->ArgusThisFlow->ip_flow.ip_src ;
 
-                        trans->seqnum                 = ArgusFlowSeq + ArgusCounter++;
-                        flow->dsrindex |= 1 << ARGUS_TRANSPORT_INDEX;
-                        flow->dsrs[ARGUS_TRANSPORT_INDEX] = (void *)trans;
+                        trans->seqnum                        = ArgusFlowSeq + ArgusCounter++;
+                        flow->dsrindex                      |= 1 << ARGUS_TRANSPORT_INDEX;
+                        flow->dsrs[ARGUS_TRANSPORT_INDEX]    = (void *)trans;
                      }
                      {
                         struct ArgusIPAttrStruct *attr = &flow->canon.attr;
@@ -485,18 +487,18 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
                         }
                      }
                      if (model->ArgusThisFlow && (model->ArgusThisFlow->ip_flow.ip_src != 0)) {
-                        struct ArgusTransportStruct *trans = &flow->canon.trans;
-                        trans->hdr.type               = ARGUS_TRANSPORT_DSR;
-                        trans->hdr.subtype            = ARGUS_SRCID | ARGUS_SEQ;
-                        trans->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_IPV4;
-                        trans->hdr.argus_dsrvl8.len   = 3;
-                        trans->srcid.a_un.ipv4        = (model->ArgusThisFlow->hdr.subtype & ARGUS_REVERSE) ?
-                                                        model->ArgusThisFlow->ip_flow.ip_dst :
-                                                        model->ArgusThisFlow->ip_flow.ip_src ;
+                        struct ArgusV3TransportStruct *trans = (struct ArgusV3TransportStruct *)&flow->canon.trans;
+                        trans->hdr.type                      = ARGUS_TRANSPORT_DSR;
+                        trans->hdr.subtype                   = ARGUS_SRCID | ARGUS_SEQ;
+                        trans->hdr.argus_dsrvl8.qual         = ARGUS_TYPE_IPV4;
+                        trans->hdr.argus_dsrvl8.len          = 3;
+                        trans->srcid.a_un.ipv4               = (model->ArgusThisFlow->hdr.subtype & ARGUS_REVERSE) ?
+                                                                model->ArgusThisFlow->ip_flow.ip_dst :
+                                                                model->ArgusThisFlow->ip_flow.ip_src ;
 
-                        trans->seqnum                 = ArgusFlowSeq + ArgusCounter++;
-                        flow->dsrindex |= 1 << ARGUS_TRANSPORT_INDEX;
-                        flow->dsrs[ARGUS_TRANSPORT_INDEX] = (void *)trans;
+                        trans->seqnum                        = ArgusFlowSeq + ArgusCounter++;
+                        flow->dsrindex                      |= 1 << ARGUS_TRANSPORT_INDEX;
+                        flow->dsrs[ARGUS_TRANSPORT_INDEX]    = (void *)trans;
                      }
                      {
                         struct ArgusIPAttrStruct *attr = &flow->canon.attr;
@@ -672,18 +674,18 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
                         }
                      }
                      if (model->ArgusThisFlow && (model->ArgusThisFlow->ip_flow.ip_src != 0)) {
-                        struct ArgusTransportStruct *trans = &flow->canon.trans;
-                        trans->hdr.type               = ARGUS_TRANSPORT_DSR;
-                        trans->hdr.subtype            = ARGUS_SRCID | ARGUS_SEQ;
-                        trans->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_IPV4;
-                        trans->hdr.argus_dsrvl8.len   = 3;
-                        trans->srcid.a_un.ipv4        = (model->ArgusThisFlow->hdr.subtype & ARGUS_REVERSE) ?
-                                                        model->ArgusThisFlow->ip_flow.ip_dst :
-                                                        model->ArgusThisFlow->ip_flow.ip_src ;
+                        struct ArgusV3TransportStruct *trans = (struct ArgusV3TransportStruct *)&flow->canon.trans;
+                        trans->hdr.type                      = ARGUS_TRANSPORT_DSR;
+                        trans->hdr.subtype                   = ARGUS_SRCID | ARGUS_SEQ;
+                        trans->hdr.argus_dsrvl8.qual         = ARGUS_TYPE_IPV4;
+                        trans->hdr.argus_dsrvl8.len          = 3;
+                        trans->srcid.a_un.ipv4               = (model->ArgusThisFlow->hdr.subtype & ARGUS_REVERSE) ?
+                                                                model->ArgusThisFlow->ip_flow.ip_dst :
+                                                                model->ArgusThisFlow->ip_flow.ip_src ;
 
-                        trans->seqnum                 = ArgusFlowSeq + ArgusCounter++;
-                        flow->dsrindex |= 1 << ARGUS_TRANSPORT_INDEX;
-                        flow->dsrs[ARGUS_TRANSPORT_INDEX] = (void *)trans;
+                        trans->seqnum                        = ArgusFlowSeq + ArgusCounter++;
+                        flow->dsrindex                      |= 1 << ARGUS_TRANSPORT_INDEX;
+                        flow->dsrs[ARGUS_TRANSPORT_INDEX]    = (void *)trans;
                      }
                      {
                         struct ArgusIPAttrStruct *attr = &flow->canon.attr;
@@ -859,18 +861,19 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
                         }
                      }
                      if (model->ArgusThisFlow && (model->ArgusThisFlow->ip_flow.ip_src != 0)) {
-                        struct ArgusTransportStruct *trans = &flow->canon.trans;
-                        trans->hdr.type               = ARGUS_TRANSPORT_DSR;
-                        trans->hdr.subtype            = ARGUS_SRCID | ARGUS_SEQ;
-                        trans->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_IPV4;
-                        trans->hdr.argus_dsrvl8.len   = 3;
-                        trans->srcid.a_un.ipv4        = (model->ArgusThisFlow->hdr.subtype & ARGUS_REVERSE) ?
-                                                        model->ArgusThisFlow->ip_flow.ip_dst :
-                                                        model->ArgusThisFlow->ip_flow.ip_src ;
+                        struct ArgusV3TransportStruct *trans = (struct ArgusV3TransportStruct *)&flow->canon.trans;
+                        trans->hdr.type                      = ARGUS_TRANSPORT_DSR;
+                        trans->hdr.subtype                   = ARGUS_SRCID | ARGUS_SEQ;
+                        trans->hdr.argus_dsrvl8.qual         = ARGUS_TYPE_IPV4;
+                        trans->hdr.argus_dsrvl8.len          = 3;
+                        trans->srcid.a_un.ipv4               = (model->ArgusThisFlow->hdr.subtype & ARGUS_REVERSE) ?
+                                                                model->ArgusThisFlow->ip_flow.ip_dst :
+                                                                model->ArgusThisFlow->ip_flow.ip_src ;
 
-                        trans->seqnum                 = ArgusFlowSeq + ArgusCounter++;
-                        flow->dsrindex |= 1 << ARGUS_TRANSPORT_INDEX;
-                        flow->dsrs[ARGUS_TRANSPORT_INDEX] = (void *)trans;
+                        trans->seqnum                        = ArgusFlowSeq + ArgusCounter++;
+                        flow->dsrindex                      |= 1 << ARGUS_TRANSPORT_INDEX;
+                        flow->dsrs[ARGUS_TRANSPORT_INDEX]    = (void *)trans;
+
                      }
                      {
                         struct ArgusIPAttrStruct *attr = &flow->canon.attr;

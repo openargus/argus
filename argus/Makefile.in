@@ -1,7 +1,11 @@
 # 
-#  Argus Software
+#  Gargoyle Software.  Argus files - Makefile.in
 #  Copyright (c) 2000-2015 QoSient, LLC
 #  All rights reserved.
+# 
+#  THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+#  AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+#  EXPRESS PERMISSION OF QoSIENT, LLC.
 # 
 #  QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
 #  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
@@ -11,6 +15,9 @@
 #  IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
 #  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 #  THIS SOFTWARE.
+# 
+#  Written by Carter Bullard
+#  QoSient, LLC
 # 
 # Various configurable paths (remember to edit Makefile.in, not Makefile)
 
@@ -75,7 +82,7 @@ YACC = @V_YACC@
 SRC =	argus.c ArgusModeler.c ArgusSource.c ArgusUtil.c ArgusOutput.c ArgusUdp.c \
 	ArgusTcp.c ArgusIcmp.c ArgusIgmp.c ArgusEsp.c ArgusArp.c ArgusFrag.c ArgusUdt.c \
 	ArgusLcp.c ArgusIsis.c ArgusAuth.c Argus802.11.c ArgusApp.c ArgusEvents.c \
-	ArgusNetflow.c ArgusSflow.c
+	ArgusNetflow.c ArgusSflow.c ArgusVxLan.c ArgusL2TP.c
 
 PROG =	@INSTALL_BIN@/argus
 
@@ -136,4 +143,4 @@ tar:	force
 
 force:	/tmp
 depend:	force
-	../bin/mkdep -c $(CC) $(CFLAGS) $(DEFS) $(INCLS) $(SRC)
+	../bin/mkdep -c $(CC) $(DEFS) $(INCLS) $(SRC)

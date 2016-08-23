@@ -4,8 +4,7 @@
 #  Copyright (c) 2006-2015 QoSient, LLC
 #  All rights reserved.
 #
-#  argus-lsof - Report open inet sockets and provide application names as
-#               XML oriented argus events.
+#  argus-extip - get external IP address for this node.
 #
 # Carter Bullard
 # QoSient, LLC

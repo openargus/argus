@@ -1,28 +1,30 @@
 /*
- * Argus Software.  Argus files - Output include file
+ * Gargoyle Software.  Argus files - Output include files
  * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
 /*
- * $Id: //depot/argus/argus/argus/ArgusOutput.h#23 $
- * $DateTime: 2015/04/06 10:38:44 $
- * $Change: 2973 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusOutput.h#7 $
+ * $DateTime: 2015/04/21 19:24:29 $
+ * $Change: 3018 $
  */
 
 
@@ -104,6 +106,13 @@ struct ArgusBindAddrStruct {
 
 
 struct ArgusOutputStruct {
+   int type, status;
+ 
+#if defined(ARGUS_THREADS)
+   pthread_t thread;
+   pthread_mutex_t lock;
+#endif
+
    struct ArgusSourceStruct *ArgusSrc;
    struct ArgusModelerStruct *ArgusModel;
    struct ArgusListStruct *ArgusWfileList;
@@ -116,13 +125,6 @@ struct ArgusOutputStruct {
    struct ArgusRecord *ArgusInitMar;
 
    long long ArgusTotalRecords, ArgusLastRecords;
-
-   int status;
-
-#if defined(ARGUS_THREADS)
-   pthread_t thread;
-   pthread_mutex_t lock;
-#endif
 
    int ArgusWriteStdOut;
    int ArgusOutputSequence;

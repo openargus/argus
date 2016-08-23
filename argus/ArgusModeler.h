@@ -1,28 +1,30 @@
 /*
- * Argus Software.  Argus files - Modeler includes
+ * Gargoyle Software.  Argus files - Modeler includes
  * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
 /* 
- * $Id: //depot/argus/argus/argus/ArgusModeler.h#62 $
- * $DateTime: 2016/06/06 11:06:59 $
- * $Change: 3154 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusModeler.h#8 $
+ * $DateTime: 2016/02/23 00:04:12 $
+ * $Change: 3099 $
  */
 
 
@@ -206,6 +208,12 @@ struct ArgusKeyStrokeConf {
    float icr_min, icr_max;
 };
 
+struct ArgusControlProtocols {
+   char tcpport[0x10000];
+   char udpport[0x10000];
+};
+
+
 struct ArgusModelerStruct {
    int state, status;
 #if defined(ARGUS_THREADS)
@@ -231,6 +239,7 @@ struct ArgusModelerStruct {
    unsigned int ArgusThisAppFlowType;
    int ArgusThisMplsLabelIndex;
    unsigned int ArgusThisMplsLabel;
+   unsigned int ArgusThisVxLanVni;
    unsigned int ArgusThisPacket8021QEncaps;
    unsigned char ArgusFlowType, ArgusFlowKey;
    unsigned short ArgusOptionIndicator;
@@ -251,6 +260,8 @@ struct ArgusModelerStruct {
    unsigned char *ArgusThisSnapEnd;
  
    int ArgusControlMonitor;
+   struct ArgusControlProtocols *cps;
+
    int ArgusSnapLength;
    int ArgusGenerateTime;
    int ArgusGeneratePacketSize;
@@ -303,6 +314,7 @@ struct ArgusModelerStruct {
    int ArgusSnapLen;
  
    int ArgusTunnelDiscovery;
+   int ArgusOSFingerPrinting;
    int ArgusUserDataLen;
    int ArgusAflag, ArgusTCPflag, Argusmflag;
    int ArgusSelfSynchronize, vflag;
@@ -327,6 +339,7 @@ struct ArgusModelerStruct {
    unsigned int ArgusNetMask;
    unsigned int ArgusLink;
 };
+
 
 #include <ArgusUtil.h>
 #include <ArgusSource.h>
@@ -387,14 +400,6 @@ struct ArgusFlowStruct {
    struct ArgusCanonRecord canon;
 };
 
-struct erspan_ii_header {
-   u_int16_t ver_vlan;
-   u_int16_t cos_ent_session;
-   u_int32_t resvert_index;
-};
-
-#define ERSPAN_VER(x)          ( ntohs(((struct erspan_ii_header *) x)->ver_vlan) >> 12 )
-
 
 #if defined(ArgusModeler)
 
@@ -417,6 +422,10 @@ struct timeval ArgusQueueTime = {0, 0};
 struct timeval ArgusQueueInterval = {0, 50000};
 struct timeval ArgusListenTime = {0, 0};
 struct timeval ArgusListenInterval = {0, 250000};
+
+typedef unsigned short (*pproc)(struct ArgusModelerStruct *, void *ptr);
+pproc ArgusTransportParseRoutines [0x10000];
+void ArgusInitTunnelPortNumbers (void);
 
 struct ArgusModelerStruct *ArgusNewModeler(void);
 struct ArgusModelerStruct *ArgusCloneModeler(struct ArgusModelerStruct *);
@@ -454,6 +463,11 @@ void setArgusSynchronize (struct ArgusModelerStruct *, int);
 int getArgusKeystroke(struct ArgusModelerStruct *);
 void setArgusKeystroke(struct ArgusModelerStruct *, int);
 void setArgusKeystrokeVariable(struct ArgusModelerStruct *, char *);
+
+int getArgusOSFingerPrinting (struct ArgusModelerStruct *);
+void setArgusOSFingerPrinting (struct ArgusModelerStruct *, int);
+
+void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 
 int getArgusTunnelDiscovery (struct ArgusModelerStruct *);
 void setArgusTunnelDiscovery (struct ArgusModelerStruct *, int);
@@ -589,6 +603,27 @@ extern  int ArgusUpdateFRAGState (struct ArgusModelerStruct *, struct ArgusFlowS
 extern void ArgusUpdateESPState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 
 
+extern unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
+extern unsigned short ArgusParseL2TP  (struct ArgusModelerStruct *, void *);
+
+#define MAX_PORT_ALG_TYPES	3
+struct ArgusTransportRoutines {
+   char *field;
+   unsigned short type, port;
+   unsigned short (*parse)(struct ArgusModelerStruct *, void *ptr);
+};
+
+
+struct ArgusTransportRoutines
+RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
+#define ARGUS_PARSE_L2TP	0
+   { "l2tp",  ARGUS_PARSE_L2TP,  1701, ArgusParseL2TP},
+#define ARGUS_PARSE_VXLAN	1
+   { "vxlan", ARGUS_PARSE_VXLAN, 4789, ArgusParseVxLan},
+   { "vxlan", ARGUS_PARSE_VXLAN, 8472, ArgusParseVxLan},
+};
+
+
 #else /* #if defined(ArgusModeler) */
 
 extern struct ArgusModelerStruct *ArgusModel;
@@ -601,6 +636,9 @@ extern unsigned char *ArgusAlignBuf;
 #if defined(Argus)
 void clearArgusConfiguration (struct ArgusModelerStruct *);
 #endif
+
+typedef unsigned short (*pproc)(void *ptr);
+extern pproc ArgusTransportParseRoutines [];
 
 extern struct ArgusModelerStruct *ArgusNewModeler(void);
 extern struct ArgusModelerStruct *ArgusCloneModeler(struct ArgusModelerStruct *);
@@ -638,6 +676,11 @@ extern void setArgusSynchronize (struct ArgusModelerStruct *, int);
 extern int getArgusKeystroke(struct ArgusModelerStruct *);
 extern void setArgusKeystroke(struct ArgusModelerStruct *, int);
 extern void setArgusKeystrokeVariable(struct ArgusModelerStruct *, char *);
+
+extern int getArgusOSFingerPrinting (struct ArgusModelerStruct *);
+extern void setArgusOSFingerPrinting (struct ArgusModelerStruct *, int);
+
+extern void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 
 extern int getArgusTunnelDiscovery(struct ArgusModelerStruct *);
 extern void setArgusTunnelDiscovery(struct ArgusModelerStruct *, int);

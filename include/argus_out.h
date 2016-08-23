@@ -1,28 +1,30 @@
 /*
- * Argus Software Common include files -  output structures
+ * Gargoyle Software.  Common include files. Output structures
  * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
 /* 
- * $Id: //depot/argus/argus/include/argus_out.h#53 $
- * $DateTime: 2015/08/05 22:33:18 $
- * $Change: 3042 $
+ * $Id: //depot/gargoyle/argus/include/argus_out.h#11 $
+ * $DateTime: 2016/04/01 14:32:31 $
+ * $Change: 3134 $
  */
 
 
@@ -128,6 +130,7 @@ struct ArgusTCPObjectMetrics {
    unsigned int bytes, retrans, ackbytes, winbytes;
    unsigned short win;
    unsigned char flags, winshift;
+// unsigned int dup;
 };
  
 struct ArgusTCPObject {
@@ -548,12 +551,25 @@ struct ArgusAddrStruct {
    union {
       unsigned int value;
       unsigned int ipv4;
-      char str[4];
-/*
-      unsigned int ipv6[4];
       unsigned char ethersrc[6];
-*/
+      unsigned char str[4];
+      unsigned int ipv6[4];
    } a_un;
+   unsigned char inf[4];
+};
+
+struct ArgusV3AddrStruct {
+   union {
+      unsigned int value;
+      unsigned int ipv4;
+      unsigned char str[4];
+   } a_un;
+};
+
+struct ArgusV3TransportStruct {
+   struct ArgusDSRHeader hdr;
+   struct ArgusV3AddrStruct srcid;
+   unsigned int seqnum;
 };
 
 struct ArgusTransportStruct {
@@ -638,6 +654,13 @@ struct ArgusJitterStruct {
 struct ArgusMacStruct {
    struct ArgusDSRHeader hdr;
    struct ArgusMacFlow mac;
+};
+
+struct ArgusVxLanStruct {
+   struct ArgusDSRHeader hdr;
+   unsigned char flgs;
+   unsigned char res[3];
+   unsigned int vni;
 };
    
 struct ArgusVlanStruct {
@@ -871,6 +894,7 @@ struct ArgusCanonRecord {
    struct ArgusIPAttrStruct      attr;
    struct ArgusMetricStruct      metric;
    struct ArgusNetworkStruct     net;
+   struct ArgusVxLanStruct       vxlan;
    struct ArgusMacStruct         mac;
    struct ArgusVlanStruct        vlan;
    struct ArgusMplsStruct        mpls;

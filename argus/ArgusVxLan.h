@@ -1,5 +1,5 @@
 /*
- * Gargoyle Software.  Argus files - Layer 2 processing
+ * Gargoyle Software.  Argus files - UDP Protocol processing
  * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
@@ -22,35 +22,26 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/argus/ArgusMac.c#4 $
- * $DateTime: 2015/04/13 00:39:28 $
- * $Change: 2980 $
+ * $Id$
+ * $DateTime: 2014/05/14 12:53:31 $
+ * $Change: 2827 $
  */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
 #endif
 
-#if !defined(ArgusMac)
-#define ArgusMac
-#endif
+#ifndef ArgusVxLan_h
+#define ArgusVxLan_h
+
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 #include <argus_compat.h>
 #include <ArgusModeler.h>
-#include <ArgusOutput.h>
-#include <ArgusSource.h>
-#include <ArgusUtil.h>
 
-#include <argus_out.h>
+#include <argus/bootp.h>
 
-void
-ArgusMacFlowRecord (struct ArgusFlowStruct *flowstr, struct ArgusRecord *argus, unsigned char state)
-{
-   int length = 0;
-   struct ArgusMacStruct *mac = (struct ArgusMacStruct *) flowstr->MacDSRBuffer;
-      
-   if (mac && ((length = argus->ahdr.length) > 0)) {
-      bcopy ((char *)mac, &((char *)argus)[argus->ahdr.length], sizeof(*mac));
-      argus->ahdr.length += sizeof(*mac);
-   }
-}
+unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
+#endif

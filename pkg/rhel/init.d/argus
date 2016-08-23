@@ -36,7 +36,7 @@ fi
 . /etc/sysconfig/network
 
 # Check that networking is up.
-[ ${NETWORKING} = "no" ] && exit 1
+[ .${NETWORKING} = ."no" ] && exit 1
 
 #
 # The assumption here is that /etc/argus.conf specifies ARGUS_DAEMON=no.

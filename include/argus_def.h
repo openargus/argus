@@ -1,28 +1,30 @@
 /*
- * Argus Software
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Gargoyle Software.  Common include files. Defines
+ * Copyright (c) 2000-2016 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
 /* 
- * $Id: //depot/argus/argus/include/argus_def.h#49 $
- * $DateTime: 2015/07/02 09:02:44 $
- * $Change: 3029 $
+ * $Id: //depot/gargoyle/argus/include/argus_def.h#10 $
+ * $DateTime: 2016/04/01 14:32:31 $
+ * $Change: 3134 $
  */
 
 /* Argus_def.h */
@@ -38,7 +40,7 @@
  * The basic properties retained are a common fixed size
  * initial MAR *.  The prinicpal difference is a 4 byte
  * ArgusRecord header with most data integrated into the
- * Data Supplement Records (DSR), support for 8, 16, 32 and
+ * Data Specific Records (DSR), support for 8, 16, 32 and
  * 64 bit counters, and new flow descriptor strategies.
  *
  */
@@ -63,12 +65,15 @@ extern "C" {
 #define MINOR_VERSION_7    7
 #define MINOR_VERSION_8    8
 #define MINOR_VERSION_9    9
+
 #define MAJOR_VERSION_1    1
 #define MAJOR_VERSION_2    2
 #define MAJOR_VERSION_3    3
 #define MAJOR_VERSION_4    4
 #define MAJOR_VERSION_5    5
-#define VERSION_MAJOR      MAJOR_VERSION_3
+#define MAJOR_VERSION_6    6
+
+#define VERSION_MAJOR      MAJOR_VERSION_5
 #define VERSION_MINOR      MINOR_VERSION_0
 
 #ifndef MAXPATHNAMELEN
@@ -140,15 +145,14 @@ extern "C" {
 /* Argus  Record Type */
 
 #define ARGUS_MAR				0x80   /* Normal Argus Management Record */
- 
 #define ARGUS_FAR 				0x10   /* Normal Argus Data Record */
 
 #define ARGUS_INDEX   				0x20   /* New Argus Index Record */
 #define ARGUS_NETFLOW  				0x30   /* Argus Cisco Netflow Originated Record */
 #define ARGUS_EVENT				0x40   /* New Argus Event/Message Record */
-#define ARGUS_DATASUP				0x50   /* New Supplemental Argus Data Record */
-#define ARGUS_ARCHIVAL				0x60   /* New Archival Argus Data Record */
-
+#define ARGUS_FLOW 				0x50   /* New Argus Flow/Metric Record ... for things not argus flow records */
+#define ARGUS_DATASUP				0x60   /* New Supplemental Argus Data Record */
+#define ARGUS_ARCHIVAL				0x70   /* New Archival Argus Data Record */
 
 /*
  
@@ -171,8 +175,10 @@ extern "C" {
 #define ARGUS_VERSION_2				0x02	/* Version 2 */
 #define ARGUS_VERSION_3				0x03	/* Version 3 */
 #define ARGUS_VERSION_4				0x04	/* Version 4 */
+#define ARGUS_VERSION_5				0x05	/* Version 5 */
+#define ARGUS_VERSION_6				0x06	/* Version 6 */
  
-#define ARGUS_VERSION				ARGUS_VERSION_3	/* Version 3 */
+#define ARGUS_VERSION				ARGUS_VERSION_5	/* Version 5 */
 
 
 /*
@@ -266,7 +272,8 @@ extern "C" {
 #define MAXSTRLEN               		4096
 
 
-/* Argus Data 
+/* Argus Data  */
+/*
       Argus Data is a collection of Argus Data Specific Records (DSRs)
 
     0                   1                   2                   3
@@ -286,9 +293,13 @@ extern "C" {
 
 /* Argus MAR Record Specific Defines */
  
-#define ARGUS_COOKIE				0xE5712DCB
-#define ARGUS_V3_COOKIE				ARGUS_COOKIE
+
+#define ARGUS_V5_COOKIE				0xE57150CB
+#define ARGUS_V3_COOKIE				0xE5712DCB
 #define ARGUS_V2_COOKIE				0xE5617ACB
+
+#define ARGUS_COOKIE				ARGUS_V5_COOKIE
+
 #define ARGUS_SASL_AUTHENTICATE			0x00001000
 
 #define ARGUS_IDIS_STRING			0x00200000
@@ -333,7 +344,7 @@ extern "C" {
 */
 
 /*
-   Argus Record Data Type Field
+   Argus Data Specific Record Type Field
       The DSR Type Field specifies the type and format of the
       DSR.  The most significant bit indicates if the DSR is a
       TV or TLV type.  A TV structure has a specific length of
@@ -376,7 +387,7 @@ extern "C" {
 
 
 /*
-   Argus Record Data SubType Field
+   Argus Data Specific Record SubType Field
 
       The DSR SubType Field indicates the specific types for
       this DSR, and is specific for the DSR Type.  The most
@@ -442,12 +453,12 @@ extern "C" {
 #define ARGUS_TYPE_ISIS                         0x0A
 #define ARGUS_TYPE_IB_LOCAL                     0x0B
 #define ARGUS_TYPE_IB_GLOBAL                    0x0C
-
 #define ARGUS_TYPE_UDT                          0x0D
  
+#define ARGUS_TYPE_INTERFACE                    0x10
+
 #define ARGUS_TYPE_INT				0x20
 #define ARGUS_TYPE_STRING			0x21
-
 
 /* Flow Descriptor Option Qualifiers */
 #define ARGUS_ANON				0x20
@@ -476,21 +487,28 @@ extern "C" {
 
 #define ARGUS_MAXDSRLEN				0xFF
 
+/*
+   DSR Definitions
+*/
+
+/*
+   Argus Mar and Event records are a singular DSR
+*/
+
+#define ARGUS_MAR_INDEX				0
+#define ARGUS_EVENT_INDEX			0
 
 /*
    Argus Data Transport DSR 
       The Transport DSR provides source probe identification
       and optionally a probe transport specific sequence number.
       The probe identifier can be a number of types including
-      an IPv4, IPv6 address, an ethernet address, a unsigned
-      32-bit integer, and/or an arbitrary string, such as a URL.
+      an IPv4, IPv6 address, an ethernet address, an ID plus an interface
+      specifier, an unsigned 32-bit integer, and/or an arbitrary string,
+      such as a URL.
 
-      The probe identifier should be unique throughout the
-      monitoring domain.
+      The probe identifier should be unique throughout the monitoring domain.
 */
-
-#define ARGUS_MAR_INDEX				0
-#define ARGUS_EVENT_INDEX			0
 
 /* Argus Transport DSR Type */
 #define ARGUS_TRANSPORT_INDEX			0
@@ -501,11 +519,13 @@ extern "C" {
 
 /* Argus Transport DSR Qualifier */
 /*
-   ARGUS_TYPE_IPV4
-   ARGUS_TYPE_IPV6
-   TAM_TYPE_ETHER
-   ARGUS_TYPE_INT
-   ARGUS_TYPE_STRING
+    ARGUS_TYPE_IPV4
+    ARGUS_TYPE_IPV6
+    ARGUS_TYPE_ETHER
+    ARGUS_TYPE_INT
+    ARGUS_TYPE_STRING
+
+    ARGUS_TYPE_INTERFACE
 
     ARGUS_SRCID  (with IPV4ADDR as the ID)
     0                   1                   2                   3
@@ -513,7 +533,7 @@ extern "C" {
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |     0x01      |      0x01     |      0x01     |      0x02     |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                    Argus Source Identifier                     |
+   |                    Argus Source Identifier                    |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
     ARGUS_SRCID  (with IPV6ADDR as the ID)
@@ -523,18 +543,29 @@ extern "C" {
    |     0x01      |      0x01     |      0x02     |      0x05     |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                                                               |
-   |                    Argus Source Identifier                     |
+   |                    Argus Source Identifier                    |
    |                                                               |
    |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    ARGUS_SRCID  (with IPV4 + INF as the ID)
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     0x01      |      0x01     |      0x11     |      0x03     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Argus Source Identifier                    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                      Interface Identifier                     |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
     ARGUS_SRCID | ARGUS_SEQ (with 32-bin unsigned int as ID)
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |     0x01      |      0x03     |      0x03     |      0x03     |
+   |     0x01      |      0x03     |      0x20     |      0x03     |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                    Argus Source Identifier                     |
+   |                    Argus Source Identifier                    |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                        Sequence Number                        |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -543,12 +574,30 @@ extern "C" {
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |     0x01      |      0x03     |      0x11     |      0x05     |
+   |     0x01      |      0x03     |      0x21     |      0x05     |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                    Argus Source Identifier                     |
+   |                    Argus Source Identifier                    |
    |                                                               |
    |                               +---+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                               |              PAD              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Sequence Number                        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+    ARGUS_SRCID | ARGUS_SEQ (with IPV6 + INF as the ID)
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     0x01      |      0x03     |      0x12     |      0x07     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   |                    Argus IPV6 Source Identifier               |
+   |                                                               |
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                      Interface Identifier                     |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                        Sequence Number                        |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

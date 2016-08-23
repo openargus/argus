@@ -1,21 +1,20 @@
 /*
- * Argus Software.  Argus files - Modeler
+ * Gargoyle Software. Argus files - Events processing
  * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -23,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/argus/ArgusEvents.c#17 $
- * $DateTime: 2016/06/06 11:06:59 $
- * $Change: 3154 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusEvents.c#7 $
+ * $DateTime: 2016/03/07 18:16:44 $
+ * $Change: 3104 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -92,7 +91,7 @@ ArgusInitEvents (struct ArgusEventsStruct *events)
 
    events->ArgusModel      = ArgusModel;
    events->ArgusSrc        = ArgusSourceTask;
-   events->ArgusOutputList = ArgusOutputTask->ArgusOutputList;
+   events->ArgusOutputList = ArgusOutputTask->ArgusInputList;
 
 #if defined(ARGUS_THREADS)
    if ((events->ArgusEventsList != NULL) && (!(ArgusListEmpty(events->ArgusEventsList))))
@@ -284,7 +283,7 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
          if (evt->status & ARGUS_ZLIB_COMPRESS) {
             char buf[ARGUS_MAX_OS_STATUS], *ptr = buf;
 
-            snprintf (buf, ARGUS_MAX_OS_STATUS - 1, "file:%s\n", evt->filename);
+            snprintf (buf, ARGUS_MAX_OS_STATUS - 1, "file=%s\n", evt->filename);
             tcnt = strlen(buf);
             if ((cnt = read(fd, &ptr[tcnt], (ARGUS_MAX_OS_STATUS - tcnt))) > 0) {
                uLong slen = cnt, dlen = (ARGUS_MAX_OS_STATUS - tcnt);
@@ -297,7 +296,7 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
 #endif
             char buf[ARGUS_MAX_OS_STATUS];
 
-            snprintf(buf, ARGUS_MAX_OS_STATUS - 1, "file:%s\n", evt->filename);
+            snprintf(buf, ARGUS_MAX_OS_STATUS - 1, "file=%s\n", evt->filename);
             strcpy(rec->argus_event.data.array, buf);
             tcnt = strlen(rec->argus_event.data.array);
             cnt = read(fd, &rec->argus_event.data.array[tcnt], len - tcnt);
@@ -315,7 +314,7 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
       FILE *fd = NULL;
 
       memset(result, 0, sizeof(result));
-      snprintf(result, ARGUS_MAX_OS_STATUS - 1, "prog:%s\n", evt->filename);
+      snprintf(result, ARGUS_MAX_OS_STATUS - 1, "prog=%s\n", evt->filename);
       tcnt = strlen(result);
 
       if ((fd = popen(evt->filename, "r")) != NULL) {
@@ -393,9 +392,9 @@ struct ArgusRecord {
 };
 */
    if (cnt > 0) {
-      struct ArgusTimeObject       *time = &rec->argus_event.time;
-      struct ArgusTransportStruct *trans = &rec->argus_event.trans;
-      struct ArgusDataStruct       *data = &rec->argus_event.data;
+      struct ArgusTimeObject         *time = &rec->argus_event.time;
+      struct ArgusV3TransportStruct *trans = (struct ArgusV3TransportStruct *) &rec->argus_event.trans;
+      struct ArgusDataStruct         *data = &rec->argus_event.data;
       int tlen = 1;
 
       gettimeofday(&now, 0L);
@@ -404,21 +403,21 @@ struct ArgusRecord {
       time->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP | ARGUS_TIME_SRC_START | ARGUS_TIME_SRC_END;
       time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
       time->hdr.argus_dsrvl8.len   = 5;
-      tlen += time->hdr.argus_dsrvl8.len;
+      tlen                        += time->hdr.argus_dsrvl8.len;
 
       retn->dsrs[ARGUS_TIME_INDEX] = &time->hdr;
-      retn->dsrindex |= 1 << ARGUS_TIME_INDEX;
+      retn->dsrindex              |= 1 << ARGUS_TIME_INDEX;
 
-      time->src.start.tv_sec  = then.tv_sec;
-      time->src.start.tv_usec = then.tv_usec;
-      time->src.end.tv_sec    = now.tv_sec;
-      time->src.end.tv_usec   = now.tv_usec;
+      time->src.start.tv_sec       = then.tv_sec;
+      time->src.start.tv_usec      = then.tv_usec;
+      time->src.end.tv_sec         = now.tv_sec;
+      time->src.end.tv_usec        = now.tv_usec;
 
       trans->hdr.type              = ARGUS_TRANSPORT_DSR;
       trans->hdr.subtype           = ARGUS_SRCID | ARGUS_SEQ;
       trans->hdr.argus_dsrvl8.qual = events->ArgusSrc->type;
       trans->hdr.argus_dsrvl8.len  = 3;
-      tlen += trans->hdr.argus_dsrvl8.len;
+      tlen                        += trans->hdr.argus_dsrvl8.len;
 
       retn->dsrs[ARGUS_TRANSPORT_INDEX] = &trans->hdr;
       retn->dsrindex |= 1 << ARGUS_TRANSPORT_INDEX;

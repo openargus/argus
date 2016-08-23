@@ -1,28 +1,28 @@
 dnl
-dnl Copyright (C) 2000-2015 QoSient, LLC.
+dnl Gargoyle Software. Argus flow data generation.
+dnl Copyright (c) 2000-2015 QoSient, LLC
+dnl All rights reserved.
+dnl
+dnl THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+dnl AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+dnl EXPRESS PERMISSION OF QoSIENT, LLC.
+dnl
+dnl QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+dnl SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+dnl AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+dnl SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+dnl WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+dnl IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+dnl ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+dnl THIS SOFTWARE.
+dnl
 dnl
 dnl Copyright (c) 1995, 1996, 1997, 1998
 dnl   The Regents of the University of California.  All rights reserved.
 dnl
-dnl Redistribution and use in source and binary forms, with or without
-dnl modification, are permitted provided that: (1) source code distributions
-dnl retain the above copyright notice and this paragraph in its entirety, (2)
-dnl distributions including binary code include the above copyright notice and
-dnl this paragraph in its entirety in the documentation or other materials
-dnl provided with the distribution, and (3) all advertising materials mentioning
-dnl features or use of this software display the following acknowledgement:
-dnl ``This product includes software developed by the University of California,
-dnl Lawrence Berkeley Laboratory and its contributors.'' Neither the name of
-dnl the University nor the names of its contributors may be used to endorse
-dnl or promote products derived from this software without specific prior
-dnl written permission.
-dnl THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
-dnl WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
-dnl MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
-dnl
-dnl $Id: //depot/argus/argus/acsite.m4#24 $
-dnl $DateTime: 2015/04/13 00:43:29 $
-dnl $Change: 2982 $
+dnl $Id: //depot/gargoyle/argus/acsite.m4#6 $
+dnl $DateTime: 2015/04/13 14:26:55 $
+dnl $Change: 2989 $
 dnl
 
 

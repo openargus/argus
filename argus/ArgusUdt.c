@@ -20,9 +20,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/argus/ArgusUdt.c#10 $
- * $DateTime: 2015/06/29 16:17:25 $
- * $Change: 3027 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusUdt.c#7 $
+ * $DateTime: 2015/09/02 16:24:01 $
+ * $Change: 3068 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,7 +41,6 @@
 #include <ArgusModeler.h>
 
 #include <argus/bootp.h>
-struct bootp *bp;
 
 struct ArgusSystemFlow *
 ArgusCreateUDTFlow (struct ArgusModelerStruct *model, struct udt_header *udt)

@@ -17,9 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: //depot/argus/argus/common/scanner.l#32 $
- * $DateTime: 2015/04/13 00:43:29 $
- * $Change: 2982 $
+ * $Id: //depot/gargoyle/argus/common/scanner.l#5 $
+ * $DateTime: 2015/06/22 18:22:35 $
+ * $Change: 3025 $
  */
 
 /*

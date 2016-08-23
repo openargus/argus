@@ -1,28 +1,30 @@
 /*
- * Argus Software.  Argus files - Input includes
+ * Gargoyle Software.  Argus files - Input processing includes
  * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  */
 
 /*
- * $Id: //depot/argus/argus/argus/ArgusSource.h#48 $
- * $DateTime: 2016/08/22 00:40:08 $
- * $Change: 3176 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusSource.h#8 $
+ * $DateTime: 2016/08/22 00:30:39 $
+ * $Change: 3172 $
  */
 
 /*  ArgusSource.h */
@@ -166,9 +168,13 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 struct ArgusDeviceStruct {
    struct ArgusListObjectStruct *nxt;
    int status, type, mode, link, idtype, dlt;
+   struct ArgusDSRHeader ArgusTransHdr;
    struct ArgusAddrStruct ArgusID;
    char *name, *dltname;
    struct ArgusListStruct *list;
+
+   struct ArgusSourceStruct *src;
+
 #if defined(ARGUS_TILERA)
    netio_input_config_t config;
 #endif
@@ -700,8 +706,9 @@ struct ArgusSourceStruct {
    struct ArgusListStruct *ArgusRfileList;
    struct ArgusModelerStruct *ArgusModel;
  
-   char *ArgusInputFilter;
+   char *ArgusInputFilter, *ArgusDeviceStr;
 
+   struct ArgusDSRHeader ArgusTransHdr;
    struct ArgusAddrStruct ArgusID;
    int ArgusPcapBufSize, type, mode;
 
@@ -755,7 +762,9 @@ struct ArgusSourceStruct {
 };
 
 
-void ArgusParseSourceID (struct ArgusSourceStruct *, char *);
+int setArgusListInterfaces (struct ArgusSourceStruct *, int);
+
+void ArgusParseSourceID (struct ArgusSourceStruct *, struct ArgusDeviceStruct *, char *);
 
 int ArgusSnoopRead (struct ArgusSourceStruct *);
 
@@ -783,6 +792,7 @@ void ArgusEncPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 void ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusJuniperPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusIpNetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
+void ArgusPflogPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusNullPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 
 
@@ -809,9 +819,9 @@ float getArgusRealTime (struct ArgusSourceStruct *);
 unsigned int getArgusID(struct ArgusSourceStruct *);
 unsigned int getArgusIDType(struct ArgusSourceStruct *);
 
-void setArgusID(struct ArgusSourceStruct *src, void *ptr, unsigned int type);
+void setArgusID(struct ArgusSourceStruct *, void *, int, unsigned int);
 
-void setArgusMoatTshFile (struct ArgusSourceStruct *, int value);
+void setArgusMoatTshFile (struct ArgusSourceStruct *, int);
 int getArgusMoatTshFile (struct ArgusSourceStruct *);
 
 void setArgusWriteOutPacketFile (struct ArgusSourceStruct *, char *);
@@ -824,7 +834,6 @@ void setArgusInterfaceType(struct ArgusSourceStruct *, unsigned char);
 unsigned char getArgusInterfaceStatus(struct ArgusSourceStruct *);
 void setArgusInterfaceStatus(struct ArgusSourceStruct *, unsigned char);
 
-int setArgusListInterfaces (struct ArgusSourceStruct *, int);
 
 #if defined(ArgusSource)
 
@@ -841,6 +850,7 @@ static struct callback ArgusSourceCallbacks[] = {
    { ArgusFddiPacket,      DLT_FDDI,        "ArgusFddiPacket()" },
    { ArgusATMPacket,       DLT_ATM_RFC1483, "ArgusATMPacket()" },
    { ArgusIpPacket,        DLT_RAW,         "ArgusIpPacket()" },
+   { ArgusPflogPacket,     DLT_PFLOG,       "ArgusPflogPacket()" },
    { ArgusNullPacket,      DLT_NULL,        "ArgusNullPacket()" },
 #ifdef DLT_ENC
    { ArgusEncPacket,       DLT_ENC,         "ArgusEncPacket()" },

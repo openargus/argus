@@ -1,20 +1,34 @@
 #!/bin/sh
 #
-#  Argus Software
-#  Copyright (c) 2006-2015 QoSient, LLC
+#  Gargoyle Software.  Argus Event scripts - snmp
+#  Copyright (c) 2000-2015 QoSient, LLC
 #  All rights reserved.
+#
+#  THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+#  AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+#  EXPRESS PERMISSION OF QoSIENT, LLC.
+#
+#  QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+#  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+#  AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+#  SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+#  IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+#  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+#  THIS SOFTWARE.
+#
+#  Written by Carter Bullard
+#  QoSient, LLC
 #
 #  argus-snmp - collect snmp stats and report them as XML oriented argus events.
 #               This program requires a lot of site specific customization, and
 #               so, be sure and change the community string for snmp agent access
 #               and pick the interfaces of interest.
 #
-# Carter Bullard
-# QoSient, LLC
 #
-#  $Id: //depot/argus/argus/events/argus-snmp.sh#7 $
-#  $DateTime: 2015/04/06 10:38:44 $
-#  $Change: 2973 $
+#  $Id: //depot/gargoyle/argus/events/argus-snmp.sh#5 $
+#  $DateTime: 2015/04/13 00:39:28 $
+#  $Change: 2980 $
 # 
 
 prog="/usr/bin/snmpwalk -Os -c qosient -v 2c 10.0.1.1" 

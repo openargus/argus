@@ -1,28 +1,30 @@
 /*
- * Argus Software.  Argus files - Application Level
+ * Gargoyle Software. Argus files - Application Level
  * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- * 
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ * Written by Carter Bullard
+ * QoSient, LLC
+ *
  */
 
 /* 
- * $Id: //depot/argus/argus/argus/ArgusApp.c#29 $
- * $DateTime: 2015/06/29 16:17:25 $
- * $Change: 3027 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusApp.c#8 $
+ * $DateTime: 2016/02/23 00:04:12 $
+ * $Change: 3099 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,6 +45,7 @@
 #include <argus_def.h>
 
 #define ARGUS_WELLKNOWN_PORT    1024
+#define ARGUS_DNS_PORT            53
 #define ARGUS_OFC_PORT          6633
 #define ARGUS_AFS_PORT_MIN      7000
 #define ARGUS_AFS_PORT_MAX      7010
@@ -73,24 +76,34 @@ ArgusControlPlaneProtocol (struct ArgusModelerStruct *model, struct ArgusFlowStr
 
    if (getArgusControlMonitor(model)) {
       struct ArgusSystemFlow *flow = (struct ArgusSystemFlow *)flowstr->dsrs[ARGUS_FLOW_INDEX];
+      struct ArgusControlProtocols *cps = model->cps;
       unsigned short proto, sport, dport;
       unsigned char ip_p;
 
-      switch (proto = (model->ArgusThisNetworkFlowType & 0xFFFF)) {
-         case ETHERTYPE_IPV6:
-         case ETHERTYPE_IP: {
-            if (proto == ETHERTYPE_IPV6) {
-                ip_p = flow->ipv6_flow.ip_p;
-               sport = flow->ipv6_flow.sport;
-               dport = flow->ipv6_flow.dport;
-            } else {
-                ip_p = flow->ip_flow.ip_p;
-               sport = flow->ip_flow.sport;
-               dport = flow->ip_flow.dport;
-            }
+      if (cps != NULL) {
+         switch (proto = (model->ArgusThisNetworkFlowType & 0xFFFF)) {
+            case ETHERTYPE_IPV6:
+            case ETHERTYPE_IP: {
+               if (proto == ETHERTYPE_IPV6) {
+                   ip_p = flow->ipv6_flow.ip_p;
+                  sport = flow->ipv6_flow.sport;
+                  dport = flow->ipv6_flow.dport;
+               } else {
+                   ip_p = flow->ip_flow.ip_p;
+                  sport = flow->ip_flow.sport;
+                  dport = flow->ip_flow.dport;
+               }
 
-            if ((ip_p == IPPROTO_TCP) && ((sport == ARGUS_OFC_PORT) || (dport == ARGUS_OFC_PORT)))
-               retn = 1;
+               switch (ip_p) {
+                  case IPPROTO_TCP:
+                     retn = (cps->tcpport[sport] || cps->tcpport[dport]);
+                     break;
+
+                  case IPPROTO_UDP:
+                     retn = (cps->udpport[sport] || cps->udpport[dport]);
+                     break;
+               }
+            }
          }
       }
    }

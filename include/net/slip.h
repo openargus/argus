@@ -20,9 +20,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/include/net/slip.h#7 $
- * $DateTime: 2015/04/06 10:38:44 $
- * $Change: 2973 $
+ * $Id: //depot/gargoyle/argus/include/net/slip.h#4 $
+ * $DateTime: 2015/04/13 00:39:28 $
+ * $Change: 2980 $
  */
 /* linux does not give us the link level header */
 #define SLIP_HDRLEN 16

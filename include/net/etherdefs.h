@@ -20,9 +20,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/include/net/etherdefs.h#8 $
- * $DateTime: 2015/04/06 10:38:44 $
- * $Change: 2973 $
+ * $Id: //depot/gargoyle/argus/include/net/etherdefs.h#4 $
+ * $DateTime: 2015/04/13 00:39:28 $
+ * $Change: 2980 $
  */
 #ifndef _NET_ETHERNET_H_
 #define _NET_ETHERNET_H_
