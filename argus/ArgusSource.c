@@ -1502,6 +1502,11 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
    if (src->ArgusDeviceList == NULL)
       src->ArgusDeviceList = ArgusNewList();
 
+   if (src->ArgusDeviceStr != NULL)
+      free(src->ArgusDeviceStr);
+
+   src->ArgusDeviceStr = strdup(cmd);
+
    if (cmd) {
       struct ArgusDeviceStruct *device = NULL;
       char *params = strdup(cmd);
@@ -4711,6 +4716,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                   ArgusThreadCount++;
                }
             }
+
+            ArgusThreads++;
+            ArgusThreadCount++;
          }
 #else
          ArgusInitSource (stask);

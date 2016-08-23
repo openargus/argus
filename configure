@@ -7318,6 +7318,18 @@ then :
 
 fi
 
+for ac_header in dns_sd.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "dns_sd.h" "ac_cv_header_dns_sd_h" "$ac_includes_default"
+if test "x$ac_cv_header_dns_sd_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_DNS_SD_H 1
+_ACEOF
+
+fi
+
+done
+
 
 
 # Checks for typedefs, structures, and compiler characteristics.

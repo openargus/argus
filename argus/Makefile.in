@@ -22,6 +22,9 @@
 #  Written by Carter Bullard
 #  QoSient, LLC
 # 
+#  Written by Carter Bullard
+#  QoSient, LLC
+# 
 # Various configurable paths (remember to edit Makefile.in, not Makefile)
 
 # Top level hierarchy
