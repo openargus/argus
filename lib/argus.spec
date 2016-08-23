@@ -1,6 +1,6 @@
 %define ver 5.0
 %if %{?rel:0}%{!?rel:1}
-%define rel 1
+%define rel 2
 %endif
 %if %{?srcext:0}%{!?srcext:1}
 %define srcext .gz
