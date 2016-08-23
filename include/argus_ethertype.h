@@ -18,13 +18,13 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * @(#) $Header: //depot/argus/argus/include/argus_ethertype.h#11 $ (LBL)
+ * @(#) $Header: //depot/argus/argus/include/argus_ethertype.h#13 $ (LBL)
  */
 
 /* 
- * $Id: //depot/argus/argus/include/argus_ethertype.h#11 $
- * $DateTime: 2015/04/02 15:28:09 $
- * $Change: 2971 $
+ * $Id: //depot/argus/argus/include/argus_ethertype.h#13 $
+ * $DateTime: 2016/06/06 11:06:59 $
+ * $Change: 3154 $
  */
 
 #ifndef  Argus_Ethertype_h

@@ -20,9 +20,9 @@
  */
 
 /*
- * $Id: //depot/argus/argus/argus/ArgusSource.c#134 $
- * $DateTime: 2016/04/05 12:00:14 $
- * $Change: 3135 $
+ * $Id: //depot/argus/argus/argus/ArgusSource.c#137 $
+ * $DateTime: 2016/08/22 00:40:08 $
+ * $Change: 3176 $
  */
 
 /*
@@ -386,6 +386,31 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 #endif
 
 #define MAX_RECEIVE_PACKETS (2000)
+
+int
+setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
+{
+   char errbuf[PCAP_ERRBUF_SIZE];
+   pcap_if_t *d = NULL;
+   int i = 0;
+
+   src->ArgusInterfaces = 0;
+   bzero ((char *)&src->ArgusInterface, sizeof(src->ArgusInterface));
+
+   if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
+      ArgusLog (LOG_ERR, "ArgusInitSource: pcap_findalldevs_ex %s\n", errbuf);
+
+   for (d = src->ArgusPacketDevices; d != NULL; d = d->next) {
+      printf ("%d. %s", ++i, d->name);
+         if (d->description)
+            printf (" (%s)\n", d->description);
+         else
+            printf ("\n");
+   }
+   pcap_freealldevs(src->ArgusPacketDevices);
+   exit(1);
+}   
+
 
 int
 ArgusInitSource (struct ArgusSourceStruct *src)

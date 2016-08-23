@@ -20,9 +20,9 @@
  */
 
 /*
- * $Id: //depot/argus/argus/argus/ArgusSource.h#47 $
- * $DateTime: 2015/04/13 00:43:29 $
- * $Change: 2982 $
+ * $Id: //depot/argus/argus/argus/ArgusSource.h#48 $
+ * $DateTime: 2016/08/22 00:40:08 $
+ * $Change: 3176 $
  */
 
 /*  ArgusSource.h */
@@ -824,6 +824,7 @@ void setArgusInterfaceType(struct ArgusSourceStruct *, unsigned char);
 unsigned char getArgusInterfaceStatus(struct ArgusSourceStruct *);
 void setArgusInterfaceStatus(struct ArgusSourceStruct *, unsigned char);
 
+int setArgusListInterfaces (struct ArgusSourceStruct *, int);
 
 #if defined(ArgusSource)
 

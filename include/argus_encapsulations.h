@@ -20,9 +20,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/include/argus_encapsulations.h#8 $
- * $DateTime: 2015/04/06 10:38:44 $
- * $Change: 2973 $
+ * $Id: //depot/argus/argus/include/argus_encapsulations.h#10 $
+ * $DateTime: 2016/06/06 11:06:59 $
+ * $Change: 3154 $
  */
 
 

@@ -20,9 +20,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/argus/argus.c#101 $
- * $DateTime: 2015/07/02 10:42:46 $
- * $Change: 3030 $
+ * $Id: //depot/argus/argus/argus/argus.c#102 $
+ * $DateTime: 2016/08/22 00:40:08 $
+ * $Change: 3176 $
  */
 
 /*
@@ -381,7 +381,7 @@ main (int argc, char *argv[])
 
    optind = 1, opterr = 0;
 
-   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:i:JmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
+   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:i:JlmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
       switch (op) {
          case 'A': setArgusAflag(ArgusModel, 1); break;
          case 'b': setArgusbpflag (ArgusSourceTask, 1); break;
@@ -446,6 +446,7 @@ main (int argc, char *argv[])
          }
 
          case 'J': setArgusGenerateTime  (ArgusModel, 1); break;
+         case 'l': setArgusListInterfaces  (ArgusSourceTask, 1); break;
          case 'm': setArgusmflag (ArgusModel, 1); break;
          case 'M': setArgusMarReportInterval (ArgusOutputTask, optarg); break;
          case 'N': {

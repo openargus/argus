@@ -20,9 +20,9 @@
  */
 
 /* 
- * $Id: //depot/argus/argus/argus/ArgusTcp.c#51 $
- * $DateTime: 2015/07/02 10:42:46 $
- * $Change: 3030 $
+ * $Id: //depot/argus/argus/argus/ArgusTcp.c#53 $
+ * $DateTime: 2016/06/06 11:06:59 $
+ * $Change: 3154 $
  */
 
 #ifdef HAVE_CONFIG_H
