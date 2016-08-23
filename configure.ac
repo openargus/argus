@@ -3,17 +3,23 @@
 #  Copyright (c) 2000-2020 QoSient, LLC
 #  All rights reserved.
 # 
-# This program is free software, released under the GNU General
-# Public License; you can redistribute it and/or modify it under the terms
-# of the GNU General Public License as published by the Free Software
-# Foundation; either version 3, or any later version.
-#
-# Other licenses are available through QoSient, LLC.
-# Inquire at info@qosient.com.
-#
-# This program is distributed WITHOUT ANY WARRANTY; without even the
-# implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the * GNU General Public License for more details.
+#  THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+#  AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+#  EXPRESS PERMISSION OF QoSIENT, LLC.
+# 
+#  QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+#  SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+#  AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+#  SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+#  IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+#  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+#  THIS SOFTWARE.
+# 
+# 
+#  $Id: //depot/argus/clients/configure.ac#7 $
+#  $DateTime: 2010/07/25 23:19:02 $
+#  $Change: 1967 $
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
@@ -60,6 +66,7 @@ AC_QOSIENT_LEX_AND_YACC(V_LEX, V_YACC, argus_)
 AC_QOSIENT_MACHINE_ID
 
 # Checks for programs.
+AC_LBL_C_INIT(V_CCOPT, V_INCLS)
 AC_C_INLINE
 AC_PROG_MAKE_SET
 AC_PROG_LN_S
@@ -180,6 +187,7 @@ fi
 # Do this before checking for ether_hostton(), as it's a
 # "gethostbyname() -ish function".
 #
+AC_LBL_LIBRARY_NET
 AC_CHECK_FUNCS([ether_hostton getaddrinfo gethostname])
 
 if test "$ac_cv_func_ether_hostton" = yes; then

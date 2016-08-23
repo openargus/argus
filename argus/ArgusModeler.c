@@ -3,21 +3,18 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software, released under the GNU General
- * Public License; you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software
- * Foundation; either version 3, or any later version.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
  *
- * Other licenses are available through QoSient, LLC.
- * Inquire at info@qosient.com.
- *
- * This program is distributed WITHOUT ANY WARRANTY; without even the
- * implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -451,7 +448,7 @@ void
 ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStruct *queue)
 {
    struct ArgusFlowStruct *last = NULL;
-   int done = 0, count = 0;
+   int done = 0;
 
    queue->turns++;
 #if defined(ARGUS_THREADS)
@@ -467,7 +464,6 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                if (ArgusCheckTimeout(model, &last->qhdr.qtime, now, getArgusFarReportInterval(model))) {
                   struct ArgusFlowStruct *frag;
 
-                  count++;
                   ArgusRemoveFromQueue(queue, &last->qhdr, ARGUS_NOLOCK);
 
                   if ((frag = (struct ArgusFlowStruct *)last->frag.start) != NULL) {
@@ -530,7 +526,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 #endif
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (8, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
+   ArgusDebug (10, "ArgusProcessQueueTimeout(%p, %p) done with %d records\n", model, queue, queue->count);
 #endif 
 }
 
@@ -781,7 +777,7 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
          struct ip *ip = (struct ip *) p;
 
          if (STRUCTCAPTURED(model,*ip)) {
-            if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
+            if ((ntohs(ip->ip_len)) >= 20) {
                if (ip->ip_v == 4) 
                   model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
                else if (ip->ip_v == 6)
@@ -963,14 +959,13 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 
       } else {
          if (!((sport == 53) || (dport == 53))) {
-/*
             char *ptr = (char *) (up + 1);
             struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
+            int isipv6 = 0;
 
             len += sizeof (*up);
 
             if (STRUCTCAPTURED(model, *ipv6)) {
-               int isipv6 = 0;
                if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
                   retn = ETHERTYPE_IPV6;
                   len = ((char *) ipv6 - (char *)ip);
@@ -2298,8 +2293,8 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
       flow->dsrs[ARGUS_TRANSPORT_INDEX] = &flow->canon.trans.hdr;
       trans                             = (struct ArgusTransportStruct *) flow->dsrs[ARGUS_TRANSPORT_INDEX];
-      trans->hdr                        = device->trans.hdr;
-      trans->srcid                      = device->trans.srcid;
+      trans->hdr                        = device->ArgusTransHdr;
+      trans->srcid                      = device->ArgusID;
       flow->dsrindex |= 0x01 << ARGUS_TRANSPORT_INDEX;
    }
 
@@ -4960,7 +4955,7 @@ setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)
             tok = ptr;
          }
 
-         if (isdigit((int)*tok)) {
+         if (isdigit(*tok)) {
             if (sscanf((char *)tok, "%d", (int *) &port) != 1)
                ArgusLog (LOG_ERR, "setArgusControlPlaneProtocols () format error %s\n", optarg);
 

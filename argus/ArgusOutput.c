@@ -3,21 +3,18 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software, released under the GNU General
- * Public License; you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software
- * Foundation; either version 3, or any later version.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
  *
- * Other licenses are available through QoSient, LLC.
- * Inquire at info@qosient.com.
- *
- * This program is distributed WITHOUT ANY WARRANTY; without even the
- * implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -1148,9 +1145,7 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
       switch (stat(ARGUS_SOCKET_PATH, &statbuf)) {
          case 0:
             if (unlink(ARGUS_SOCKET_PATH))
-               snprintf(errbuf, errbuflen,
-                        "%s: ArgusEstablishListen: unlink() %s",
-                        ArgusProgramName, strerror(errno));
+               snprintf(errbuf, 1024, "%s: ArgusEstablishListen: unlink() %s", ArgusProgramName, strerror(errno));
             break;
 
          case ENOENT:  break;
@@ -1166,18 +1161,13 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
                if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
                   output->ArgusLfd[output->ArgusListens++] = s;
                } else {
-                  snprintf(errbuf, errbuflen,
-                           "%s: ArgusEstablishListen: listen() %s",
-                           ArgusProgramName, strerror(errno));
+                  snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() %s", ArgusProgramName, strerror(errno));
                }
             } else {
-               snprintf(errbuf, errbuflen,
-                        "%s: ArgusEstablishListen: bind() %s",
-                        ArgusProgramName, strerror(errno));
+               snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() %s", ArgusProgramName, strerror(errno));
             }
          } else
-            snprintf(errbuf, errbuflen, "%s: ArgusEstablishListen: fcntl() %s",
-                     ArgusProgramName, strerror(errno));
+            snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() %s", ArgusProgramName, strerror(errno));
 
          if (retn == -1) {
             close (s);
@@ -1185,8 +1175,7 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
          }
 
       } else
-         snprintf(errbuf, errbuflen, "%s: ArgusEstablishListen: socket() error",
-                  ArgusProgramName);
+         snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
    }
      
 #ifdef ARGUSDEBUG
@@ -1231,12 +1220,10 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
 
       if ((fcntl (fd, F_SETFL, flags | O_NONBLOCK)) >= 0) {
          if (output->type != ARGUS_DOMAIN_SOURCE) {
-/*
             if ((retn = ArgusTcpWrapper (fd, &from)) < 0) {
                ArgusLog (LOG_WARNING, "ArgusCheckClientStatus: ArgusTcpWrapper rejects");
                close (fd);
             }
-*/
          } else
             retn = 0;
 

@@ -1,23 +1,20 @@
 /*
- * Argus-5.0 Software.  Argus files - UDP Protocol processing
- * Copyright (c) 2000-2024 QoSient, LLC
+ * Gargoyle Software.  Argus files - UDP Protocol processing
+ * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software, released under the GNU General
- * Public License; you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software
- * Foundation; either version 3, or any later version.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
  *
- * Other licenses are available through QoSient, LLC.
- * Inquire at info@qosient.com.
- *
- * This program is distributed WITHOUT ANY WARRANTY; without even the
- * implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -47,25 +44,27 @@ ArgusParseL2TP (struct ArgusModelerStruct *model, void *vptr)
    struct l2tphdr l2tpbuf, *ltptr = &l2tpbuf;
 
    if (STRUCTCAPTURED(model, *l2tp)) {
-      ltptr->opts = EXTRACT_16BITS(ptr); ptr++; len += 2;
+      ltptr->opts = EXTRACT_16BITS(ptr++);
+      len += 2;
 
       if (((ltptr->opts & L2TP_VERSION_MASK) == L2TP_VERSION_L2F) ||
           ((ltptr->opts & L2TP_VERSION_MASK) != L2TP_VERSION_L2TP))
          return (retn);
 
       if (ltptr->opts & L2TP_FLAG_LENGTH) {
-         ltptr->len  = EXTRACT_16BITS(ptr); ptr++; len += 2;
+         ltptr->len  = EXTRACT_16BITS(ptr++);
+         len += 2;
       }
 
-      ltptr->tunid   = EXTRACT_16BITS(ptr); ptr++; len += 2;
-      ltptr->sessid  = EXTRACT_16BITS(ptr); ptr++; len += 2;
+      ltptr->tunid   = EXTRACT_16BITS(ptr++); len += 2;
+      ltptr->sessid  = EXTRACT_16BITS(ptr++); len += 2;
       
       if (ltptr->opts & L2TP_FLAG_SEQUENCE) {
-         ltptr->ns   = EXTRACT_16BITS(ptr); ptr++; len += 2;
-         ltptr->nr   = EXTRACT_16BITS(ptr); ptr++; len += 2;
+         ltptr->ns   = EXTRACT_16BITS(ptr++); len += 2;
+         ltptr->nr   = EXTRACT_16BITS(ptr++); len += 2;
       }
       if (ltptr->opts & L2TP_FLAG_OFFSET) {
-         ltptr->offP = EXTRACT_16BITS(ptr); ptr++; len += 2;
+         ltptr->offP = EXTRACT_16BITS(ptr++); len += 2;
          ptr += ltptr->offP / sizeof(*ptr);
          len += ltptr->offP;
       }

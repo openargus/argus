@@ -3,21 +3,21 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software, released under the GNU General
- * Public License; you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software
- * Foundation; either version 3, or any later version.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
  *
- * Other licenses are available through QoSient, LLC.
- * Inquire at info@qosient.com.
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
- * This program is distributed WITHOUT ANY WARRANTY; without even the
- * implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -170,14 +170,12 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 struct ArgusDeviceStruct {
    struct ArgusListObjectStruct *nxt;
    int status, type, mode, link, idtype, dlt;
-
-   struct ArgusTransportStruct trans;
-
+   struct ArgusDSRHeader ArgusTransHdr;
+   struct ArgusAddrStruct ArgusID;
    char *name, *dltname;
    struct ArgusListStruct *list;
 
    struct ArgusSourceStruct *src;
-   struct ArgusMarInterfaceStruct *inf;
 
 #if defined(ARGUS_TILERA)
    netio_input_config_t config;
@@ -712,7 +710,7 @@ struct ArgusSourceStruct {
    struct ArgusModelerStruct *ArgusModel;
  
    char *ArgusInputFilter, *ArgusDeviceStr;
-/*
+
    struct ArgusDSRHeader ArgusTransHdr;
    struct ArgusAddrStruct ArgusID;
 */
@@ -773,12 +771,8 @@ struct ArgusSourceStruct {
 
 
 int setArgusListInterfaces (struct ArgusSourceStruct *, int);
-int setArgusTimestampType(char *);
-int setArgusDeDup(char *);
 
 void ArgusParseSourceID (struct ArgusSourceStruct *, struct ArgusDeviceStruct *, char *);
-void setArgusManInf (struct ArgusSourceStruct *, char *);
-char *getArgusManInf (struct ArgusSourceStruct *);
 
 int ArgusSnoopRead (struct ArgusSourceStruct *);
 

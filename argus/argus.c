@@ -3,21 +3,21 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software, released under the GNU General
- * Public License; you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software
- * Foundation; either version 3, or any later version.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
  *
- * Other licenses are available through QoSient, LLC.
- * Inquire at info@qosient.com.
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
- * This program is distributed WITHOUT ANY WARRANTY; without even the
- * implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -449,9 +449,6 @@ main (int argc, char *argv[])
          case 'd': ArgusDaemon = ArgusDaemon ? 0 : 1; break;
          case 'D': setArgusdflag (ArgusModel, atoi (optarg)); break;
          case 'e': ArgusParseSourceID(ArgusSourceTask, NULL, optarg); break;
-
-         case 'H': setArgusHashTableSize (ArgusModel, atoi(optarg)); break;
-         case 'E': /* handled above */ break;
          case 'f': setArgusfflag (ArgusSourceTask, 1); break;
          case 'F': ArgusParseResourceFile (ArgusModel, optarg, readoffline); break;
 
@@ -1301,7 +1298,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                      switch (i) {
                         case ARGUS_MONITOR_ID: 
                            if (optarg && quoted) {   // Argus ID is a string.  Limit to date is 4 characters.
-                              int slen = (int) strlen(optarg);
+                              int slen = strlen(optarg);
                               if (slen > 4) {
                                  optarg[4] = '\0';
                                  slen = 4;
@@ -1381,32 +1378,14 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                                    "read system UUID\n",
                                                    __func__, file);
                                        }
-#else
-#  ifdef CYGWIN
-                                       char uuidstr[64];
-                                       char buf[128];
-
-                                       if (__wmic_get_uuid(uuidstr, 37) == 0) {
-                                          if (appendInf)
-                                             sprintf(buf, "%s/inf", uuidstr);
-                                          else
-                                             sprintf(buf, "%s", uuidstr);
-                                          optarg = strdup(buf);
-                                       } else {
-                                          ArgusLog(LOG_ERR, "%s(%s) unable to "
-                                                   "read system UUID\n",
-                                                   __func__, file);
-                                       }
-#  endif
-# endif
-#endif
                                     } else
                                        ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` line %d.\n", optarg, linenum);
                                  } else
-                                    ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
-                              }
-
-                              ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
+                                    ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` at line %d.\n", file, optarg, linenum);
+                              } else
+                                 ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
+                           }
+                           ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
                            }
                            break;
 

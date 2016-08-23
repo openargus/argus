@@ -3,21 +3,21 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software, released under the GNU General
- * Public License; you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software
- * Foundation; either version 3, or any later version.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
  *
- * Other licenses are available through QoSient, LLC.
- * Inquire at info@qosient.com.
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
- * This program is distributed WITHOUT ANY WARRANTY; without even the
- * implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Written by Carter Bullard
+ * QoSient, LLC
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -25,9 +25,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/include/argus_out.h#13 $
- * $DateTime: 2016/09/18 16:32:53 $
- * $Change: 3186 $
+ * $Id: //depot/gargoyle/argus/include/argus_out.h#11 $
+ * $DateTime: 2016/04/01 14:32:31 $
+ * $Change: 3134 $
  */
 
 
@@ -134,7 +134,6 @@ struct ArgusTCPObjectMetrics {
    unsigned int bytes, retrans, ackbytes, winbytes;
    unsigned short win;
    unsigned char flags, winshift;
-   unsigned short maxseg, pad; 
 // unsigned int dup;
 };
  
@@ -564,7 +563,6 @@ struct ArgusAddrStruct {
       unsigned int ipv4;
       unsigned char ethersrc[6];
       unsigned char str[4];
-      unsigned char uuid[16];
       unsigned int ipv6[4];
    } a_un;
    unsigned char inf[4];
@@ -576,6 +574,12 @@ struct ArgusV3AddrStruct {
       unsigned int ipv4;
       unsigned char str[4];
    } a_un;
+};
+
+struct ArgusV3TransportStruct {
+   struct ArgusDSRHeader hdr;
+   struct ArgusV3AddrStruct srcid;
+   unsigned int seqnum;
 };
 
 struct ArgusV3TransportStruct {
@@ -670,8 +674,9 @@ struct ArgusMacStruct {
 
 struct ArgusVxLanStruct {
    struct ArgusDSRHeader hdr;
-   unsigned int svnid, dvnid;
-   struct ArgusFlow tflow;
+   unsigned char flgs;
+   unsigned char res[3];
+   unsigned int vni;
 };
    
 struct ArgusVlanStruct {

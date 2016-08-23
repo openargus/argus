@@ -3,21 +3,18 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * This program is free software, released under the GNU General
- * Public License; you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software
- * Foundation; either version 3, or any later version.
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
  *
- * Other licenses are available through QoSient, LLC.
- * Inquire at info@qosient.com.
- *
- * This program is distributed WITHOUT ANY WARRANTY; without even the
- * implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -411,11 +408,9 @@ struct ArgusRecord {
 };
 */
    if (cnt > 0) {
-      struct ArgusSourceStruct      *src = events->ArgusSrc;
-      struct ArgusTimeObject       *time = &rec->argus_event.time;
-      struct ArgusTransportStruct *trans = &rec->argus_event.trans;
-      struct ArgusDataStruct       *data = &rec->argus_event.data;
-      char *inf = NULL;
+      struct ArgusTimeObject         *time = &rec->argus_event.time;
+      struct ArgusV3TransportStruct *trans = (struct ArgusV3TransportStruct *) &rec->argus_event.trans;
+      struct ArgusDataStruct         *data = &rec->argus_event.data;
       int tlen = 1;
 
       gettimeofday(&now, 0L);
@@ -433,48 +428,17 @@ struct ArgusRecord {
       time->src.start.tv_usec      = then.tv_usec;
       time->src.end.tv_sec         = now.tv_sec;
       time->src.end.tv_usec        = now.tv_usec;
+
+      time->src.start.tv_sec       = then.tv_sec;
+      time->src.start.tv_usec      = then.tv_usec;
+      time->src.end.tv_sec         = now.tv_sec;
+      time->src.end.tv_usec        = now.tv_usec;
       
       trans->hdr.type              = ARGUS_TRANSPORT_DSR;
       trans->hdr.subtype           = ARGUS_SRCID | ARGUS_SEQ;
-      trans->hdr.argus_dsrvl8.qual = src->type & ~ARGUS_TYPE_INTERFACE;
-
-      switch (src->type & ~ARGUS_TYPE_INTERFACE) {
-         case ARGUS_TYPE_STRING: {
-            tlen = strlen((const char *)&src->trans.srcid.a_un.str);
-            bcopy(&src->trans.srcid.a_un.str, trans->srcid.a_un.str, tlen);
-            break;
-         }
-         case ARGUS_TYPE_INT: {
-            tlen = sizeof(src->trans.srcid.a_un.value);
-            trans->srcid.a_un.value = src->trans.srcid.a_un.value;
-            break;
-         }
-         case ARGUS_TYPE_IPV4: {
-            tlen = sizeof(src->trans.srcid.a_un.ipv4);
-            trans->srcid.a_un.ipv4 = src->trans.srcid.a_un.ipv4;
-            break;
-         }
-         case ARGUS_TYPE_IPV6: {
-            tlen = sizeof(src->trans.srcid.a_un.ipv6);
-            bcopy(&src->trans.srcid.a_un.ipv6, trans->srcid.a_un.ipv6, tlen);
-            break;
-         }
-
-         case ARGUS_TYPE_UUID  : {
-            tlen = sizeof(src->trans.srcid.a_un.uuid);
-            bcopy(&src->trans.srcid.a_un.uuid, trans->srcid.a_un.uuid, tlen);
-            break;
-         }
-      }
-
-      if ((inf = getArgusManInf(src)) != NULL) {
-         trans->hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
-         bcopy("evt0", &trans->srcid.inf, 4);
-         tlen +=4;
-      }
-
-      trans->seqnum                = events->ArgusSrc->ArgusModel->ArgusSeqNum++;
-      trans->hdr.argus_dsrvl8.len  = tlen + 2;
+      trans->hdr.argus_dsrvl8.qual = events->ArgusSrc->type;
+      trans->hdr.argus_dsrvl8.len  = 3;
+      tlen                        += trans->hdr.argus_dsrvl8.len;
 
       retn->dsrs[ARGUS_TRANSPORT_INDEX] = &trans->hdr;
       retn->dsrindex |= 1 << ARGUS_TRANSPORT_INDEX;
