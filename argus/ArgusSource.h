@@ -167,8 +167,9 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 struct ArgusDeviceStruct {
    struct ArgusListObjectStruct *nxt;
    int status, type, mode, link, idtype, dlt;
-   struct ArgusDSRHeader ArgusTransHdr;
-   struct ArgusAddrStruct ArgusID;
+
+   struct ArgusTransportStruct trans;
+
    char *name, *dltname;
    struct ArgusListStruct *list;
 
@@ -706,9 +707,12 @@ struct ArgusSourceStruct {
    struct ArgusModelerStruct *ArgusModel;
  
    char *ArgusInputFilter, *ArgusDeviceStr;
-
+/*
    struct ArgusDSRHeader ArgusTransHdr;
    struct ArgusAddrStruct ArgusID;
+*/
+   struct ArgusTransportStruct trans;
+
    int ArgusPcapBufSize, type, mode;
 
    struct timeval ArgusStartTime, ArgusEndTime, marktime, lasttime;
@@ -816,7 +820,7 @@ void Argusbpf_dump(struct bpf_program *, int);
 void setArgusRealTime (struct ArgusSourceStruct *, float value);
 float getArgusRealTime (struct ArgusSourceStruct *);
 
-unsigned int getArgusID(struct ArgusSourceStruct *);
+int getArgusID(struct ArgusSourceStruct *, struct ArgusAddrStruct *);
 unsigned int getArgusIDType(struct ArgusSourceStruct *);
 
 void setArgusID(struct ArgusSourceStruct *, void *, int, unsigned int);

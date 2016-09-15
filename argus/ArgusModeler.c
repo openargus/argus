@@ -2173,8 +2173,8 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
       flow->dsrs[ARGUS_TRANSPORT_INDEX] = &flow->canon.trans.hdr;
       trans                             = (struct ArgusTransportStruct *) flow->dsrs[ARGUS_TRANSPORT_INDEX];
-      trans->hdr                        = device->ArgusTransHdr;
-      trans->srcid                      = device->ArgusID;
+      trans->hdr                        = device->trans.hdr;
+      trans->srcid                      = device->trans.srcid;
       flow->dsrindex |= 0x01 << ARGUS_TRANSPORT_INDEX;
    }
 
@@ -2923,12 +2923,9 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
             struct ArgusDSRHeader *dsr;
 
             bcopy ((char *)&rec->hdr, (char *)&retn->hdr, sizeof(retn->hdr));
-            dsrptr = (unsigned int *)&retn->ar_un.mar;
+            dsrptr = (unsigned int *)&retn->ar_un.far;
 
             dsrindex = rec->dsrindex;
-
-            if (!(dsrindex & (0x01 << ARGUS_TIME_INDEX)))
-               ArgusLog (LOG_ERR, "ArgusGenerateRecord: time dsr not set");
 
             for (i = 0, ind = 1; (dsrindex && (i < ARGUSMAXDSRTYPE)); i++, ind <<= 1) {
                if ((dsr = rec->dsrs[i]) != NULL) {
@@ -2940,6 +2937,40 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         for (x = 0; x < len; x++)
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
                         break;
+
+                     case ARGUS_TRANSPORT_INDEX: {
+                        struct ArgusTransportStruct *trans = (struct ArgusTransportStruct *)rec->dsrs[i];
+                        unsigned int *sptr = (unsigned int *)&trans->srcid;
+                        int z, tlen = 0;
+
+                        switch (trans->hdr.argus_dsrvl8.qual & ~ARGUS_TYPE_INTERFACE) {
+                           case ARGUS_TYPE_STRING: 
+                           case ARGUS_TYPE_INT:    
+                           case ARGUS_TYPE_IPV4:   
+                              tlen = 4;
+                              break;
+                           case ARGUS_TYPE_IPV6:   
+                           case ARGUS_TYPE_UUID:
+                              tlen = 16;
+                           break;
+                        }
+
+                        len = 1 + (tlen / 4) + ((trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE) ? 1 : 0)
+                                             + ((trans->hdr.subtype           & ARGUS_SEQ) ? 1 : 0);
+
+                        trans->hdr.argus_dsrvl8.len = len;
+                        *dsrptr++ = *(unsigned int *)&trans->hdr;
+
+                        for (z = 0; z < (tlen / 4); z++)
+                           *dsrptr++ = *sptr++;
+
+                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE)
+                           *dsrptr++ = *sptr++;
+
+                        if (trans->hdr.subtype & ARGUS_SEQ)
+                           *dsrptr++ = trans->seqnum;
+                        break;
+                     }
 
                      case ARGUS_FLOW_INDEX: {
                         switch (dsr->subtype) {
@@ -4633,7 +4664,7 @@ setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)
             tok = ptr;
          }
 
-         if (isdigit(*tok)) {
+         if (isdigit((int)*tok)) {
             if (sscanf((char *)tok, "%d", (int *) &port) != 1)
                ArgusLog (LOG_ERR, "setArgusControlPlaneProtocols () format error %s\n", optarg);
 

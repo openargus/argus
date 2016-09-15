@@ -386,9 +386,10 @@ struct ArgusRecord {
 };
 */
    if (cnt > 0) {
-      struct ArgusTimeObject         *time = &rec->argus_event.time;
-      struct ArgusV3TransportStruct *trans = (struct ArgusV3TransportStruct *) &rec->argus_event.trans;
-      struct ArgusDataStruct         *data = &rec->argus_event.data;
+      struct ArgusSourceStruct      *src = events->ArgusSrc;
+      struct ArgusTimeObject       *time = &rec->argus_event.time;
+      struct ArgusTransportStruct *trans = &rec->argus_event.trans;
+      struct ArgusDataStruct       *data = &rec->argus_event.data;
       int tlen = 1;
 
       gettimeofday(&now, 0L);
@@ -406,18 +407,49 @@ struct ArgusRecord {
       time->src.start.tv_usec      = then.tv_usec;
       time->src.end.tv_sec         = now.tv_sec;
       time->src.end.tv_usec        = now.tv_usec;
-
+      
       trans->hdr.type              = ARGUS_TRANSPORT_DSR;
       trans->hdr.subtype           = ARGUS_SRCID | ARGUS_SEQ;
-      trans->hdr.argus_dsrvl8.qual = events->ArgusSrc->type;
-      trans->hdr.argus_dsrvl8.len  = 3;
-      tlen                        += trans->hdr.argus_dsrvl8.len;
+      trans->hdr.argus_dsrvl8.qual = src->type & ~ARGUS_TYPE_INTERFACE;
+
+      switch (src->type & ~ARGUS_TYPE_INTERFACE) {
+         case ARGUS_TYPE_STRING: {
+            tlen = strlen((const char *)&src->trans.srcid.a_un.str);
+            bcopy(&src->trans.srcid.a_un.str, trans->srcid.a_un.str, tlen);
+            break;
+         }
+         case ARGUS_TYPE_INT: {
+            tlen = sizeof(src->trans.srcid.a_un.value);
+            trans->srcid.a_un.value = src->trans.srcid.a_un.value;
+            break;
+         }
+         case ARGUS_TYPE_IPV4: {
+            tlen = sizeof(src->trans.srcid.a_un.ipv4);
+            trans->srcid.a_un.ipv4 = src->trans.srcid.a_un.ipv4;
+            break;
+         }
+         case ARGUS_TYPE_IPV6: {
+            tlen = sizeof(src->trans.srcid.a_un.ipv6);
+            bcopy(&src->trans.srcid.a_un.ipv6, trans->srcid.a_un.ipv6, tlen);
+            break;
+         }
+
+         case ARGUS_TYPE_UUID  : {
+            tlen = sizeof(src->trans.srcid.a_un.uuid);
+            bcopy(&src->trans.srcid.a_un.uuid, trans->srcid.a_un.uuid, tlen);
+            break;
+         }
+      }
+
+      trans->seqnum                = events->ArgusSrc->ArgusModel->ArgusSeqNum++;
+      trans->hdr.argus_dsrvl8.len  = tlen + 2;
 
       retn->dsrs[ARGUS_TRANSPORT_INDEX] = &trans->hdr;
       retn->dsrindex |= 1 << ARGUS_TRANSPORT_INDEX;
 
-      trans->srcid.a_un.value      = getArgusID(events->ArgusSrc);
-      trans->seqnum                = events->ArgusSrc->ArgusModel->ArgusSeqNum++;
+
+
+      tlen                        += trans->hdr.argus_dsrvl8.len;
 
       data->hdr.type               = ARGUS_DATA_DSR;
       data->hdr.subtype            = ARGUS_LEN_16BITS | ARGUS_SRC_DATA;

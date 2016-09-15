@@ -571,10 +571,11 @@ main (int argc, char *argv[])
       ArgusSourceTask->ArgusInputFilter = strdup(ArgusSourceTask->ArgusCmdBuf);
 
    if (getArgusrfile(ArgusSourceTask) != NULL) {
+      ArgusSourceTask->ArgusReadingOffLine++;
+
       if (!(getArgusRealTime(ArgusSourceTask))) {
          ArgusDaemon = 0;
          setArgusBindAddr(ArgusOutputTask, NULL);
-         ArgusSourceTask->ArgusReadingOffLine++;
          if (getArgusfflag (ArgusSourceTask) == 0) {
             setArgusPortNum(ArgusOutputTask, 0);
          }
@@ -894,6 +895,8 @@ ArgusShutDown (void)
 void
 setArgusBindAddr (struct ArgusOutputStruct *output, char *value)
 {
+   if (value && (strcmp(value, "null") == 0))
+      value = NULL;
    if (value) {
       if (output->ArgusBindAddrs == NULL)
          output->ArgusBindAddrs = ArgusNewList();
@@ -1141,41 +1144,41 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                               setArgusID (ArgusSourceTask, optarg, slen, ARGUS_TYPE_STRING);
 
                            } else {
-                           if (optarg && (*optarg == '`')) {
-                              char *ptr = NULL;
-                              char *tptr = strchr((optarg + 1), '`');
+                              if (optarg && (*optarg == '`')) {
+                                 char *ptr = NULL;
+                                 char *tptr = strchr((optarg + 1), '`');
 
-                              if (tptr != NULL) {
-                                 FILE *fd;
+                                 if (tptr != NULL) {
+                                    FILE *fd;
 
-                                 optarg++;
-                                 *tptr = '\0';
-                                 if (!(strcmp (optarg, "hostname"))) {
-                                    if ((fd = popen("hostname", "r")) != NULL) {
-                                       ptr = NULL;
-                                       clearerr(fd);
-                                       while ((ptr == NULL) && !(feof(fd)))
-                                          ptr = fgets(result, MAXSTRLEN, fd);
+                                    optarg++;
+                                    *tptr = '\0';
+                                    if (!(strcmp (optarg, "hostname"))) {
+                                       if ((fd = popen("hostname", "r")) != NULL) {
+                                          ptr = NULL;
+                                          clearerr(fd);
+                                          while ((ptr == NULL) && !(feof(fd)))
+                                             ptr = fgets(result, MAXSTRLEN, fd);
 
-                                       if (ptr == NULL)
-                                          ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) `hostname` failed %s.\n", file, strerror(errno));
+                                          if (ptr == NULL)
+                                             ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) `hostname` failed %s.\n", file, strerror(errno));
 
-                                       optarg = ptr;
-                                       optarg[strlen(optarg) - 1] = '\0';
-                                       pclose(fd);
+                                          optarg = ptr;
+                                          optarg[strlen(optarg) - 1] = '\0';
+                                          pclose(fd);
 
-                                       if ((ptr = strstr(optarg, ".local")) != NULL) {
-                                          if (strlen(ptr) == strlen(".local"))
-                                             *ptr = '\0';
-                                       }
+                                          if ((ptr = strstr(optarg, ".local")) != NULL) {
+                                             if (strlen(ptr) == strlen(".local"))
+                                                *ptr = '\0';
+                                          }
+                                       } else
+                                          ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
                                     } else
-                                       ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
+                                       ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` at line %d.\n", file, optarg, linenum);
                                  } else
-                                    ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` at line %d.\n", file, optarg, linenum);
-                              } else
-                                 ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
-                           }
-                           ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
+                                    ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
+                              }
+                              ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
                            }
 
                            break;
