@@ -85,7 +85,6 @@ fi
 
 
 # Find who we are.  Look in the path if we contain no directory separator.
-as_myself=
 case $0 in #((
   *[\\/]* ) as_myself=$0 ;;
   *) as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
@@ -361,18 +360,10 @@ printf "%s\n" X"$as_dir" |
       test -d "$as_dir" && break
     done
     test -z "$as_dirs" || eval "mkdir $as_dirs"
-  } || test -d "$as_dir" || as_fn_error $? "cannot create directory $as_dir"
+  } || test -d "$as_dir" || as_fn_error "cannot create directory $as_dir"
 
 
 } # as_fn_mkdir_p
-
-# as_fn_executable_p FILE
-# -----------------------
-# Test if FILE is an executable regular file.
-as_fn_executable_p ()
-{
-  test -f "$1" && test -x "$1"
-} # as_fn_executable_p
 # as_fn_append VAR VALUE
 # ----------------------
 # Append the text in VALUE to the end of the definition contained in VAR. Take
@@ -413,11 +404,11 @@ esac
 fi # as_fn_arith
 
 
-# as_fn_error STATUS ERROR [LINENO LOG_FD]
-# ----------------------------------------
+# as_fn_error ERROR [LINENO LOG_FD]
+# ---------------------------------
 # Output "`basename $0`: error: ERROR" to stderr. If LINENO and LOG_FD are
 # provided, also output the error to LOG_FD, referencing LINENO. Then exit the
-# script with STATUS, using 1 if that was 0.
+# script with status $?, using 1 if that was 0.
 as_fn_error ()
 {
   as_status=$1; test $as_status -eq 0 && as_status=1
@@ -500,10 +491,6 @@ as_cr_alnum=$as_cr_Letters$as_cr_digits
   chmod +x "$as_me.lineno" ||
     { printf "%s\n" "$as_me: error: cannot create $as_me.lineno; rerun with a POSIX shell" >&2; as_fn_exit 1; }
 
-  # If we had to re-execute with $CONFIG_SHELL, we're ensured to have
-  # already done that, so ensure we don't try to do so again and fall
-  # in an infinite loop.  This has already happened in practice.
-  _as_can_reexec=no; export _as_can_reexec
   # Don't try to exec as it changes $[0], causing all sort of problems
   # (the dirname of $[0] is not the place where we might find the
   # original and so on.  Autoconf is especially sensitive to this).
@@ -550,14 +537,14 @@ if (echo >conf$$.file) 2>/dev/null; then
     # 2) DJGPP < 2.04 has no symlinks; 'ln -s' creates a wrapper executable.
     # In both cases, we have to default to 'cp -pR'.
     ln -s conf$$.file conf$$.dir 2>/dev/null && test ! -f conf$$.exe ||
-      as_ln_s='cp -pR'
+      as_ln_s='cp -p'
   elif ln conf$$.file conf$$ 2>/dev/null; then
     as_ln_s=ln
   else
-    as_ln_s='cp -pR'
+    as_ln_s='cp -p'
   fi
 else
-  as_ln_s='cp -pR'
+  as_ln_s='cp -p'
 fi
 rm -f conf$$ conf$$.exe conf$$.dir/conf$$.file conf$$.file
 rmdir conf$$.dir 2>/dev/null
@@ -569,8 +556,28 @@ else
   as_mkdir_p=false
 fi
 
-as_test_x='test -x'
-as_executable_p=as_fn_executable_p
+if test -x / >/dev/null 2>&1; then
+  as_test_x='test -x'
+else
+  if ls -dL / >/dev/null 2>&1; then
+    as_ls_L_option=L
+  else
+    as_ls_L_option=
+  fi
+  as_test_x='
+    eval sh -c '\''
+      if test -d "$1"; then
+	test -d "$1/.";
+      else
+	case $1 in #(
+	-*)set "./$1";;
+	esac;
+	case `ls -ld'$as_ls_L_option' "$1" 2>/dev/null` in #((
+	???[sx]*):;;*)false;;esac;fi
+    '\'' sh
+  '
+fi
+as_executable_p=$as_test_x
 
 # Sed expression to map a string onto a valid CPP name.
 as_sed_cpp="y%*$as_cr_letters%P$as_cr_LETTERS%;s%[^_$as_cr_alnum]%_%g"
@@ -585,7 +592,7 @@ test -n "$DJDIR" || exec 7<&0 </dev/null
 exec 6>&1
 
 # Name of the host.
-# hostname on some systems (SVR3.2, old GNU/Linux) returns a bogus exit status,
+# hostname on some systems (SVR3.2, Linux) returns a bogus exit status,
 # so uname gets run too.
 ac_hostname=`(hostname || uname -n) 2>/dev/null | sed 1q`
 
@@ -834,9 +841,8 @@ do
   fi
 
   case $ac_option in
-  *=?*) ac_optarg=`expr "X$ac_option" : '[^=]*=\(.*\)'` ;;
-  *=)   ac_optarg= ;;
-  *)    ac_optarg=yes ;;
+  *=*)	ac_optarg=`expr "X$ac_option" : '[^=]*=\(.*\)'` ;;
+  *)	ac_optarg=yes ;;
   esac
 
   case $ac_dashdash$ac_option in
@@ -1191,7 +1197,7 @@ done
 
 if test -n "$ac_prev"; then
   ac_option=--`echo $ac_prev | sed 's/_/-/g'`
-  as_fn_error $? "missing argument to $ac_option"
+  as_fn_error "missing argument to $ac_option"
 fi
 
 if test -n "$ac_unrecognized_opts"; then
@@ -1220,7 +1226,7 @@ do
     [\\/$]* | ?:[\\/]* )  continue;;
     NONE | '' ) case $ac_var in *prefix ) continue;; esac;;
   esac
-  as_fn_error $? "expected an absolute directory name for --$ac_var: $ac_val"
+  as_fn_error "expected an absolute directory name for --$ac_var: $ac_val"
 done
 
 # There might be people who depend on the old broken behavior: '$host'
@@ -1234,6 +1240,8 @@ target=$target_alias
 if test "x$host_alias" != x; then
   if test "x$build_alias" = x; then
     cross_compiling=maybe
+    $as_echo "$as_me: WARNING: If you wanted to set the --build type, don't use --host.
+    If a cross compiler is detected then cross compile mode will be used." >&2
   elif test "x$build_alias" != "x$host_alias"; then
     cross_compiling=yes
   fi
@@ -1248,9 +1256,9 @@ test "$silent" = yes && exec 6>/dev/null
 ac_pwd=`pwd` && test -n "$ac_pwd" &&
 ac_ls_di=`ls -di .` &&
 ac_pwd_ls_di=`cd "$ac_pwd" && ls -di .` ||
-  as_fn_error $? "working directory cannot be determined"
+  as_fn_error "working directory cannot be determined"
 test "X$ac_ls_di" = "X$ac_pwd_ls_di" ||
-  as_fn_error $? "pwd does not report name of working directory"
+  as_fn_error "pwd does not report name of working directory"
 
 
 # Find the source files, if location was not specified.
@@ -1289,11 +1297,11 @@ else
 fi
 if test ! -r "$srcdir/$ac_unique_file"; then
   test "$ac_srcdir_defaulted" = yes && srcdir="$ac_confdir or .."
-  as_fn_error $? "cannot find sources ($ac_unique_file) in $srcdir"
+  as_fn_error "cannot find sources ($ac_unique_file) in $srcdir"
 fi
 ac_msg="sources are in $srcdir, but 'cd $srcdir' does not work"
 ac_abs_confdir=`(
-	cd "$srcdir" && test -r "./$ac_unique_file" || as_fn_error $? "$ac_msg"
+	cd "$srcdir" && test -r "./$ac_unique_file" || as_fn_error "$ac_msg"
 	pwd)`
 # When building in place, set srcdir=.
 if test "$ac_abs_confdir" = "$ac_pwd"; then
@@ -1547,7 +1555,7 @@ sed 's/^/| /' conftest.$ac_ext >&5
 	ac_retval=1 ;;
 esac
 fi
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  eval $as_lineno_stack; test "x$as_lineno_stack" = x && { as_lineno=; unset as_lineno;}
   as_fn_set_status $ac_retval
 
 } # ac_fn_c_try_compile
@@ -1595,7 +1603,7 @@ fi
   # interfere with the next link command; also delete a directory that is
   # left behind by Apple's compiler.  We do this before executing the actions.
   rm -rf conftest.dSYM conftest_ipa8_conftest.oo
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  eval $as_lineno_stack; test "x$as_lineno_stack" = x && { as_lineno=; unset as_lineno;}
   as_fn_set_status $ac_retval
 
 } # ac_fn_c_try_link
@@ -1733,7 +1741,7 @@ sed 's/^/| /' conftest.$ac_ext >&5
     ac_retval=1 ;;
 esac
 fi
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  eval $as_lineno_stack; test "x$as_lineno_stack" = x && { as_lineno=; unset as_lineno;}
   as_fn_set_status $ac_retval
 
 } # ac_fn_c_try_cpp
@@ -1764,8 +1772,7 @@ int
 main (void)
 {
 static int test_array [1 - 2 * !(0 < ($ac_type) ((((($ac_type) 1 << N) << N) - 1) * 2 + 1))];
-test_array [0] = 0;
-return test_array [0];
+test_array [0] = 0
 
   ;
   return 0;
@@ -1782,8 +1789,7 @@ main (void)
 {
 static int test_array [1 - 2 * !(($ac_type) ((((($ac_type) 1 << N) << N) - 1) * 2 + 1)
 		 < ($ac_type) ((((($ac_type) 1 << N) << N) - 1) * 2 + 2))];
-test_array [0] = 0;
-return test_array [0];
+test_array [0] = 0
 
   ;
   return 0;
@@ -1846,8 +1852,7 @@ int
 main (void)
 {
 static int test_array [1 - 2 * !((($ac_type) -1 >> ($2 / 2 - 1)) >> ($2 / 2 - 1) == 3)];
-test_array [0] = 0;
-return test_array [0];
+test_array [0] = 0
 
   ;
   return 0;
@@ -2025,12 +2030,8 @@ $4
 int
 main (void)
 {
-#ifndef $as_decl_name
-#ifdef __cplusplus
-  (void) $as_decl_use;
-#else
-  (void) $as_decl_name;
-#endif
+#ifndef $2
+  (void) $2;
 #endif
 
   ;
@@ -2242,7 +2243,8 @@ trap 'exit_status=$?
 
     printf "%s\n" "## ---------------- ##
 ## Cache variables. ##
-## ---------------- ##"
+## ---------------- ##
+_ASBOX
     echo
     # The following way of writing the cache mishandles newlines in values,
 (
@@ -2278,7 +2280,8 @@ printf "%s\n" "$as_me: WARNING: cache variable $ac_var contains a newline" >&2;}
 
     printf "%s\n" "## ----------------- ##
 ## Output variables. ##
-## ----------------- ##"
+## ----------------- ##
+_ASBOX
     echo
     for ac_var in $ac_subst_vars
     do
@@ -2293,7 +2296,8 @@ printf "%s\n" "$as_me: WARNING: cache variable $ac_var contains a newline" >&2;}
     if test -n "$ac_subst_files"; then
       printf "%s\n" "## ------------------- ##
 ## File substitutions. ##
-## ------------------- ##"
+## ------------------- ##
+_ASBOX
       echo
       for ac_var in $ac_subst_files
       do
@@ -2309,7 +2313,8 @@ printf "%s\n" "$as_me: WARNING: cache variable $ac_var contains a newline" >&2;}
     if test -s confdefs.h; then
       printf "%s\n" "## ----------- ##
 ## confdefs.h. ##
-## ----------- ##"
+## ----------- ##
+_ASBOX
       echo
       cat confdefs.h
       echo
@@ -2940,7 +2945,7 @@ fi
 printf "%s\n" "$ac_cv_build" >&6; }
 case $ac_cv_build in
 *-*-*) ;;
-*) as_fn_error $? "invalid value of canonical build" "$LINENO" 5;;
+*) as_fn_error "invalid value of canonical build" "$LINENO" 5;;
 esac
 build=$ac_cv_build
 ac_save_IFS=$IFS; IFS='-'
@@ -2975,7 +2980,7 @@ fi
 printf "%s\n" "$ac_cv_host" >&6; }
 case $ac_cv_host in
 *-*-*) ;;
-*) as_fn_error $? "invalid value of canonical host" "$LINENO" 5;;
+*) as_fn_error "invalid value of canonical host" "$LINENO" 5;;
 esac
 host=$ac_cv_host
 ac_save_IFS=$IFS; IFS='-'
@@ -3010,7 +3015,7 @@ fi
 printf "%s\n" "$ac_cv_target" >&6; }
 case $ac_cv_target in
 *-*-*) ;;
-*) as_fn_error $? "invalid value of canonical target" "$LINENO" 5;;
+*) as_fn_error "invalid value of canonical target" "$LINENO" 5;;
 esac
 target=$ac_cv_target
 ac_save_IFS=$IFS; IFS='-'
@@ -4313,7 +4318,7 @@ printf "%s\n" "#define _HPUX_SOURCE 1" >>confdefs.h
              ;;
 
           *)
-             as_fn_error $? "see the INSTALL doc for more info" "$LINENO" 5
+             as_fn_error "see the INSTALL doc for more info" "$LINENO" 5
              ;;
           esac
        fi
@@ -5481,7 +5486,7 @@ SHELL = /bin/sh
 all:
 	@echo '@@@%%%=$(MAKE)=@@@%%%'
 _ACEOF
-# GNU make sometimes prints "make[1]: Entering ...", which would confuse us.
+# GNU make sometimes prints "make[1]: Entering...", which would confuse us.
 case `${MAKE-make} -f conftest.make 2>/dev/null` in
   *@@@%%%=?*=@@@%%%*)
     eval ac_cv_prog_make_${ac_make}_set=yes;;
@@ -5932,7 +5937,7 @@ else case e in #(
 continue ;;
 esac
 fi
-rm -f conftest.err conftest.i conftest.$ac_ext
+rm -f conftest.err conftest.$ac_ext
 
   # OK, works on sane cases.  Now check whether nonexistent headers
   # can be detected and how.
@@ -5950,7 +5955,7 @@ ac_preproc_ok=:
 break ;;
 esac
 fi
-rm -f conftest.err conftest.i conftest.$ac_ext
+rm -f conftest.err conftest.$ac_ext
 
 done
 # Because of 'break', _AC_PREPROC_IFELSE's cleaning code was skipped.
@@ -5991,7 +5996,7 @@ else case e in #(
 continue ;;
 esac
 fi
-rm -f conftest.err conftest.i conftest.$ac_ext
+rm -f conftest.err conftest.$ac_ext
 
   # OK, works on sane cases.  Now check whether nonexistent headers
   # can be detected and how.
@@ -6009,7 +6014,7 @@ ac_preproc_ok=:
 break ;;
 esac
 fi
-rm -f conftest.err conftest.i conftest.$ac_ext
+rm -f conftest.err conftest.$ac_ext
 
 done
 # Because of 'break', _AC_PREPROC_IFELSE's cleaning code was skipped.
@@ -6114,7 +6119,7 @@ fi
          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: found" >&5
 printf "%s\n" "found" >&6; }
       else
-         as_fn_error $? "Could not find ${with_staticsasl}/lib*/libsasl2.a" "$LINENO" 5
+         as_fn_error "Could not find ${with_staticsasl}/lib*/libsasl2.a" "$LINENO" 5
       fi
    fi
 
@@ -6240,7 +6245,7 @@ else case e in #(
   e) as_fn_error $? "Incorrect SASL headers found.  This package requires SASL 2.1.7 or newer." "$LINENO" 5 ;;
 esac
 fi
-rm -f conftest.err conftest.i conftest.$ac_ext
+rm -f conftest.err conftest.$ac_ext
 
 CPPFLAGS=$cmu_saved_CPPFLAGS
 
@@ -6254,7 +6259,7 @@ printf "%s\n" "#define ARGUS_SASL /**/" >>confdefs.h
 
 
       else
-         as_fn_error $? "Could not find sasl2" "$LINENO" 5
+         as_fn_error "Could not find sasl2" "$LINENO" 5
       fi
    fi
 
@@ -7321,7 +7326,7 @@ fi
 for ac_header in dns_sd.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "dns_sd.h" "ac_cv_header_dns_sd_h" "$ac_includes_default"
-if test "x$ac_cv_header_dns_sd_h" = xyes; then :
+if test "x$ac_cv_header_dns_sd_h" = x""yes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_DNS_SD_H 1
 _ACEOF
@@ -7345,11 +7350,11 @@ else case e in #(
 int
 main (void)
 {
-
+/* FIXME: Include the comments suggested by Paul. */
 #ifndef __cplusplus
-  /* Ultrix mips cc rejects this sort of thing.  */
+  /* Ultrix mips cc rejects this.  */
   typedef int charset[2];
-  const charset cs = { 0, 0 };
+  const charset cs;
   /* SunOS 4.1.1 cc rejects this.  */
   char const *const *pcpcc;
   char **ppc;
@@ -7366,9 +7371,8 @@ main (void)
   ++pcpcc;
   ppc = (char**) pcpcc;
   pcpcc = (char const *const *) ppc;
-  { /* SCO 3.2v4 cc rejects this sort of thing.  */
-    char tx;
-    char *t = &tx;
+  { /* SCO 3.2v4 cc rejects this.  */
+    char *t;
     char const *s = 0 ? (char *) 0 : (char const *) 0;
 
     *t++ = 0;
@@ -7386,8 +7390,8 @@ main (void)
   }
   { /* IBM XL C 1.02.0.0 rejects this sort of thing, saying
        "k.c", line 2.27: 1506-025 (S) Operand must be a modifiable lvalue. */
-    struct s { int j; const int *ap[3]; } bx;
-    struct s *b = &bx; b->j = 5;
+    struct s { int j; const int *ap[3]; };
+    struct s *b; b->j = 5;
   }
   { /* ULTRIX-32 V3.1 (Rev 9) vcc rejects this */
     const int foo = 10;
@@ -8206,20 +8210,23 @@ else case e in #(
 /* end confdefs.h.  */
 $ac_includes_default
 int
-find_stack_direction (int *addr, int depth)
+find_stack_direction ()
 {
-  int dir, dummy = 0;
-  if (! addr)
-    addr = &dummy;
-  *addr = addr < &dummy ? 1 : addr == &dummy ? 0 : -1;
-  dir = depth ? find_stack_direction (addr, depth - 1) : 0;
-  return dir + dummy;
+  static char *addr = 0;
+  auto char dummy;
+  if (addr == 0)
+    {
+      addr = &dummy;
+      return find_stack_direction ();
+    }
+  else
+    return (&dummy > addr) ? 1 : -1;
 }
 
 int
-main (int argc, char **argv)
+main ()
 {
-  return find_stack_direction (0, argc + !argv + 20) < 0;
+  return find_stack_direction () < 0;
 }
 _ACEOF
 if ac_fn_c_try_run "$LINENO"
@@ -8745,8 +8752,8 @@ static time_t time_t_max;
 static time_t time_t_min;
 
 /* Values we'll use to set the TZ environment variable.  */
-static const char *tz_strings[] = {
-  (const char *) 0, "TZ=GMT0", "TZ=JST-9",
+static char *tz_strings[] = {
+  (char *) 0, "TZ=GMT0", "TZ=JST-9",
   "TZ=EST+3EDT+2,M10.1.0/00:00:00,M2.3.0/00:00:00"
 };
 #define N_STRINGS (sizeof (tz_strings) / sizeof (tz_strings[0]))
@@ -8763,7 +8770,7 @@ spring_forward_gap (void)
      instead of "TZ=America/Vancouver" in order to detect the bug even
      on systems that don't support the Olson extension, or don't have the
      full zoneinfo tables installed.  */
-  putenv ((char*) "TZ=PST8PDT,M4.1.0,M10.5.0");
+  putenv ("TZ=PST8PDT,M4.1.0,M10.5.0");
 
   tm.tm_year = 98;
   tm.tm_mon = 3;
@@ -8776,14 +8783,16 @@ spring_forward_gap (void)
 }
 
 static int
-mktime_test1 (time_t now)
+mktime_test1 (now)
+     time_t now;
 {
   struct tm *lt;
   return ! (lt = localtime (&now)) || mktime (lt) == now;
 }
 
 static int
-mktime_test (time_t now)
+mktime_test (now)
+     time_t now;
 {
   return (mktime_test1 (now)
 	  && mktime_test1 ((time_t) (time_t_max - now))
@@ -8807,7 +8816,8 @@ irix_6_4_bug (void)
 }
 
 static int
-bigtime_test (int j)
+bigtime_test (j)
+     int j;
 {
   struct tm tm;
   time_t now;
@@ -8851,7 +8861,7 @@ year_2050_test (void)
      instead of "TZ=America/Vancouver" in order to detect the bug even
      on systems that don't support the Olson extension, or don't have the
      full zoneinfo tables installed.  */
-  putenv ((char*) "TZ=PST8PDT,M4.1.0,M10.5.0");
+  putenv ("TZ=PST8PDT,M4.1.0,M10.5.0");
 
   t = mktime (&tm);
 
@@ -8886,7 +8896,7 @@ main (void)
   for (i = 0; i < N_STRINGS; i++)
     {
       if (tz_strings[i])
-	putenv ((char*) tz_strings[i]);
+	putenv (tz_strings[i]);
 
       for (t = 0; t <= time_t_max - delta; t += delta)
 	if (! mktime_test (t))
@@ -10534,7 +10544,6 @@ DEFS=-DHAVE_CONFIG_H
 
 ac_libobjs=
 ac_ltlibobjs=
-U=
 for ac_i in : $LIBOBJS; do test "x$ac_i" = x: && continue
   # 1. Remove the extension, and $U if already installed.
   ac_script='s/\$U\././;s/\.o$//;s/\.obj$//'
@@ -10556,7 +10565,7 @@ then :
 fi
 
 
-: "${CONFIG_STATUS=./config.status}"
+: ${CONFIG_STATUS=./config.status}
 ac_write_fail=0
 ac_clean_files_save=$ac_clean_files
 ac_clean_files="$ac_clean_files $CONFIG_STATUS"
@@ -10652,7 +10661,6 @@ fi
 
 
 # Find who we are.  Look in the path if we contain no directory separator.
-as_myself=
 case $0 in #((
   *[\\/]* ) as_myself=$0 ;;
   *) as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
@@ -10682,11 +10690,11 @@ fi
 
 
 
-# as_fn_error STATUS ERROR [LINENO LOG_FD]
-# ----------------------------------------
+# as_fn_error ERROR [LINENO LOG_FD]
+# ---------------------------------
 # Output "`basename $0`: error: ERROR" to stderr. If LINENO and LOG_FD are
 # provided, also output the error to LOG_FD, referencing LINENO. Then exit the
-# script with STATUS, using 1 if that was 0.
+# script with status $?, using 1 if that was 0.
 as_fn_error ()
 {
   as_status=$1; test $as_status -eq 0 && as_status=1
@@ -10849,14 +10857,14 @@ if (echo >conf$$.file) 2>/dev/null; then
     # 2) DJGPP < 2.04 has no symlinks; 'ln -s' creates a wrapper executable.
     # In both cases, we have to default to 'cp -pR'.
     ln -s conf$$.file conf$$.dir 2>/dev/null && test ! -f conf$$.exe ||
-      as_ln_s='cp -pR'
+      as_ln_s='cp -p'
   elif ln conf$$.file conf$$ 2>/dev/null; then
     as_ln_s=ln
   else
-    as_ln_s='cp -pR'
+    as_ln_s='cp -p'
   fi
 else
-  as_ln_s='cp -pR'
+  as_ln_s='cp -p'
 fi
 rm -f conf$$ conf$$.exe conf$$.dir/conf$$.file conf$$.file
 rmdir conf$$.dir 2>/dev/null
@@ -10905,7 +10913,7 @@ printf "%s\n" X"$as_dir" |
       test -d "$as_dir" && break
     done
     test -z "$as_dirs" || eval "mkdir $as_dirs"
-  } || test -d "$as_dir" || as_fn_error $? "cannot create directory $as_dir"
+  } || test -d "$as_dir" || as_fn_error "cannot create directory $as_dir"
 
 
 } # as_fn_mkdir_p
@@ -10916,16 +10924,28 @@ else
   as_mkdir_p=false
 fi
 
-
-# as_fn_executable_p FILE
-# -----------------------
-# Test if FILE is an executable regular file.
-as_fn_executable_p ()
-{
-  test -f "$1" && test -x "$1"
-} # as_fn_executable_p
-as_test_x='test -x'
-as_executable_p=as_fn_executable_p
+if test -x / >/dev/null 2>&1; then
+  as_test_x='test -x'
+else
+  if ls -dL / >/dev/null 2>&1; then
+    as_ls_L_option=L
+  else
+    as_ls_L_option=
+  fi
+  as_test_x='
+    eval sh -c '\''
+      if test -d "$1"; then
+	test -d "$1/.";
+      else
+	case $1 in #(
+	-*)set "./$1";;
+	esac;
+	case `ls -ld'$as_ls_L_option' "$1" 2>/dev/null` in #((
+	???[sx]*):;;*)false;;esac;fi
+    '\'' sh
+  '
+fi
+as_executable_p=$as_test_x
 
 # Sed expression to map a string onto a valid CPP name.
 as_sed_cpp="y%*$as_cr_letters%P$as_cr_LETTERS%;s%[^_$as_cr_alnum]%_%g"
@@ -11033,14 +11053,9 @@ ac_need_defaults=:
 while test $# != 0
 do
   case $1 in
-  --*=?*)
+  --*=*)
     ac_option=`expr "X$1" : 'X\([^=]*\)='`
     ac_optarg=`expr "X$1" : 'X[^=]*=\(.*\)'`
-    ac_shift=:
-    ;;
-  --*=)
-    ac_option=`expr "X$1" : 'X\([^=]*\)='`
-    ac_optarg=
     ac_shift=:
     ;;
   *)
@@ -11106,7 +11121,7 @@ fi
 _ACEOF
 cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 if \$ac_cs_recheck; then
-  set X $SHELL '$0' $ac_configure_args \$ac_configure_extra_args --no-create --no-recursion
+  set X '$SHELL' '$0' $ac_configure_args \$ac_configure_extra_args --no-create --no-recursion
   shift
   \printf "%s\n" "running CONFIG_SHELL=$SHELL \$*" >&6
   CONFIG_SHELL='$SHELL'
@@ -11164,10 +11179,9 @@ fi
 # after its creation but before its name has been assigned to '$tmp'.
 $debug ||
 {
-  tmp= ac_tmp=
+  tmp=
   trap 'exit_status=$?
-  : "${ac_tmp:=$tmp}"
-  { test ! -d "$ac_tmp" || rm -fr "$ac_tmp"; } && exit $exit_status
+  { test -z "$tmp" || test ! -d "$tmp" || rm -fr "$tmp"; } && exit $exit_status
 ' 0
   trap 'as_fn_exit 1' 1 2 13 15
 }
@@ -11175,13 +11189,12 @@ $debug ||
 
 {
   tmp=`(umask 077 && mktemp -d "./confXXXXXX") 2>/dev/null` &&
-  test -d "$tmp"
+  test -n "$tmp" && test -d "$tmp"
 }  ||
 {
   tmp=./conf$$-$RANDOM
   (umask 077 && mkdir "$tmp")
-} || as_fn_error $? "cannot create a temporary directory in ." "$LINENO" 5
-ac_tmp=$tmp
+} || as_fn_error "cannot create a temporary directory in ." "$LINENO" 5
 
 # Set up the scripts for CONFIG_FILES section.
 # No need to generate them if there are no CONFIG_FILES.
@@ -11198,12 +11211,12 @@ if test "x$ac_cr" = x; then
 fi
 ac_cs_awk_cr=`$AWK 'BEGIN { print "a\rb" }' </dev/null 2>/dev/null`
 if test "$ac_cs_awk_cr" = "a${ac_cr}b"; then
-  ac_cs_awk_cr='\\r'
+  ac_cs_awk_cr='\r'
 else
   ac_cs_awk_cr=$ac_cr
 fi
 
-echo 'BEGIN {' >"$ac_tmp/subs1.awk" &&
+echo 'BEGIN {' >"$tmp/subs1.awk" &&
 _ACEOF
 
 
@@ -11212,18 +11225,18 @@ _ACEOF
   echo "$ac_subst_vars" | sed 's/.*/&!$&$ac_delim/' &&
   echo "_ACEOF"
 } >conf$$subs.sh ||
-  as_fn_error $? "could not make $CONFIG_STATUS" "$LINENO" 5
-ac_delim_num=`echo "$ac_subst_vars" | grep -c '^'`
+  as_fn_error "could not make $CONFIG_STATUS" "$LINENO" 5
+ac_delim_num=`echo "$ac_subst_vars" | grep -c '$'`
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   . ./conf$$subs.sh ||
-    as_fn_error $? "could not make $CONFIG_STATUS" "$LINENO" 5
+    as_fn_error "could not make $CONFIG_STATUS" "$LINENO" 5
 
   ac_delim_n=`sed -n "s/.*$ac_delim\$/X/p" conf$$subs.awk | grep -c X`
   if test $ac_delim_n = $ac_delim_num; then
     break
   elif $ac_last_try; then
-    as_fn_error $? "could not make $CONFIG_STATUS" "$LINENO" 5
+    as_fn_error "could not make $CONFIG_STATUS" "$LINENO" 5
   else
     ac_delim="$ac_delim!$ac_delim _$ac_delim!! "
   fi
@@ -11231,7 +11244,7 @@ done
 rm -f conf$$subs.sh
 
 cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
-cat >>"\$ac_tmp/subs1.awk" <<\\_ACAWK &&
+cat >>"\$tmp/subs1.awk" <<\\_ACAWK &&
 _ACEOF
 sed -n '
 h
@@ -11279,7 +11292,7 @@ t delim
 rm -f conf$$subs.awk
 cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 _ACAWK
-cat >>"\$ac_tmp/subs1.awk" <<_ACAWK &&
+cat >>"\$tmp/subs1.awk" <<_ACAWK &&
   for (key in S) S_is_set[key] = 1
   FS = ""
 
@@ -11311,29 +11324,21 @@ if sed "s/$ac_cr//" < /dev/null > /dev/null 2>&1; then
   sed "s/$ac_cr\$//; s/$ac_cr/$ac_cs_awk_cr/g"
 else
   cat
-fi < "$ac_tmp/subs1.awk" > "$ac_tmp/subs.awk" \
-  || as_fn_error $? "could not setup config files machinery" "$LINENO" 5
+fi < "$tmp/subs1.awk" > "$tmp/subs.awk" \
+  || as_fn_error "could not setup config files machinery" "$LINENO" 5
 _ACEOF
 
-# VPATH may cause trouble with some makes, so we remove sole $(srcdir),
-# ${srcdir} and @srcdir@ entries from VPATH if srcdir is ".", strip leading and
+# VPATH may cause trouble with some makes, so we remove $(srcdir),
+# ${srcdir} and @srcdir@ from VPATH if srcdir is ".", strip leading and
 # trailing colons and then remove the whole line if VPATH becomes empty
 # (actually we leave an empty line to preserve line numbers).
 if test "x$srcdir" = x.; then
-  ac_vpsub='/^[	 ]*VPATH[	 ]*=[	 ]*/{
-h
-s///
-s/^/:/
-s/[	 ]*$/:/
-s/:\$(srcdir):/:/g
-s/:\${srcdir}:/:/g
-s/:@srcdir@:/:/g
-s/^:*//
+  ac_vpsub='/^[	 ]*VPATH[	 ]*=/{
+s/:*\$(srcdir):*/:/
+s/:*\${srcdir}:*/:/
+s/:*@srcdir@:*/:/
+s/^\([^=]*=[	 ]*\):*/\1/
 s/:*$//
-x
-s/\(=[	 ]*\).*/\1/
-G
-s/\n//
 s/^[^=]*=[	 ]*$//
 }'
 fi
@@ -11345,7 +11350,7 @@ fi # test -n "$CONFIG_FILES"
 # No need to generate them if there are no CONFIG_HEADERS.
 # This happens for instance with './config.status Makefile'.
 if test -n "$CONFIG_HEADERS"; then
-cat >"$ac_tmp/defines.awk" <<\_ACAWK ||
+cat >"$tmp/defines.awk" <<\_ACAWK ||
 BEGIN {
 _ACEOF
 
@@ -11357,11 +11362,11 @@ _ACEOF
 # handling of long lines.
 ac_delim='%!_!# '
 for ac_last_try in false false :; do
-  ac_tt=`sed -n "/$ac_delim/p" confdefs.h`
-  if test -z "$ac_tt"; then
+  ac_t=`sed -n "/$ac_delim/p" confdefs.h`
+  if test -z "$ac_t"; then
     break
   elif $ac_last_try; then
-    as_fn_error $? "could not make $CONFIG_HEADERS" "$LINENO" 5
+    as_fn_error "could not make $CONFIG_HEADERS" "$LINENO" 5
   else
     ac_delim="$ac_delim!$ac_delim _$ac_delim!! "
   fi
@@ -11446,7 +11451,7 @@ cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 _ACAWK
 _ACEOF
 cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
-  as_fn_error $? "could not setup config headers machinery" "$LINENO" 5
+  as_fn_error "could not setup config headers machinery" "$LINENO" 5
 fi # test -n "$CONFIG_HEADERS"
 
 
@@ -11478,7 +11483,7 @@ do
     for ac_f
     do
       case $ac_f in
-      -) ac_f="$ac_tmp/stdin";;
+      -) ac_f="$tmp/stdin";;
       *) # Look for the file first in the build tree, then in the source tree
 	 # (if the path is not absolute).  The absolute path cannot be DOS-style,
 	 # because $ac_f cannot contain ':'.
@@ -11513,8 +11518,8 @@ printf "%s\n" "$as_me: creating $ac_file" >&6;}
     esac
 
     case $ac_tag in
-    *:-:* | *:-) cat >"$ac_tmp/stdin" \
-      || as_fn_error $? "could not create $ac_file" "$LINENO" 5 ;;
+    *:-:* | *:-) cat >"$tmp/stdin" \
+      || as_fn_error "could not create $ac_file" "$LINENO" 5 ;;
     esac
     ;;
   esac
@@ -11644,8 +11649,8 @@ s&@abs_top_builddir@&$ac_abs_top_builddir&;t t
 s&@INSTALL@&$ac_INSTALL&;t t
 $ac_datarootdir_hack
 "
-eval sed \"\$ac_sed_extra\" "$ac_file_inputs" | $AWK -f "$ac_tmp/subs.awk" \
-  >$ac_tmp/out || as_fn_error $? "could not create $ac_file" "$LINENO" 5
+eval sed \"\$ac_sed_extra\" "$ac_file_inputs" | $AWK -f "$tmp/subs.awk" >$tmp/out \
+  || as_fn_error "could not create $ac_file" "$LINENO" 5
 
 test -z "$ac_datarootdir_hack$ac_datarootdir_seen" &&
   { ac_out=`sed -n '/\${datarootdir}/p' "$ac_tmp/out"`; test -n "$ac_out"; } &&
@@ -11656,12 +11661,12 @@ which seems to be undefined.  Please make sure it is defined" >&5
 printf "%s\n" "$as_me: WARNING: $ac_file contains a reference to the variable 'datarootdir'
 which seems to be undefined.  Please make sure it is defined" >&2;}
 
-  rm -f "$ac_tmp/stdin"
+  rm -f "$tmp/stdin"
   case $ac_file in
-  -) cat "$ac_tmp/out" && rm -f "$ac_tmp/out";;
-  *) rm -f "$ac_file" && mv "$ac_tmp/out" "$ac_file";;
+  -) cat "$tmp/out" && rm -f "$tmp/out";;
+  *) rm -f "$ac_file" && mv "$tmp/out" "$ac_file";;
   esac \
-  || as_fn_error $? "could not create $ac_file" "$LINENO" 5
+  || as_fn_error "could not create $ac_file" "$LINENO" 5
  ;;
   :H)
   #
@@ -11678,8 +11683,8 @@ which seems to be undefined.  Please make sure it is defined" >&2;}
 printf "%s\n" "$as_me: $ac_file is unchanged" >&6;}
     else
       rm -f "$ac_file"
-      mv "$ac_tmp/config.h" "$ac_file" \
-	|| as_fn_error $? "could not create $ac_file" "$LINENO" 5
+      mv "$tmp/config.h" "$ac_file" \
+	|| as_fn_error "could not create $ac_file" "$LINENO" 5
     fi
   else
     printf "%s\n" "/* $configure_input  */" >&1 \
@@ -11699,7 +11704,7 @@ _ACEOF
 ac_clean_files=$ac_clean_files_save
 
 test $ac_write_fail = 0 ||
-  as_fn_error $? "write failure creating $CONFIG_STATUS" "$LINENO" 5
+  as_fn_error "write failure creating $CONFIG_STATUS" "$LINENO" 5
 
 
 # configure is writing to config.log, and then calls config.status.
@@ -11720,7 +11725,7 @@ if test "$no_create" != yes; then
   exec 5>>config.log
   # Use ||, not &&, to avoid exiting from the if with $? = 1, which
   # would make configure fail if this is the last instruction.
-  $ac_cs_success || as_fn_exit 1
+  $ac_cs_success || as_fn_exit $?
 fi
 if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5

@@ -331,7 +331,7 @@ ArgusNtoH (struct ArgusRecord *argus)
          argus->argus_mar.now.tv_sec        = ntohl(argus->argus_mar.now.tv_sec);
          argus->argus_mar.now.tv_usec       = ntohl(argus->argus_mar.now.tv_usec);
          argus->argus_mar.reportInterval    = ntohs(argus->argus_mar.reportInterval);
-         argus->argus_mar.argusMrInterval    = ntohs(argus->argus_mar.argusMrInterval);
+         argus->argus_mar.argusMrInterval   = ntohs(argus->argus_mar.argusMrInterval);
 
          argus->argus_mar.pktsRcvd          = ntohll(argus->argus_mar.pktsRcvd);
          argus->argus_mar.bytesRcvd         = ntohll(argus->argus_mar.bytesRcvd);
@@ -346,7 +346,17 @@ ArgusNtoH (struct ArgusRecord *argus)
          argus->argus_mar.bufs              = ntohl(argus->argus_mar.bufs);
          argus->argus_mar.bytes             = ntohl(argus->argus_mar.bytes);
 
-         argus->argus_mar.thisid            = ntohl(argus->argus_mar.thisid);
+         switch (argus->argus_mar.status & (ARGUS_IDIS_IPV4 | ARGUS_IDIS_INT | ARGUS_IDIS_STRING)) {
+            case ARGUS_IDIS_IPV6:
+            case ARGUS_IDIS_UUID:
+            case ARGUS_IDIS_STRING:
+               break;
+
+            case ARGUS_IDIS_IPV4:
+            case ARGUS_IDIS_INT:
+               argus->argus_mar.value       = ntohl(argus->argus_mar.value);
+         }
+
          argus->argus_mar.record_len        = ntohl(argus->argus_mar.record_len);
          break;
       }
@@ -371,6 +381,7 @@ ArgusNtoH (struct ArgusRecord *argus)
                   trans->srcid.a_un.ipv4  = ntohl(trans->srcid.a_un.ipv4);
                   break;
 
+               case ARGUS_TYPE_UUID:
                case ARGUS_TYPE_IPV6:
                case ARGUS_TYPE_ETHER:
                case ARGUS_TYPE_STRING:
@@ -560,6 +571,7 @@ ArgusNtoH (struct ArgusRecord *argus)
                               iptr += 1;
                               break;
 
+                           case ARGUS_TYPE_UUID:
                            case ARGUS_TYPE_IPV6:
                               iptr += 4;
                               break;
