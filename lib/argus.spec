@@ -14,6 +14,11 @@ Group: Applications/Internet
 Source: %{name}-%{version}.%{rel}.tar%{srcext}
 URL: http://qosient.com/argus
 Buildroot: %{_tmppath}/%{name}-%{version}-root
+BuildRequires: libpcap-devel
+BuildRequires: cyrus-sasl-devel
+BuildRequires: zlib-devel
+Requires: wget
+Requires: cyrus-sasl
 
 %description
 Gargoyle is codename for the commerical release of Argus (Audit Record Generation And Utilization System),
@@ -32,7 +37,7 @@ Copyright: (c) 2000-2015 QoSient, LLC
 %prep
 %setup -n %{name}-%{ver}.%{rel}
 %build
-./configure --prefix=%{argusdir}
+./configure --prefix=%{argusdir} --with-sasl
 make
 
 %install
@@ -41,19 +46,21 @@ make DESTDIR="$RPM_BUILD_ROOT" install
 
 install -D -m 0600 pkg/argus.conf $RPM_BUILD_ROOT/etc/argus.conf
 install -D -m 0644 pkg/rhel/sysconfig/argus $RPM_BUILD_ROOT/etc/sysconfig/argus
-install -D -m 0755 pkg/rhel/init.d/argus $RPM_BUILD_ROOT/etc/rc.d/init.d/argus
+install -D -m 0644 pkg/rhel/systemd/argus.service $RPM_BUILD_ROOT%{_unitdir}/argus.service
+install -D -m 0700 pkg/rhel/systemd/argus-setup $RPM_BUILD_ROOT/%{argussbin}/argus-setup
+install -D -m 0644 pkg/rhel/sasl2/argus.conf $RPM_BUILD_ROOT/etc/sasl2/argus.conf
 install -D -m 0755 support/Archive/argusarchive $RPM_BUILD_ROOT/%{argusbin}/argusarchive
 install -d -m 0755 $RPM_BUILD_ROOT/%{argusdocs}/support
 cp -av support $RPM_BUILD_ROOT/%{argusdocs}/
+install -d -m 0755 $RPM_BUILD_ROOT/etc/pam.d
 
 %post
-/sbin/chkconfig --add argus
-service argus start >/dev/null 2>&1
+ln -sf /etc/pam.d/system-auth /etc/pam.d/argus
 
 %preun
 if [ "$1" = 0 ] ; then
-  service argus stop >/dev/null 2>&1
-  /sbin/chkconfig --del argus
+  systemctl stop argus
+  rm -f /etc/pam.d/argus
 fi
 
 %postun
@@ -67,6 +74,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %{argussbin}/argus
+%{argussbin}/argus-setup
 %{argusbin}/argus-airport
 %{argusbin}/argus-extip
 %{argusbin}/argus-lsof
@@ -81,7 +89,10 @@ rm -rf $RPM_BUILD_ROOT
 %{argusman}/man5/argus.conf.5.gz
 %{argusman}/man8/argus.8.gz
 
-/etc/rc.d/init.d/argus
+%config(noreplace) %attr(644,root,root) %{_unitdir}/argus.service
 
 %config /etc/argus.conf
 %config /etc/sysconfig/argus
+%config /etc/sasl2/argus.conf
+%ghost %config(noreplace) /etc/pam.d/argus
+

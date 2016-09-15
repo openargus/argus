@@ -1030,7 +1030,6 @@ ArgusProcessGreHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
       model->ArgusThisUpHdr  = (unsigned char *) bp;
       model->ArgusThisLength -= grelen;
       model->ArgusSnapLength -= grelen;
-      length -= grelen;
    }
 
 #ifdef ARGUSDEBUG
@@ -1284,8 +1283,6 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
          hdr_len++;
       } else {
          proto = EXTRACT_16BITS(p);
-         p += 2;                     /* ACFC not used */
-         length -= 2;
          hdr_len += 2;
       }
 
@@ -1386,7 +1383,6 @@ ArgusProcessPPPoEHdr (struct ArgusModelerStruct *model, char *p, int length)
          hdr_len++;
         } else {
          proto = EXTRACT_16BITS(pload);
-         pload += 2;
          hdr_len += 2;
       }
       switch (proto) {
@@ -1463,13 +1459,13 @@ ArgusProcessUDToEHdr (struct ArgusModelerStruct *model, char *p, int length)
 {
    int retn = 0;
 
-   p += 2;  //  add 2 byte pad
    model->ArgusThisEncaps |= ARGUS_ENCAPS_UDT;
    model->ArgusThisUpHdr  += 2;
    model->ArgusThisLength -= 2;
    model->ArgusSnapLength -= 2;
 
 #ifdef ARGUSDEBUG
+   p += 2;  //  add 2 byte pad
    ArgusDebug (8, "ArgusProcessUDToEHdr(%p, %p, %d) returning %d\n", model, p, length, retn);
 #endif
    return (retn);

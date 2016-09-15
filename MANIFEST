@@ -1,6 +1,6 @@
 /*
  * Argus Pro (Gargoyle) Software. Argus flow data generation.
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2016 QoSient, LLC
  * All rights reserved.
  *
  * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
@@ -22,28 +22,28 @@ Argus Pro (Gargoyle) 5.0.3 distribution
 total 832
 -r--r--r--+  1 carter  staff     534 Apr 13  2015 AUTHORS
 -r--r--r--+  1 carter  staff    6688 Apr 13  2015 CREDITS
--r--r--r--+  1 carter  staff    8380 Sep  9 21:07 ChangeLog
+-r--r--r--+  1 carter  staff    8460 Sep 15 13:20 ChangeLog
 -r--r--r--+  1 carter  staff   12583 Apr 13  2015 INSTALL
--r--r--r--+  1 carter  staff   13572 Sep 13 16:13 MANIFEST
+-r--r--r--+  1 carter  staff   13572 Sep 15 13:21 MANIFEST
 -r--r--r--+  1 carter  staff    5088 Aug 31  2015 Makefile.in
 -r--r--r--+  1 carter  staff    3481 Apr 13  2015 README
 -r--r--r--+  1 carter  staff       6 Sep 11 17:11 VERSION
 -r--r--r--+  1 carter  staff     609 May  1  2012 aclocal.m4
 -r--r--r--+  1 carter  staff   52641 Apr 13  2015 acsite.m4
-drwxrwxr-x+ 37 carter  staff    1258 Sep 13 16:03 argus
-drwxrwxr-x+  4 carter  staff     136 Sep 13 16:03 bin
-drwxrwxr-x+  9 carter  staff     306 Sep 13 16:03 common
-drwxrwxr-x+  6 carter  staff     204 Sep 12 11:21 config
+drwxrwxr-x+ 37 carter  staff    1258 Sep 15 13:20 argus
+drwxrwxr-x+  4 carter  staff     136 Sep 15 13:20 bin
+drwxrwxr-x+  9 carter  staff     306 Sep 15 13:20 common
+drwxrwxr-x+  6 carter  staff     204 Sep 15 11:01 config
 -rwxrwxr-x+  1 carter  staff  282496 Sep 10 10:34 configure
 -r--r--r--+  1 carter  staff   11027 Dec  9  2015 configure.ac
-drwxrwxr-x+ 14 carter  staff     476 Sep 12 11:21 debian
-drwxrwxr-x+  3 carter  staff     102 Sep 12 11:21 doc
-drwxrwxr-x+ 12 carter  staff     408 Sep 13 16:03 events
-drwxrwxr-x+ 35 carter  staff    1190 Sep 13 16:03 include
-drwxrwxr-x+  3 carter  staff     102 Sep 13 16:03 lib
-drwxrwxr-x+  4 carter  staff     136 Sep 12 11:21 man
-drwxrwxr-x+  5 carter  staff     170 Sep 12 11:21 pkg
-drwxrwxr-x+  8 carter  staff     272 Sep 12 11:21 support
+drwxrwxr-x+ 14 carter  staff     476 Sep 15 11:01 debian
+drwxrwxr-x+  3 carter  staff     102 Sep 15 11:01 doc
+drwxrwxr-x+ 12 carter  staff     408 Sep 15 13:20 events
+drwxrwxr-x+ 35 carter  staff    1190 Sep 15 13:20 include
+drwxrwxr-x+  3 carter  staff     102 Sep 15 13:20 lib
+drwxrwxr-x+  4 carter  staff     136 Sep 15 11:01 man
+drwxrwxr-x+  5 carter  staff     170 Sep 15 11:01 pkg
+drwxrwxr-x+  8 carter  staff     272 Sep 15 11:01 support
 
 ./argus:
 total 2160
@@ -62,7 +62,7 @@ total 2160
 -r--r--r--+ 1 carter  staff    6342 Apr 13  2015 ArgusL2TP.h
 -r--r--r--+ 1 carter  staff    3305 Apr 13  2015 ArgusLcp.c
 -r--r--r--+ 1 carter  staff    1590 Apr 13  2015 ArgusMac.c
--r--r--r--+ 1 carter  staff  179802 Sep 13 16:02 ArgusModeler.c
+-r--r--r--+ 1 carter  staff  179616 Sep 15 13:19 ArgusModeler.c
 -r--r--r--+ 1 carter  staff   29411 Feb 23  2016 ArgusModeler.h
 -r--r--r--+ 1 carter  staff   86269 Jun  7 14:24 ArgusNetflow.c
 -r--r--r--+ 1 carter  staff    2243 Apr 13  2015 ArgusNetflow.h
@@ -70,9 +70,9 @@ total 2160
 -r--r--r--+ 1 carter  staff    6107 Apr 21  2015 ArgusOutput.h
 -r--r--r--+ 1 carter  staff   47117 Feb 22  2016 ArgusSflow.c
 -r--r--r--+ 1 carter  staff    1174 Apr 13  2015 ArgusSflow.h
--r--r--r--+ 1 carter  staff  167393 Sep 13 16:02 ArgusSource.c
+-r--r--r--+ 1 carter  staff  167375 Sep 15 12:44 ArgusSource.c
 -r--r--r--+ 1 carter  staff   35404 Sep 13 16:02 ArgusSource.h
--r--r--r--+ 1 carter  staff   41595 Aug 22 00:39 ArgusTcp.c
+-r--r--r--+ 1 carter  staff   41513 Sep 15 12:51 ArgusTCP.c
 -r--r--r--+ 1 carter  staff    2216 Jun 22  2015 ArgusUdp.c
 -r--r--r--+ 1 carter  staff   29313 Sep  2  2015 ArgusUdt.c
 -r--r--r--+ 1 carter  staff   81062 Jun  7 14:24 ArgusUtil.c
@@ -80,7 +80,7 @@ total 2160
 -r--r--r--+ 1 carter  staff    1967 Apr 13  2015 ArgusVxLan.c
 -r--r--r--+ 1 carter  staff    1215 Jun 22  2015 ArgusVxLan.h
 -r-xr-xr-x+ 1 carter  staff    4105 Apr 13  2015 Makefile.in
--r--r--r--+ 1 carter  staff   66910 Sep 13 16:02 argus.c
+-r--r--r--+ 1 carter  staff   67028 Sep 15 12:55 argus.c
 -r--r--r--+ 1 carter  staff    3996 Feb 22  2016 argus.h
 
 ./bin:
@@ -94,7 +94,7 @@ total 792
 -r--r--r--+ 1 carter  staff   14426 Apr 13  2015 argus_auth.c
 -r--r--r--+ 1 carter  staff  147332 Jul 20  2015 argus_code.c
 -r--r--r--+ 1 carter  staff   87281 Apr 13  2015 argus_filter.c
--r--r--r--+ 1 carter  staff  115882 Sep 13 16:02 argus_util.c
+-r--r--r--+ 1 carter  staff  115987 Sep 15 12:40 argus_util.c
 -r-xr-xr-x+ 1 carter  staff   14775 Jun 22  2015 grammar.y
 -r-xr-xr-x+ 1 carter  staff   11785 Jul 20  2015 scanner.l
 
@@ -118,7 +118,7 @@ total 88
 -r--r--r--+ 1 carter  staff     7 Oct  7  2014 docs
 -r--r--r--+ 1 carter  staff   180 Apr 13  2015 install
 -r-xr-xr-x+ 1 carter  staff   538 Apr 13  2015 rules
-drwxrwxr-x+ 3 carter  staff   102 Sep 12 11:21 source
+drwxrwxr-x+ 3 carter  staff   102 Sep 15 11:01 source
 
 ./debian/source:
 total 8
@@ -144,7 +144,7 @@ total 88
 ./include:
 total 872
 -r--r--r--+  1 carter  staff   17920 May  1  2012 CflowdFlowPdu.h
-drwxrwxr-x+ 16 carter  staff     544 Sep 12 11:21 argus
+drwxrwxr-x+ 16 carter  staff     544 Sep 15 11:01 argus
 -r--r--r--+  1 carter  staff    3991 Apr 13  2015 argus-namedb.h
 -r--r--r--+  1 carter  staff   12185 Apr 13  2015 argus_client.h
 -r--r--r--+  1 carter  staff    6447 Sep 13 16:02 argus_compat.h
@@ -172,10 +172,10 @@ drwxrwxr-x+ 16 carter  staff     544 Sep 12 11:21 argus
 -r--r--r--+  1 carter  staff    3255 Apr 13  2015 argus_udt.h
 -r--r--r--+  1 carter  staff    5224 Apr 21  2015 argus_util.h
 -r--r--r--+  1 carter  staff   43337 Apr 13  2015 argus_v3_def.h
-drwxrwxr-x+  7 carter  staff     238 Sep 12 11:21 cygwin-include
-drwxrwxr-x+  8 carter  staff     272 Sep 12 11:21 net
-drwxrwxr-x+  3 carter  staff     102 Sep 12 11:21 netbsd-include
-drwxrwxr-x+  4 carter  staff     136 Sep 12 11:21 netinet
+drwxrwxr-x+  7 carter  staff     238 Sep 15 11:01 cygwin-include
+drwxrwxr-x+  8 carter  staff     272 Sep 15 11:01 net
+drwxrwxr-x+  3 carter  staff     102 Sep 15 11:01 netbsd-include
+drwxrwxr-x+  4 carter  staff     136 Sep 15 11:01 netinet
 
 ./include/argus:
 total 248
@@ -196,11 +196,11 @@ total 248
 
 ./include/cygwin-include:
 total 0
-drwxrwxr-x+  4 carter  staff  136 Sep 12 11:21 linux
-drwxrwxr-x+  3 carter  staff  102 Sep 12 11:21 net
-drwxrwxr-x+ 11 carter  staff  374 Sep 12 11:21 netinet
-drwxrwxr-x+  3 carter  staff  102 Sep 12 11:21 protocols
-drwxrwxr-x+  3 carter  staff  102 Sep 12 11:21 sys
+drwxrwxr-x+  4 carter  staff  136 Sep 15 11:01 linux
+drwxrwxr-x+  3 carter  staff  102 Sep 15 11:01 net
+drwxrwxr-x+ 11 carter  staff  374 Sep 15 11:01 netinet
+drwxrwxr-x+  3 carter  staff  102 Sep 15 11:01 protocols
+drwxrwxr-x+  3 carter  staff  102 Sep 15 11:01 sys
 
 ./include/cygwin-include/linux:
 total 16
@@ -242,7 +242,7 @@ total 72
 
 ./include/netbsd-include:
 total 0
-drwxrwxr-x+ 3 carter  staff  102 Sep 12 11:21 netinet
+drwxrwxr-x+ 3 carter  staff  102 Sep 15 11:01 netinet
 
 ./include/netbsd-include/netinet:
 total 8
@@ -259,8 +259,8 @@ total 8
 
 ./man:
 total 0
-drwxrwxr-x+ 3 carter  staff  102 Sep 12 11:21 man5
-drwxrwxr-x+ 3 carter  staff  102 Sep 12 11:21 man8
+drwxrwxr-x+ 3 carter  staff  102 Sep 15 11:01 man5
+drwxrwxr-x+ 3 carter  staff  102 Sep 15 11:01 man8
 
 ./man/man5:
 total 48
@@ -274,12 +274,12 @@ total 24
 total 64
 -r--r--r--+ 1 carter  staff   4201 Apr 13  2015 README
 -r--r--r--+ 1 carter  staff  21769 Apr 13  2015 argus.conf
-drwxrwxr-x+ 4 carter  staff    136 Sep 12 11:21 rhel
+drwxrwxr-x+ 4 carter  staff    136 Sep 15 11:01 rhel
 
 ./pkg/rhel:
 total 0
-drwxrwxr-x+ 3 carter  staff  102 Sep 12 11:21 init.d
-drwxrwxr-x+ 3 carter  staff  102 Sep 12 11:21 sysconfig
+drwxrwxr-x+ 3 carter  staff  102 Sep 15 11:01 init.d
+drwxrwxr-x+ 3 carter  staff  102 Sep 15 11:01 sysconfig
 
 ./pkg/rhel/init.d:
 total 8
@@ -291,12 +291,12 @@ total 8
 
 ./support:
 total 8
-drwxrwxr-x+ 4 carter  staff   136 Sep 12 11:21 Archive
-drwxrwxr-x+ 3 carter  staff   102 Sep 12 11:21 Config
-drwxrwxr-x+ 3 carter  staff   102 Sep 12 11:21 Deployment
+drwxrwxr-x+ 4 carter  staff   136 Sep 15 11:01 Archive
+drwxrwxr-x+ 3 carter  staff   102 Sep 15 11:01 Config
+drwxrwxr-x+ 3 carter  staff   102 Sep 15 11:01 Deployment
 -r--r--r--+ 1 carter  staff  2271 Apr 13  2015 README
-drwxrwxr-x+ 6 carter  staff   204 Sep 12 11:21 Startup
-drwxrwxr-x+ 4 carter  staff   136 Sep 12 11:21 System
+drwxrwxr-x+ 6 carter  staff   204 Sep 15 11:01 Startup
+drwxrwxr-x+ 4 carter  staff   136 Sep 15 11:01 System
 
 ./support/Archive:
 total 48

@@ -4729,7 +4729,7 @@ ArgusOpenInputPacketFile(struct ArgusSourceStruct *src, struct ArgusDeviceStruct
 
          if (src->ArgusPacketInput) {
             if ((strstr (device->name, ".erf")) != NULL) {
-               if ((inf->ArgusPcap.fd = open (device->name, O_RDONLY, NULL)) >= 0) {
+               if ((inf->ArgusPcap.fd = open (device->name, O_RDONLY)) >= 0) {
                   inf->ArgusPcap.snapshot = 1500;
                   inf->ArgusPcap.linktype = DLT_EN10MB;
                   inf->ArgusInterfaceType = ARGUSERFPKTFILE;
@@ -4751,7 +4751,7 @@ ArgusOpenInputPacketFile(struct ArgusSourceStruct *src, struct ArgusDeviceStruct
                   src->ArgusReadingOffLine++;
                   retn = 1;
                } else
-               if ((inf->ArgusPcap.fd = open (device->name, O_RDONLY, NULL)) >= 0) {
+               if ((inf->ArgusPcap.fd = open (device->name, O_RDONLY)) >= 0) {
                   inf->ArgusPcap.snapshot = 1500;
                   inf->ArgusPcap.linktype = DLT_EN10MB;
                   inf->ArgusInterfaceType = ARGUSMOATTSHPKTFILE;
@@ -4769,7 +4769,7 @@ ArgusOpenInputPacketFile(struct ArgusSourceStruct *src, struct ArgusDeviceStruct
                                         src->ArgusPacketInput)) == sizeof(ARGUSSNOOPTAG)) {
                   if ((strncmp((char *)readbuf, ARGUSSNOOPTAG, sizeof(ARGUSSNOOPTAG)) == 0)) {
                      fclose(src->ArgusPacketInput);
-                     if ((inf->ArgusPcap.fd = open (device->name, O_RDONLY, NULL)) >= 0) {
+                     if ((inf->ArgusPcap.fd = open (device->name, O_RDONLY)) >= 0) {
                         lseek(inf->ArgusPcap.fd, 16, SEEK_SET);
                         inf->ArgusPcap.snapshot = 1500;
                         inf->ArgusPcap.linktype = DLT_EN10MB;
