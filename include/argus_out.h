@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/include/argus_out.h#11 $
- * $DateTime: 2016/04/01 14:32:31 $
- * $Change: 3134 $
+ * $Id: //depot/gargoyle/argus/include/argus_out.h#12 $
+ * $DateTime: 2016/09/13 16:02:14 $
+ * $Change: 3181 $
  */
 
 
@@ -553,6 +553,7 @@ struct ArgusAddrStruct {
       unsigned int ipv4;
       unsigned char ethersrc[6];
       unsigned char str[4];
+      unsigned char uuid[16];
       unsigned int ipv6[4];
    } a_un;
    unsigned char inf[4];
@@ -793,6 +794,41 @@ struct ArgusEventStruct {
 
 struct ArgusMarStruct {
    unsigned int status, argusid;
+   unsigned int localnet, netmask;
+   unsigned int nextMrSequenceNum;
+   struct ArgusTime startime, now;
+
+   unsigned char  major_version, minor_version;
+   unsigned char interfaceType, interfaceStatus;
+   unsigned short reportInterval, argusMrInterval;
+
+   unsigned long long pktsRcvd, bytesRcvd;
+   long long drift;
+
+   unsigned int records, flows, dropped;
+   unsigned int queue, output, clients;
+   unsigned int bufs, bytes;
+   unsigned short suserlen, duserlen;
+
+   union {
+      unsigned int value;
+      unsigned int ipv4;
+      unsigned char ethersrc[6];
+      unsigned char str[4];
+      unsigned char uuid[16];
+      unsigned int ipv6[4];
+      struct {
+         unsigned int pad[3];
+         unsigned int thisid;
+      };
+   };
+
+   unsigned int record_len;
+};
+
+
+struct ArgusV3MarStruct {
+   unsigned int status, argusid;
    unsigned int localnet, netmask, nextMrSequenceNum;
    struct ArgusTime startime, now;
    unsigned char  major_version, minor_version;
@@ -810,7 +846,8 @@ struct ArgusMarStruct {
 };
 
 struct ArgusMarSupStruct {
-   unsigned int status, argusid;
+   unsigned int status;
+   unsigned char argusid[16];
    struct ArgusTime startime, now;
    struct ArgusInputStruct input;
 };
