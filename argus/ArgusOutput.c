@@ -1614,8 +1614,6 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
             break;
          }
       }
-      if (getArgusManInf(ArgusSourceTask) != NULL)
-         retn->argus_mar.status |=  ARGUS_ID_INC_INF;
    }
 
    retn->argus_mar.startime.tv_sec  = output->ArgusStartTime.tv_sec;
@@ -1744,6 +1742,7 @@ ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char
    }
 
    if (retn) {
+      struct ArgusSourceStruct *ArgusSrc = NULL, *aSrc = NULL;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
       struct timeval now;
 
@@ -1757,14 +1756,14 @@ ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char
       rec->hdr = retn->hdr;
 
       if (getArgusID(ArgusSourceTask, asptr))
-        bcopy (&asptr->a_un.value, &rec->argus_inf.srcid, sizeof(rec->argus_inf.srcid));
+        bcopy (&asptr->a_un.value, &rec->argus_sup.argusid, sizeof(rec->argus_sup.argusid));
 
       switch (getArgusIDType(ArgusSourceTask)) {
-         case ARGUS_TYPE_STRING: rec->argus_inf.status |= ARGUS_IDIS_STRING; break;
-         case ARGUS_TYPE_INT:    rec->argus_inf.status |= ARGUS_IDIS_INT; break;
-         case ARGUS_TYPE_IPV4:   rec->argus_inf.status |= ARGUS_IDIS_IPV4; break;
-         case ARGUS_TYPE_IPV6:   rec->argus_inf.status |= ARGUS_IDIS_IPV6; break;
-         case ARGUS_TYPE_UUID:   rec->argus_inf.status |= ARGUS_IDIS_UUID; break;
+         case ARGUS_TYPE_STRING: rec->argus_sup.status |= ARGUS_IDIS_STRING; break;
+         case ARGUS_TYPE_INT:    rec->argus_sup.status |= ARGUS_IDIS_INT; break;
+         case ARGUS_TYPE_IPV4:   rec->argus_sup.status |= ARGUS_IDIS_IPV4; break;
+         case ARGUS_TYPE_IPV6:   rec->argus_sup.status |= ARGUS_IDIS_IPV6; break;
+         case ARGUS_TYPE_UUID:   rec->argus_sup.status |= ARGUS_IDIS_UUID; break;
       }
 
       gettimeofday (&now, 0L);
@@ -1777,7 +1776,7 @@ ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (4, "ArgusGenerateMarInterfaceRecord(%p, %d) returning 0x%x", output, status, retn);
+   ArgusDebug (4, "ArgusGenerateSupplementalMarRecord(%p, %d) returning 0x%x", output, status, retn);
 #endif
 
    return (retn);
@@ -1801,9 +1800,9 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
    }
 
    if (retn) {
-      extern int ArgusAllocTotal, ArgusFreeTotal;
+      extern int ArgusAllocTotal, ArgusFreeTotal, ArgusAllocBytes;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
-      struct ArgusSourceStruct *aSrc = NULL;
+      struct ArgusSourceStruct *ArgusSrc = NULL, *aSrc = NULL;
       struct timeval now;
 
       memset(retn, 0, sizeof(*retn));
@@ -1846,8 +1845,6 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
                break;
             }
          }
-         if (getArgusManInf(ArgusSourceTask) != NULL)
-           rec->argus_mar.status |=  ARGUS_ID_INC_INF;
       }
 
       gettimeofday (&now, 0L);
@@ -1924,10 +1921,6 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.bufs     = ArgusAllocTotal - ArgusFreeTotal;
       rec->argus_mar.suserlen = getArgusUserDataLen(ArgusModel);
       rec->argus_mar.duserlen = getArgusUserDataLen(ArgusModel);
-
-      gettimeofday (&now, 0L);
-      output->ArgusLastMarUpdateTime.tv_sec  = now.tv_sec;
-      output->ArgusLastMarUpdateTime.tv_usec = now.tv_usec;
    }
 
 #ifdef ARGUSDEBUG

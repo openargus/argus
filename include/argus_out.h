@@ -25,9 +25,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/include/argus_out.h#11 $
- * $DateTime: 2016/04/01 14:32:31 $
- * $Change: 3134 $
+ * $Id: //depot/gargoyle/argus/include/argus_out.h#12 $
+ * $DateTime: 2016/09/13 16:02:14 $
+ * $Change: 3181 $
  */
 
 
@@ -563,6 +563,7 @@ struct ArgusAddrStruct {
       unsigned int ipv4;
       unsigned char ethersrc[6];
       unsigned char str[4];
+      unsigned char uuid[16];
       unsigned int ipv6[4];
    } a_un;
    unsigned char inf[4];

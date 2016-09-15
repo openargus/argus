@@ -170,8 +170,9 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 struct ArgusDeviceStruct {
    struct ArgusListObjectStruct *nxt;
    int status, type, mode, link, idtype, dlt;
-   struct ArgusDSRHeader ArgusTransHdr;
-   struct ArgusAddrStruct ArgusID;
+
+   struct ArgusTransportStruct trans;
+
    char *name, *dltname;
    struct ArgusListStruct *list;
 
@@ -710,15 +711,13 @@ struct ArgusSourceStruct {
    struct ArgusModelerStruct *ArgusModel;
  
    char *ArgusInputFilter, *ArgusDeviceStr;
-
+/*
    struct ArgusDSRHeader ArgusTransHdr;
    struct ArgusAddrStruct ArgusID;
 */
    struct ArgusTransportStruct trans;
-   char * ArgusMarIncludeInterface;
 
-   int ArgusPcapBufSize, ArgusPcapDispatchNum, type, mode;
-   int ArgusInterfaceScanInterval;
+   int ArgusPcapBufSize, type, mode;
 
    struct timeval ArgusStartTime, ArgusEndTime, lasttime;
 

@@ -25,9 +25,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/include/argus_def.h#10 $
- * $DateTime: 2016/04/01 14:32:31 $
- * $Change: 3134 $
+ * $Id: //depot/gargoyle/argus/include/argus_def.h#11 $
+ * $DateTime: 2016/09/13 16:02:14 $
+ * $Change: 3181 $
  */
 
 /* Argus_def.h */
@@ -472,6 +472,7 @@ extern "C" {
 
 #define ARGUS_TYPE_INT				0x20
 #define ARGUS_TYPE_STRING			0x21
+#define ARGUS_TYPE_UUID				0x22
 
 /* Flow Descriptor Option Qualifiers */
 #define ARGUS_ANON				0x20

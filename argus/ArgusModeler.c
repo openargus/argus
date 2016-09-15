@@ -2293,8 +2293,8 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
       flow->dsrs[ARGUS_TRANSPORT_INDEX] = &flow->canon.trans.hdr;
       trans                             = (struct ArgusTransportStruct *) flow->dsrs[ARGUS_TRANSPORT_INDEX];
-      trans->hdr                        = device->ArgusTransHdr;
-      trans->srcid                      = device->ArgusID;
+      trans->hdr                        = device->trans.hdr;
+      trans->srcid                      = device->trans.srcid;
       flow->dsrindex |= 0x01 << ARGUS_TRANSPORT_INDEX;
    }
 
@@ -3154,17 +3154,6 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
                         break;
 
-                     case ARGUS_VXLAN_INDEX:
-                        for (x = 0; x < len; x++)
-                           *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
-                        break;
-
-                     case ARGUS_FLOW_HASH_INDEX:
-                        for (x = 0; x < len; x++)
-                           *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
-                        break;
-
-
                      case ARGUS_TRANSPORT_INDEX: {
                         struct ArgusTransportStruct *trans = (struct ArgusTransportStruct *)rec->dsrs[i];
                         unsigned int *sptr = (unsigned int *)&trans->srcid;
@@ -3191,9 +3180,8 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         for (z = 0; z < (tlen / 4); z++)
                            *dsrptr++ = *sptr++;
 
-                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE) {
-                           bcopy(&trans->srcid.inf, dsrptr++, sizeof(trans->srcid.inf));
-                        }
+                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE)
+                           *dsrptr++ = *sptr++;
 
                         if (trans->hdr.subtype & ARGUS_SEQ)
                            *dsrptr++ = trans->seqnum;
@@ -4955,7 +4943,7 @@ setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)
             tok = ptr;
          }
 
-         if (isdigit(*tok)) {
+         if (isdigit((int)*tok)) {
             if (sscanf((char *)tok, "%d", (int *) &port) != 1)
                ArgusLog (LOG_ERR, "setArgusControlPlaneProtocols () format error %s\n", optarg);
 
