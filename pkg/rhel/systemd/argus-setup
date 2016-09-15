@@ -1,0 +1,287 @@
+#!/bin/bash
+
+typeset -r PCI_VENDOR_INTEL="0x8086"
+typeset -r PCI_DEVICE_INTEL_I350="0x1521"
+
+typeset -i ARGUS_CONFIGURED=0
+
+if [[ -r /etc/sysconfig/argus-hints ]] ; then
+       . /etc/sysconfig/argus-hints
+       ARGUS_CONFIGURED=1
+fi
+
+if [[ -r /etc/sysconfig/argus ]] ; then
+       . /etc/sysconfig/argus
+fi
+ARGUS_DIRECT_ATTACH_SENSORS=${ARGUS_DIRECT_ATTACH_SENSORS:-no}
+
+# search for network devices that will only be used for packet
+# capture.
+find_monitor_ethdevs(){
+       str=""
+       pushd /sys/class/net > /dev/null
+       for x in * ; do
+               if [[ -f ${x}/device/acpi_index ]] ; then
+                       continue
+               fi
+
+               if [[ ! -f ${x}/device/vendor ]] ; then
+                       continue
+               fi
+
+               if [[ ! $(cat ${x}/device/vendor) \
+                     == ${PCI_VENDOR_INTEL} ]] ; then
+                       continue
+               fi
+
+               if [[ ! $(cat ${x}/device/device) \
+                     == ${PCI_DEVICE_INTEL_I350} ]] ; then
+                       continue
+               fi
+
+               str+=" ${x}"
+       done
+       popd > /dev/null
+       echo  ${str}
+}
+
+find_monitor_hwcapdevs() {
+       ## Search for Napatech cards
+       :
+}
+
+find_monitor_devs() {
+       find_monitor_ethdevs
+       find_monitor_hwcapdevs
+}
+
+# search for on-board network interfaces.  These should always have
+# an acpi index.
+find_mgmt_devs(){
+       str=""
+       pushd /sys/class/net > /dev/null
+
+       for x in * ; do
+               if [[ ! -f ${x}/device/acpi_index ]] ; then
+                       ## if pci device is not intel 10g card, then
+                       continue
+               fi
+               str+=" ${x}"
+       done
+
+pd > /dev/null
+       echo  ${str}
+}
+
+# usage: firewall_cmd_drop add|remove <interface_name>
+# run firewall-cmd with args needed to discard packets entering/leaving
+# a particular interface.
+firewall_cmd_drop(){
+       local cmd="--add-rule"
+
+       if [[ "$1" == remove ]] ; then
+               cmd="--remove-rule"
+       fi
+
+       # "eb" doesn't work in proto for --direct configs, even though
+       # it's documented.
+       for proto in ipv4 ipv6 ; do
+               firewall-cmd \
+                 --direct \
+                 ${cmd} ${proto} filter OUTPUT 0 \
+                 --out-interface ${itf} -j DROP
+               firewall-cmd \
+                 --direct \
+                 ${cmd} ${proto} filter INPUT 0 \
+                 --in-interface ${itf} -j DROP
+       done
+}
+
+# 1-gigabit sensor nodes monitor traffic on the I350 interfaces.  Get
+# rid of addresses and configure the firewall to block everything,
+# in and out.  libpcap should still see received traffic.
+sensor_setup_monitor_devs(){
+
+       for itf in $(find_monitor_ethdevs) ; do
+               firewall_cmd_drop add ${itf}
+               nmcli con modify --temporary ${itf} ipv4.method disabled
+               nmcli con modify --temporary ${itf} ipv6.method ignore
+               nmcli con down ${itf}
+               nmcli con modify --temporary ${itf} connection.autoconnect yes
+               nmcli --wait 0 con up ${itf}
+       # itf
+       done
+}
+
+sensor_setup_mgmt_devs(){
+       firewall-cmd --add-port=561/tcp
+       for itf in $(find_mgmt_devs) ; do
+               if [[ ${ARGUS_DIRECT_ATTACH_SENSORS} == yes ]] ; then
+                       nmcli con modify --temporary ${itf} ipv4.method disabled
+                       nmcli con modify --temporary ${itf} ipv6.method link-local
+                       nmcli con down ${itf}
+                       nmcli con modify --temporary ${itf} connection.autoconnect yes
+               fi
+               nmcli --wait 0 con up ${itf}
+       done
+}
+
+sensor_setup(){
+       sensor_setup_monitor_devs
+       sensor_setup_mgmt_devs
+}
+
+sensor_restore_monitor_devs(){
+       for itf in $(find_monitor_ethdevs) ; do
+               firewall_cmd_drop remove ${itf}
+               if [[ $(nmcli --field connection.autoconnect con show ${itf} \
+                       | awk '{print $2}') == no ]] ; then
+                       nmcli con down ${itf}
+               else
+                       nmcli --wait 0 con up ${itf}
+               fi
+       done
+}
+
+sensor_restore_mgmt_devs(){
+       firewall-cmd --remove-port=561/tcp
+
+       for itf in $(find_mgmt_devs) ; do
+               if [[ $(nmcli --field connection.autoconnect con show ${itf} \
+                       | awk '{print $2}') == no ]] ; then
+                       nmcli con down ${itf}
+               else
+                       nmcli --wait 0 con up ${itf}
+               fi
+       done
+}
+
+sensor_restore(){
+       # discard temporary changes
+       nmcli con reload
+
+       sensor_restore_monitor_devs
+       sensor_restore_mgmt_devs
+}
+
+collector_setup_monitor_devs(){
+       # for the collector, "monitor" devices are those with direct
+       # connections so sensors.
+       for itf in $(find_monitor_ethdevs) ; do
+               if [[ ${ARGUS_DIRECT_ATTACH_SENSORS} == yes ]] ; then
+                       nmcli con modify --temporary ${itf} ipv4.method disabled
+                       nmcli con modify --temporary ${itf} ipv6.method link-local
+               fi
+               nmcli con modify --temporary ${itf} connection.autoconnect yes
+       done
+}
+
+collector_setup_mgmt_devs(){
+       firewall-cmd --add-port=561/tcp
+       for itf in $(find_mgmt_devs) ; do
+               nmcli con modify --temporary ${itf} connection.autoconnect yes
+       done
+}
+
+collector_setup(){
+       collector_setup_monitor_devs
+       collector_setup_mgmt_devs
+}
+
+collector_restore_monitor_devs(){
+       for itf in $(find_monitor_ethdevs) ; do
+               if [[ $(nmcli --field connection.autoconnect con show ${itf} \
+                       | awk '{print $2}') == no ]] ; then
+                       nmcli con down ${itf}
+               else
+                       nmcli --wait 0 con up ${itf}
+               fi
+       done
+}
+
+collector_restore_mgmt_devs(){
+       firewall-cmd --remove-port=561/tcp
+}
+
+collector_restore(){
+       nmcli con reload
+       collector_restore_monitor_devs
+       collector_restore_mgmt_devs
+}
+
+is_sensor_appliance(){
+       return 0
+}
+
+generate_monitor_id() {
+       local uuid=$(dmidecode -s system-uuid)
+       if [[ -z "$uuid" ]] ; then
+               uuid=$(uuidgen -t)
+       fi
+
+       # uuid + interface name
+       echo "${uuid}:inf"
+}
+
+get_monitor_id() {
+       local cachedir="/var/cache/argus"
+       local idcache="${cachedir}/monitor-id"
+
+       # Look for cached value.  If not found, make a new monitor
+       # id and save it.
+       if [[ -f $idcache ]] ; then
+               cat $idcache
+       else
+               mkdir -p ${cachedir}
+               generate_monitor_id | tee ${idcache}
+       fi
+}
+
+generate_sensor_config_default() {
+       echo "ARGUS_MONITOR_ID=$(get_monitor_id)"
+       for itf in $(find_monitor_devs) $(find_mgmt_devs) ; do
+               echo "ARGUS_INTERFACE=ind:$itf"
+       done
+}
+
+generate_collector_config_default(){
+       # same for now
+       generate_sensor_config_default
+}
+
+if (( $# == 0 )) ; then
+       exit 1
+fi
+
+if [[ "$1" == start ]] ; then
+       mkdir -p /run/argus
+       if is_sensor_appliance ; then
+               sensor_setup > /dev/null
+               generate_sensor_config_default > /run/argus/argus.conf
+       else
+               collector_setup > /dev/null
+               generate_collector_config_default > /run/argus/argus.conf
+       fi
+elif [[ "$1" == stop ]] ; then
+       if is_sensor_appliance ; then
+               sensor_restore > /dev/null
+       else
+               collector_restore > /dev/null
+       fi
+else
+       echo "$0: Don't know what to do." > /dev/stderr
+       exit 1
+fi
+
+exit 0
+
+#
+### TODO:
+### validate interfaces, build config, etc.
+#
+# if (( $ARGUS_CONFIGURED > 0 )) ; then
+#      cp SOMETHING /run/argus/argus.conf
+# else
+#      cp /etc/argus.conf /run/argus/argus.conf
+# fi
+
