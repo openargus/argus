@@ -63,9 +63,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/common/argus_filter.c#5 $
- * $DateTime: 2015/04/13 00:39:28 $
- * $Change: 2980 $
+ * $Id: //depot/gargoyle/argus/common/argus_filter.c#6 $
+ * $DateTime: 2016/09/18 16:32:53 $
+ * $Change: 3186 $
  */
 
 #ifdef HAVE_CONFIG_H

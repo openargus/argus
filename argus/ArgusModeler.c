@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/argus/ArgusModeler.c#17 $
- * $DateTime: 2016/09/14 23:14:10 $
- * $Change: 3184 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusModeler.c#18 $
+ * $DateTime: 2016/09/18 16:32:53 $
+ * $Change: 3186 $
  */
 
 #ifdef HAVE_CONFIG_H

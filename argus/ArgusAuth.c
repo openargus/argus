@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/argus/ArgusAuth.c#4 $
- * $DateTime: 2015/04/13 00:39:28 $
- * $Change: 2980 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusAuth.c#5 $
+ * $DateTime: 2016/09/20 14:50:14 $
+ * $Change: 3197 $
  */
 
 /*
@@ -86,6 +86,7 @@
 #include <ArgusModeler.h>
 #include <ArgusOutput.h>
 #include <ArgusSource.h>
+#include <argus.h>
 
 
 int ArgusAuthenticateClient (struct ArgusClientData *);
@@ -106,6 +107,9 @@ ArgusAuthenticateClient (struct ArgusClientData *client)
 
 // int SASLOpts = (SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS);
    FILE *in, *out;
+
+   if (ArgusMaxSsf == 0)
+       goto no_auth;
 
    conn = client->sasl_conn;
 
@@ -194,6 +198,7 @@ ArgusAuthenticateClient (struct ArgusClientData *client)
    if (retn == SASL_OK)
       ArgusSendSaslString(out, NULL, 0, SASL_OK);
 
+no_auth:
 #endif
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusAuthenticateClient() returning %d\n", retn);
