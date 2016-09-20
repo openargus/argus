@@ -89,3 +89,5 @@ rm -rf $RPM_BUILD_ROOT
 
 %config /etc/argus.conf
 %config /etc/sysconfig/argus
+%config /etc/sasl2/argus.conf
+%ghost %config(noreplace) /etc/pam.d/argus
