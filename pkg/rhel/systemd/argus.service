@@ -1,15 +1,15 @@
-+[Unit]
-+Description=Argus Flow Monitor
-+After=syslog.target network.target
-+Wants=firewalld.service
-+
-+[Service]
-+Type=forking
-+Restart=always
-+RestartSec=5
-+ExecStartPre=/usr/sbin/argus-setup start
-+ExecStart=/usr/sbin/argus -d -F /run/argus/argus.conf
-+ExecStopPost=/usr/sbin/argus-setup stop
-+
-+[Install]
-+WantedBy=multi-user.target
+[Unit]
+Description=Argus Flow Monitor
+After=syslog.target network.target
+Wants=firewalld.service
+
+[Service]
+Type=forking
+Restart=always
+RestartSec=5
+ExecStartPre=/usr/sbin/argus-setup start
+ExecStart=/usr/sbin/argus -d -F /run/argus/argus.conf
+ExecStopPost=/usr/sbin/argus-setup stop
+
+[Install]
+WantedBy=multi-user.target
