@@ -37,7 +37,7 @@
 #include "argus_config.h"
 #endif
 
-#define ARGUS_NEW_INTERFACE_STRATEGY   1   
+#define ARGUS_NEW_INTERFACE_STRATEGY	1   
 
 #if !defined(ArgusSource)
 #define ArgusSource
@@ -4542,7 +4542,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                if (alldevs != NULL) {
                   for (d = alldevs; d != NULL; d = d->next) {
-                     if (!(d->flags & PCAP_IF_LOOPBACK)) {
+                     if (!(d->flags & PCAP_IF_LOOPBACK) && (strcmp(d->name, "any"))) {
                         int found = 0;
                         if (stask->ArgusDeviceList) {
 #if defined(ARGUS_THREADS)
@@ -4555,6 +4555,15 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     if (device != NULL) {
                                        if (!strcmp(device->name, d->name)) 
                                           found = 1;
+                                       if (device->list && (count = device->list->count)) {
+                                          int x;
+                                          for (x = 0; x < count && !found; x++) {
+                                             struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
+                                             if (!strcmp(dev->name, d->name))
+                                                found = 1;
+                                             ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                                          }
+                                       }
                                        ArgusPushBackList(stask->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
                                     }
                                  }
@@ -4568,17 +4577,27 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         }
 
                         if (!found && (ArgusThreads > 0)) {
-                           int i;
+                           int i, count;
                            for (i = 0; i < ArgusThreads && !found; i++) {
                               struct ArgusSourceStruct *src;
                               if ((src = stask->srcs[i]) != NULL) {
                                  struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK);
                                  if (!strcmp(device->name, d->name)) 
                                     found = 1;
-                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
+                                 if (device->list && (count = device->list->count)) {
+                                    int x;
+                                    for (x = 0; x < count && !found; x++) {
+                                       struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
+                                       if (!strcmp(dev->name, d->name)) 
+                                          found = 1;
+                                       ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                                    }
+                                 }
+                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
                               }
                            }
                         }
+
                         if (!found) {
                            int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
                            struct ArgusDeviceStruct *dev = NULL;
