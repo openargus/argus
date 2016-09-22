@@ -43,7 +43,7 @@
 #include "argus_config.h"
 #endif
 
-#define ARGUS_NEW_INTERFACE_STRATEGY   1   
+#define ARGUS_NEW_INTERFACE_STRATEGY	1   
 
 #if !defined(ArgusSource)
 #define ArgusSource
@@ -436,7 +436,7 @@ ArgusOpenDevice(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device,
       } else {
          if (!(device->status & ARGUS_DONT_OPEN)) {
             if ((infs = ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces])) > 0)
-               src->ArgusInterfaces += infs;
+               src->ArgusInterfaces += ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces]);
             else
                device->status |= ARGUS_DONT_OPEN;
          }
@@ -747,7 +747,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
          if (inf->ArgusCallBack == NULL) {
             if (type > 0) {
 #ifdef ARGUSDEBUG
-                  ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
+               ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
 #endif
             }
             device->status |= ARGUS_DONT_OPEN;
