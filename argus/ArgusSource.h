@@ -22,9 +22,9 @@
  */
 
 /*
- * $Id: //depot/gargoyle/argus/argus/ArgusSource.h#10 $
- * $DateTime: 2016/09/18 16:32:53 $
- * $Change: 3186 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusSource.h#11 $
+ * $DateTime: 2016/09/21 14:43:43 $
+ * $Change: 3200 $
  */
 
 /*  ArgusSource.h */
@@ -164,6 +164,8 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 #define ARGUS_TYPE_IND		0x01
 #define ARGUS_TYPE_BOND		0x02
 #define ARGUS_TYPE_DUPLEX	0x04
+
+#define ARGUS_DONT_OPEN		0x10
 
 struct ArgusDeviceStruct {
    struct ArgusListObjectStruct *nxt;

@@ -22,9 +22,9 @@
  */
 
 /*
- * $Id: //depot/gargoyle/argus/argus/ArgusSource.c#17 $
- * $DateTime: 2016/09/18 16:32:53 $
- * $Change: 3186 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusSource.c#18 $
+ * $DateTime: 2016/09/21 14:43:43 $
+ * $Change: 3200 $
  */
 
 /*
@@ -40,7 +40,7 @@
 #include "argus_config.h"
 #endif
 
-#define ARGUS_NEW_INTERFACE_STRATEGY   1   
+#define ARGUS_NEW_INTERFACE_STRATEGY	1   
 
 #if !defined(ArgusSource)
 #define ArgusSource
@@ -255,15 +255,27 @@ ArgusOpenDevice(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device,
    int retn = 0, count, i, cnt = src->ArgusInterfaces;
 
    if (device) {
+      int infs = 0;
       if (device->list && (count = device->list->count)) {
          for (i = 0; i < count; i++) {
             struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
-            src->ArgusInterfaces += ArgusOpenInterface(src, dev, &src->ArgusInterface[src->ArgusInterfaces]);
-            ArgusPushBackList(device->list, (struct ArgusListRecord *) device, ARGUS_LOCK);
+            if (!(dev->status & ARGUS_DONT_OPEN)) {
+               if ((infs = ArgusOpenInterface(src, dev, &src->ArgusInterface[src->ArgusInterfaces])) > 0) {
+                  src->ArgusInterfaces += infs;
+               } else {
+                  device->status |= ARGUS_DONT_OPEN;
+               }
+            }
+            ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
          }
 
       } else {
-         src->ArgusInterfaces += ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces]);
+         if (!(device->status & ARGUS_DONT_OPEN)) {
+            if ((infs = ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces])) > 0)
+               src->ArgusInterfaces += ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces]);
+            else
+               device->status |= ARGUS_DONT_OPEN;
+         }
       }
    }
 
@@ -394,9 +406,13 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 
             type = pcap_datalink(inf->ArgusPd);
 
-            if ((inf->ArgusCallBack = Arguslookup_pcap_callback(type)) == NULL)
-               ArgusLog (LOG_ERR, "unsupported device type %d\n", type);
-            retn = 1;
+            if ((inf->ArgusCallBack = Arguslookup_pcap_callback(type)) == NULL) {
+#ifdef ARGUSDEBUG
+               ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
+#endif
+               retn = 0;
+            } else
+               retn = 1;
       }
 #ifdef HAVE_PCAP_SET_BUFFER_SIZE
    }
@@ -989,6 +1005,9 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                                  ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
                                  break;
                            }
+
+                           if (!(strcmp(dev->name, "any")))
+                              dev->status |= ARGUS_DONT_OPEN;
                         }
                      }
                   }
@@ -4044,7 +4063,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                if (alldevs != NULL) {
                   for (d = alldevs; d != NULL; d = d->next) {
-                     if (!(d->flags & PCAP_IF_LOOPBACK)) {
+                     if (!(d->flags & PCAP_IF_LOOPBACK) && (strcmp(d->name, "any"))) {
                         int found = 0;
                         if (stask->ArgusDeviceList) {
 #if defined(ARGUS_THREADS)
@@ -4057,6 +4076,15 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     if (device != NULL) {
                                        if (!strcmp(device->name, d->name)) 
                                           found = 1;
+                                       if (device->list && (count = device->list->count)) {
+                                          int x;
+                                          for (x = 0; x < count && !found; x++) {
+                                             struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
+                                             if (!strcmp(dev->name, d->name))
+                                                found = 1;
+                                             ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                                          }
+                                       }
                                        ArgusPushBackList(stask->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
                                     }
                                  }
@@ -4070,17 +4098,27 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         }
 
                         if (!found && (ArgusThreads > 0)) {
-                           int i;
+                           int i, count;
                            for (i = 0; i < ArgusThreads && !found; i++) {
                               struct ArgusSourceStruct *src;
                               if ((src = stask->srcs[i]) != NULL) {
                                  struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK);
                                  if (!strcmp(device->name, d->name)) 
                                     found = 1;
-                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
+                                 if (device->list && (count = device->list->count)) {
+                                    int x;
+                                    for (x = 0; x < count && !found; x++) {
+                                       struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
+                                       if (!strcmp(dev->name, d->name)) 
+                                          found = 1;
+                                       ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                                    }
+                                 }
+                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
                               }
                            }
                         }
+
                         if (!found) {
                            int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
                            struct ArgusDeviceStruct *dev = NULL;
