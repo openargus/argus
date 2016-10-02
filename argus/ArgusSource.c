@@ -75,6 +75,7 @@
 void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 
+extern int ArgusShutDownFlag;
 
 struct ArgusDeviceStruct *
 ArgusCloneDevice(struct ArgusDeviceStruct *dev)
@@ -275,12 +276,8 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
    char errbuf[PCAP_ERRBUF_SIZE];
    int type, retn = 0;
 
-   extern int ArgusShutDownFlag;
-
-   if (ArgusShutDownFlag) {
-      ArgusShutDown(0);
+   if (ArgusShutDownFlag)
       return retn;
-   }
 
    if ((device == NULL) || (device->name == NULL)) {
       if (inf->ArgusDevice)
@@ -3920,7 +3917,7 @@ ArgusGetPackets (void *arg)
                         } else
                            break;
 
-                     } while (noerror && (src->eNflag != 0) && (!(ArgusShutDownStarted)));
+                     } while (noerror && (src->eNflag != 0) && (!(ArgusShutDownFlag)));
                   }
                }
                break;
@@ -4176,10 +4173,9 @@ ArgusGetPackets (void *arg)
 #endif
                      }
 
-                  } while (noerror && (src->eNflag != 0) && (!(ArgusShutDownStarted)));
+                  } while (noerror && (src->eNflag != 0) && (!(ArgusShutDownFlag)));
                
                } else {
-                  extern int ArgusShutDownFlag;
                   long ioffset = 0, offset = 0;
 
                   ioffset = ftell(src->ArgusPacketInput);
@@ -4451,12 +4447,8 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
    struct ifreq ifr;
    int fd, i;
 
-   extern int ArgusShutDownFlag;
-
-   if (ArgusShutDownFlag) {
-      ArgusShutDown(0);
+   if (ArgusShutDownFlag)
       return;
-   }
 
    if (src && src->ArgusDeviceList)
       if ((device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK)) != NULL)

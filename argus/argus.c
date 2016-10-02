@@ -80,6 +80,7 @@ int ArgusDaemon = 0;
 pthread_attr_t attrbuf, *ArgusAttr = &attrbuf;
 #endif
 
+static void ArgusShutDown (void);
 
 void
 usage(void)
@@ -680,7 +681,7 @@ main (int argc, char *argv[])
    ArgusDebug (1, "main() ArgusSourceProcess returned: shuting down");
 #endif
 
-   ArgusShutDown(0);
+   ArgusShutDown();
 
 #ifdef HAVE_SYSLOG
    closelog();
@@ -810,10 +811,24 @@ char *ArgusSignalTable [] = { "Normal Shutdown",
 };
 
 int ArgusShutDownFlag = 0;
+int ArgusShutDownSig = 0;
 
 #if defined(HAVE_BACKTRACE)
 #include <execinfo.h>
 #endif
+
+void
+ArgusBacktrace (void)
+{
+      void* callstack[128];
+      int i, frames = backtrace(callstack, 128);
+      char** strs = backtrace_symbols(callstack, frames);
+
+      for (i = 0; i < frames; ++i) {
+         ArgusLog(LOG_WARNING, "%s", strs[i]);
+      }
+      free(strs);
+}
 
 void
 ArgusScheduleShutDown (int sig)
@@ -823,69 +838,37 @@ ArgusScheduleShutDown (int sig)
 #ifdef ARGUSDEBUG
 #if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
-      void* callstack[128];
-      int i, frames = backtrace(callstack, 128);
-      char** strs = backtrace_symbols(callstack, frames);
-
       ArgusLog(LOG_WARNING, "ArgusScheduleShutDown(%d)", sig);
-
-      for (i = 0; i < frames; ++i) {
-         ArgusLog(LOG_WARNING, "%s", strs[i]);
-      }
-      free(strs);
+      ArgusBacktrace();
    }
 #endif
 
+   ArgusShutDownSig = sig;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
 #endif 
 }
 
-void
-ArgusShutDown (int sig)
+static void
+ArgusShutDown (void)
 {
-   ArgusShutDownFlag++;
-
 #if defined(ARGUSDEBUG)
 #if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
-      void* callstack[128];
-      int i, frames = backtrace(callstack, 128);
-      char** strs = backtrace_symbols(callstack, frames);
-
-      ArgusLog(LOG_WARNING, "ArgusShutDown(%d)", sig);
-
-      for (i = 0; i < frames; ++i) {
-         ArgusLog(LOG_WARNING, "%s", strs[i]);
-      }
-      free(strs);
+      ArgusLog(LOG_WARNING, "ArgusShutDown(%d)", ArgusShutDownSig);
+      ArgusBacktrace();
    }
 #endif
 #endif
 
-
-   if (sig < 0) {
-#ifdef ARGUSDEBUG
-      ArgusDebug (1, "ArgusShutDown(ArgusError)\n");
-#endif 
-      exit(0);
-   }
 
 #ifdef ARGUSDEBUG
    if (Argusdflag >= 1)
       fprintf(stderr, "\n");
 
-   ArgusDebug (1, "ArgusShutDown(%s)\n\n", ArgusSignalTable[sig]);
+   ArgusDebug (1, "ArgusShutDown(%s)\n\n", ArgusSignalTable[ArgusShutDownSig]);
 #endif 
 
-   if (!(ArgusShutDownStarted++)) {
-      ArgusComplete ();
-
-   } else {
-#ifdef ARGUSDEBUG
-   ArgusDebug (2, "ArgusShutDown() returning\n");
-#endif 
-      return;
-   }
+   ArgusComplete ();
 
    if (ArgusPidFile)
       unlink (ArgusPidFile);
@@ -901,8 +884,6 @@ ArgusShutDown (int sig)
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusShutDown()\n");
 #endif 
-
-   exit(0);
 }
 
 

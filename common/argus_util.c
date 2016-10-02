@@ -2018,8 +2018,6 @@ ArgusFreeListRecord (void *buf)
    return;
 }
 
-extern void ArgusShutDown (int);
-
 struct ArgusLogPriorityStruct {
    int priority;
    char *label;
@@ -2111,7 +2109,10 @@ ArgusLog (int priority, char *fmt, ...)
    }
 
    switch (priority) {
-      case LOG_ERR: ArgusShutDown(1); break;
+      case LOG_ERR:
+          ArgusBacktrace();
+          exit(1);
+
       default: break;
    }
 }
