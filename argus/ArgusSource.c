@@ -773,18 +773,24 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
 
 int
-ArgusCloseOneSource(struct ArgusSourceStruct *src)
+ArgusCloseSource(struct ArgusSourceStruct *stask)
 {
-   char *str = src->ArgusDeviceStr;
-   int j;
+   int i;
+   struct ArgusSourceStruct *src;
 
-   if (src == NULL)
+   if (stask == NULL)
        /* nothing to do */
-       goto out;
+       return 0;
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "%s(%p) %s starting\n", __func__, src, str);
+   ArgusDebug (1, "ArgusCloseSource(%p) starting\n", src);
 #endif
+   for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
+      int j;
+      src = stask->srcs[i];
+
+      if (src == NULL)
+          break;
 
 #if defined(ARGUS_THREADS)
    if (src->thread) {
@@ -793,10 +799,11 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
    }
 #endif
 
-   for (j = 0; j < src->ArgusInterfaces; j++) {
-      if (src->ArgusInterface[j].ArgusPd) {
-         pcap_close(src->ArgusInterface[j].ArgusPd);
-         src->ArgusInterface[j].ArgusPd = NULL;
+      for (j = 0; j < src->ArgusInterfaces; j++) {
+         if (src->ArgusInterface[j].ArgusPd) {
+            pcap_close(src->ArgusInterface[j].ArgusPd);
+            src->ArgusInterface[j].ArgusPd = NULL;
+         }
       }
    }
 

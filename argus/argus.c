@@ -930,6 +930,7 @@ void
 ArgusScheduleShutDown (int sig)
 {
    ArgusShutDownFlag++;
+   ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
 #ifdef ARGUSDEBUG
 #if defined(HAVE_BACKTRACE)
