@@ -545,29 +545,34 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
 
 int
-ArgusCloseSource(struct ArgusSourceStruct *src)
+ArgusCloseSource(struct ArgusSourceStruct *stask)
 {
    int i;
+   struct ArgusSourceStruct *src;
 
-   if (src) {
+   if (stask == NULL)
+       /* nothing to do */
+       return 0;
+
 #ifdef ARGUSDEBUG
-      ArgusDebug (1, "ArgusCloseSource(%p) starting\n", src);
+   ArgusDebug (1, "ArgusCloseSource(%p) starting\n", src);
 #endif
-      for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
-         if (src->srcs[i] != NULL) {
-            ArgusCloseSource (src->srcs[i]);
-         }
-      }
+   for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
+      int j;
+      src = stask->srcs[i];
+
+      if (src == NULL)
+          break;
 
 #if defined(ARGUS_THREADS)
       if (src->thread)
          pthread_join(src->thread, NULL);
 #endif
 
-      for (i = 0; i < src->ArgusInterfaces; i++) {
-         if (src->ArgusInterface[i].ArgusPd) {
-            pcap_close(src->ArgusInterface[i].ArgusPd);
-            src->ArgusInterface[i].ArgusPd = NULL;
+      for (j = 0; j < src->ArgusInterfaces; j++) {
+         if (src->ArgusInterface[j].ArgusPd) {
+            pcap_close(src->ArgusInterface[j].ArgusPd);
+            src->ArgusInterface[j].ArgusPd = NULL;
          }
       }
 
