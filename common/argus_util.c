@@ -1591,9 +1591,7 @@ ArgusLog (int priority, char *fmt, ...)
 
    switch (priority) {
       case LOG_ERR:
-#ifdef HAVE_BACKTRACE
           ArgusBacktrace();
-#endif
           exit(1);
 
       default: break;

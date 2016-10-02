@@ -94,11 +94,6 @@ int ArgusDaemon = 0;
 pthread_attr_t attrbuf, *ArgusAttr = &attrbuf;
 #endif
 
-#if defined(ARGUS_FLEXLM)
-# include "argus_lic.h"
-static void *license;
-#endif
-
 static void ArgusShutDown (void);
 
 void
@@ -930,12 +925,11 @@ ArgusBacktrace (void)
       }
       free(strs);
 }
-#endif
 
 void
 ArgusScheduleShutDown (int sig)
 {
-   ArgusSourceTask->status |= ARGUS_SHUTDOWN;
+   ArgusShutDownFlag++;
 
 #ifdef ARGUSDEBUG
 #if defined(HAVE_BACKTRACE)
@@ -946,7 +940,6 @@ ArgusScheduleShutDown (int sig)
 #endif
 
    ArgusShutDownSig = sig;
-   ArgusShutDownFlag++;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
 #endif 
 }
