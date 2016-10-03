@@ -1,3 +1,9 @@
+Sat Oct  1 20:20:23 EDT 2016
+Lots of support for argus to add the interface to the srcid intelligently.
+Improved configuration support and improved syntax defintion for the srcid,
+better support for specifying the interface name, substituting the system srcid, 
+and adding inf to mar and events.
+
 Tue Sep 20 14:50:38 EDT 2016
 Skip SASL code if ARGUS_MAX_SSF is zero and behave as if sasl support was not compiled in. -  ekinzie
 

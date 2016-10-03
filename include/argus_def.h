@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/include/argus_def.h#12 $
- * $DateTime: 2016/09/18 16:32:53 $
- * $Change: 3186 $
+ * $Id: //depot/gargoyle/argus/include/argus_def.h#13 $
+ * $DateTime: 2016/10/03 10:25:27 $
+ * $Change: 3209 $
  */
 
 /* Argus_def.h */
@@ -196,6 +196,7 @@ extern "C" {
 
 
 /* Argus Record Cause */
+#define ARGUS_SRC_RADIUM			0x08   /* Argus Radium Node Appliance */
   
 #define ARGUS_START				0x10   /* Initial Record */
 #define ARGUS_STATUS				0x20   /* Continuation Record*/
@@ -301,6 +302,8 @@ extern "C" {
 #define ARGUS_COOKIE				ARGUS_V5_COOKIE
 
 #define ARGUS_SASL_AUTHENTICATE			0x00001000
+
+#define ARGUS_ID_INC_INF			0x00100000
 
 #define ARGUS_IDIS_STRING			0x00200000
 #define ARGUS_IDIS_INT				0x00400000

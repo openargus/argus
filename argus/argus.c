@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/argus/argus.c#15 $
- * $DateTime: 2016/09/18 16:32:53 $
- * $Change: 3186 $
+ * $Id: //depot/gargoyle/argus/argus/argus.c#16 $
+ * $DateTime: 2016/10/03 10:25:27 $
+ * $Change: 3209 $
  */
 
 /*
@@ -968,66 +968,68 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				53
+#define ARGUS_RCITEMS				54
 
-#define ARGUS_DAEMON				0
-#define ARGUS_MONITOR_ID			1
-#define ARGUS_ACCESS_PORT			2
-#define ARGUS_INTERFACE				3
-#define ARGUS_OUTPUT_FILE			4
-#define ARGUS_SET_PID 				5
-#define ARGUS_PID_PATH				6
-#define ARGUS_GO_PROMISCUOUS			7
-#define ARGUS_FLOW_STATUS_INTERVAL		8
-#define ARGUS_MAR_STATUS_INTERVAL		9
-#define ARGUS_CAPTURE_DATA_LEN			10
-#define ARGUS_GENERATE_START_RECORDS		11
-#define ARGUS_GENERATE_RESPONSE_TIME_DATA	12
-#define ARGUS_GENERATE_JITTER_DATA		13
-#define ARGUS_GENERATE_MAC_DATA			14
-#define ARGUS_DEBUG_LEVEL			15
-#define ARGUS_FILTER_OPTIMIZER			16
-#define ARGUS_FILTER				17
-#define ARGUS_PACKET_CAPTURE_FILE		18
-#define ARGUS_PACKET_CAPTURE_ON_ERROR		19
-#define ARGUS_BIND_IP				20
-#define ARGUS_MIN_SSF				21
-#define ARGUS_MAX_SSF				22
-#define ARGUS_COLLECTOR				23
-#define ARGUS_FLOW_TYPE				24
-#define ARGUS_FLOW_KEY				25
-#define ARGUS_GENERATE_APPBYTE_METRIC		26
-#define ARGUS_CHROOT_DIR			27
-#define ARGUS_SETUSER_ID			28
-#define ARGUS_SETGROUP_ID			29
-#define ARGUS_GENERATE_TCP_PERF_METRIC		30
-#define ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS 31
-#define ARGUS_GENERATE_PACKET_SIZE		32
-#define ARGUS_ENV				33
-#define ARGUS_CAPTURE_FULL_CONTROL_DATA         34
-#define ARGUS_SELF_SYNCHRONIZE                  35
-#define ARGUS_EVENT_DATA                        36
-#define ARGUS_JITTER_HISTOGRAM                  37
-#define ARGUS_OUTPUT_STREAM                     38
-#define ARGUS_KEYSTROKE				39
-#define ARGUS_KEYSTROKE_CONF			40
-#define ARGUS_TUNNEL_DISCOVERY			41
-#define ARGUS_IP_TIMEOUT			42
-#define ARGUS_TCP_TIMEOUT			43
-#define ARGUS_ICMP_TIMEOUT			44
-#define ARGUS_IGMP_TIMEOUT			45
-#define ARGUS_FRAG_TIMEOUT			46
-#define ARGUS_ARP_TIMEOUT			47
-#define ARGUS_OTHER_TIMEOUT			48
-#define ARGUS_TRACK_DUPLICATES			49
-#define ARGUS_PCAP_BUF_SIZE			50
-#define ARGUS_OS_FINGERPRINTING			51
-#define ARGUS_CONTROLPLANE_PROTO		52
+#define ARGUS_MONITOR_ID			0
+#define ARGUS_MONITOR_ID_INCLUDE_INF		1
+#define ARGUS_DAEMON				2
+#define ARGUS_ACCESS_PORT			3
+#define ARGUS_INTERFACE				4
+#define ARGUS_OUTPUT_FILE			5
+#define ARGUS_SET_PID 				6
+#define ARGUS_PID_PATH				7
+#define ARGUS_GO_PROMISCUOUS			8
+#define ARGUS_FLOW_STATUS_INTERVAL		9
+#define ARGUS_MAR_STATUS_INTERVAL		10
+#define ARGUS_CAPTURE_DATA_LEN			11
+#define ARGUS_GENERATE_START_RECORDS		12
+#define ARGUS_GENERATE_RESPONSE_TIME_DATA	13
+#define ARGUS_GENERATE_JITTER_DATA		14
+#define ARGUS_GENERATE_MAC_DATA			15
+#define ARGUS_DEBUG_LEVEL			16
+#define ARGUS_FILTER_OPTIMIZER			17
+#define ARGUS_FILTER				18
+#define ARGUS_PACKET_CAPTURE_FILE		19
+#define ARGUS_PACKET_CAPTURE_ON_ERROR		20
+#define ARGUS_BIND_IP				21
+#define ARGUS_MIN_SSF				22
+#define ARGUS_MAX_SSF				23
+#define ARGUS_COLLECTOR				24
+#define ARGUS_FLOW_TYPE				25
+#define ARGUS_FLOW_KEY				26
+#define ARGUS_GENERATE_APPBYTE_METRIC		27
+#define ARGUS_CHROOT_DIR			28
+#define ARGUS_SETUSER_ID			29
+#define ARGUS_SETGROUP_ID			30
+#define ARGUS_GENERATE_TCP_PERF_METRIC		31
+#define ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS 32
+#define ARGUS_GENERATE_PACKET_SIZE		33
+#define ARGUS_ENV				34
+#define ARGUS_CAPTURE_FULL_CONTROL_DATA         35
+#define ARGUS_SELF_SYNCHRONIZE                  36
+#define ARGUS_EVENT_DATA                        37
+#define ARGUS_JITTER_HISTOGRAM                  38
+#define ARGUS_OUTPUT_STREAM                     39
+#define ARGUS_KEYSTROKE				40
+#define ARGUS_KEYSTROKE_CONF			41
+#define ARGUS_TUNNEL_DISCOVERY			42
+#define ARGUS_IP_TIMEOUT			43
+#define ARGUS_TCP_TIMEOUT			44
+#define ARGUS_ICMP_TIMEOUT			45
+#define ARGUS_IGMP_TIMEOUT			46
+#define ARGUS_FRAG_TIMEOUT			47
+#define ARGUS_ARP_TIMEOUT			48
+#define ARGUS_OTHER_TIMEOUT			49
+#define ARGUS_TRACK_DUPLICATES			50
+#define ARGUS_PCAP_BUF_SIZE			51
+#define ARGUS_OS_FINGERPRINTING			52
+#define ARGUS_CONTROLPLANE_PROTO		53
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
-   "ARGUS_DAEMON=",
    "ARGUS_MONITOR_ID=",
+   "ARGUS_MONITOR_ID_INCLUDE_INF=",
+   "ARGUS_DAEMON=",
    "ARGUS_ACCESS_PORT=",
    "ARGUS_INTERFACE=",
    "ARGUS_OUTPUT_FILE=",
@@ -1131,12 +1133,6 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                         optarg[strlen(optarg) - 1] = '\0';
 
                      switch (i) {
-                        case ARGUS_DAEMON: 
-                           if (!(strncasecmp(optarg, "yes", 3)))
-                              ArgusDaemon = 1;
-                           else
-                              ArgusDaemon = 0;
-                           break;
 
                         case ARGUS_MONITOR_ID: 
                            if (optarg && quoted) {   // Argus ID is a string.  Limit to date is 4 characters.
@@ -1184,9 +1180,19 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                               }
                               ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
                            }
+                           break;
 
+                        case ARGUS_MONITOR_ID_INCLUDE_INF:
+                           setArgusManInf(ArgusSourceTask, optarg);
                            break;
                            
+                        case ARGUS_DAEMON: 
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              ArgusDaemon = 1;
+                           else
+                              ArgusDaemon = 0;
+                           break;
+
                         case ARGUS_ACCESS_PORT:
                            setArgusPortNum(ArgusOutputTask, atoi(optarg));
                            break;
@@ -1808,13 +1814,13 @@ setArgusEventDataRecord (char *ptr)
       while (tok != NULL) {
          switch (ind++) {
             case 0:   
-               method = tok;
+               method = strdup(tok);
                if (!((strncmp(method, "file", 4) == 0) || (strncmp(method, "prog", 4) == 0)))
                   ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
                elem++;
                break;
             case 1:
-               file = tok; elem++;
+               file = strdup(tok); elem++;
                break;
             case 2:
                interval = strtol(tok, (char **)&tptr, 10);
@@ -1835,7 +1841,7 @@ setArgusEventDataRecord (char *ptr)
                elem++;
                break;
             case 3:
-               pp = tok;
+               pp = strdup(tok);
                if (!((strncmp(pp, "compress", 8) == 0) || (strncmp(pp, "compress2", 9) == 0)))
                   ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
                elem++;
@@ -1855,8 +1861,8 @@ setArgusEventDataRecord (char *ptr)
       
       if ((event = (struct ArgusEventRecordStruct *) ArgusCalloc (1, sizeof (*event))) != NULL) {
          event->entry    = strdup(ptr);
-         event->method   = strdup(method);
-         event->filename = strdup(file);
+         event->method   = method;
+         event->filename = file;
          event->interval = interval;
          if (pp != NULL) {
             if (!(strncmp(pp, "compress", 8)))
@@ -1869,6 +1875,8 @@ setArgusEventDataRecord (char *ptr)
 
       } else
          ArgusLog (LOG_ERR, "setArgusEventDataRecord, ArgusCalloc %s\n", strerror(errno));
+
+      free(pp);
    } else
       ArgusLog (LOG_ERR, "setArgusEventDataRecord, event is null\n");
 

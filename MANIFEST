@@ -22,25 +22,25 @@ Argus Pro (Gargoyle) 5.0.3 distribution
 total 832
 -r--r--r--   1 carter  staff     534 Apr 13  2015 AUTHORS
 -r--r--r--   1 carter  staff    6688 Apr 13  2015 CREDITS
--r--r--r--   1 carter  staff    8675 Sep 20 14:50 ChangeLog
+-r--r--r--   1 carter  staff    8972 Oct  3 10:25 ChangeLog
 -r--r--r--   1 carter  staff   12583 Apr 13  2015 INSTALL
--r--r--r--   1 carter  staff   13898 Sep 21 14:44 MANIFEST
+-rw-r--r--   1 carter  staff   13898 Oct  3 10:49 MANIFEST
 -r--r--r--   1 carter  staff    5111 Sep 15 13:26 Makefile.in
 -r--r--r--   1 carter  staff    3481 Apr 13  2015 README
 -r--r--r--   1 carter  staff       6 Sep 11 17:11 VERSION
 -r--r--r--   1 carter  staff     609 May  1  2012 aclocal.m4
 -r--r--r--   1 carter  staff   52641 Apr 13  2015 acsite.m4
-drwxr-xr-x  37 carter  staff    1258 Sep 21 14:44 argus
-drwxr-xr-x   4 carter  staff     136 Sep 21 14:44 bin
-drwxr-xr-x   9 carter  staff     306 Sep 21 14:44 common
+drwxr-xr-x  37 carter  staff    1258 Oct  3 10:49 argus
+drwxr-xr-x   4 carter  staff     136 Oct  3 10:49 bin
+drwxr-xr-x   9 carter  staff     306 Oct  3 10:49 common
 drwxr-xr-x   6 carter  staff     204 Sep 15 15:38 config
 -rwxr-xr-x   1 carter  staff  282496 Sep 10 10:34 configure
 -r--r--r--   1 carter  staff   11027 Dec  9  2015 configure.ac
 drwxr-xr-x  15 carter  staff     510 Sep 15 15:38 debian
 drwxr-xr-x   3 carter  staff     102 Sep 15 15:38 doc
-drwxr-xr-x  12 carter  staff     408 Sep 21 14:44 events
-drwxr-xr-x  34 carter  staff    1156 Sep 21 14:44 include
-drwxr-xr-x   3 carter  staff     102 Sep 21 14:44 lib
+drwxr-xr-x  12 carter  staff     408 Oct  3 10:49 events
+drwxr-xr-x  34 carter  staff    1156 Oct  3 10:49 include
+drwxr-xr-x   3 carter  staff     102 Oct  3 10:49 lib
 drwxr-xr-x   4 carter  staff     136 Sep 15 13:47 man
 drwxr-xr-x   5 carter  staff     170 Sep 15 15:38 pkg
 drwxr-xr-x   8 carter  staff     272 Sep 15 15:38 support
@@ -52,7 +52,7 @@ total 2168
 -r--r--r--  1 carter  staff    9243 Apr 13  2015 ArgusArp.c
 -r--r--r--  1 carter  staff    9467 Sep 20 14:50 ArgusAuth.c
 -r--r--r--  1 carter  staff    5220 Jun 22  2015 ArgusEsp.c
--r--r--r--  1 carter  staff   15266 Sep 20 14:39 ArgusEvents.c
+-r--r--r--  1 carter  staff   15477 Oct  3 10:25 ArgusEvents.c
 -r--r--r--  1 carter  staff    2745 Apr 13  2015 ArgusEvents.h
 -r--r--r--  1 carter  staff   19511 Apr 13  2015 ArgusFrag.c
 -r--r--r--  1 carter  staff   14854 May 19 12:29 ArgusIcmp.c
@@ -66,12 +66,12 @@ total 2168
 -r--r--r--  1 carter  staff   29411 Feb 23  2016 ArgusModeler.h
 -r--r--r--  1 carter  staff   86269 Jun  7 14:24 ArgusNetflow.c
 -r--r--r--  1 carter  staff    2243 Apr 13  2015 ArgusNetflow.h
--r--r--r--  1 carter  staff   71713 Sep 21 14:43 ArgusOutput.c
+-r--r--r--  1 carter  staff   72031 Oct  3 10:25 ArgusOutput.c
 -r--r--r--  1 carter  staff    6107 Apr 21  2015 ArgusOutput.h
 -r--r--r--  1 carter  staff   47117 Feb 22  2016 ArgusSflow.c
 -r--r--r--  1 carter  staff    1174 Apr 13  2015 ArgusSflow.h
--r--r--r--  1 carter  staff  169506 Sep 21 14:43 ArgusSource.c
--r--r--r--  1 carter  staff   35436 Sep 21 14:43 ArgusSource.h
+-r--r--r--  1 carter  staff  171241 Oct  3 10:48 ArgusSource.c
+-r--r--r--  1 carter  staff   35581 Oct  3 10:25 ArgusSource.h
 -r--r--r--  1 carter  staff   41513 Sep 20 14:39 ArgusTcp.c
 -r--r--r--  1 carter  staff    2216 Jun 22  2015 ArgusUdp.c
 -r--r--r--  1 carter  staff   29313 Sep  2  2015 ArgusUdt.c
@@ -80,8 +80,8 @@ total 2168
 -r--r--r--  1 carter  staff    1967 Apr 13  2015 ArgusVxLan.c
 -r--r--r--  1 carter  staff    1215 Jun 22  2015 ArgusVxLan.h
 -r-xr-xr-x  1 carter  staff    4105 Apr 13  2015 Makefile.in
--r--r--r--  1 carter  staff   67028 Sep 20 14:39 argus.c
--r--r--r--  1 carter  staff    3996 Feb 22  2016 argus.h
+-r--r--r--  1 carter  staff   67292 Oct  3 10:25 argus.c
+-r--r--r--  1 carter  staff    3993 Oct  3 10:48 argus.h
 
 ./bin:
 total 32
@@ -152,7 +152,7 @@ drwxr-xr-x  16 carter  staff     544 Sep 15 15:38 argus
 -r--r--r--   1 carter  staff   16580 Dec  9  2015 argus_config.h.in
 -r--r--r--   1 carter  staff    2385 Apr 13  2015 argus_dag.h
 -r--r--r--   1 carter  staff    2223 Apr 13  2015 argus_debug.h
--r--r--r--   1 carter  staff  101529 Sep 20 14:39 argus_def.h
+-r--r--r--   1 carter  staff  101636 Oct  3 10:25 argus_def.h
 -r--r--r--   1 carter  staff     964 Apr 13  2015 argus_def_v2.h
 -r--r--r--   1 carter  staff    3043 Apr 13  2015 argus_dscodepoints.h
 -r--r--r--   1 carter  staff    3985 Apr 13  2015 argus_encapsulations.h
@@ -303,7 +303,7 @@ total 24
 ./support:
 total 8
 drwxr-xr-x  4 carter  staff   136 Sep 15 15:38 Archive
-drwxr-xr-x  3 carter  staff   102 Sep 15 15:38 Config
+drwxr-xr-x  3 carter  staff   102 Sep 26 17:28 Config
 drwxr-xr-x  3 carter  staff   102 Sep 15 15:38 Deployment
 -r--r--r--  1 carter  staff  2271 Apr 13  2015 README
 drwxr-xr-x  6 carter  staff   204 Sep 15 15:38 Startup
@@ -316,7 +316,7 @@ total 48
 
 ./support/Config:
 total 56
--r-xr-xr-x  1 carter  staff  25093 Aug 22 00:30 argus.conf
+-rwxr-xr-x  1 carter  staff  25093 Sep 26 15:12 argus.conf
 
 ./support/Deployment:
 total 16
