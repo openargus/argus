@@ -105,17 +105,69 @@ assigning the probe's id.  This is to support management of
 large deployments, so you can have one argus.conf file that works
 for a lot of probes.
 
+With Argus V5 (gargoyle), the srcid formats are extended to include
+64-bit values, designed primarily to provide interface identifiers,
+in addition to a 32-bit probe id, as well as to support IPv6 addresses
+as identifiers.  Interface string extensions are added when the keyword
+"inf" is added as the ARGUS_MONITOR_ID specifier.
+
 For security, argus does not rely on system programs, like hostname.1.
 It implements the logic of hostname itself, so don't try to run
 arbitrary programs using this method, because it won't work.
 
+.nf
+The syntax for the monitor id, srcid,  is:
+     [type:/]sid[/inf]
+        where type can be:
+           int, str, ipv4, ipv6, uuid
+
+        where sid can be:
+           int, "string", ipv4, ipv6, uuid
+
+        where inf is:
+           char[4]
+
+ Examples include
+   fe80::1
+   192.168.8.68
+   2345/en0
+   ipv4:/192.168.8.68/en1
+   5E487EDE-B311-5E80-B69F-967E5E6C7A9F/en0
+   uuid:/5E487EDE-B311-5E80-B69F-967E5E6C7A9F
+.fi
+
 Commandline equivalent   -e
 
 .nf
-\fBARGUS_MONITOR_ID\fP=`hostname`    // IPv4 address returned
-\fBARGUS_MONITOR_ID\fP=10.2.45.3     // IPv4 address
-\fBARGUS_MONITOR_ID\fP=2435          // Number
-\fBARGUS_MONITOR_ID\fP="en0"         // String
+\fBARGUS_MONITOR_ID\fP=5E487EDE-B311-5E80-B69F-967E5E6C7A9F            // UUID
+\fBARGUS_MONITOR_ID\fP=uuid:/5E487EDE-B311-5E80-B69F-967E5E6C7A9F      // type:UUID
+\fBARGUS_MONITOR_ID\fP=uuid:/5E487EDE-B311-5E80-B69F-967E5E6C7A9F/en0  // type:UUID/inf
+\fBARGUS_MONITOR_ID\fP=`hostname`                                      // IPv4 address returned
+\fBARGUS_MONITOR_ID\fP=10.2.45.3                                       // IPv4 address
+\fBARGUS_MONITOR_ID\fP=ipv4:/10.2.45.3                                 // IPv4 address
+\fBARGUS_MONITOR_ID\fP=ipv4:/10.2.45.3/arg0                            // type:IPv4 address/inf
+\fBARGUS_MONITOR_ID\fP=2435                                            // Number
+\fBARGUS_MONITOR_ID\fP="en0"                                           // String
+.fi
+
+
+.SH ARGUS_MONITOR_ID_INCLUDE_INF
+
+With Argus V5 (gargoyle), the srcid formats are extended to include
+160-bit values (128-bit sid + 32-bit inf), designed primarily to provide
+support for 128-bit uuid's and IPv6 addrs, as well as interface identifiers.
+Interface string extensions are not added to ARGUS_MONITOR_ID specifier, unless
+you are hard coding the interface name for a specific observation domain,
+this is done int he ARGUS_INTERFACE specification.
+
+To add the semantic that the default "mon0" is a part of this MONITOR_ID,
+set the new ARGUS_MONITOR_ID_INDLUCE_INF to "yes".  To turn it off, set
+it to "no". "No" is the default behavior.
+
+Commandline equivalent:   There is no commandline equivalent
+
+.nf
+\fBARGUS_MONITOR_ID_INCLUDE_INF\fP=yes
 .fi
 
 
@@ -185,36 +237,49 @@ The interfaces can be tracked as:
          single modeler tracking the 2 interfaces, there is a single
          srcid that can be passed as an option.
 
- Interfaces can be specified as groups using '[',']' notation, to build
- flexible definitions of packet sources.  However, each interface
- should be referenced only once (this is due to performance and OS
- limitations, so if your OS has no problem with this, go ahead).
+Interfaces can be specified as groups using '[',']' notation, to build
+flexible definitions of packet sources.  However, each interface
+should be referenced only once (this is due to performance and OS
+limitations, so if your OS has no problem with this, go ahead).
 
- The lo (loopback) interface will be included only if it is specifically
- indicated in the option.
+The lo (loopback) interface will be included only if it is specifically
+indicated in the option.
 
- The syntax for specifying this either on the command line or in this file:
-    -i ind:all
-    -i dup:en0,en1/srcid
-    -i bond:en0,en1/srcid
-    -i dup:[bond:en0,en1],en2/srcid
-    -i en0/srcid -i en1/srcid  (equivalent '-i ind:en0/srcid,en1/srcid')
-    -i en0 en1     (equivalent '-i bond:en0,en1')
+.nf
+The syntax for specifying this either on the command line or in this file:
+   -i ind:all
+   -i ind:any/srcid
+   -i dup:en0,en1/srcid
+   -i bond:en0,en1/srcid
+   -i dup:[bond:en0,en1],en2/srcid
+   -i en0/srcid -i en1/srcid  (equivalent '-i ind:en0/srcid,en1/srcid')
+   -i en0 en1     (equivalent '-i bond:en0,en1')
+.fi
 
  In all cases, if there is a "-e srcid" provided, this is used as the
  default.  If a srcid is specified using this option, it overrides
  the default.
 
- Srcid's are specified using the notion used for ARGUS_MONITOR_ID, as above.
+Srcid's are specified using the notion used for ARGUS_MONITOR_ID, as above.
+
+Srcid subsitution is used when the srcid field is empty (//), in which case
+the argus-wide ARGUS_MONITOR_ID is used.  Interface substitution is used when
+the 'inf' extension keyword is used in the srcid specification.  This is a
+convenience for the "any" inteface specification, so that the actual interface
+name is used as a part of the srcid.  Normally, when a combination interface
+is specified, an allocated interface name, such as "arg0", is used in the srcid.
+ 
 
 Commandline equivalent   -i
 
 .nf
+\fBARGUS_INTERFACE\fP=en0
 \fBARGUS_INTERFACE\fP=any
 \fBARGUS_INTERFACE\fP=ind:all
+\fBARGUS_INTERFACE\fP=ind:any//inf
 \fBARGUS_INTERFACE\fP=ind:en0/192.168.0.68,en2/192.168.2.1
+\fBARGUS_INTERFACE\fP=ind:en0//en0,en2//en2
 \fBARGUS_INTERFACE\fP=ind:en0/"en0",en2/19234
-\fBARGUS_INTERFACE\fP=en0
 .fi
 
 

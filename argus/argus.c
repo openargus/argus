@@ -1016,8 +1016,9 @@ getArguspidflag ()
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
-   "ARGUS_DAEMON=",
    "ARGUS_MONITOR_ID=",
+   "ARGUS_MONITOR_ID_INCLUDE_INF=",
+   "ARGUS_DAEMON=",
    "ARGUS_ACCESS_PORT=",
    "ARGUS_INTERFACE=",
    "ARGUS_OUTPUT_FILE=",
@@ -1127,12 +1128,6 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                         optarg[strlen(optarg) - 1] = '\0';
 
                      switch (i) {
-                        case ARGUS_DAEMON: 
-                           if (!(strncasecmp(optarg, "yes", 3)))
-                              ArgusDaemon = 1;
-                           else
-                              ArgusDaemon = 0;
-                           break;
 
                         case ARGUS_MONITOR_ID: 
                            if (optarg && quoted) {   // Argus ID is a string.  Limit to date is 4 characters.
@@ -1180,9 +1175,19 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                               }
                               ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
                            }
+                           break;
 
+                        case ARGUS_MONITOR_ID_INCLUDE_INF:
+                           setArgusManInf(ArgusSourceTask, optarg);
                            break;
                            
+                        case ARGUS_DAEMON: 
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              ArgusDaemon = 1;
+                           else
+                              ArgusDaemon = 0;
+                           break;
+
                         case ARGUS_ACCESS_PORT:
                            setArgusPortNum(ArgusOutputTask, atoi(optarg));
                            break;
@@ -1887,6 +1892,8 @@ setArgusEventDataRecord (char *ptr)
 
       } else
          ArgusLog (LOG_ERR, "setArgusEventDataRecord, ArgusCalloc %s\n", strerror(errno));
+
+      free(pp);
    } else
       ArgusLog (LOG_ERR, "setArgusEventDataRecord, event is null\n");
 

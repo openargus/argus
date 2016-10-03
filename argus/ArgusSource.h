@@ -712,6 +712,7 @@ struct ArgusSourceStruct {
    struct ArgusAddrStruct ArgusID;
 */
    struct ArgusTransportStruct trans;
+   char * ArgusMarIncludeInterface;
 
    int ArgusPcapBufSize, type, mode;
 
@@ -768,6 +769,8 @@ struct ArgusSourceStruct {
 int setArgusListInterfaces (struct ArgusSourceStruct *, int);
 
 void ArgusParseSourceID (struct ArgusSourceStruct *, struct ArgusDeviceStruct *, char *);
+void setArgusManInf (struct ArgusSourceStruct *, char *);
+char *getArgusManInf (struct ArgusSourceStruct *);
 
 int ArgusSnoopRead (struct ArgusSourceStruct *);
 

@@ -1541,6 +1541,8 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
             break;
          }
       }
+      if (getArgusManInf(ArgusSourceTask) != NULL)
+         retn->argus_mar.status |=  ARGUS_ID_INC_INF;
    }
 
    retn->argus_mar.startime.tv_sec  = output->ArgusStartTime.tv_sec;
@@ -1632,6 +1634,9 @@ ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *output, unsigned c
          case ARGUS_TYPE_IPV6:   rec->argus_sup.status |= ARGUS_IDIS_IPV6; break;
          case ARGUS_TYPE_UUID:   rec->argus_sup.status |= ARGUS_IDIS_UUID; break;
       }
+
+      if (getArgusManInf(ArgusSourceTask) != NULL)
+        rec->argus_sup.status |=  ARGUS_ID_INC_INF;
 
       gettimeofday (&now, 0L);
 
@@ -1742,6 +1747,8 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
                break;
             }
          }
+         if (getArgusManInf(ArgusSourceTask) != NULL)
+           rec->argus_mar.status |=  ARGUS_ID_INC_INF;
       }
 
       gettimeofday (&now, 0L);
