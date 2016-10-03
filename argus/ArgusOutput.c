@@ -1785,6 +1785,9 @@ ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char
          case ARGUS_TYPE_UUID:   rec->argus_inf.status |= ARGUS_IDIS_UUID; break;
       }
 
+      if (getArgusManInf(ArgusSourceTask) != NULL)
+        rec->argus_sup.status |=  ARGUS_ID_INC_INF;
+
       gettimeofday (&now, 0L);
 
       rec->argus_inf.startime.tv_sec  = output->ArgusLastMarUpdateTime.tv_sec;
