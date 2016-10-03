@@ -412,6 +412,7 @@ struct ArgusRecord {
       struct ArgusTimeObject       *time = &rec->argus_event.time;
       struct ArgusTransportStruct *trans = &rec->argus_event.trans;
       struct ArgusDataStruct       *data = &rec->argus_event.data;
+      char *inf = NULL;
       int tlen = 1;
 
       gettimeofday(&now, 0L);
@@ -461,6 +462,12 @@ struct ArgusRecord {
             bcopy(&src->trans.srcid.a_un.uuid, trans->srcid.a_un.uuid, tlen);
             break;
          }
+      }
+
+      if ((inf = getArgusManInf(src)) != NULL) {
+         trans->hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+         bcopy("evt0", &trans->srcid.inf, 4);
+         tlen +=4;
       }
 
       trans->seqnum                = events->ArgusSrc->ArgusModel->ArgusSeqNum++;

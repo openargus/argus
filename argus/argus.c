@@ -1296,6 +1296,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         optarg[strlen(optarg) - 1] = '\0';
 
                      switch (i) {
+
                         case ARGUS_MONITOR_ID: 
                            if (optarg && quoted) {   // Argus ID is a string.  Limit to date is 4 characters.
                               int slen = strlen(optarg);
