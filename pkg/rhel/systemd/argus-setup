@@ -250,6 +250,7 @@ generate_sensor_config_default() {
 		echo "ARGUS_INTERFACE=ind:$itf"
 	done
 	echo 'ARGUS_BIND_IP="::1,127.0.0.1"'
+	echo "ARGUS_MONITOR_ID_INCLUDE_INF=yes"
 	echo "ARGUS_ACCESS_PORT=562"
 	echo "ARGUS_MIN_SSF=0"
 	echo "ARGUS_MAX_SSF=0"
