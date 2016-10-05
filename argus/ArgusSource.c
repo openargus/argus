@@ -4619,52 +4619,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                      if ((thread = src->thread) != 0)
                         pthread_join(thread, &ptr);
 
-         tts->tv_sec  = tvp->tv_sec + 0;
-         tts->tv_nsec = (tvp->tv_usec * 1000) + 250000000;
-         if (tts->tv_nsec > 1000000000) {
-            tts->tv_sec++;
-            tts->tv_nsec -= 1000000000;
-         }
-         if ((retn = pthread_cond_timedwait(&stask->cond, &stask->lock, tts))) {
-            switch (retn) {
-               case EINVAL:
-                  ArgusLog(LOG_ERR, "ArgusSourceProcess: pthread_cond_timedwait() error EINVAL\n");
-                  break;
-               case ETIMEDOUT:
-                  break;
-            }
-         }
+                     src->thread = 0;
 
-         for (source_closed = 0, i = 0; i < ArgusSourceCount; i++) {
-            struct ArgusSourceStruct *src = stask->srcs[i];
-
-            if (src != NULL) {
-               if (src->status & ARGUS_SHUTDOWN) {
-                  pthread_t thread = 0;
-                  if (src->status & ARGUS_LAUNCHED) {
-                     if (src->eNflag == 0)
-                        stask->status |= ARGUS_SHUTDOWN;
-
-                     if ((thread = src->thread) != 0) {
-                        /* Prevent ArgusCloseModeler from stopping the output
-                         * process
-                         */
-                        if (src->ArgusModel)
-                           src->ArgusModel->ArgusOutputList = NULL;
-
-                     }
-                  }
-
-                  pthread_mutex_lock(&src->ArgusDeviceList->lock);
-                  struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
-                  delete_interface((const u_char *) device->name);
-                  ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
-                  pthread_mutex_unlock(&src->ArgusDeviceList->lock);
-
-                  ArgusCloseOneSource(src);
-                  stask->srcs[i] = NULL;
-                  if (thread != 0) {
-                     ArgusThreadCount--;
 #ifdef ARGUSDEBUG
                      ArgusDebug (2, "ArgusSourceProcess: ArgusGetPackets[%d] done\n", i);
 #endif
