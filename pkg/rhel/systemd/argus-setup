@@ -15,6 +15,10 @@ if [[ -r /etc/sysconfig/argus ]] ; then
 fi
 ARGUS_DIRECT_ATTACH_SENSORS=${ARGUS_DIRECT_ATTACH_SENSORS:-no}
 
+if [[ -r /etc/os-release ]] ; then
+	. /etc/os-release
+fi
+
 # search for network devices that will only be used for packet
 # capture.
 find_monitor_ethdevs(){
@@ -209,7 +213,11 @@ collector_restore(){
 }
 
 is_sensor_appliance(){
-	return 0
+	if [[ "${QOSIENT_SYSTEM_TYPE}" == sensor \
+	      || -z "${QOSIENT_SYSTEM_TYPE}" ]] ; then
+		return 0;
+	fi
+	return 1
 }
 
 generate_monitor_id() {
@@ -219,7 +227,7 @@ generate_monitor_id() {
 	fi
 
 	# uuid + interface name
-	echo "${uuid}:inf"
+	echo "${uuid}"
 }
 
 get_monitor_id() {
@@ -241,6 +249,10 @@ generate_sensor_config_default() {
 	for itf in $(find_monitor_devs) $(find_mgmt_devs) ; do
 		echo "ARGUS_INTERFACE=ind:$itf"
 	done
+	echo 'ARGUS_BIND_IP="::1,127.0.0.1"'
+	echo "ARGUS_ACCESS_PORT=562"
+	echo "ARGUS_MIN_SSF=0"
+	echo "ARGUS_MAX_SSF=0"
 }
 
 generate_collector_config_default(){
@@ -273,14 +285,4 @@ else
 fi
 
 exit 0
-
-#
-### TODO:
-### validate interfaces, build config, etc.
-#
-# if (( $ARGUS_CONFIGURED > 0 )) ; then
-# 	cp SOMETHING /run/argus/argus.conf
-# else
-# 	cp /etc/argus.conf /run/argus/argus.conf
-# fi
 

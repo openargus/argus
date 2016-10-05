@@ -122,6 +122,7 @@ void ArgusBacktrace (void);
 
 char *ArgusProgramName = NULL;
 void ArgusLoop (void);
+void ArgusBacktrace (void);
 void ArgusScheduleShutDown (int);
 
 void usage(void);
