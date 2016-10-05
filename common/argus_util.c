@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/common/argus_util.c#10 $
- * $DateTime: 2016/09/18 16:32:53 $
- * $Change: 3186 $
+ * $Id: //depot/gargoyle/argus/common/argus_util.c#11 $
+ * $DateTime: 2016/10/04 10:36:36 $
+ * $Change: 3213 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2055,8 +2055,6 @@ ArgusFreeListRecord (void *buf)
    return;
 }
 
-extern void ArgusShutDown (int);
-
 struct ArgusLogPriorityStruct {
    int priority;
    char *label;
@@ -2148,7 +2146,10 @@ ArgusLog (int priority, char *fmt, ...)
    }
 
    switch (priority) {
-      case LOG_ERR: ArgusShutDown(1); break;
+      case LOG_ERR:
+          ArgusBacktrace();
+          exit(1);
+
       default: break;
    }
 }

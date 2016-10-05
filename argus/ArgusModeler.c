@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/argus/ArgusModeler.c#18 $
- * $DateTime: 2016/09/18 16:32:53 $
- * $Change: 3186 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusModeler.c#19 $
+ * $DateTime: 2016/10/04 10:36:36 $
+ * $Change: 3213 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1538,9 +1538,6 @@ ArgusProcessLcpPacket (struct ArgusSourceStruct *src, struct lcp_hdr *lcp, int l
 #endif
    }
 
-   if (ArgusShutDownFlag)
-      ArgusShutDown(0);
-
 #ifdef ARGUSDEBUG
    ArgusDebug (5, "ArgusProcessLcpPacket(%p, %p, %d, %p) returning %d\n", model, lcp, length, tvp, retn);
 #endif 
@@ -1703,9 +1700,6 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
 #endif
    }
 
-   if (ArgusShutDownFlag)
-      ArgusShutDown(0);
-
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "ArgusProcessPacket(%p, %p, %d, %p, %d) returning %d\n", model, p, length, tvp, type, retn);
 #endif 
@@ -1816,9 +1810,6 @@ ArgusProcessIpPacket (struct ArgusModelerStruct *model, struct ip *ip, int lengt
 #endif
    }
 
-   if (ArgusShutDownFlag)
-      ArgusShutDown(0);
-
 #ifdef ARGUSDEBUG
    ArgusDebug (5, "ArgusProcessIpPacket(%p, %d, %p) returning %d\n", ip, length, tvp, retn);
 #endif 
@@ -1914,9 +1905,6 @@ ArgusProcessEtherPacket (struct ArgusModelerStruct *model, struct ether_header *
       ArgusOutputProcess(ArgusOutputTask);
 #endif
    }
-
-   if (ArgusShutDownFlag)
-      ArgusShutDown(0);
 
 #ifdef ARGUSDEBUG
    ArgusDebug (5, "ArgusProcessEtherPacket(%p, %d, %p) returning %d\n", ep, length, tvp, retn);

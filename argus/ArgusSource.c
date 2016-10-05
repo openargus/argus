@@ -22,9 +22,9 @@
  */
 
 /*
- * $Id: //depot/gargoyle/argus/argus/ArgusSource.c#20 $
- * $DateTime: 2016/10/03 10:48:03 $
- * $Change: 3210 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusSource.c#21 $
+ * $DateTime: 2016/10/04 10:36:36 $
+ * $Change: 3213 $
  */
 
 /*
@@ -77,6 +77,7 @@
 void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 
+extern int ArgusShutDownFlag;
 
 struct ArgusDeviceStruct *
 ArgusCloneDevice(struct ArgusDeviceStruct *dev)
@@ -315,12 +316,8 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
    char errbuf[PCAP_ERRBUF_SIZE];
    int type, retn = 0;
 
-   extern int ArgusShutDownFlag;
-
-   if (ArgusShutDownFlag) {
-      ArgusShutDown(0);
+   if (ArgusShutDownFlag)
       return retn;
-   }
 
    if ((device == NULL) || (device->name == NULL)) {
       if (inf->ArgusDevice)
@@ -567,29 +564,34 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
 
 int
-ArgusCloseSource(struct ArgusSourceStruct *src)
+ArgusCloseSource(struct ArgusSourceStruct *stask)
 {
    int i;
+   struct ArgusSourceStruct *src;
 
-   if (src) {
+   if (stask == NULL)
+       /* nothing to do */
+       return 0;
+
 #ifdef ARGUSDEBUG
-      ArgusDebug (1, "ArgusCloseSource(%p) starting\n", src);
+   ArgusDebug (1, "ArgusCloseSource(%p) starting\n", stask);
 #endif
-      for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
-         if (src->srcs[i] != NULL) {
-            ArgusCloseSource (src->srcs[i]);
-         }
-      }
+   for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
+      int j;
+      src = stask->srcs[i];
+
+      if (src == NULL)
+          break;
 
 #if defined(ARGUS_THREADS)
       if (src->thread)
          pthread_join(src->thread, NULL);
 #endif
 
-      for (i = 0; i < src->ArgusInterfaces; i++) {
-         if (src->ArgusInterface[i].ArgusPd) {
-            pcap_close(src->ArgusInterface[i].ArgusPd);
-            src->ArgusInterface[i].ArgusPd = NULL;
+      for (j = 0; j < src->ArgusInterfaces; j++) {
+         if (src->ArgusInterface[j].ArgusPd) {
+            pcap_close(src->ArgusInterface[j].ArgusPd);
+            src->ArgusInterface[j].ArgusPd = NULL;
          }
       }
 
@@ -4326,6 +4328,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                      if ((thread = src->thread) != 0)
                         pthread_join(thread, &ptr);
 
+                     src->thread = 0;
+
 #ifdef ARGUSDEBUG
                      ArgusDebug (2, "ArgusSourceProcess: ArgusGetPackets[%d] done\n", i);
 #endif
@@ -4426,7 +4430,7 @@ ArgusGetPackets (void *arg)
                         } else
                            break;
 
-                     } while (noerror && (src->eNflag != 0) && (!(ArgusShutDownStarted)));
+                     } while (noerror && (src->eNflag != 0) && (!(ArgusShutDownFlag)));
                   }
                }
                break;
@@ -4670,10 +4674,9 @@ ArgusGetPackets (void *arg)
 #endif
                      }
 
-                  } while (noerror && (src->eNflag != 0) && (!(ArgusShutDownStarted)));
+                  } while (noerror && (src->eNflag != 0) && (!(ArgusShutDownFlag)));
                
                } else {
-                  extern int ArgusShutDownFlag;
                   long ioffset = 0, offset = 0;
 
                   ioffset = ftell(src->ArgusPacketInput);
@@ -4945,12 +4948,8 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
    struct ifreq ifr;
    int fd, i;
 
-   extern int ArgusShutDownFlag;
-
-   if (ArgusShutDownFlag) {
-      ArgusShutDown(0);
+   if (ArgusShutDownFlag)
       return;
-   }
 
    if (src && src->ArgusDeviceList)
       if ((device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK)) != NULL)

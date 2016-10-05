@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/argus/argus.h#6 $
- * $DateTime: 2016/10/03 10:48:03 $
- * $Change: 3210 $
+ * $Id: //depot/gargoyle/argus/argus/argus.h#7 $
+ * $DateTime: 2016/10/04 10:36:36 $
+ * $Change: 3213 $
  */
 
 
@@ -104,7 +104,6 @@ char *chroot_dir = NULL;
 int Argusdflag = 0;
 int ArgusUid = 0;
 int ArgusGid = 0;
-int ArgusShutDownStarted = 0;
 
 int ArgusPortNum = 0;
 
@@ -118,7 +117,7 @@ int ArgusMinSsf = 0;
 
 char *ArgusProgramName = NULL;
 void ArgusLoop (void);
-void ArgusShutDown (int);
+void ArgusBacktrace (void);
 void ArgusScheduleShutDown (int);
 
 void usage(void);
@@ -151,7 +150,6 @@ extern int Argusdflag;
 
 extern char *ArgusProgramName;
 extern void ArgusLoop (void);
-extern void ArgusShutDown (int);
 extern void ArgusScheduleShutDown (int);
 
 extern int nflag, Nflag, uflag, gflag;
@@ -160,7 +158,6 @@ extern int daemonflag;
 
 extern int ArgusUid;
 extern int ArgusGid;
-extern int ArgusShutDownStarted;
 
 extern char *ArgusBindAddr;
 
