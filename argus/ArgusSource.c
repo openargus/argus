@@ -4378,6 +4378,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                      if ((thread = src->thread) != 0)
                         pthread_join(thread, &ptr);
 
+                     src->thread = 0;
+
 #ifdef ARGUSDEBUG
                      ArgusDebug (2, "ArgusSourceProcess: ArgusGetPackets[%d] done\n", i);
 #endif
