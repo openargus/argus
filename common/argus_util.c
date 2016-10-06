@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/common/argus_util.c#11 $
- * $DateTime: 2016/10/04 10:36:36 $
- * $Change: 3213 $
+ * $Id: //depot/gargoyle/argus/common/argus_util.c#12 $
+ * $DateTime: 2016/10/06 01:43:51 $
+ * $Change: 3218 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -105,6 +105,7 @@ struct rtentry;         /* declarations in <net/if.h> */
 
 
 extern char *ArgusProgramName;
+extern void ArgusBacktrace (void);
 
 void ArgusInitAddrtoname(struct ArgusParserStruct *, u_int, u_int);
 void ArgusInitServarray(struct ArgusParserStruct *);
