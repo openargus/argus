@@ -109,9 +109,7 @@ struct rtentry;         /* declarations in <net/if.h> */
 
 
 extern char *ArgusProgramName;
-#ifdef HAVE_BACKTRACE
 extern void ArgusBacktrace (void);
-#endif
 
 void ArgusInitAddrtoname(struct ArgusParserStruct *, u_int, u_int);
 void ArgusInitServarray(struct ArgusParserStruct *);
