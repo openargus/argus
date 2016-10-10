@@ -100,6 +100,18 @@ firewall_cmd_drop(){
 	done
 }
 
+shortname_ethdev(){
+	dev=$1
+	shortname=$1
+	typeset -i strlen=${#dev}
+
+	if (( strlen > 4 )) ; then
+		(( strlen = strlen - 1 ))
+		shortname="${dev:0:2}X${dev:$strlen:1}"
+	fi
+	echo $shortname
+}
+
 # 1-gigabit sensor nodes monitor traffic on the I350 interfaces.  Get
 # rid of addresses and configure the firewall to block everything,
 # in and out.  libpcap should still see received traffic.
@@ -247,7 +259,7 @@ get_monitor_id() {
 generate_sensor_config_default() {
 	echo "ARGUS_MONITOR_ID=$(get_monitor_id)"
 	for itf in $(find_monitor_devs) $(find_mgmt_devs) ; do
-		echo "ARGUS_INTERFACE=ind:$itf//$itf"
+		echo "ARGUS_INTERFACE=ind:$itf//$(shortname_ethdev $itf)"
 	done
 	echo 'ARGUS_BIND_IP="::1,127.0.0.1"'
 	echo "ARGUS_MONITOR_ID_INCLUDE_INF=yes"
