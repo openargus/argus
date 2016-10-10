@@ -1775,30 +1775,34 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence;
       rec->argus_mar.record_len = -1;
 
-      if ((ArgusSrc = output->ArgusSrc) != NULL) {
+      if (ArgusSourceTask != NULL) {
          int x;
+
+         rec->argus_mar.pktsRcvd  = 0;
+         rec->argus_mar.bytesRcvd = 0;
+         rec->argus_mar.dropped   = 0;
+
          for (x = 0; x < ARGUS_MAXINTERFACE; x++) {
-            if ((aSrc = ArgusSrc->srcs[x]) != NULL) {
+            if ((aSrc = ArgusSourceTask->srcs[x]) != NULL) {
                if (aSrc->ArgusInterface[0].ArgusPd != NULL) {
                   int i;
                   rec->argus_mar.interfaceType = pcap_datalink(aSrc->ArgusInterface[0].ArgusPd);
                   rec->argus_mar.interfaceStatus = getArgusInterfaceStatus(aSrc);
 
-                  rec->argus_mar.pktsRcvd  = 0;
-                  rec->argus_mar.bytesRcvd = 0;
-                  rec->argus_mar.dropped   = 0;
-
                   for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
-                     rec->argus_mar.pktsRcvd  += aSrc->ArgusInterface[i].ArgusTotalPkts - 
-                                                 aSrc->ArgusInterface[i].ArgusLastPkts;
-                     rec->argus_mar.bytesRcvd += aSrc->ArgusInterface[i].ArgusTotalBytes -
-                                                 aSrc->ArgusInterface[i].ArgusLastBytes;
-                     rec->argus_mar.dropped   += aSrc->ArgusInterface[i].ArgusStat.ps_drop - 
-                                                 aSrc->ArgusInterface[i].ArgusLastDrop;
+                     if (aSrc->ArgusInterface[i].ArgusPd != NULL) {
+                        rec->argus_mar.pktsRcvd  += aSrc->ArgusInterface[i].ArgusTotalPkts - 
+                                                    aSrc->ArgusInterface[i].ArgusLastPkts;
+                        rec->argus_mar.bytesRcvd += aSrc->ArgusInterface[i].ArgusTotalBytes -
+                                                    aSrc->ArgusInterface[i].ArgusLastBytes;
+                        rec->argus_mar.dropped   += aSrc->ArgusInterface[i].ArgusStat.ps_drop - 
+                                                    aSrc->ArgusInterface[i].ArgusLastDrop;
 
-                     aSrc->ArgusInterface[i].ArgusLastPkts  = aSrc->ArgusInterface[i].ArgusTotalPkts;
-                     aSrc->ArgusInterface[i].ArgusLastDrop  = aSrc->ArgusInterface[i].ArgusStat.ps_drop;
-                     aSrc->ArgusInterface[i].ArgusLastBytes = aSrc->ArgusInterface[i].ArgusTotalBytes;
+                        aSrc->ArgusInterface[i].ArgusLastPkts  = aSrc->ArgusInterface[i].ArgusTotalPkts;
+                        aSrc->ArgusInterface[i].ArgusLastDrop  = aSrc->ArgusInterface[i].ArgusStat.ps_drop;
+                        aSrc->ArgusInterface[i].ArgusLastBytes = aSrc->ArgusInterface[i].ArgusTotalBytes;
+                     } else 
+                        break;
                   }
                }
             }
