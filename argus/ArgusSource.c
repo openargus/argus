@@ -887,7 +887,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
 #else
       struct ArgusDeviceStruct *dev = NULL;
       int cnt = 0, status = 0;
-      char *tok;
+      char *tok, *stok;
 #endif
 
       if (type == ARGUS_LIVE_DEVICE)
@@ -913,7 +913,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
          status = ARGUS_TYPE_IND;
       }
 
-      while ((tok = strtok(ptr, " ,")) != NULL) {
+      while ((tok = strtok(ptr, " ")) != NULL) {
          char *srcid = NULL, *dlt = NULL, *sptr = NULL;
          cnt++;
 
@@ -985,6 +985,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                                     device->name = strdup(cmd);
                                     device->status = status;
                                     device->type = type;
+                                    device->trans = dev->trans;
                                     device->list = ArgusNewList();
                                  }
                                  ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
@@ -1002,55 +1003,58 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
             }
 
             case ARGUS_FILE_DEVICE: {
-               if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
-                        ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
-
-               dev->name = strdup(tok);
-               dev->status = status;
-               dev->type = type;
-               dev->mode = mode;
-               if (dlt != NULL) {
-#if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
-                  dev->dlt = pcap_datalink_name_to_val(dlt);
-#else
-                  dev->dlt = 0;
-#endif
-                  dev->dltname = strdup(dlt);
-               }
-
-               if (dev != NULL) {
-                  if (srcid != NULL) {
-                     int type = ArgusSourceTask->type;
-
-                     ArgusParseSourceID (ArgusSourceTask, dev, srcid);
-                     dev->trans   = ArgusSourceTask->trans;
-                     dev->idtype  = ArgusSourceTask->type;
-
-                     ArgusSourceTask->type = type;
-
-                  } else {
-                     dev->trans   = ArgusSourceTask->trans;
-                     dev->idtype  = ArgusSourceTask->type;
-                  }
-               }
-
-               switch (status) {
-                  case ARGUS_TYPE_IND:
-                     ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                     break;
-
-                  case ARGUS_TYPE_BOND:
-                  case ARGUS_TYPE_DUPLEX:
-                     if (device == NULL) {
-                        if ((device = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
+               while ((stok = strtok(tok, ",")) != NULL) {
+                  if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
                            ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
-                        device->name = strdup(cmd);
-                        device->status = status;
-                        device->type = type;
-                        device->list = ArgusNewList();
+
+                  dev->name = strdup(stok);
+                  dev->status = status;
+                  dev->type = type;
+                  dev->mode = mode;
+                  if (dlt != NULL) {
+#if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
+                     dev->dlt = pcap_datalink_name_to_val(dlt);
+#else
+                     dev->dlt = 0;
+#endif
+                     dev->dltname = strdup(dlt);
+                  }
+
+                  if (dev != NULL) {
+                     if (srcid != NULL) {
+                        int type = ArgusSourceTask->type;
+
+                        ArgusParseSourceID (ArgusSourceTask, dev, srcid);
+                        dev->trans   = ArgusSourceTask->trans;
+                        dev->idtype  = ArgusSourceTask->type;
+
+                        ArgusSourceTask->type = type;
+
+                     } else {
+                        dev->trans   = ArgusSourceTask->trans;
+                        dev->idtype  = ArgusSourceTask->type;
                      }
-                     ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                     break;
+                  }
+
+                  switch (status) {
+                     case ARGUS_TYPE_IND:
+                        ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                        break;
+
+                     case ARGUS_TYPE_BOND:
+                     case ARGUS_TYPE_DUPLEX:
+                        if (device == NULL) {
+                           if ((device = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
+                              ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
+                           device->name = strdup(cmd);
+                           device->status = status;
+                           device->type = type;
+                           device->list = ArgusNewList();
+                        }
+                        ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                        break;
+                  }
+                  tok = NULL;
                }
                break;
             }
@@ -1498,8 +1502,8 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
       }
 
 // test for dev srcid substitution
-      if (*optarg == '/') {
-         if ((iptr = strnstr(optarg, "//", 2)) != NULL)
+      if (optarg[0] == '/') {
+         if (optarg[1] == '/')
             subsid = 1;
          optarg++;
       }
