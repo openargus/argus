@@ -130,15 +130,6 @@ sensor_setup_monitor_devs(){
 
 sensor_setup_mgmt_devs(){
 	firewall-cmd --add-port=561/tcp
-	for itf in $(find_mgmt_devs) ; do
-		if [[ ${ARGUS_DIRECT_ATTACH_SENSORS} == yes ]] ; then
-			nmcli con modify --temporary ${itf} ipv4.method disabled
-			nmcli con modify --temporary ${itf} ipv6.method link-local
-			nmcli con down ${itf}
-			nmcli con modify --temporary ${itf} connection.autoconnect yes
-		fi
-		nmcli --wait 0 con up ${itf}
-	done
 }
 
 sensor_setup(){
@@ -193,9 +184,6 @@ collector_setup_monitor_devs(){
 
 collector_setup_mgmt_devs(){
 	firewall-cmd --add-port=561/tcp
-	for itf in $(find_mgmt_devs) ; do
-		nmcli con modify --temporary ${itf} connection.autoconnect yes
-	done
 }
 
 collector_setup(){
