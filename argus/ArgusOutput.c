@@ -1807,7 +1807,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
    if (retn) {
       extern int ArgusAllocTotal, ArgusFreeTotal, ArgusAllocBytes;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
-      struct ArgusSourceStruct *ArgusSrc = NULL, *aSrc = NULL;
+      struct ArgusSourceStruct *aSrc = NULL;
       struct timeval now;
 
       memset(retn, 0, sizeof(*retn));
