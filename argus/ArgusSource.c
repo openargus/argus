@@ -4269,9 +4269,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                            ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", d->name);
 
-                           if ((sptr = strchr (stask->ArgusDeviceStr, '/')) != NULL) {
-                              srcid = sptr + 1;
-                           }
+                           if ((sptr = strchr (stask->ArgusDeviceStr, '/')) != NULL)
+                              srcid = sptr;
 
                            if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*dev))) == NULL)
                               ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
