@@ -22,9 +22,9 @@
  */
 
 /*
- * $Id: //depot/gargoyle/argus/argus/ArgusSource.c#22 $
- * $DateTime: 2016/10/04 10:48:57 $
- * $Change: 3214 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusSource.c#24 $
+ * $DateTime: 2016/10/10 23:36:26 $
+ * $Change: 3221 $
  */
 
 /*
@@ -4219,9 +4219,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                            ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", d->name);
 
-                           if ((sptr = strchr (stask->ArgusDeviceStr, '/')) != NULL) {
-                              srcid = sptr + 1;
-                           }
+                           if ((sptr = strchr (stask->ArgusDeviceStr, '/')) != NULL)
+                              srcid = sptr;
 
                            if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*dev))) == NULL)
                               ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));

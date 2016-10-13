@@ -22,9 +22,9 @@
  */
 
 /*
- * $Id: //depot/gargoyle/argus/argus/ArgusOutput.c#13 $
- * $DateTime: 2016/10/03 10:25:27 $
- * $Change: 3209 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusOutput.c#14 $
+ * $DateTime: 2016/10/10 23:18:27 $
+ * $Change: 3220 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1709,7 +1709,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
    if (retn) {
       extern int ArgusAllocTotal, ArgusFreeTotal, ArgusAllocBytes;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
-      struct ArgusSourceStruct *ArgusSrc = NULL, *aSrc = NULL;
+      struct ArgusSourceStruct *aSrc = NULL;
       struct timeval now;
 
       memset(retn, 0, sizeof(*retn));
