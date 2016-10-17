@@ -121,6 +121,7 @@ sensor_setup_monitor_devs(){
 		firewall_cmd_drop add ${itf}
 		nmcli con modify --temporary ${itf} ipv4.method disabled
 		nmcli con modify --temporary ${itf} ipv6.method ignore
+		nmcli con modify --temporary ${itf} 802-3-ethernet.mtu 9000
 		nmcli con down ${itf}
 		nmcli con modify --temporary ${itf} connection.autoconnect yes
 		nmcli --wait 0 con up ${itf}
