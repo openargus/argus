@@ -2,6 +2,7 @@
 
 typeset -r PCI_VENDOR_INTEL="0x8086"
 typeset -r PCI_DEVICE_INTEL_I350="0x1521"
+typeset -r PCI_DEVICE_INTEL_X710="0x1572"
 
 typeset -i ARGUS_CONFIGURED=0
 
@@ -19,16 +20,20 @@ if [[ -r /etc/os-release ]] ; then
 	. /etc/os-release
 fi
 
+is_sensor_appliance(){
+	if [[ "${QOSIENT_SYSTEM_TYPE}" == sensor \
+	      || -z "${QOSIENT_SYSTEM_TYPE}" ]] ; then
+		return 0;
+	fi
+	return 1
+}
+
 # search for network devices that will only be used for packet
 # capture.
 find_monitor_ethdevs(){
 	str=""
 	pushd /sys/class/net > /dev/null
 	for x in * ; do
-		if [[ -f ${x}/device/acpi_index ]] ; then
-			continue
-		fi
-
 		if [[ ! -f ${x}/device/vendor ]] ; then
 			continue
 		fi
@@ -38,9 +43,25 @@ find_monitor_ethdevs(){
 			continue
 		fi
 
-		if [[ ! $(cat ${x}/device/device) \
-		      == ${PCI_DEVICE_INTEL_I350} ]] ; then
-			continue
+		devid=$(cat ${x}/device/device)
+
+		# All on-board devices are used for management by sensor.
+		if is_sensor_appliance ; then
+			if [[ -f ${x}/device/acpi_index ]] ; then
+				continue
+			fi
+			if [[ ${devid} == ${PCI_DEVICE_INTEL_X710} ]] ; then
+				continue
+			fi
+		else
+			if [[ ! ( ${devid} == ${PCI_DEVICE_INTEL_I350} || \
+				  ${devid} == ${PCI_DEVICE_INTEL_X710} ) ]] ; then
+				continue
+			fi
+			if [[ ( -f ${x}/device/acpi_index ) && \
+			      ( ${devid} == ${PCI_DEVICE_INTEL_I350} ) ]] ; then
+				continue
+			fi
 		fi
 
 		str+=" ${x}"
@@ -67,9 +88,20 @@ find_mgmt_devs(){
 
 	for x in * ; do
 		if [[ ! -f ${x}/device/acpi_index ]] ; then
-			## if pci device is not intel 10g card, then
 			continue
 		fi
+
+		# collectors use the x710 for monitoring
+		if ! is_sensor_appliance ; then
+			vendor=$(cat ${x}/device/vendor)
+			devid=$(cat ${x}/device/device)
+
+			if [[ ( ${vendor} == ${PCI_VENDOR_INTEL} && \
+				${devid} == ${PCI_DEVICE_INTEL_X710} ) ]] ; then
+				continue
+			fi
+		fi
+
 		str+=" ${x}"
 	done
 	popd > /dev/null
@@ -211,14 +243,6 @@ collector_restore(){
 	nmcli con reload
 	collector_restore_monitor_devs
 	collector_restore_mgmt_devs
-}
-
-is_sensor_appliance(){
-	if [[ "${QOSIENT_SYSTEM_TYPE}" == sensor \
-	      || -z "${QOSIENT_SYSTEM_TYPE}" ]] ; then
-		return 0;
-	fi
-	return 1
 }
 
 generate_monitor_id() {
