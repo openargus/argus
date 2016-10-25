@@ -72,7 +72,8 @@ find_monitor_ethdevs(){
 
 find_monitor_hwcapdevs() {
 	## Search for Napatech cards
-	:
+	tcpdump -D | \
+	  awk '/NT 3G /{split($1, str, /\./); printf("%s ", str[2])};'
 }
 
 find_monitor_devs() {
