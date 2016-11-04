@@ -213,6 +213,7 @@ collector_setup_monitor_devs(){
 			nmcli con modify --temporary ${itf} ipv6.method link-local
 		fi
 		nmcli con modify --temporary ${itf} connection.autoconnect yes
+		nmcli --wait 0 con up ${itf}
 	done
 }
 
