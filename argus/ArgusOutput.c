@@ -1805,7 +1805,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
    }
 
    if (retn) {
-      extern int ArgusAllocTotal, ArgusFreeTotal, ArgusAllocBytes;
+      extern int ArgusAllocTotal, ArgusFreeTotal;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
       struct ArgusSourceStruct *aSrc = NULL;
       struct timeval now;
@@ -1928,6 +1928,10 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.bufs     = ArgusAllocTotal - ArgusFreeTotal;
       rec->argus_mar.suserlen = getArgusUserDataLen(ArgusModel);
       rec->argus_mar.duserlen = getArgusUserDataLen(ArgusModel);
+
+      gettimeofday (&now, 0L);
+      output->ArgusLastMarUpdateTime.tv_sec  = now.tv_sec;
+      output->ArgusLastMarUpdateTime.tv_usec = now.tv_usec;
    }
 
 #ifdef ARGUSDEBUG

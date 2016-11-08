@@ -1072,7 +1072,7 @@ __argus_malloc (int bytes, allocator_func alloc, void *aux)
 #if defined(ARGUS_THREADS)
       pthread_mutex_lock(&memory.lock);
 #endif
-      ArgusAllocTotal++;
+      }
 #if defined(ARGUSMEMDEBUG)
       ArgusAllocBytes += bytes;
       if (ArgusAllocMax < ArgusAllocBytes)
@@ -1162,8 +1162,12 @@ ArgusCalloc (int nitems, int bytes)
 #ifdef ARGUSDEBUG
    ArgusDebug (6, "ArgusCalloc (%d, %d) returning 0x%x\n", nitems, bytes, retn);
 #endif
-   return (retn);
-}
+      }
+#if defined(ARGUSMEMDEBUG)
+      ArgusAllocBytes += total;
+      if (ArgusAllocMax < ArgusAllocBytes)
+         ArgusAllocMax = ArgusAllocBytes;
+#endif
 
 static void *
 __malloc_aligned(size_t bytes, void *aux)
@@ -1203,10 +1207,6 @@ ArgusFree (void *buf)
    void *ptr = buf;
 
    if (ptr) {
-#if defined(ARGUS_THREADS)
-      pthread_mutex_lock(&memory.lock);
-#endif
-      ArgusFreeTotal++;
 #if defined(ARGUSMEMDEBUG)
       {
          struct ArgusMemoryHeader *mem = ptr;
@@ -1247,8 +1247,9 @@ ArgusFree (void *buf)
       if (ArgusAllocTotal > 0)
          ArgusAllocTotal--;
    }
-#if defined(ARGUS_THREADS)
-      pthread_mutex_unlock(&memory.lock);
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (6, "ArgusFree (%p)\n", buf);
 #endif
 }
 /* 
