@@ -785,7 +785,7 @@ ArgusComplete ()
       buf[i] = ' ';
 
    if (ArgusTotalNewFlows > 0) {
-      extern int ArgusAllocTotal, ArgusFreeTotal, ArgusAllocMax;
+      extern int ArgusAllocTotal, ArgusFreeTotal;
 
       fprintf (stderr, "%s: Time %d.%06d Flows %-8lld  Closed %-8lld  Sends %-8lld  BSends %-8lld\n",
                          ArgusProgramName, (int)timediff.tv_sec, (int)timediff.tv_usec,
@@ -793,8 +793,8 @@ ArgusComplete ()
                          ArgusTotalSends, ArgusTotalBadSends);
       fprintf (stderr, "%*s  Updates %-8lld Cache %-8lld\n", (int)strlen(ArgusProgramName), " ",
                          ArgusTotalUpdates, ArgusTotalCacheHits);
-      fprintf (stderr, "%*s  Total Memory %-8d Free %-8d MaxBytes %d\n", (int)strlen(ArgusProgramName), " ",
-                         ArgusAllocTotal, ArgusFreeTotal, ArgusAllocMax);
+      fprintf (stderr, "%*s  Total Memory %-8d Free %-8d\n", (int)strlen(ArgusProgramName), " ",
+                         ArgusAllocTotal, ArgusFreeTotal);
    }
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       if (ArgusIntStr[i] != NULL) {
