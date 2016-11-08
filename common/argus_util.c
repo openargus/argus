@@ -22,9 +22,9 @@
  */
 
 /* 
- * $Id: //depot/gargoyle/argus/common/argus_util.c#12 $
- * $DateTime: 2016/10/06 01:43:51 $
- * $Change: 3218 $
+ * $Id: //depot/gargoyle/argus/common/argus_util.c#13 $
+ * $DateTime: 2016/10/27 18:40:41 $
+ * $Change: 3232 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1594,10 +1594,13 @@ ArgusPrintDirection (char *buf, struct ArgusRecordStruct *argus, int len)
 }
 
 
-int ArgusAllocMax   = 0;
-int ArgusAllocBytes = 0;
-int ArgusAllocTotal = 0;
-int ArgusFreeTotal  = 0;
+#if defined(ARGUSMEMDEBUG)
+long long ArgusAllocMax   = 0;
+long long ArgusAllocBytes = 0;
+#endif
+
+long long ArgusAllocTotal = 0;
+long long ArgusFreeTotal  = 0;
 
 struct ArgusMemoryList memory = {NULL, 0};
 
@@ -1618,9 +1621,11 @@ ArgusMalloc (int bytes)
          pthread_mutex_init(&memory.lock, NULL);
 #endif
       }
+#if defined(ARGUSMEMDEBUG)
       ArgusAllocBytes += bytes;
       if (ArgusAllocMax < ArgusAllocBytes)
          ArgusAllocMax = ArgusAllocBytes;
+#endif
 
 #if defined(ARGUS_ALIGN)
       offset = ARGUS_ALIGN;
@@ -1693,9 +1698,11 @@ ArgusCalloc (int nitems, int bytes)
          pthread_mutex_init(&memory.lock, NULL);
 #endif
       }
+#if defined(ARGUSMEMDEBUG)
       ArgusAllocBytes += total;
       if (ArgusAllocMax < ArgusAllocBytes)
          ArgusAllocMax = ArgusAllocBytes;
+#endif
 
 #if defined(ARGUS_ALIGN)
       offset = ARGUS_ALIGN;
@@ -1765,7 +1772,6 @@ ArgusFree (void *buf)
    void *ptr = buf;
 
    if (ptr) {
-      ArgusFreeTotal++;
 #if defined(ARGUSMEMDEBUG)
       {
          struct ArgusMemoryHeader *mem = ptr;
@@ -1809,7 +1815,10 @@ ArgusFree (void *buf)
 #endif
 #endif
       free (ptr);
+      if (ArgusAllocTotal > 0)
+         ArgusAllocTotal--;
    }
+
 #ifdef ARGUSDEBUG
    ArgusDebug (6, "ArgusFree (%p)\n", buf);
 #endif

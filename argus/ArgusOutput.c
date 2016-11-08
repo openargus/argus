@@ -22,9 +22,9 @@
  */
 
 /*
- * $Id: //depot/gargoyle/argus/argus/ArgusOutput.c#14 $
- * $DateTime: 2016/10/10 23:18:27 $
- * $Change: 3220 $
+ * $Id: //depot/gargoyle/argus/argus/ArgusOutput.c#16 $
+ * $DateTime: 2016/10/27 18:40:41 $
+ * $Change: 3232 $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -705,7 +705,6 @@ ArgusOutputProcess(void *arg)
 #endif
                }
                ArgusFreeListRecord (rec);
-               output->ArgusLastMarUpdateTime   = output->ArgusGlobalTime;
             }
          }
 
@@ -1707,7 +1706,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
    }
 
    if (retn) {
-      extern int ArgusAllocTotal, ArgusFreeTotal, ArgusAllocBytes;
+      extern int ArgusAllocTotal, ArgusFreeTotal;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
       struct ArgusSourceStruct *aSrc = NULL;
       struct timeval now;
@@ -1828,9 +1827,12 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.clients = output->ArgusClients->count;
 
       rec->argus_mar.bufs     = ArgusAllocTotal - ArgusFreeTotal;
-      rec->argus_mar.bytes    = ArgusAllocBytes;
       rec->argus_mar.suserlen = getArgusUserDataLen(ArgusModel);
       rec->argus_mar.duserlen = getArgusUserDataLen(ArgusModel);
+
+      gettimeofday (&now, 0L);
+      output->ArgusLastMarUpdateTime.tv_sec  = now.tv_sec;
+      output->ArgusLastMarUpdateTime.tv_usec = now.tv_usec;
    }
 
 #ifdef ARGUSDEBUG
