@@ -6,12 +6,8 @@
 	objectVersion = 46;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		AD30E9371E33CC3F0007F590 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = AD30E9361E33CC3F0007F590 /* main.c */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXCopyFilesBuildPhase section */
-		AD30E9311E33CC3F0007F590 /* CopyFiles */ = {
+		ADC1C7181E33D1100027C4D1 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -23,12 +19,184 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AD30E9331E33CC3F0007F590 /* argus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = argus; sourceTree = BUILT_PRODUCTS_DIR; };
-		AD30E9361E33CC3F0007F590 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		ADC1C71A1E33D1100027C4D1 /* argusDoc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = argusDoc; sourceTree = BUILT_PRODUCTS_DIR; };
+		ADC1C7211E33D13E0027C4D1 /* aclocal.m4 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = aclocal.m4; sourceTree = "<group>"; };
+		ADC1C7221E33D13E0027C4D1 /* acsite.m4 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = acsite.m4; sourceTree = "<group>"; };
+		ADC1C7241E33D13E0027C4D1 /* argus.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = argus.c; sourceTree = "<group>"; };
+		ADC1C7251E33D13E0027C4D1 /* argus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus.h; sourceTree = "<group>"; };
+		ADC1C7271E33D13E0027C4D1 /* Argus802.11.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Argus802.11.c; sourceTree = "<group>"; };
+		ADC1C7291E33D13E0027C4D1 /* ArgusApp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusApp.c; sourceTree = "<group>"; };
+		ADC1C72B1E33D13E0027C4D1 /* ArgusArp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusArp.c; sourceTree = "<group>"; };
+		ADC1C72D1E33D13E0027C4D1 /* ArgusAuth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusAuth.c; sourceTree = "<group>"; };
+		ADC1C72F1E33D13E0027C4D1 /* ArgusEsp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusEsp.c; sourceTree = "<group>"; };
+		ADC1C7311E33D13E0027C4D1 /* ArgusEvents.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusEvents.c; sourceTree = "<group>"; };
+		ADC1C7321E33D13E0027C4D1 /* ArgusEvents.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusEvents.h; sourceTree = "<group>"; };
+		ADC1C7341E33D13E0027C4D1 /* ArgusFrag.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusFrag.c; sourceTree = "<group>"; };
+		ADC1C7361E33D13E0027C4D1 /* ArgusIcmp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusIcmp.c; sourceTree = "<group>"; };
+		ADC1C7381E33D13E0027C4D1 /* ArgusIgmp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusIgmp.c; sourceTree = "<group>"; };
+		ADC1C73A1E33D13E0027C4D1 /* ArgusIsis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusIsis.c; sourceTree = "<group>"; };
+		ADC1C73C1E33D13E0027C4D1 /* ArgusL2TP.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusL2TP.c; sourceTree = "<group>"; };
+		ADC1C73D1E33D13E0027C4D1 /* ArgusL2TP.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusL2TP.h; sourceTree = "<group>"; };
+		ADC1C73F1E33D13E0027C4D1 /* ArgusLcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusLcp.c; sourceTree = "<group>"; };
+		ADC1C7411E33D13E0027C4D1 /* ArgusMac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusMac.c; sourceTree = "<group>"; };
+		ADC1C7421E33D13E0027C4D1 /* ArgusModeler.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusModeler.c; sourceTree = "<group>"; };
+		ADC1C7431E33D13E0027C4D1 /* ArgusModeler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusModeler.h; sourceTree = "<group>"; };
+		ADC1C7451E33D13E0027C4D1 /* ArgusNetflow.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusNetflow.c; sourceTree = "<group>"; };
+		ADC1C7461E33D13F0027C4D1 /* ArgusNetflow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusNetflow.h; sourceTree = "<group>"; };
+		ADC1C7481E33D13F0027C4D1 /* ArgusOutput.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusOutput.c; sourceTree = "<group>"; };
+		ADC1C7491E33D13F0027C4D1 /* ArgusOutput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusOutput.h; sourceTree = "<group>"; };
+		ADC1C74B1E33D13F0027C4D1 /* ArgusSflow.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusSflow.c; sourceTree = "<group>"; };
+		ADC1C74C1E33D13F0027C4D1 /* ArgusSflow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusSflow.h; sourceTree = "<group>"; };
+		ADC1C74E1E33D13F0027C4D1 /* ArgusSource.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusSource.c; sourceTree = "<group>"; };
+		ADC1C74F1E33D13F0027C4D1 /* ArgusSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusSource.h; sourceTree = "<group>"; };
+		ADC1C7511E33D13F0027C4D1 /* ArgusTcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusTcp.c; sourceTree = "<group>"; };
+		ADC1C7531E33D13F0027C4D1 /* ArgusUdp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusUdp.c; sourceTree = "<group>"; };
+		ADC1C7551E33D13F0027C4D1 /* ArgusUdt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusUdt.c; sourceTree = "<group>"; };
+		ADC1C7571E33D13F0027C4D1 /* ArgusUtil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusUtil.c; sourceTree = "<group>"; };
+		ADC1C7581E33D13F0027C4D1 /* ArgusUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusUtil.h; sourceTree = "<group>"; };
+		ADC1C75A1E33D13F0027C4D1 /* ArgusVxLan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ArgusVxLan.c; sourceTree = "<group>"; };
+		ADC1C75B1E33D13F0027C4D1 /* ArgusVxLan.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgusVxLan.h; sourceTree = "<group>"; };
+		ADC1C75D1E33D13F0027C4D1 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		ADC1C75E1E33D13F0027C4D1 /* Makefile.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.in; sourceTree = "<group>"; };
+		ADC1C75F1E33D1A00027C4D1 /* ChangeLog */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ChangeLog; sourceTree = "<group>"; };
+		ADC1C7611E33D1A00027C4D1 /* argus_auth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = argus_auth.c; sourceTree = "<group>"; };
+		ADC1C7621E33D1A00027C4D1 /* argus_code.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = argus_code.c; sourceTree = "<group>"; };
+		ADC1C7641E33D1A00027C4D1 /* argus_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = argus_filter.c; sourceTree = "<group>"; };
+		ADC1C7661E33D1A00027C4D1 /* argus_util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = argus_util.c; sourceTree = "<group>"; };
+		ADC1C7681E33D1A00027C4D1 /* grammar.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = grammar.c; sourceTree = "<group>"; };
+		ADC1C76A1E33D1A00027C4D1 /* grammar.y */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.yacc; path = grammar.y; sourceTree = "<group>"; };
+		ADC1C76B1E33D1A00027C4D1 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		ADC1C76C1E33D1A00027C4D1 /* Makefile.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.in; sourceTree = "<group>"; };
+		ADC1C76D1E33D1A00027C4D1 /* scanner.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = scanner.c; sourceTree = "<group>"; };
+		ADC1C76E1E33D1A00027C4D1 /* scanner.l */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.lex; path = scanner.l; sourceTree = "<group>"; };
+		ADC1C7701E33D1A00027C4D1 /* tokdefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tokdefs.h; sourceTree = "<group>"; };
+		ADC1C7711E33D1A00027C4D1 /* version.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = version.c; sourceTree = "<group>"; };
+		ADC1C7741E33D1A00027C4D1 /* config.guess */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = config.guess; sourceTree = "<group>"; };
+		ADC1C7751E33D1A00027C4D1 /* config.sub */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = config.sub; sourceTree = "<group>"; };
+		ADC1C7761E33D1A00027C4D1 /* install-sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "install-sh"; sourceTree = "<group>"; };
+		ADC1C7771E33D1A00027C4D1 /* mkinstalldirs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = mkinstalldirs; sourceTree = "<group>"; };
+		ADC1C7781E33D1A00027C4D1 /* configure.ac */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
+		ADC1C7791E33D1A00027C4D1 /* COPYING */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
+		ADC1C77A1E33D1A00027C4D1 /* CREDITS */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CREDITS; sourceTree = "<group>"; };
+		ADC1C77C1E33D1A00027C4D1 /* argus.postinst */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = argus.postinst; sourceTree = "<group>"; };
+		ADC1C77D1E33D1A00027C4D1 /* argus.postrm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = argus.postrm; sourceTree = "<group>"; };
+		ADC1C77E1E33D1A00027C4D1 /* argus.preinst */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = argus.preinst; sourceTree = "<group>"; };
+		ADC1C77F1E33D1A00027C4D1 /* argus.prerm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = argus.prerm; sourceTree = "<group>"; };
+		ADC1C7801E33D1A00027C4D1 /* changelog */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = changelog; sourceTree = "<group>"; };
+		ADC1C7811E33D1A00027C4D1 /* compat */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = compat; sourceTree = "<group>"; };
+		ADC1C7821E33D1A00027C4D1 /* control */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = control; sourceTree = "<group>"; };
+		ADC1C7831E33D1A00027C4D1 /* copyright */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = copyright; sourceTree = "<group>"; };
+		ADC1C7841E33D1A00027C4D1 /* docs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = docs; sourceTree = "<group>"; };
+		ADC1C7851E33D1A00027C4D1 /* install */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = install; sourceTree = "<group>"; };
+		ADC1C7861E33D1A00027C4D1 /* manpages */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = manpages; sourceTree = "<group>"; };
+		ADC1C7871E33D1A00027C4D1 /* rules */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rules; sourceTree = "<group>"; };
+		ADC1C7891E33D1A00027C4D1 /* format */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = format; sourceTree = "<group>"; };
+		ADC1C78B1E33D1A00027C4D1 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		ADC1C78D1E33D1A00027C4D1 /* argus-airport.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "argus-airport.sh"; sourceTree = "<group>"; };
+		ADC1C78E1E33D1A00027C4D1 /* argus-extip.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; path = "argus-extip.pl"; sourceTree = "<group>"; };
+		ADC1C78F1E33D1A00027C4D1 /* argus-lsof.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; path = "argus-lsof.pl"; sourceTree = "<group>"; };
+		ADC1C7901E33D1A00027C4D1 /* argus-netstat.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; path = "argus-netstat.pl"; sourceTree = "<group>"; };
+		ADC1C7911E33D1A00027C4D1 /* argus-snmp.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "argus-snmp.sh"; sourceTree = "<group>"; };
+		ADC1C7921E33D1A00027C4D1 /* argus-stumble.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; path = "argus-stumble.pl"; sourceTree = "<group>"; };
+		ADC1C7931E33D1A00027C4D1 /* argus-stumbler.pl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.perl; path = "argus-stumbler.pl"; sourceTree = "<group>"; };
+		ADC1C7941E33D1A00027C4D1 /* argus-vmstat.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "argus-vmstat.sh"; sourceTree = "<group>"; };
+		ADC1C7951E33D1A00027C4D1 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		ADC1C7961E33D1A00027C4D1 /* Makefile.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.in; sourceTree = "<group>"; };
+		ADC1C7971E33D1A00027C4D1 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		ADC1C79A1E33D1A00027C4D1 /* bootp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bootp.h; sourceTree = "<group>"; };
+		ADC1C79B1E33D1A00027C4D1 /* cflowd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cflowd.h; sourceTree = "<group>"; };
+		ADC1C79C1E33D1A00027C4D1 /* CflowdFlowPdu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CflowdFlowPdu.h; sourceTree = "<group>"; };
+		ADC1C79D1E33D1A00027C4D1 /* cons_def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cons_def.h; sourceTree = "<group>"; };
+		ADC1C79E1E33D1A00027C4D1 /* cons_out.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cons_out.h; sourceTree = "<group>"; };
+		ADC1C79F1E33D1A00027C4D1 /* extract.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = extract.h; sourceTree = "<group>"; };
+		ADC1C7A01E33D1A00027C4D1 /* fddi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fddi.h; sourceTree = "<group>"; };
+		ADC1C7A11E33D1A00027C4D1 /* gencode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gencode.h; sourceTree = "<group>"; };
+		ADC1C7A21E33D1A00027C4D1 /* global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = global.h; sourceTree = "<group>"; };
+		ADC1C7A31E33D1A00027C4D1 /* ieee802_11.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ieee802_11.h; sourceTree = "<group>"; };
+		ADC1C7A41E33D1A00027C4D1 /* md5.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = md5.h; sourceTree = "<group>"; };
+		ADC1C7A51E33D1A00027C4D1 /* ppp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ppp.h; sourceTree = "<group>"; };
+		ADC1C7A61E33D1A00027C4D1 /* saslint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = saslint.h; sourceTree = "<group>"; };
+		ADC1C7A71E33D1A00027C4D1 /* sll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sll.h; sourceTree = "<group>"; };
+		ADC1C7A81E33D1A00027C4D1 /* argus-namedb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "argus-namedb.h"; sourceTree = "<group>"; };
+		ADC1C7A91E33D1A00027C4D1 /* argus_client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_client.h; sourceTree = "<group>"; };
+		ADC1C7AA1E33D1A00027C4D1 /* argus_compat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_compat.h; sourceTree = "<group>"; };
+		ADC1C7AB1E33D1A00027C4D1 /* argus_config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_config.h; sourceTree = "<group>"; };
+		ADC1C7AC1E33D1A00027C4D1 /* argus_config.h.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus_config.h.in; sourceTree = "<group>"; };
+		ADC1C7AD1E33D1A00027C4D1 /* argus_dag.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_dag.h; sourceTree = "<group>"; };
+		ADC1C7AE1E33D1A00027C4D1 /* argus_debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_debug.h; sourceTree = "<group>"; };
+		ADC1C7AF1E33D1A00027C4D1 /* argus_def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_def.h; sourceTree = "<group>"; };
+		ADC1C7B01E33D1A00027C4D1 /* argus_def_v2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_def_v2.h; sourceTree = "<group>"; };
+		ADC1C7B11E33D1A00027C4D1 /* argus_dscodepoints.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_dscodepoints.h; sourceTree = "<group>"; };
+		ADC1C7B21E33D1A00027C4D1 /* argus_encapsulations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_encapsulations.h; sourceTree = "<group>"; };
+		ADC1C7B31E33D1A00027C4D1 /* argus_ethernames.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_ethernames.h; sourceTree = "<group>"; };
+		ADC1C7B41E33D1A00027C4D1 /* argus_ethertype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_ethertype.h; sourceTree = "<group>"; };
+		ADC1C7B51E33D1A00027C4D1 /* argus_filter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_filter.h; sourceTree = "<group>"; };
+		ADC1C7B61E33D1A00027C4D1 /* argus_gmpls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_gmpls.h; sourceTree = "<group>"; };
+		ADC1C7B71E33D1A00027C4D1 /* argus_gre.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_gre.h; sourceTree = "<group>"; };
+		ADC1C7B81E33D1A00027C4D1 /* argus_int.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_int.h; sourceTree = "<group>"; };
+		ADC1C7B91E33D1A00027C4D1 /* argus_isis.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_isis.h; sourceTree = "<group>"; };
+		ADC1C7BA1E33D1A00027C4D1 /* argus_llc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_llc.h; sourceTree = "<group>"; };
+		ADC1C7BB1E33D1A00027C4D1 /* argus_namedb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_namedb.h; sourceTree = "<group>"; };
+		ADC1C7BC1E33D1A00027C4D1 /* argus_os.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_os.h; sourceTree = "<group>"; };
+		ADC1C7BD1E33D1A00027C4D1 /* argus_out.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_out.h; sourceTree = "<group>"; };
+		ADC1C7BE1E33D1A00027C4D1 /* argus_parse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_parse.h; sourceTree = "<group>"; };
+		ADC1C7BF1E33D1A00027C4D1 /* argus_parser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_parser.h; sourceTree = "<group>"; };
+		ADC1C7C01E33D1A00027C4D1 /* argus_udt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_udt.h; sourceTree = "<group>"; };
+		ADC1C7C11E33D1A00027C4D1 /* argus_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_util.h; sourceTree = "<group>"; };
+		ADC1C7C21E33D1A00027C4D1 /* argus_v3_def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argus_v3_def.h; sourceTree = "<group>"; };
+		ADC1C7C31E33D1A00027C4D1 /* CflowdFlowPdu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CflowdFlowPdu.h; sourceTree = "<group>"; };
+		ADC1C7C61E33D1A00027C4D1 /* if_arp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = if_arp.h; sourceTree = "<group>"; };
+		ADC1C7C71E33D1A00027C4D1 /* igmp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = igmp.h; sourceTree = "<group>"; };
+		ADC1C7C91E33D1A00027C4D1 /* if_arp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = if_arp.h; sourceTree = "<group>"; };
+		ADC1C7CB1E33D1A00027C4D1 /* icmp6.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = icmp6.h; sourceTree = "<group>"; };
+		ADC1C7CC1E33D1A00027C4D1 /* if_ether.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = if_ether.h; sourceTree = "<group>"; };
+		ADC1C7CD1E33D1A00027C4D1 /* igmp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = igmp.h; sourceTree = "<group>"; };
+		ADC1C7CE1E33D1A00027C4D1 /* ip6.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ip6.h; sourceTree = "<group>"; };
+		ADC1C7CF1E33D1A00027C4D1 /* ip_icmp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ip_icmp.h; sourceTree = "<group>"; };
+		ADC1C7D01E33D1A00027C4D1 /* ip_var.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ip_var.h; sourceTree = "<group>"; };
+		ADC1C7D11E33D1A00027C4D1 /* tcp_var.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tcp_var.h; sourceTree = "<group>"; };
+		ADC1C7D21E33D1A00027C4D1 /* tcpip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tcpip.h; sourceTree = "<group>"; };
+		ADC1C7D31E33D1A00027C4D1 /* udp_var.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = udp_var.h; sourceTree = "<group>"; };
+		ADC1C7D51E33D1A00027C4D1 /* routed.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = routed.h; sourceTree = "<group>"; };
+		ADC1C7D71E33D1A00027C4D1 /* mbuf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mbuf.h; sourceTree = "<group>"; };
+		ADC1C7D91E33D1A00027C4D1 /* arcnet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arcnet.h; sourceTree = "<group>"; };
+		ADC1C7DA1E33D1A00027C4D1 /* etherdefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = etherdefs.h; sourceTree = "<group>"; };
+		ADC1C7DB1E33D1A00027C4D1 /* nff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nff.h; sourceTree = "<group>"; };
+		ADC1C7DC1E33D1A00027C4D1 /* ppp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ppp.h; sourceTree = "<group>"; };
+		ADC1C7DD1E33D1A00027C4D1 /* slcompress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slcompress.h; sourceTree = "<group>"; };
+		ADC1C7DE1E33D1A00027C4D1 /* slip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slip.h; sourceTree = "<group>"; };
+		ADC1C7E11E33D1A00027C4D1 /* rtp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rtp.h; sourceTree = "<group>"; };
+		ADC1C7E31E33D1A00027C4D1 /* rtp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rtp.h; sourceTree = "<group>"; };
+		ADC1C7E41E33D1A00027C4D1 /* tcp_fsm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tcp_fsm.h; sourceTree = "<group>"; };
+		ADC1C7E51E33D1A00027C4D1 /* INSTALL */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = INSTALL; sourceTree = "<group>"; };
+		ADC1C7E71E33D1A00027C4D1 /* Makefile.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.in; sourceTree = "<group>"; };
+		ADC1C7EA1E33D1A00027C4D1 /* argus.conf.5 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus.conf.5; sourceTree = "<group>"; };
+		ADC1C7EC1E33D1A00027C4D1 /* argus.8 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus.8; sourceTree = "<group>"; };
+		ADC1C7ED1E33D1A00027C4D1 /* MANIFEST */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = MANIFEST; sourceTree = "<group>"; };
+		ADC1C7EF1E33D1A00027C4D1 /* argus.conf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus.conf; sourceTree = "<group>"; };
+		ADC1C7F01E33D1A00027C4D1 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		ADC1C7F31E33D1A00027C4D1 /* argus */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = argus; sourceTree = "<group>"; };
+		ADC1C7F51E33D1A00027C4D1 /* argus.conf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus.conf; sourceTree = "<group>"; };
+		ADC1C7F71E33D1A00027C4D1 /* argus */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus; sourceTree = "<group>"; };
+		ADC1C7F91E33D1A00027C4D1 /* argus-setup */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "argus-setup"; sourceTree = "<group>"; };
+		ADC1C7FA1E33D1A00027C4D1 /* argus.service */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus.service; sourceTree = "<group>"; };
+		ADC1C7FB1E33D1A00027C4D1 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		ADC1C7FE1E33D1A00027C4D1 /* argusarchive */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = argusarchive; sourceTree = "<group>"; };
+		ADC1C7FF1E33D1A00027C4D1 /* README.argusarchive */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.argusarchive; sourceTree = "<group>"; };
+		ADC1C8011E33D1A00027C4D1 /* argus.conf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus.conf; sourceTree = "<group>"; };
+		ADC1C8031E33D1A00027C4D1 /* sample */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = sample; sourceTree = "<group>"; };
+		ADC1C8041E33D1A00027C4D1 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		ADC1C8061E33D1A00027C4D1 /* argus */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = argus; sourceTree = "<group>"; };
+		ADC1C8071E33D1A00027C4D1 /* argus.service */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = argus.service; sourceTree = "<group>"; };
+		ADC1C8081E33D1A00027C4D1 /* com.qosient.argus.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = com.qosient.argus.plist; sourceTree = "<group>"; };
+		ADC1C8091E33D1A00027C4D1 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		ADC1C80B1E33D1A00027C4D1 /* crontab */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crontab; sourceTree = "<group>"; };
+		ADC1C80C1E33D1A00027C4D1 /* magic */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = magic; sourceTree = "<group>"; };
+		ADC1C80D1E33D1A00027C4D1 /* VERSION */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = VERSION; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		AD30E9301E33CC3F0007F590 /* Frameworks */ = {
+		ADC1C7171E33D1100027C4D1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -41,7 +209,27 @@
 		AD30E92A1E33CC3F0007F590 = {
 			isa = PBXGroup;
 			children = (
-				AD30E9351E33CC3F0007F590 /* argus */,
+				ADC1C75F1E33D1A00027C4D1 /* ChangeLog */,
+				ADC1C7601E33D1A00027C4D1 /* common */,
+				ADC1C7731E33D1A00027C4D1 /* config */,
+				ADC1C7781E33D1A00027C4D1 /* configure.ac */,
+				ADC1C7791E33D1A00027C4D1 /* COPYING */,
+				ADC1C77A1E33D1A00027C4D1 /* CREDITS */,
+				ADC1C77B1E33D1A00027C4D1 /* debian */,
+				ADC1C78A1E33D1A00027C4D1 /* doc */,
+				ADC1C78C1E33D1A00027C4D1 /* events */,
+				ADC1C7981E33D1A00027C4D1 /* include */,
+				ADC1C7E51E33D1A00027C4D1 /* INSTALL */,
+				ADC1C7E71E33D1A00027C4D1 /* Makefile.in */,
+				ADC1C7E81E33D1A00027C4D1 /* man */,
+				ADC1C7ED1E33D1A00027C4D1 /* MANIFEST */,
+				ADC1C7EE1E33D1A00027C4D1 /* pkg */,
+				ADC1C7FB1E33D1A00027C4D1 /* README */,
+				ADC1C7FC1E33D1A00027C4D1 /* support */,
+				ADC1C80D1E33D1A00027C4D1 /* VERSION */,
+				ADC1C7211E33D13E0027C4D1 /* aclocal.m4 */,
+				ADC1C7221E33D13E0027C4D1 /* acsite.m4 */,
+				ADC1C7231E33D13E0027C4D1 /* argus */,
 				AD30E9341E33CC3F0007F590 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -49,37 +237,469 @@
 		AD30E9341E33CC3F0007F590 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AD30E9331E33CC3F0007F590 /* argus */,
+				ADC1C71A1E33D1100027C4D1 /* argusDoc */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		AD30E9351E33CC3F0007F590 /* argus */ = {
+		ADC1C7231E33D13E0027C4D1 /* argus */ = {
 			isa = PBXGroup;
 			children = (
-				AD30E9361E33CC3F0007F590 /* main.c */,
+				ADC1C7241E33D13E0027C4D1 /* argus.c */,
+				ADC1C7251E33D13E0027C4D1 /* argus.h */,
+				ADC1C7271E33D13E0027C4D1 /* Argus802.11.c */,
+				ADC1C7291E33D13E0027C4D1 /* ArgusApp.c */,
+				ADC1C72B1E33D13E0027C4D1 /* ArgusArp.c */,
+				ADC1C72D1E33D13E0027C4D1 /* ArgusAuth.c */,
+				ADC1C72F1E33D13E0027C4D1 /* ArgusEsp.c */,
+				ADC1C7311E33D13E0027C4D1 /* ArgusEvents.c */,
+				ADC1C7321E33D13E0027C4D1 /* ArgusEvents.h */,
+				ADC1C7341E33D13E0027C4D1 /* ArgusFrag.c */,
+				ADC1C7361E33D13E0027C4D1 /* ArgusIcmp.c */,
+				ADC1C7381E33D13E0027C4D1 /* ArgusIgmp.c */,
+				ADC1C73A1E33D13E0027C4D1 /* ArgusIsis.c */,
+				ADC1C73C1E33D13E0027C4D1 /* ArgusL2TP.c */,
+				ADC1C73D1E33D13E0027C4D1 /* ArgusL2TP.h */,
+				ADC1C73F1E33D13E0027C4D1 /* ArgusLcp.c */,
+				ADC1C7411E33D13E0027C4D1 /* ArgusMac.c */,
+				ADC1C7421E33D13E0027C4D1 /* ArgusModeler.c */,
+				ADC1C7431E33D13E0027C4D1 /* ArgusModeler.h */,
+				ADC1C7451E33D13E0027C4D1 /* ArgusNetflow.c */,
+				ADC1C7461E33D13F0027C4D1 /* ArgusNetflow.h */,
+				ADC1C7481E33D13F0027C4D1 /* ArgusOutput.c */,
+				ADC1C7491E33D13F0027C4D1 /* ArgusOutput.h */,
+				ADC1C74B1E33D13F0027C4D1 /* ArgusSflow.c */,
+				ADC1C74C1E33D13F0027C4D1 /* ArgusSflow.h */,
+				ADC1C74E1E33D13F0027C4D1 /* ArgusSource.c */,
+				ADC1C74F1E33D13F0027C4D1 /* ArgusSource.h */,
+				ADC1C7511E33D13F0027C4D1 /* ArgusTcp.c */,
+				ADC1C7531E33D13F0027C4D1 /* ArgusUdp.c */,
+				ADC1C7551E33D13F0027C4D1 /* ArgusUdt.c */,
+				ADC1C7571E33D13F0027C4D1 /* ArgusUtil.c */,
+				ADC1C7581E33D13F0027C4D1 /* ArgusUtil.h */,
+				ADC1C75A1E33D13F0027C4D1 /* ArgusVxLan.c */,
+				ADC1C75B1E33D13F0027C4D1 /* ArgusVxLan.h */,
+				ADC1C75D1E33D13F0027C4D1 /* Makefile */,
+				ADC1C75E1E33D13F0027C4D1 /* Makefile.in */,
 			);
 			path = argus;
 			sourceTree = "<group>";
 		};
+		ADC1C7601E33D1A00027C4D1 /* common */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7611E33D1A00027C4D1 /* argus_auth.c */,
+				ADC1C7621E33D1A00027C4D1 /* argus_code.c */,
+				ADC1C7641E33D1A00027C4D1 /* argus_filter.c */,
+				ADC1C7661E33D1A00027C4D1 /* argus_util.c */,
+				ADC1C7681E33D1A00027C4D1 /* grammar.c */,
+				ADC1C76A1E33D1A00027C4D1 /* grammar.y */,
+				ADC1C76B1E33D1A00027C4D1 /* Makefile */,
+				ADC1C76C1E33D1A00027C4D1 /* Makefile.in */,
+				ADC1C76D1E33D1A00027C4D1 /* scanner.c */,
+				ADC1C76E1E33D1A00027C4D1 /* scanner.l */,
+				ADC1C7701E33D1A00027C4D1 /* tokdefs.h */,
+				ADC1C7711E33D1A00027C4D1 /* version.c */,
+			);
+			path = common;
+			sourceTree = "<group>";
+		};
+		ADC1C7731E33D1A00027C4D1 /* config */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7741E33D1A00027C4D1 /* config.guess */,
+				ADC1C7751E33D1A00027C4D1 /* config.sub */,
+				ADC1C7761E33D1A00027C4D1 /* install-sh */,
+				ADC1C7771E33D1A00027C4D1 /* mkinstalldirs */,
+			);
+			path = config;
+			sourceTree = "<group>";
+		};
+		ADC1C77B1E33D1A00027C4D1 /* debian */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C77C1E33D1A00027C4D1 /* argus.postinst */,
+				ADC1C77D1E33D1A00027C4D1 /* argus.postrm */,
+				ADC1C77E1E33D1A00027C4D1 /* argus.preinst */,
+				ADC1C77F1E33D1A00027C4D1 /* argus.prerm */,
+				ADC1C7801E33D1A00027C4D1 /* changelog */,
+				ADC1C7811E33D1A00027C4D1 /* compat */,
+				ADC1C7821E33D1A00027C4D1 /* control */,
+				ADC1C7831E33D1A00027C4D1 /* copyright */,
+				ADC1C7841E33D1A00027C4D1 /* docs */,
+				ADC1C7851E33D1A00027C4D1 /* install */,
+				ADC1C7861E33D1A00027C4D1 /* manpages */,
+				ADC1C7871E33D1A00027C4D1 /* rules */,
+				ADC1C7881E33D1A00027C4D1 /* source */,
+			);
+			path = debian;
+			sourceTree = "<group>";
+		};
+		ADC1C7881E33D1A00027C4D1 /* source */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7891E33D1A00027C4D1 /* format */,
+			);
+			path = source;
+			sourceTree = "<group>";
+		};
+		ADC1C78A1E33D1A00027C4D1 /* doc */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C78B1E33D1A00027C4D1 /* README */,
+			);
+			path = doc;
+			sourceTree = "<group>";
+		};
+		ADC1C78C1E33D1A00027C4D1 /* events */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C78D1E33D1A00027C4D1 /* argus-airport.sh */,
+				ADC1C78E1E33D1A00027C4D1 /* argus-extip.pl */,
+				ADC1C78F1E33D1A00027C4D1 /* argus-lsof.pl */,
+				ADC1C7901E33D1A00027C4D1 /* argus-netstat.pl */,
+				ADC1C7911E33D1A00027C4D1 /* argus-snmp.sh */,
+				ADC1C7921E33D1A00027C4D1 /* argus-stumble.pl */,
+				ADC1C7931E33D1A00027C4D1 /* argus-stumbler.pl */,
+				ADC1C7941E33D1A00027C4D1 /* argus-vmstat.sh */,
+				ADC1C7951E33D1A00027C4D1 /* Makefile */,
+				ADC1C7961E33D1A00027C4D1 /* Makefile.in */,
+				ADC1C7971E33D1A00027C4D1 /* README */,
+			);
+			path = events;
+			sourceTree = "<group>";
+		};
+		ADC1C7981E33D1A00027C4D1 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7991E33D1A00027C4D1 /* argus */,
+				ADC1C7A81E33D1A00027C4D1 /* argus-namedb.h */,
+				ADC1C7A91E33D1A00027C4D1 /* argus_client.h */,
+				ADC1C7AA1E33D1A00027C4D1 /* argus_compat.h */,
+				ADC1C7AB1E33D1A00027C4D1 /* argus_config.h */,
+				ADC1C7AC1E33D1A00027C4D1 /* argus_config.h.in */,
+				ADC1C7AD1E33D1A00027C4D1 /* argus_dag.h */,
+				ADC1C7AE1E33D1A00027C4D1 /* argus_debug.h */,
+				ADC1C7AF1E33D1A00027C4D1 /* argus_def.h */,
+				ADC1C7B01E33D1A00027C4D1 /* argus_def_v2.h */,
+				ADC1C7B11E33D1A00027C4D1 /* argus_dscodepoints.h */,
+				ADC1C7B21E33D1A00027C4D1 /* argus_encapsulations.h */,
+				ADC1C7B31E33D1A00027C4D1 /* argus_ethernames.h */,
+				ADC1C7B41E33D1A00027C4D1 /* argus_ethertype.h */,
+				ADC1C7B51E33D1A00027C4D1 /* argus_filter.h */,
+				ADC1C7B61E33D1A00027C4D1 /* argus_gmpls.h */,
+				ADC1C7B71E33D1A00027C4D1 /* argus_gre.h */,
+				ADC1C7B81E33D1A00027C4D1 /* argus_int.h */,
+				ADC1C7B91E33D1A00027C4D1 /* argus_isis.h */,
+				ADC1C7BA1E33D1A00027C4D1 /* argus_llc.h */,
+				ADC1C7BB1E33D1A00027C4D1 /* argus_namedb.h */,
+				ADC1C7BC1E33D1A00027C4D1 /* argus_os.h */,
+				ADC1C7BD1E33D1A00027C4D1 /* argus_out.h */,
+				ADC1C7BE1E33D1A00027C4D1 /* argus_parse.h */,
+				ADC1C7BF1E33D1A00027C4D1 /* argus_parser.h */,
+				ADC1C7C01E33D1A00027C4D1 /* argus_udt.h */,
+				ADC1C7C11E33D1A00027C4D1 /* argus_util.h */,
+				ADC1C7C21E33D1A00027C4D1 /* argus_v3_def.h */,
+				ADC1C7C31E33D1A00027C4D1 /* CflowdFlowPdu.h */,
+				ADC1C7C41E33D1A00027C4D1 /* cygwin-include */,
+				ADC1C7D81E33D1A00027C4D1 /* net */,
+				ADC1C7DF1E33D1A00027C4D1 /* netbsd-include */,
+				ADC1C7E21E33D1A00027C4D1 /* netinet */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		ADC1C7991E33D1A00027C4D1 /* argus */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C79A1E33D1A00027C4D1 /* bootp.h */,
+				ADC1C79B1E33D1A00027C4D1 /* cflowd.h */,
+				ADC1C79C1E33D1A00027C4D1 /* CflowdFlowPdu.h */,
+				ADC1C79D1E33D1A00027C4D1 /* cons_def.h */,
+				ADC1C79E1E33D1A00027C4D1 /* cons_out.h */,
+				ADC1C79F1E33D1A00027C4D1 /* extract.h */,
+				ADC1C7A01E33D1A00027C4D1 /* fddi.h */,
+				ADC1C7A11E33D1A00027C4D1 /* gencode.h */,
+				ADC1C7A21E33D1A00027C4D1 /* global.h */,
+				ADC1C7A31E33D1A00027C4D1 /* ieee802_11.h */,
+				ADC1C7A41E33D1A00027C4D1 /* md5.h */,
+				ADC1C7A51E33D1A00027C4D1 /* ppp.h */,
+				ADC1C7A61E33D1A00027C4D1 /* saslint.h */,
+				ADC1C7A71E33D1A00027C4D1 /* sll.h */,
+			);
+			path = argus;
+			sourceTree = "<group>";
+		};
+		ADC1C7C41E33D1A00027C4D1 /* cygwin-include */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7C51E33D1A00027C4D1 /* linux */,
+				ADC1C7C81E33D1A00027C4D1 /* net */,
+				ADC1C7CA1E33D1A00027C4D1 /* netinet */,
+				ADC1C7D41E33D1A00027C4D1 /* protocols */,
+				ADC1C7D61E33D1A00027C4D1 /* sys */,
+			);
+			path = "cygwin-include";
+			sourceTree = "<group>";
+		};
+		ADC1C7C51E33D1A00027C4D1 /* linux */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7C61E33D1A00027C4D1 /* if_arp.h */,
+				ADC1C7C71E33D1A00027C4D1 /* igmp.h */,
+			);
+			path = linux;
+			sourceTree = "<group>";
+		};
+		ADC1C7C81E33D1A00027C4D1 /* net */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7C91E33D1A00027C4D1 /* if_arp.h */,
+			);
+			path = net;
+			sourceTree = "<group>";
+		};
+		ADC1C7CA1E33D1A00027C4D1 /* netinet */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7CB1E33D1A00027C4D1 /* icmp6.h */,
+				ADC1C7CC1E33D1A00027C4D1 /* if_ether.h */,
+				ADC1C7CD1E33D1A00027C4D1 /* igmp.h */,
+				ADC1C7CE1E33D1A00027C4D1 /* ip6.h */,
+				ADC1C7CF1E33D1A00027C4D1 /* ip_icmp.h */,
+				ADC1C7D01E33D1A00027C4D1 /* ip_var.h */,
+				ADC1C7D11E33D1A00027C4D1 /* tcp_var.h */,
+				ADC1C7D21E33D1A00027C4D1 /* tcpip.h */,
+				ADC1C7D31E33D1A00027C4D1 /* udp_var.h */,
+			);
+			path = netinet;
+			sourceTree = "<group>";
+		};
+		ADC1C7D41E33D1A00027C4D1 /* protocols */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7D51E33D1A00027C4D1 /* routed.h */,
+			);
+			path = protocols;
+			sourceTree = "<group>";
+		};
+		ADC1C7D61E33D1A00027C4D1 /* sys */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7D71E33D1A00027C4D1 /* mbuf.h */,
+			);
+			path = sys;
+			sourceTree = "<group>";
+		};
+		ADC1C7D81E33D1A00027C4D1 /* net */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7D91E33D1A00027C4D1 /* arcnet.h */,
+				ADC1C7DA1E33D1A00027C4D1 /* etherdefs.h */,
+				ADC1C7DB1E33D1A00027C4D1 /* nff.h */,
+				ADC1C7DC1E33D1A00027C4D1 /* ppp.h */,
+				ADC1C7DD1E33D1A00027C4D1 /* slcompress.h */,
+				ADC1C7DE1E33D1A00027C4D1 /* slip.h */,
+			);
+			path = net;
+			sourceTree = "<group>";
+		};
+		ADC1C7DF1E33D1A00027C4D1 /* netbsd-include */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7E01E33D1A00027C4D1 /* netinet */,
+			);
+			path = "netbsd-include";
+			sourceTree = "<group>";
+		};
+		ADC1C7E01E33D1A00027C4D1 /* netinet */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7E11E33D1A00027C4D1 /* rtp.h */,
+			);
+			path = netinet;
+			sourceTree = "<group>";
+		};
+		ADC1C7E21E33D1A00027C4D1 /* netinet */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7E31E33D1A00027C4D1 /* rtp.h */,
+				ADC1C7E41E33D1A00027C4D1 /* tcp_fsm.h */,
+			);
+			path = netinet;
+			sourceTree = "<group>";
+		};
+		ADC1C7E81E33D1A00027C4D1 /* man */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7E91E33D1A00027C4D1 /* man5 */,
+				ADC1C7EB1E33D1A00027C4D1 /* man8 */,
+			);
+			path = man;
+			sourceTree = "<group>";
+		};
+		ADC1C7E91E33D1A00027C4D1 /* man5 */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7EA1E33D1A00027C4D1 /* argus.conf.5 */,
+			);
+			path = man5;
+			sourceTree = "<group>";
+		};
+		ADC1C7EB1E33D1A00027C4D1 /* man8 */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7EC1E33D1A00027C4D1 /* argus.8 */,
+			);
+			path = man8;
+			sourceTree = "<group>";
+		};
+		ADC1C7EE1E33D1A00027C4D1 /* pkg */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7EF1E33D1A00027C4D1 /* argus.conf */,
+				ADC1C7F01E33D1A00027C4D1 /* README */,
+				ADC1C7F11E33D1A00027C4D1 /* rhel */,
+			);
+			path = pkg;
+			sourceTree = "<group>";
+		};
+		ADC1C7F11E33D1A00027C4D1 /* rhel */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7F21E33D1A00027C4D1 /* init.d */,
+				ADC1C7F41E33D1A00027C4D1 /* sasl2 */,
+				ADC1C7F61E33D1A00027C4D1 /* sysconfig */,
+				ADC1C7F81E33D1A00027C4D1 /* systemd */,
+			);
+			path = rhel;
+			sourceTree = "<group>";
+		};
+		ADC1C7F21E33D1A00027C4D1 /* init.d */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7F31E33D1A00027C4D1 /* argus */,
+			);
+			path = init.d;
+			sourceTree = "<group>";
+		};
+		ADC1C7F41E33D1A00027C4D1 /* sasl2 */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7F51E33D1A00027C4D1 /* argus.conf */,
+			);
+			path = sasl2;
+			sourceTree = "<group>";
+		};
+		ADC1C7F61E33D1A00027C4D1 /* sysconfig */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7F71E33D1A00027C4D1 /* argus */,
+			);
+			path = sysconfig;
+			sourceTree = "<group>";
+		};
+		ADC1C7F81E33D1A00027C4D1 /* systemd */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7F91E33D1A00027C4D1 /* argus-setup */,
+				ADC1C7FA1E33D1A00027C4D1 /* argus.service */,
+			);
+			path = systemd;
+			sourceTree = "<group>";
+		};
+		ADC1C7FC1E33D1A00027C4D1 /* support */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7FD1E33D1A00027C4D1 /* Archive */,
+				ADC1C8001E33D1A00027C4D1 /* Config */,
+				ADC1C8021E33D1A00027C4D1 /* Deployment */,
+				ADC1C8041E33D1A00027C4D1 /* README */,
+				ADC1C8051E33D1A00027C4D1 /* Startup */,
+				ADC1C80A1E33D1A00027C4D1 /* System */,
+			);
+			path = support;
+			sourceTree = "<group>";
+		};
+		ADC1C7FD1E33D1A00027C4D1 /* Archive */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C7FE1E33D1A00027C4D1 /* argusarchive */,
+				ADC1C7FF1E33D1A00027C4D1 /* README.argusarchive */,
+			);
+			path = Archive;
+			sourceTree = "<group>";
+		};
+		ADC1C8001E33D1A00027C4D1 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C8011E33D1A00027C4D1 /* argus.conf */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		ADC1C8021E33D1A00027C4D1 /* Deployment */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C8031E33D1A00027C4D1 /* sample */,
+			);
+			path = Deployment;
+			sourceTree = "<group>";
+		};
+		ADC1C8051E33D1A00027C4D1 /* Startup */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C8061E33D1A00027C4D1 /* argus */,
+				ADC1C8071E33D1A00027C4D1 /* argus.service */,
+				ADC1C8081E33D1A00027C4D1 /* com.qosient.argus.plist */,
+				ADC1C8091E33D1A00027C4D1 /* README */,
+			);
+			path = Startup;
+			sourceTree = "<group>";
+		};
+		ADC1C80A1E33D1A00027C4D1 /* System */ = {
+			isa = PBXGroup;
+			children = (
+				ADC1C80B1E33D1A00027C4D1 /* crontab */,
+				ADC1C80C1E33D1A00027C4D1 /* magic */,
+			);
+			path = System;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
-/* Begin PBXNativeTarget section */
-		AD30E9321E33CC3F0007F590 /* argus */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AD30E93A1E33CC3F0007F590 /* Build configuration list for PBXNativeTarget "argus" */;
+/* Begin PBXLegacyTarget section */
+		AD8E86291E33CDEF0004BC76 /* argus */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = AD8E862A1E33CDEF0004BC76 /* Build configuration list for PBXLegacyTarget "argus" */;
 			buildPhases = (
-				AD30E92F1E33CC3F0007F590 /* Sources */,
-				AD30E9301E33CC3F0007F590 /* Frameworks */,
-				AD30E9311E33CC3F0007F590 /* CopyFiles */,
+			);
+			buildToolPath = /usr/bin/make;
+			dependencies = (
+			);
+			name = argus;
+			passBuildSettingsInEnvironment = 1;
+			productName = argus;
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXNativeTarget section */
+		ADC1C7191E33D1100027C4D1 /* argusDoc */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ADC1C7201E33D1100027C4D1 /* Build configuration list for PBXNativeTarget "argusDoc" */;
+			buildPhases = (
+				ADC1C7161E33D1100027C4D1 /* Sources */,
+				ADC1C7171E33D1100027C4D1 /* Frameworks */,
+				ADC1C7181E33D1100027C4D1 /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = argus;
-			productName = argus;
-			productReference = AD30E9331E33CC3F0007F590 /* argus */;
+			name = argusDoc;
+			productName = argusDoc;
+			productReference = ADC1C71A1E33D1100027C4D1 /* argusDoc */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -91,7 +711,12 @@
 				LastUpgradeCheck = 0820;
 				ORGANIZATIONNAME = QoSient;
 				TargetAttributes = {
-					AD30E9321E33CC3F0007F590 = {
+					AD8E86291E33CDEF0004BC76 = {
+						CreatedOnToolsVersion = 8.2.1;
+						DevelopmentTeam = XBRPA3A7T3;
+						ProvisioningStyle = Automatic;
+					};
+					ADC1C7191E33D1100027C4D1 = {
 						CreatedOnToolsVersion = 8.2.1;
 						DevelopmentTeam = XBRPA3A7T3;
 						ProvisioningStyle = Automatic;
@@ -110,17 +735,17 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AD30E9321E33CC3F0007F590 /* argus */,
+				AD8E86291E33CDEF0004BC76 /* argus */,
+				ADC1C7191E33D1100027C4D1 /* argusDoc */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		AD30E92F1E33CC3F0007F590 /* Sources */ = {
+		ADC1C7161E33D1100027C4D1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AD30E9371E33CC3F0007F590 /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -214,7 +839,32 @@
 			};
 			name = Release;
 		};
-		AD30E93B1E33CC3F0007F590 /* Debug */ = {
+		AD8E862B1E33CDEF0004BC76 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUGGING_SYMBOLS = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = XBRPA3A7T3;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AD8E862C1E33CDEF0004BC76 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = XBRPA3A7T3;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		ADC1C71E1E33D1100027C4D1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				DEVELOPMENT_TEAM = XBRPA3A7T3;
@@ -222,7 +872,7 @@
 			};
 			name = Debug;
 		};
-		AD30E93C1E33CC3F0007F590 /* Release */ = {
+		ADC1C71F1E33D1100027C4D1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				DEVELOPMENT_TEAM = XBRPA3A7T3;
@@ -242,13 +892,23 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AD30E93A1E33CC3F0007F590 /* Build configuration list for PBXNativeTarget "argus" */ = {
+		AD8E862A1E33CDEF0004BC76 /* Build configuration list for PBXLegacyTarget "argus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AD30E93B1E33CC3F0007F590 /* Debug */,
-				AD30E93C1E33CC3F0007F590 /* Release */,
+				AD8E862B1E33CDEF0004BC76 /* Debug */,
+				AD8E862C1E33CDEF0004BC76 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ADC1C7201E33D1100027C4D1 /* Build configuration list for PBXNativeTarget "argusDoc" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ADC1C71E1E33D1100027C4D1 /* Debug */,
+				ADC1C71F1E33D1100027C4D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

@@ -40,6 +40,7 @@
 #define _GNU_SOURCE
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <syslog.h>
 #include <stdarg.h>
 
@@ -1168,6 +1169,17 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                                           }
                                        } else
                                           ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
+                                    } else
+                                    if (!(strcmp (optarg, "hostuuid"))) {
+                                       uuid_t id;
+                                       struct timespec ts = {0,0};
+                                       if (gethostuuid(id, &ts) == 0) {
+                                          char buf[64];
+                                          uuid_unparse(id, buf);
+                                          optarg = strdup(buf);
+                                       } else
+                                          ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
+
                                     } else
                                        ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` at line %d.\n", file, optarg, linenum);
                                  } else

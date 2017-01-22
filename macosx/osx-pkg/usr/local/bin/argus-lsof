@@ -33,7 +33,7 @@ my @args = "$lsof -i -n -P +c0";
 my $data;
 
 print "<ArgusEvent>\n";
-print "  <ArgusEventData Type = \"Program: $lsof -i -n -P\">\n";
+print "  <ArgusEventData Type = \"Program: $lsof -i -n -P +c0\">\n";
 
 open(SESAME, "@args |");
 
