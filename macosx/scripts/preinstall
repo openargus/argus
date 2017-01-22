@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+if /bin/launchctl list "com.qosient.argus" &> /dev/null; then
+    /bin/launchctl unload "/Library/LaunchDaemons/com.qosient.argus.plist"
+fi
