@@ -993,6 +993,24 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                               } else {
                                  dev->trans   = ArgusSourceTask->trans;
                                  dev->idtype  = ArgusSourceTask->type;
+                                 if (dev->idtype & ARGUS_TYPE_INTERFACE) {
+                                    int len = 0;
+                                    char inf[4];
+                                    bzero(inf, 4);
+                                    if (dev && (dev->name != NULL)) {
+                                       if ((len = strlen(dev->name)) > 4) {
+                                          bcopy(dev->name, &inf[0], 3);
+                                          if (isdigit((int)dev->name[len - 1]))
+                                             inf[3] = dev->name[len - 1];
+                                          else
+                                             inf[3] = dev->name[3];
+                                       } else
+                                          bcopy(dev->name, inf, len);
+                                       bcopy(inf, dev->trans.srcid.inf, 4);
+                                       dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+
+                                    }
+                                 }
                               }
                            }
 
@@ -1690,8 +1708,8 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
                } else
                   bcopy(dev->name, &buf[slen], len);
                slen += len;
-                type |= ARGUS_TYPE_INTERFACE;
             }
+            type |= ARGUS_TYPE_INTERFACE;
          } else {
             len = strlen(iptr);
             bcopy(iptr, &buf[slen], len);
@@ -1718,6 +1736,8 @@ setArgusManInf (struct ArgusSourceStruct *src, char *optarg)
       free (src->ArgusMarIncludeInterface);
       src->ArgusMarIncludeInterface = NULL;
    }
+
+   src->type |= ARGUS_TYPE_INTERFACE;
 
    if (optarg && (strlen(optarg) > 0)) {
       if (strcmp("no", optarg) != 0) {

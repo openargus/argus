@@ -1130,6 +1130,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                               if (optarg && (*optarg == '`')) {
                                  char *ptr = NULL;
                                  char *tptr = strchr((optarg + 1), '`');
+                                 int appendInf = 0;
+
+                                 if (strstr(optarg, "/inf"))
+                                    appendInf = 1;
 
                                  if (tptr != NULL) {
                                     FILE *fd;
@@ -1138,6 +1142,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                                     *tptr = '\0';
                                     if (!(strcmp (optarg, "hostname"))) {
                                        if ((fd = popen("hostname", "r")) != NULL) {
+                                          char buf[128], *sptr;
                                           ptr = NULL;
                                           clearerr(fd);
                                           while ((ptr == NULL) && !(feof(fd)))
@@ -1145,15 +1150,21 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
 
                                           if (ptr == NULL)
                                              ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) `hostname` failed %s.\n", file, strerror(errno));
-
-                                          optarg = ptr;
-                                          optarg[strlen(optarg) - 1] = '\0';
                                           pclose(fd);
 
-                                          if ((ptr = strstr(optarg, ".local")) != NULL) {
-                                             if (strlen(ptr) == strlen(".local"))
-                                                *ptr = '\0';
+                                          ptr[strlen(ptr) - 1] = '\0';
+                                          if ((sptr = strstr(ptr, ".local")) != NULL) {
+                                             if (strlen(sptr) == strlen(".local"))
+                                                *sptr = '\0';
                                           }
+
+                                          if (appendInf)
+                                             sprintf(buf, "%s/inf",  ptr);
+                                          else
+                                             sprintf(buf, "%s",  ptr);
+
+                                          optarg = strdup(buf);
+
                                        } else
                                           ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
                                     } else
@@ -1161,11 +1172,16 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                                        uuid_t id;
                                        struct timespec ts = {0,0};
                                        if (gethostuuid(id, &ts) == 0) {
-                                          char buf[64];
-                                          uuid_unparse(id, buf);
+                                          char buf[128], sbuf[64];
+                                          uuid_unparse(id, sbuf);
+
+                                          if (appendInf)
+                                             sprintf(buf, "%s/inf", sbuf);
+                                          else
+                                             sprintf(buf, "%s", sbuf);
                                           optarg = strdup(buf);
                                        } else
-                                          ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
+                                          ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: gethostuuid() %s\n", file, strerror(errno));
 
                                     } else
                                        ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` at line %d.\n", file, optarg, linenum);
