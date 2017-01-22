@@ -1,0 +1,6 @@
+Mon Jun 22 17:00:03 EDT 2015
+
+To make an argus.pkg installer for Mac OS X 10.10
+% pkgbuild --root osx-pkg --identifier com.qosient.argus --version 5.00 --ownership recommended --scripts scripts pkg1/output.pkg
+
+% productbuild --distribution distribution.xml --resources resources --package-path pkg1 --version 5.00 --sign "Developer ID Installer" ./argus.pkg
