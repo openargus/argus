@@ -822,7 +822,6 @@ int ArgusShutDownSig = 0;
 
 #if defined(HAVE_BACKTRACE)
 #include <execinfo.h>
-#endif
 
 void
 ArgusBacktrace (void)
@@ -838,6 +837,7 @@ ArgusBacktrace (void)
    free(strs);
 #endif
 }
+#endif
 
 void
 ArgusScheduleShutDown (int sig)

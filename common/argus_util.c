@@ -100,7 +100,9 @@ struct rtentry;         /* declarations in <net/if.h> */
 
 
 extern char *ArgusProgramName;
+#ifdef HAVE_BACKTRACE
 extern void ArgusBacktrace (void);
+#endif
 
 void ArgusInitAddrtoname(struct ArgusParserStruct *, u_int, u_int);
 void ArgusInitServarray(struct ArgusParserStruct *);
@@ -1575,7 +1577,9 @@ ArgusLog (int priority, char *fmt, ...)
 
    switch (priority) {
       case LOG_ERR:
+#ifdef HAVE_BACKTRACE
           ArgusBacktrace();
+#endif
           exit(1);
 
       default: break;
