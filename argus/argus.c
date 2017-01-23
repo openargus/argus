@@ -912,6 +912,7 @@ ArgusBacktrace (void)
    free(strs);
 #endif
 }
+#endif
 
 void
 ArgusScheduleShutDown (int sig)
