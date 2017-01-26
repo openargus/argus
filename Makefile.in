@@ -32,6 +32,7 @@ INSTALL_DATA = @INSTALL_DATA@
 DEFS = @DEFS@
 LIBS = @LIBS@
 WRAPLIBS = @WRAPLIBS@
+VERSION = @PACKAGE_VERSION@
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
@@ -46,6 +47,10 @@ SHELL = /bin/sh
 
 DIRS = ./common ./argus ./events
 INSTDIRS = ./argus ./events
+
+# this should probably be the same as INSTDIRS.
+# See if scripts in pkg/osx/osx-pkg can be removed.
+OSXPACKAGE_INSTDIRS = ./argus
 
 DISTFILES = AUTHORS ChangeLog INSTALL MANIFEST Makefile.in\
 	CREDITS README VERSION bin common argus events doc include pkg debian\
@@ -121,6 +126,27 @@ uninstall:
 installdirs:
 	${srcdir}/config/mkinstalldirs $(DESTDIR)$(bindir) $(DESTDIR)$(mandir)\
 		$(DESTDIR)$(docdir) $(DESTDIR)$(exec_prefix)/argus/archive
+
+osxpackage:
+	( \
+	$(MAKE) install DESTDIR=`pwd`/pkg/osx/BUILDROOT \
+	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
+	( find pkg/osx/BUILDROOT -type f | xargs file \
+	   | awk -F: '/Mach-O.*executable/{print $$1}' \
+	   | xargs strip ) && \
+	cp -f -L -R pkg/osx/osx-pkg/* pkg/osx/BUILDROOT/  && \
+	pkgbuild --root pkg/osx/BUILDROOT \
+	         --identifier com.qosient.argus \
+	         --version $(VERSION) \
+	         --ownership recommended \
+	         --scripts pkg/osx/scripts pkg/osx/output.pkg && \
+	productbuild --distribution pkg/osx/distribution.xml \
+	             --resources pkg/osx/resources \
+	             --package-path pkg/osx \
+	             --version $(VERSION) \
+	             $(OSXSIGN) \
+	             pkg/osx/argus-$(VERSION).pkg \
+	)
 
 Makefile: Makefile.in config.status
 	$(SHELL) config.status

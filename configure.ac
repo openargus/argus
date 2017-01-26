@@ -25,7 +25,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([Argus Pro (Gargoyle) Server Programs], [5.0.0], [bug-report@qosient.com], [argus], [http://qosient.com/argus])
+AC_INIT([Argus Pro (Gargoyle) Server Programs], [5.0.3], [bug-report@qosient.com], [argus], [http://qosient.com/argus])
 AC_CONFIG_SRCDIR([argus/argus.c])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_HEADER([include/argus_config.h])
