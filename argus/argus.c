@@ -62,6 +62,14 @@
 #include <stdlib.h>
 #include <sys/netio.h>
 
+#if defined(HAVE_UUID_UUID_H)
+#include <uuid/uuid.h>
+#else
+#if defined(HAVE_UUID_H)
+#include <uuid.h>
+#endif
+#endif
+
 void bind_proc(int);
 #endif
 
@@ -1181,6 +1189,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                                        } else
                                           ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
                                     } else
+#ifdef HAVE_GETHOSTUUID
                                     if (!(strcmp (optarg, "hostuuid"))) {
                                        uuid_t id;
                                        struct timespec ts = {0,0};
@@ -1197,6 +1206,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                                           ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: gethostuuid() %s\n", file, strerror(errno));
 
                                     } else
+#endif
                                        ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` at line %d.\n", file, optarg, linenum);
                                  } else
                                     ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
