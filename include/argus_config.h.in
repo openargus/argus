@@ -118,6 +118,9 @@
 /* Define to 1 if you have the `gethostname' function. */
 #undef HAVE_GETHOSTNAME
 
+/* Define to 1 if you have the `gethostuuid' function. */
+#undef HAVE_GETHOSTUUID
+
 /* Define to 1 if you have the `getpass' function. */
 #undef HAVE_GETPASS
 
