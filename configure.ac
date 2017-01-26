@@ -247,6 +247,7 @@ fi
 AC_CHECK_FUNCS([alarm bzero endgrent endpwent floor gethostbyaddr gethostbyname getpass gettimeofday inet_ntoa isascii localtime_r])
 AC_CHECK_FUNCS([memchr memmove memset mkdir modf pow putenv realpath regcomp select setenv socket sqrt strcasecmp strchr])
 AC_CHECK_FUNCS([strdup strlcat strncasecmp strpbrk strrchr strstr strtol srandomdev tzset])
+AC_CHECK_FUNCS([gethostuuid])
 
 case "$target_os" in
    *darwin*)

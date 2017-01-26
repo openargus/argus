@@ -8203,6 +8203,17 @@ _ACEOF
 fi
 done
 
+for ac_func in gethostuuid
+do :
+  ac_fn_c_check_func "$LINENO" "gethostuuid" "ac_cv_func_gethostuuid"
+if test "x$ac_cv_func_gethostuuid" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GETHOSTUUID 1
+_ACEOF
+
+fi
+done
+
 
 case "$target_os" in
    *darwin*)
