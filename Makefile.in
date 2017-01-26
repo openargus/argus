@@ -127,6 +127,27 @@ installdirs:
 	${srcdir}/config/mkinstalldirs $(DESTDIR)$(bindir) $(DESTDIR)$(mandir)\
 		$(DESTDIR)$(docdir) $(DESTDIR)$(exec_prefix)/argus/archive
 
+osxpackage:
+	( \
+	$(MAKE) install DESTDIR=`pwd`/pkg/osx/BUILDROOT \
+	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
+	( find pkg/osx/BUILDROOT -type f | xargs file \
+	   | awk -F: '/Mach-O.*executable/{print $$1}' \
+	   | xargs strip ) && \
+	cp -f -L -R pkg/osx/osx-pkg/* pkg/osx/BUILDROOT/  && \
+	pkgbuild --root pkg/osx/BUILDROOT \
+	         --identifier com.qosient.argus \
+	         --version $(VERSION) \
+	         --ownership recommended \
+	         --scripts pkg/osx/scripts pkg/osx/output.pkg && \
+	productbuild --distribution pkg/osx/distribution.xml \
+	             --resources pkg/osx/resources \
+	             --package-path pkg/osx \
+	             --version $(VERSION) \
+	             $(OSXSIGN) \
+	             pkg/osx/argus-$(VERSION).pkg \
+	)
+
 Makefile: Makefile.in config.status
 	$(SHELL) config.status
 
