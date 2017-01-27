@@ -1,0 +1,26 @@
+The Microsoft Windows 7 Argus packge depends on:
+  Cygwin (CYGWIN_NT-6.1-WOW win7 2.6.1(0.305/5/3) 2016-12-16 11:50 i686 Cygwin)
+  WiX 3.10 -- https://www.firegiant.com/wix/
+  WinPcap
+  WpdPack
+
+Cygwin, WiX and WinPcap must be installed.  WpdPack is unzipped below.
+WiX is used to generate the .MSI package.
+
+Within Cygwin, at least these packages must be installed, in addition to
+the compiler toolchain:
+  autoconf
+  bison
+  cygrunsrv
+  flex
+  gawk
+  libsasl-devel
+  make
+  zlib-devel
+
+To build:
+  % ( cd .. && unzip /path/to/WpdPack_4_1_2.zip )
+  % ./configure --prefix=/usr
+  % make
+  % make win7package
+
