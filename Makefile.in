@@ -131,6 +131,16 @@ osxpackage:
 	             pkg/osx/argus-$(VERSION).pkg \
 	)
 
+win7package:
+	( \
+	$(MAKE) install DESTDIR=`pwd`/pkg/win7/BUILDROOT \
+	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
+	( find pkg/win7/BUILDROOT -type f | xargs file \
+	   | awk -F: '/PE32 executable/{print $$1}' \
+	   | xargs strip ) && \
+	$(MAKE) -C pkg/win7 \
+	)
+
 Makefile: Makefile.in config.status
 	$(SHELL) config.status
 

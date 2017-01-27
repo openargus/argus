@@ -453,6 +453,8 @@ AC_CONFIG_FILES([
    ./common/Makefile 
    ./argus/Makefile
    ./events/Makefile 
+   ./pkg/win7/Makefile
+   ./pkg/win7/argus.wxs
 ])
 
 AC_OUTPUT
