@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product Name='argus-@PACKAGE_VERSION@'
+  Id='1fb9896d-0fdd-405d-b5d1-b087ed9def21'
+  UpgradeCode='a3661ada-3ca2-44aa-ad48-d6b3c87f77ab'
+  Language='1033' Codepage='1252' Version='1.0.0'
+  Manufacturer='QoSient LLC'>
+    <Package Id='*' Keywords='Installer'
+    Description="QoSient Argus @PACKAGE_VERSION@ Installer"
+    Manufacturer='QoSient LLC' InstallerVersion='100'
+    Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+    <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes'
+    DiskPrompt="CD-ROM #1" />
+    <Property Id='DiskPrompt' Value="Argus Installation [1]" />
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Component Id="REG_MACHINE"
+      Guid="7d239a84-1d83-464a-ace4-4bac971422f2">
+        <RegistryKey Id="srvc1" Root="HKLM"
+        Key="SYSTEM\CurrentControlSet\Services\QoSient:Argus\Parameters"
+        Action="create">
+          <RegistryValue Type="expandable" Name="AppPath"
+          Value="/bin/argus.exe" />
+          <RegistryValue Type="string" Name="AppArgs"
+          Value="-F /etc/argus.conf" />
+          <RegistryValue Type="integer" Name="NeverExits"
+          Value="1" />
+        </RegistryKey>
+      </Component>
+      <Directory Id='ProgramFilesFolder' Name='PFiles'>
+        <Directory Id='QoSientTopDir' Name='QoSient'>
+          <Directory Id='etc' Name='etc'>
+            <Component Id='Config'
+            Guid='9b517a28-bd1a-468f-9c62-ca72d1e7d1f8'>
+              <File Id='argus.conf' Name='argus.conf' DiskId='1'
+              Source="../../support/Config/argus.conf"
+              KeyPath='yes'></File>
+            </Component>
+          </Directory>
+          <Directory Id='INSTALLDIR' Name='bin'>
+            <Component Id='MainExecutable'
+            Guid='a18760b9-c576-455f-a3fa-8e3e5326c7b2'>
+              <File Id='argus.exe' Name='argus.exe' DiskId='1'
+              Source="BUILDROOT/usr/sbin/argus.exe" KeyPath='yes'>
+              </File>
+            </Component>
+            <Component Id="cygrunsrv.exe"
+            Guid="bec3cc89-aac0-49d7-b86a-3572bca146f9">
+              <File Id="cygrunsrv.exe"
+              Source="c:\cygwin\bin\cygrunsrv.exe"
+              Name="cygrunsrv.exe" KeyPath="yes" Checksum="yes" />
+              <ServiceInstall Id="cygrunsrv.exe" Type="ownProcess"
+              Vital="yes" Name="QoSient:Argus"
+              DisplayName="QoSient:Argus"
+              Description="QoSient Argus Version @PACKAGE_VERSION@"
+              Start="auto" Account="LocalSystem"
+              ErrorControl="ignore" Interactive="no" />
+              <ServiceControl Id="cygrunsrv.exe" Start="install"
+              Stop="both" Remove="uninstall" Name="QoSient:Argus"
+              Wait="no" />
+            </Component>
+            <Component Id='LibGCC'
+            Guid='0c65d062-5b74-4d31-8e1c-aa05f7de5647'>
+              <File Id='LibGCC' Name='cyggcc_s-1.dll' DiskId='1'
+              Source='C:\Cygwin\bin\cyggcc_s-1.dll' KeyPath='yes'>
+              </File>
+            </Component>
+            <Component Id='LibCygwin1'
+            Guid='1676f997-0fd5-4189-840c-ec5bcccabf2d'>
+              <File Id='LibCygwin1' Name='cygwin1.dll' DiskId='1'
+              Source='C:\Cygwin\bin\cygwin1.dll' KeyPath='yes'>
+              </File>
+            </Component>
+            <Component Id='LibCygz'
+            Guid='c120abf9-5695-4108-a7c6-c7a1b66306b6'>
+              <File Id='LibCygz' Name='cygz.dll' DiskId='1'
+              Source='C:\Cygwin\bin\cygz.dll' KeyPath='yes'></File>
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder" Name="Programs">
+        <Directory Id="ProgramMenuDir"
+        Name="Argus @PACKAGE_VERSION@">
+          <Component Id="ProgramMenuDir"
+          Guid="261b26f7-b4a8-43a2-a7a0-b8d8e990f41d">
+            <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
+            <RegistryValue Root='HKCU'
+            Key='Software\[Manufacturer]\[ProductName]'
+            Type='string' Value='' KeyPath='yes' />
+          </Component>
+        </Directory>
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+    <Feature Id='Complete' Level='1'>
+      <ComponentRef Id='MainExecutable' />
+      <ComponentRef Id='LibGCC' />
+      <ComponentRef Id='LibCygwin1' />
+      <ComponentRef Id='LibCygz' />
+      <ComponentRef Id='ProgramMenuDir' />
+      <ComponentRef Id='Config' />
+      <ComponentRef Id='cygrunsrv.exe' />
+      <ComponentRef Id='REG_MACHINE' />
+    </Feature>
+  </Product>
+</Wix>

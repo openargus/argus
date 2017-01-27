@@ -9084,7 +9084,7 @@ INSTALL_BIN="../bin"
 
 
 
-ac_config_files="$ac_config_files Makefile ./common/Makefile ./argus/Makefile ./events/Makefile"
+ac_config_files="$ac_config_files Makefile ./common/Makefile ./argus/Makefile ./events/Makefile ./pkg/win7/Makefile ./pkg/win7/argus.wxs"
 
 
 cat >confcache <<\_ACEOF
@@ -9783,6 +9783,8 @@ do
     "./common/Makefile") CONFIG_FILES="$CONFIG_FILES ./common/Makefile" ;;
     "./argus/Makefile") CONFIG_FILES="$CONFIG_FILES ./argus/Makefile" ;;
     "./events/Makefile") CONFIG_FILES="$CONFIG_FILES ./events/Makefile" ;;
+    "./pkg/win7/Makefile") CONFIG_FILES="$CONFIG_FILES ./pkg/win7/Makefile" ;;
+    "./pkg/win7/argus.wxs") CONFIG_FILES="$CONFIG_FILES ./pkg/win7/argus.wxs" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
