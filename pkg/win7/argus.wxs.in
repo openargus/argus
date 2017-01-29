@@ -75,6 +75,11 @@
               <File Id='LibCygz' Name='cygz.dll' DiskId='1'
               Source='C:\Cygwin\bin\cygz.dll' KeyPath='yes'></File>
             </Component>
+            <Component Id='LibSasl2'
+            Guid='ee8f639c-e676-4489-8082-8aafd37c8a48'>
+              <File Id='LibSasl2' Name='cygsasl2-3.dll' DiskId='1'
+              Source='C:\Cygwin\bin\cygsasl2-3.dll' KeyPath='yes'></File>
+            </Component>
           </Directory>
         </Directory>
       </Directory>
@@ -97,6 +102,7 @@
       <ComponentRef Id='LibGCC' />
       <ComponentRef Id='LibCygwin1' />
       <ComponentRef Id='LibCygz' />
+      <ComponentRef Id='LibSasl2' />
       <ComponentRef Id='ProgramMenuDir' />
       <ComponentRef Id='Config' />
       <ComponentRef Id='cygrunsrv.exe' />
