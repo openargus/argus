@@ -43,6 +43,12 @@
               Source="BUILDROOT/usr/sbin/argus.exe" KeyPath='yes'>
               </File>
             </Component>
+            <Component Id='dash.exe'
+            Guid='5af416b5-28ea-4af4-9052-8a73c20bbd6b'>
+              <File Id='dash.exe' Name='sh.exe' DiskId='1'
+              Source="c:\cygwin\bin\dash.exe" KeyPath='yes'>
+              </File>
+            </Component>
             <Component Id="cygrunsrv.exe"
             Guid="bec3cc89-aac0-49d7-b86a-3572bca146f9">
               <File Id="cygrunsrv.exe"
@@ -99,6 +105,7 @@
     </Directory>
     <Feature Id='Complete' Level='1'>
       <ComponentRef Id='MainExecutable' />
+      <ComponentRef Id='dash.exe' />
       <ComponentRef Id='LibGCC' />
       <ComponentRef Id='LibCygwin1' />
       <ComponentRef Id='LibCygz' />
