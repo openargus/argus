@@ -59,7 +59,9 @@
               DisplayName="QoSient:Argus"
               Description="QoSient Argus Version @PACKAGE_VERSION@"
               Start="auto" Account="LocalSystem"
-              ErrorControl="ignore" Interactive="no" />
+              ErrorControl="ignore" Interactive="no">
+                <ServiceDependency Id="npf"/>
+              </ServiceInstall>
               <ServiceControl Id="cygrunsrv.exe" Start="install"
               Stop="both" Remove="uninstall" Name="QoSient:Argus"
               Wait="no" />
