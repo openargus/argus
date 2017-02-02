@@ -847,6 +847,32 @@ ArgusCheckPcapDevices(pcap_if_t *alldevs, char *tok)
    return(retn);
 }
 
+#ifdef CYGWIN
+static int
+__pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf, const char *funcname)
+{
+   int severity = LOG_INFO;
+   int retrycount = 10;
+   int res = -1;
+   struct timespec t = {1, 0};
+
+   while (retrycount-- > 0 && res == -1) {
+      if ((res = pcap_findalldevs(alldevsp, errbuf)) == -1)
+         ArgusLog (severity, "%s: pcap_findalldevs %s\n", funcname, errbuf);
+      if (retrycount == 1)
+         severity = LOG_ERR;
+      else if (res == -1)
+         nanosleep(&t, NULL);
+   }
+}
+#else
+static inline int
+__pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf,
+                   const char *funcname __attribute__((unused)))
+{
+   return pcap_findalldevs(alldevsp, errbuf);
+}
+#endif
 
 // The syntax for specifying this either on the command line or in this file:
 //    -i ind:all
@@ -891,7 +917,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
 #endif
 
       if (type == ARGUS_LIVE_DEVICE)
-         if (pcap_findalldevs(&alldevs, errbuf) == -1)
+         if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
             ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
 
 #if !defined(CYGWIN)
@@ -4221,8 +4247,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 //       For laptops that may be the pflog0 device coming and going.
 
             if (strstr(stask->ArgusDeviceStr, "all")) {
-               if (pcap_findalldevs(&alldevs, errbuf) == -1)
-                  ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
+               if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
+                  ArgusLog (LOG_ERR, "%s: pcap_findalldevs %s\n", __func__, errbuf);
 
                if (alldevs != NULL) {
                   for (d = alldevs; d != NULL; d = d->next) {
