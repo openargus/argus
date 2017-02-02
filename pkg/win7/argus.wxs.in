@@ -27,7 +27,7 @@
         </RegistryKey>
       </Component>
       <Directory Id='ProgramFilesFolder' Name='PFiles'>
-        <Directory Id='QoSientTopDir' Name='QoSient'>
+        <Directory Id='QoSientTopDir' Name='Argus'>
           <Directory Id='etc' Name='etc'>
             <Component Id='Config'
             Guid='9b517a28-bd1a-468f-9c62-ca72d1e7d1f8'>
