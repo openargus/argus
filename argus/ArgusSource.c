@@ -4553,7 +4553,7 @@ ArgusGetPackets (void *arg)
 
                         if (cnt > 0) {
                            noPkts = 0;
-                        } else {
+                        } else if (cnt == 0) {
                            if (noPkts++ > 50) {
                               struct timespec tsbuf = {0, 5000}, *ts = &tsbuf;
                               gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
@@ -4564,6 +4564,9 @@ ArgusGetPackets (void *arg)
                               nanosleep(ts, NULL);
                               noPkts = 0;
                            }
+                        } else {
+                           ArgusLog(LOG_INFO, "%s: pcap_next_ex() failed\n", __func__);
+                           noerror = 0;
                         }
 
                      } else {
