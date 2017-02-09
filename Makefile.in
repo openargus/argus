@@ -176,6 +176,10 @@ distclean: force
 	rm -f lib/*.a
 	rm -f bin/*.exe
 	rm -f include/argus_config.h
+	rm -rf pkg/osx/BUILDROOT/
+	rm -f pkg/osx/argus-5.0.3.pkg
+	rm -f pkg/win7/Makefile
+	rm -f pkg/win7/argus.wxs
 
 clobber realclean: distclean
 	rm -f ./Makefile
