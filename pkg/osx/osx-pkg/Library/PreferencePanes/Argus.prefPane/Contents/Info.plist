@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ATSApplicationFontsPath</key>
+	<string>Fonts</string>
+	<key>BuildMachineOSBuild</key>
+	<string>16D32</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>Argus</string>
+	<key>CFBundleIconFile</key>
+	<string>ArgusBlueButton.png</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.qosient.Argus</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Argus</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>5.0.3</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>MacOSX</string>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>5.0.3</string>
+	<key>DTCompiler</key>
+	<string>com.apple.compilers.llvm.clang.1_0</string>
+	<key>DTPlatformBuild</key>
+	<string>8C1002</string>
+	<key>DTPlatformVersion</key>
+	<string>GM</string>
+	<key>DTSDKBuild</key>
+	<string>16C58</string>
+	<key>DTSDKName</key>
+	<string>macosx10.12</string>
+	<key>DTXcode</key>
+	<string>0821</string>
+	<key>DTXcodeBuild</key>
+	<string>8C1002</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2017 QoSient, LLC. All rights reserved.</string>
+	<key>NSMainNibFile</key>
+	<string>Argus</string>
+	<key>NSPrefPaneIconFile</key>
+	<string>ArgusBlueButton.png</string>
+	<key>NSPrefPaneIconLabel</key>
+	<string>Argus</string>
+	<key>NSPrincipalClass</key>
+	<string>Argus</string>
+	<key>PreferenceFileVersion</key>
+	<string>2</string>
+</dict>
+</plist>
