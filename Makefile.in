@@ -114,7 +114,7 @@ osxpackage:
 	( \
 	$(MAKE) install DESTDIR=`pwd`/pkg/osx/BUILDROOT \
 	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
-	( find pkg/osx/BUILDROOT -type f | xargs file \
+	( find pkg/osx/BUILDROOT/usr -type f | xargs file \
 	   | awk -F: '/Mach-O.*executable/{print $$1}' \
 	   | xargs strip ) && \
 	cp -f -L -R pkg/osx/osx-pkg/* pkg/osx/BUILDROOT/  && \
@@ -128,7 +128,8 @@ osxpackage:
 	             --package-path pkg/osx \
 	             --version $(VERSION) \
 	             $(OSXSIGN) \
-	             pkg/osx/argus-$(VERSION).pkg \
+	             pkg/osx/argus-$(VERSION).pkg && \
+	rm -f pkg/osx/output.pkg \
 	)
 
 win7package:
