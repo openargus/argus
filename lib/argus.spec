@@ -46,7 +46,7 @@ make DESTDIR="$RPM_BUILD_ROOT" install
 
 install -D -m 0600 pkg/argus.conf $RPM_BUILD_ROOT/etc/argus.conf
 install -D -m 0644 pkg/rhel/sysconfig/argus $RPM_BUILD_ROOT/etc/sysconfig/argus
-install -D -m 0644 pkg/rhel/systemd/argus.service $RPM_BUILD_ROOT%{_unitdir}/argus.service
+install -D -m 0644 pkg/rhel/systemd/argus.server.service $RPM_BUILD_ROOT%{_unitdir}/argus.server.service
 install -D -m 0700 pkg/rhel/systemd/argus-setup $RPM_BUILD_ROOT/%{argussbin}/argus-setup
 install -D -m 0644 pkg/rhel/sasl2/argus.conf $RPM_BUILD_ROOT/etc/sasl2/argus.conf
 install -D -m 0755 support/Archive/argusarchive $RPM_BUILD_ROOT/%{argusbin}/argusarchive
@@ -59,14 +59,9 @@ ln -sf /etc/pam.d/system-auth /etc/pam.d/argus
 
 %preun
 if [ "$1" = 0 ] ; then
-  systemctl stop argus
   rm -f /etc/pam.d/argus
 fi
 
-%postun
-if [ "$1" -ge "1" ]; then
-  service argus condrestart >/dev/null 2>&1
-fi
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -74,7 +69,6 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %{argussbin}/argus
-%{argussbin}/argus-setup
 %{argusbin}/argus-airport
 %{argusbin}/argus-extip
 %{argusbin}/argus-lsof
@@ -89,9 +83,39 @@ rm -rf $RPM_BUILD_ROOT
 %{argusman}/man5/argus.conf.5.gz
 %{argusman}/man8/argus.8.gz
 
-%config(noreplace) %attr(644,root,root) %{_unitdir}/argus.service
 
 %config /etc/argus.conf
 %config /etc/sysconfig/argus
 %config /etc/sasl2/argus.conf
 %ghost %config(noreplace) /etc/pam.d/argus
+
+
+
+%package systemd-server
+Summary: ArgusPro Server Systemd support files
+Group: Applications/Internet
+Requires: argus >= %{version}-%{rel}%{dist}.2
+Conflicts: argus < 5.0-3.0.el7.2
+BuildArch: noarch
+
+%description systemd-server
+Service description and supporting files for QoSient servers
+
+%files systemd-server
+%attr(644,root,root) %{_unitdir}/argus.server.service
+%{argussbin}/argus-setup
+%ghost %{_unitdir}/argus.service
+
+%post systemd-server
+ln -f %{_unitdir}/argus.server.service %{_unitdir}/argus.service
+
+%preun systemd-server
+if [ "$1" = 0 ] ; then
+  systemctl stop argus
+  rm -f %{_unitdir}/argus.service
+fi
+
+%postun systemd-server
+if [ "$1" -ge "1" ]; then
+  service argus condrestart >/dev/null 2>&1
+fi
