@@ -47,6 +47,7 @@ make DESTDIR="$RPM_BUILD_ROOT" install
 install -D -m 0600 pkg/argus.conf $RPM_BUILD_ROOT/etc/argus.conf
 install -D -m 0644 pkg/rhel/sysconfig/argus $RPM_BUILD_ROOT/etc/sysconfig/argus
 install -D -m 0644 pkg/rhel/systemd/argus.server.service $RPM_BUILD_ROOT%{_unitdir}/argus.server.service
+install -D -m 0644 pkg/rhel/systemd/argus.workstation.service $RPM_BUILD_ROOT%{_unitdir}/argus.workstation.service
 install -D -m 0700 pkg/rhel/systemd/argus-setup $RPM_BUILD_ROOT/%{argussbin}/argus-setup
 install -D -m 0644 pkg/rhel/sasl2/argus.conf $RPM_BUILD_ROOT/etc/sasl2/argus.conf
 install -D -m 0755 support/Archive/argusarchive $RPM_BUILD_ROOT/%{argusbin}/argusarchive
@@ -94,6 +95,7 @@ rm -rf $RPM_BUILD_ROOT
 Summary: ArgusPro Server Systemd support files
 Group: Applications/Internet
 Requires: argus >= %{version}-%{rel}%{dist}.2
+Conflicts: argus-systemd-workstation
 Conflicts: argus < 5.0-3.0.el7.2
 BuildArch: noarch
 
@@ -115,6 +117,36 @@ if [ "$1" = 0 ] ; then
 fi
 
 %postun systemd-server
+if [ "$1" -ge "1" ]; then
+  service argus condrestart >/dev/null 2>&1
+fi
+
+
+%package systemd-workstation
+Summary: ArgusPro Workstation Systemd support files
+Group: Applications/Internet
+Requires: argus >= %{version}-%{rel}%{dist}.2
+Conflicts: argus-systemd-server
+Conflicts: argus < 5.0-3.0.el7.2
+BuildArch: noarch
+
+%description systemd-workstation
+Service description and supporting files for QoSient servers
+
+%files systemd-workstation
+%attr(644,root,root) %{_unitdir}/argus.workstation.service
+%ghost %{_unitdir}/argus.service
+
+%post systemd-workstation
+ln -f %{_unitdir}/argus.workstation.service %{_unitdir}/argus.service
+
+%preun systemd-workstation
+if [ "$1" = 0 ] ; then
+  systemctl stop argus
+  rm -f %{_unitdir}/argus.service
+fi
+
+%postun systemd-workstation
 if [ "$1" -ge "1" ]; then
   service argus condrestart >/dev/null 2>&1
 fi

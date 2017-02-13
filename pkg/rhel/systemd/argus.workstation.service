@@ -1,0 +1,12 @@
+[Unit]
+Description=Argus Flow Monitor
+After=syslog.target network.target
+
+[Service]
+Type=forking
+Restart=always
+RestartSec=5
+ExecStart=/usr/sbin/argus -X -d -F /etc/argus.conf
+
+[Install]
+WantedBy=multi-user.target
