@@ -35,7 +35,7 @@ Copyright: (c) 2000-2020 QoSient, LLC
 %define argussbin	%{argusdir}/sbin
 
 %prep
-%setup -n %{name}-%{ver}.%{rel}
+%setup -q -n %{name}-%{ver}.%{rel}
 %build
 ./configure --prefix=%{argusdir} --with-sasl
 make EXTRA_CFLAGS="-ggdb"
