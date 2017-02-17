@@ -8695,7 +8695,8 @@ fi
 $as_echo_n "checking for local wpcap library... " >&6; }
                dir="../WpdPack"
                if test -r $dir/Lib/libwpcap.a; then
-                  V_PCAPDEP="$dir/Lib/libwpcap.a"
+                  libpcap="$dir/Lib/libwpcap.a"
+                  V_PCAPDEP="$libpcap"
                else
                   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }

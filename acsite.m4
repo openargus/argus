@@ -700,7 +700,8 @@ AC_DEFUN([AC_QOSIENT_LIBPCAP], [
                AC_MSG_CHECKING(for local wpcap library)
                dir="../WpdPack"
                if test -r $dir/Lib/libwpcap.a; then
-                  $1="$dir/Lib/libwpcap.a"
+                  libpcap="$dir/Lib/libwpcap.a"
+                  $1="$libpcap"
                else
                   AC_MSG_RESULT(no)
                   AC_MSG_ERROR(see the INSTALL doc for more info)
