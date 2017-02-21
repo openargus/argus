@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='windows-1252'?>
-<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
   <Product Name='argus-@PACKAGE_VERSION@'
   Id='1fb9896d-0fdd-405d-b5d1-b087ed9def21'
   UpgradeCode='a3661ada-3ca2-44aa-ad48-d6b3c87f77ab'
@@ -65,6 +66,13 @@
               <ServiceControl Id="cygrunsrv.exe" Start="install"
               Stop="both" Remove="uninstall" Name="QoSient:Argus"
               Wait="no" />
+              <util:ServiceConfig
+               FirstFailureActionType="restart"
+               SecondFailureActionType="restart"
+               ThirdFailureActionType="restart"
+               ResetPeriodInDays="1"
+               RestartServiceDelayInSeconds="5"
+               ServiceName="QoSient:Argus"/>
             </Component>
             <Component Id='LibGCC'
             Guid='0c65d062-5b74-4d31-8e1c-aa05f7de5647'>

@@ -2,11 +2,13 @@
 
 top: win7package
 
+WFLAGS = -ext WixUtilExtension
+
 win7package: argus-@PACKAGE_VERSION@.msi
 
 argus-@PACKAGE_VERSION@.msi: argus.wixobj
-	light $^
+	light $(WFLAGS) $^
 
 argus.wixobj: argus.wxs
-	candle $^
+	candle $(WFLAGS) $^
 
