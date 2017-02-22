@@ -209,36 +209,6 @@ ArgusNewSource(struct ArgusModelerStruct *model)
    return (retn);
 }
 
-void setArgusThreadCount (struct ArgusSourceStruct *, char *);
-int getArgusThreadCount (struct ArgusSourceStruct *);
-#define ARGUS_MAX_THREADS       64
-
-int
-getArgusThreadCount (struct ArgusSourceStruct *src)
-{
-   return(src->tflag);
-}
-
-void
-setArgusThreadCount (struct ArgusSourceStruct *src, char *arg)
-{
-   char *ptr = NULL;
-   int num = 0;
-  
-   if (src != NULL) {
-      num = (int)strtol(arg, (char **)&ptr, 10);
-      if (ptr == arg)
-         ArgusLog (LOG_ERR, "setArgusThreadCount format error %s not integer\n", arg);
-
-      if ((src->tflag = num) > ARGUS_MAX_THREADS)
-         ArgusLog (LOG_ERR, "setArgusThreadCount error %d tooo many threads\n", num);
-   }
-
-#ifdef ARGUSDEBUG
-   ArgusDebug (1, "setArgusThreadCount(%p, %d)\n", src, num);
-#endif
-}
-
 
 #include <errno.h>
 #include <sys/types.h>
