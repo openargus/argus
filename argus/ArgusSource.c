@@ -311,7 +311,7 @@ setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
    bzero ((char *)&src->ArgusInterface, sizeof(src->ArgusInterface));
 
    if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
-      ArgusLog (LOG_ERR, "ArgusInitSource: pcap_findalldevs_ex %s\n", errbuf);
+      ArgusLog (LOG_ERR, "%s: pcap_findalldevs_ex %s\n", __func__, errbuf);
 
    for (d = src->ArgusPacketDevices; d != NULL; d = d->next) {
       printf ("%d. %s", ++i, d->name);
@@ -4638,7 +4638,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                         src->status |= ARGUS_LAUNCHED;
                         if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
-                           ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                           ArgusLog (LOG_ERR, "%s() pthread_create error %s\n", __func__, strerror(errno));
+                        ArgusThreadCount++;
                      }
                   }
                }
