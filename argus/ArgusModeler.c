@@ -138,21 +138,26 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000LL) + model->ArgusUpdateInterval.tv_usec);
 
    if ((model->ArgusHashTable = ArgusNewHashTable(ARGUS_HASHTABLESIZE, debug)) == NULL)
-      ArgusLog (LOG_ERR, "ArgusNewModeler () ArgusNewHashTable error %s\n", strerror(errno));
+      ArgusLog(LOG_ERR, "%s () ArgusNewHashTable error %s\n",
+               __func__, strerror(errno));
 
    if ((model->hstruct = (struct ArgusHashStruct *) ArgusCalloc (1, sizeof (struct ArgusHashStruct))) == NULL)
-      ArgusLog (LOG_ERR, "ArgusNewModeler () ArgusCalloc error %s\n", strerror(errno));
+      ArgusLog(LOG_ERR, "%s () ArgusCalloc error %s\n", __func__,
+               strerror(errno));
 
    if ((model->ArgusStatusQueue = ArgusNewQueue()) == NULL)
-      ArgusLog (LOG_ERR, "ArgusNewModeler () ArgusNewQueue error %s\n", strerror(errno));
+      ArgusLog(LOG_ERR, "%s () ArgusNewQueue error %s\n", __func__,
+               strerror(errno));
 
    if ((model->ArgusTimeOutQueues = ArgusNewQueue()) == NULL)
-      ArgusLog (LOG_ERR, "ArgusNewModeler () ArgusNewQueue error %s\n", strerror(errno));
+      ArgusLog(LOG_ERR, "%s () ArgusNewQueue error %s\n", __func__,
+               strerror(errno));
 
 /* align the ArgusThisFlow buffer */
 
    if ((model->ArgusThisFlow = (struct ArgusSystemFlow *) ArgusCalloc (1, sizeof (struct ArgusSystemFlow) + 32)) == NULL)
-      ArgusLog (LOG_ERR, "ArgusNewModeler () ArgusCalloc error %s\n", strerror(errno));
+      ArgusLog(LOG_ERR, "%s () ArgusCalloc error %s\n", __func__,
+               strerror(errno));
 
    model->ArgusOutputList = ArgusOutputTask->ArgusInputList;
 
@@ -2508,7 +2513,7 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
                   
                if ((frag = ArgusFindFlow (model, model->hstruct)) == NULL) {
                   if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
-                     ArgusLog (LOG_ERR, "ArgusNewFragFlow() returned NULL.\n");
+                     ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
                 
                   memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
                   frag->canon.net.hdr.type            = ARGUS_NETWORK_DSR;
@@ -2612,7 +2617,7 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
    onto the parent flow, and proceed */
 
                      if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
-                        ArgusLog (LOG_ERR, "ArgusNewFragFlow() returned NULL.\n");
+                        ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
                    
                      memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
                      frag->canon.net.hdr.type             = ARGUS_NETWORK_DSR;

@@ -83,7 +83,7 @@ ArgusCloneDevice(struct ArgusDeviceStruct *dev)
    struct ArgusDeviceStruct *retn = NULL;
 
    if ((retn = (void *) ArgusCalloc(1, sizeof(*retn))) == NULL)
-      ArgusLog (LOG_ERR, "ArgusCloseDevice: ArgusCalloc error %s\n", strerror(errno));
+      ArgusLog (LOG_ERR, "%s: ArgusCalloc error %s\n", __func__, strerror(errno));
 
    retn->status = dev->status;
    retn->type   = dev->type;
@@ -303,7 +303,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
             if (device->dltname != NULL) {
 #ifdef HAVE_PCAP_SET_DATALINK
                if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
-                  ArgusLog(LOG_ERR, "%s", pcap_geterr(inf->ArgusPd));
+                  ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
 #else
                /*
                 * We don't actually support changing the
@@ -312,7 +312,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                 */
 
                if (device->dlt != pcap_datalink(inf->ArgusPd))
-                  ArgusLog(LOG_ERR, "%s is not one of the DLTs supported by this device\n", device->dltname);
+                  ArgusLog(LOG_ERR,
+                           "%s: %s is not one of the DLTs supported by this device\n",
+                           __func__, device->dltname);
 #endif
             }
 
@@ -600,7 +602,7 @@ ArgusDeleteSource(struct ArgusSourceStruct *src)
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "ArgusCloseSource(%p) done\n", src);
+   ArgusDebug (2, "%s(%p) done\n", __func__, src);
 #endif
 }
 
