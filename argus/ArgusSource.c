@@ -4486,24 +4486,6 @@ ArgusGetPackets (void *arg)
                if (!(src->ArgusReadingOffLine)) {
                   int cnt, noPkts = 0;
                   do {
-/*
-#if defined(CYGWIN)
-                     struct pcap_pkthdr *header;
-                     const u_char *pkt_data;
-
-                     if ((tmp = pcap_next_ex(src->ArgusInterface[0].ArgusPd, &header, &pkt_data)) >= 0) {
-                        if ( tmp > 0) {
-                           src->ArgusThisIndex = 0;
-                           src->ArgusInterface[0].ArgusCallBack((char *)src, header, pkt_data);
-                        } else
-                           gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-
-                     } else {
-                        gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                     }
-                     ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
-#else
-*/
                      if (notselectable) {
                         for (i = 0; i < src->ArgusInterfaces; i++) {
                            if (src->ArgusInterface[i].ArgusPd) {
