@@ -536,8 +536,77 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
 
 int
+ArgusCloseOneSource(struct ArgusSourceStruct *src)
+{
+   int j;
+
+   if (src == NULL)
+       /* nothing to do */
+       goto out;
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (1, "%s(%p) starting\n", __func__, src);
+#endif
+
+#if defined(ARGUS_THREADS)
+   if (src->thread) {
+      pthread_join(src->thread, NULL);
+      src->thread = 0;
+   }
+#endif
+
+   for (j = 0; j < src->ArgusInterfaces; j++) {
+      if (src->ArgusInterface[j].ArgusPd) {
+         pcap_close(src->ArgusInterface[j].ArgusPd);
+         src->ArgusInterface[j].ArgusPd = NULL;
+      }
+   }
+
+   if (src->ArgusPcapOutFile) {
+      pcap_dump_close(src->ArgusPcapOutFile);
+      src->ArgusPcapOutFile = NULL;
+   }
+
+   if (src->ArgusInputFilter) {
+      ArgusFree (src->ArgusInputFilter);
+      src->ArgusInputFilter = NULL;
+   }
+
+   if (src->ArgusDeviceList) {
+      ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
+      src->ArgusDeviceList = NULL;
+   }
+
+   if (src->ArgusRfileList != NULL) {
+      ArgusDeleteList (src->ArgusRfileList, ARGUS_RFILE_LIST);
+      src->ArgusRfileList = NULL;
+   }
+
+   if (src->ArgusModel != NULL) {
+      ArgusCloseModeler(src->ArgusModel);
+      src->ArgusModel = NULL;
+   }
+
+   src->status |= ARGUS_SHUTDOWN;
+
+#if defined(ARGUS_THREADS)
+   pthread_mutex_lock(&src->lock);
+   pthread_cond_signal(&src->cond);
+   pthread_mutex_unlock(&src->lock);
+#endif
+
+out:
+#ifdef ARGUSDEBUG
+   ArgusDebug (2, "%s(%p) done, returning %d\n", __func__, src, 0);
+#endif
+   return (0);
+}
+
+int
 ArgusCloseSource(struct ArgusSourceStruct *stask)
 {
+   int ret = 0;
+   int err;
    int i;
    struct ArgusSourceStruct *src = NULL;
 
@@ -546,7 +615,7 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
        return 0;
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "ArgusCloseSource(%p) starting\n", stask);
+   ArgusDebug (1, "%s(%p) starting\n", __func__, stask);
 #endif
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       int j;
@@ -555,47 +624,14 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
       if (src == NULL)
           break;
 
-#if defined(ARGUS_THREADS)
-      if (src->thread)
-         pthread_join(src->thread, NULL);
-#endif
-
-      for (j = 0; j < src->ArgusInterfaces; j++) {
-         if (src->ArgusInterface[j].ArgusPd) {
-            pcap_close(src->ArgusInterface[j].ArgusPd);
-            src->ArgusInterface[j].ArgusPd = NULL;
-         }
-      }
-
-      if (src->ArgusPcapOutFile)
-         pcap_dump_close(src->ArgusPcapOutFile);
-
-      if (src->ArgusInputFilter)
-         ArgusFree (src->ArgusInputFilter);
-
-      if (src->ArgusDeviceList) {
-         ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
-      }
-
-      if (src->ArgusRfileList != NULL)
-         ArgusDeleteList (src->ArgusRfileList, ARGUS_RFILE_LIST);
-
-      if (src->ArgusModel != NULL)
-         ArgusCloseModeler(src->ArgusModel);
-
-      src->status |= ARGUS_SHUTDOWN;
-
-#if defined(ARGUS_THREADS)
-      pthread_mutex_lock(&src->lock);
-      pthread_cond_signal(&src->cond);
-      pthread_mutex_unlock(&src->lock);
-#endif
+      err = ArgusCloseOneSource(src);
+      if (err < 0)
+         ret = -1;
    }
-
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "ArgusCloseSource(%p) done\n", src);
+   ArgusDebug (2, "%s(%p) done, returning %d\n", __func__, stask, ret);
 #endif
-   return (0);
+   return ret;
 }
 
 void
