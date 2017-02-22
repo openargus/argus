@@ -565,8 +565,8 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 
          if (device->dltname != NULL) {
 #ifdef HAVE_PCAP_SET_DATALINK
-            if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
-               ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
+               if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
+                  ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
 #else
             /*
              * We don't actually support changing the
@@ -574,8 +574,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
              * set it to what it already is.
              */
 
-            if (device->dlt != pcap_datalink(inf->ArgusPd))
-               ArgusLog(LOG_ERR, "%s: %s is not one of the DLTs supported by this device\n",
+               if (device->dlt != pcap_datalink(inf->ArgusPd))
+                  ArgusLog(LOG_ERR,
+                           "%s: %s is not one of the DLTs supported by this device\n",
                            __func__, device->dltname);
 #endif
          }

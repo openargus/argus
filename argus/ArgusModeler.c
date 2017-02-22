@@ -196,16 +196,7 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    ArgusGetTimeOfDay(model->ArgusSrc, &model->ArgusGlobalTime);
 
-   if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
-      model->ArgusUpdateInterval.tv_usec = 500000000;
-      model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000000LL) + model->ArgusUpdateInterval.tv_usec);
-   } else {
-      model->ArgusUpdateInterval.tv_usec = 500000;
-      model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000LL) + model->ArgusUpdateInterval.tv_usec);
-   }
-   ArgusModel->ArgusGlobalTime = model->ArgusGlobalTime;
-
-   if ((model->ArgusHashTable = ArgusNewHashTable(model->ArgusHashTableSize, debug)) == NULL)
+   if ((model->ArgusHashTable = ArgusNewHashTable(ARGUS_HASHTABLESIZE, debug)) == NULL)
       ArgusLog(LOG_ERR, "%s () ArgusNewHashTable error %s\n",
                __func__, strerror(errno));
 
@@ -2839,15 +2830,15 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
 /* ok so here things are correct, we're going to schedule the expected frag struct
             onto the parent flow, and proceed */
 
-                              if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
-                                 ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
-                            
-                              memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
-                              frag->canon.net.hdr.type             = ARGUS_NETWORK_DSR;
-                              frag->canon.net.hdr.subtype          = ARGUS_NETWORK_SUBTYPE_FRAG;
-                              frag->canon.net.hdr.argus_dsrvl8.qual = 0;
-                              frag->canon.net.hdr.argus_dsrvl8.len  = (sizeof(struct ArgusFragObject) + 3)/4 + 1;
-                              frag->dsrs[ARGUS_FRAG_INDEX] = (struct ArgusDSRHeader *) &frag->canon.net.hdr;
+                     if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
+                        ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
+                   
+                     memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
+                     frag->canon.net.hdr.type             = ARGUS_NETWORK_DSR;
+                     frag->canon.net.hdr.subtype          = ARGUS_NETWORK_SUBTYPE_FRAG;
+                     frag->canon.net.hdr.argus_dsrvl8.qual = 0;
+                     frag->canon.net.hdr.argus_dsrvl8.len  = (sizeof(struct ArgusFragObject) + 3)/4 + 1;
+                     frag->dsrs[ARGUS_FRAG_INDEX] = (struct ArgusDSRHeader *) &frag->canon.net.hdr;
 
                               frag->canon.net.net_union.frag.parent = flow;
 
