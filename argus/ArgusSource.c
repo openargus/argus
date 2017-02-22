@@ -85,7 +85,7 @@ ArgusCloneDevice(struct ArgusDeviceStruct *dev)
    struct ArgusDeviceStruct *retn = NULL;
 
    if ((retn = (void *) ArgusCalloc(1, sizeof(*retn))) == NULL)
-      ArgusLog (LOG_ERR, "ArgusCloseDevice: ArgusCalloc error %s\n", strerror(errno));
+      ArgusLog (LOG_ERR, "%s: ArgusCalloc error %s\n", __func__, strerror(errno));
 
    retn->status = dev->status;
    retn->type   = dev->type;
@@ -266,7 +266,7 @@ setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
    bzero ((char *)&src->ArgusInterface, sizeof(src->ArgusInterface));
 
    if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
-      ArgusLog (LOG_ERR, "ArgusInitSource: pcap_findalldevs_ex %s\n", errbuf);
+      ArgusLog (LOG_ERR, "%s: pcap_findalldevs_ex %s\n", __func__, errbuf);
 
    for (d = src->ArgusPacketDevices; d != NULL; d = d->next) {
       printf ("%d. %s", ++i, d->name);
@@ -343,7 +343,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
             if (device->dltname != NULL) {
 #ifdef HAVE_PCAP_SET_DATALINK
                if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
-                  ArgusLog(LOG_ERR, "%s", pcap_geterr(inf->ArgusPd));
+                  ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
 #else
                /*
                 * We don't actually support changing the
@@ -352,7 +352,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                 */
 
                if (device->dlt != pcap_datalink(inf->ArgusPd))
-                  ArgusLog(LOG_ERR, "%s is not one of the DLTs supported by this device\n", device->dltname);
+                  ArgusLog(LOG_ERR,
+                           "%s: %s is not one of the DLTs supported by this device\n",
+                           __func__, device->dltname);
 #endif
             }
 
@@ -655,7 +657,7 @@ ArgusDeleteSource(struct ArgusSourceStruct *src)
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "ArgusCloseSource(%p) done\n", src);
+   ArgusDebug (2, "%s(%p) done\n", __func__, src);
 #endif
 }
 
@@ -4421,7 +4423,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                         src->status |= ARGUS_LAUNCHED;
                         if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
-                           ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                           ArgusLog (LOG_ERR, "%s() pthread_create error %s\n", __func__, strerror(errno));
                         ArgusThreadCount++;
                      }
                   }
