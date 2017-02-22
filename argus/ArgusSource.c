@@ -664,24 +664,18 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
 
 int
-ArgusCloseSource(struct ArgusSourceStruct *stask)
+ArgusCloseOneSource(struct ArgusSourceStruct *src)
 {
    int i;
    struct ArgusSourceStruct *src = NULL;
 
-   if (stask == NULL)
+   if (src == NULL)
        /* nothing to do */
-       return 0;
+       goto out;
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "ArgusCloseSource(%p) starting\n", stask);
+   ArgusDebug (1, "%s(%p) starting\n", __func__, src);
 #endif
-   for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
-      int j;
-      src = stask->srcs[i];
-
-      if (src == NULL)
-          break;
 
 #if defined(ARGUS_THREADS)
    if (src->thread) {
@@ -690,11 +684,10 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
    }
 #endif
 
-      for (j = 0; j < src->ArgusInterfaces; j++) {
-         if (src->ArgusInterface[j].ArgusPd) {
-            pcap_close(src->ArgusInterface[j].ArgusPd);
-            src->ArgusInterface[j].ArgusPd = NULL;
-         }
+   for (j = 0; j < src->ArgusInterfaces; j++) {
+      if (src->ArgusInterface[j].ArgusPd) {
+         pcap_close(src->ArgusInterface[j].ArgusPd);
+         src->ArgusInterface[j].ArgusPd = NULL;
       }
    }
 
@@ -706,16 +699,6 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
    if (src->ArgusInputFilter) {
       ArgusFree (src->ArgusInputFilter);
       src->ArgusInputFilter = NULL;
-   }
-
-   if (src->ArgusDeviceStr) {
-      free(src->ArgusDeviceStr);
-      src->ArgusDeviceStr = NULL; 
-   }
-
-   if (src->ArgusMarIncludeInterface) {
-      free(src->ArgusMarIncludeInterface);
-      src->ArgusMarIncludeInterface =  NULL;
    }
 
    if (src->ArgusDeviceList) {
@@ -730,7 +713,6 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
 
    if (src->ArgusModel != NULL) {
       ArgusCloseModeler(src->ArgusModel);
-      ArgusFree(src->ArgusModel);
       src->ArgusModel = NULL;
    }
 
@@ -765,6 +747,7 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
    ArgusDebug (1, "%s(%p) starting\n", __func__, stask);
 #endif
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
+      int j;
       src = stask->srcs[i];
 
       if (src == NULL)
@@ -774,12 +757,6 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
       if (err < 0)
          ret = -1;
    }
-
-   if (stask->ArgusModel == ArgusModel)
-      stask->ArgusModel = NULL;
-
-   ArgusCloseOneSource(stask);
-
 #ifdef ARGUSDEBUG
    ArgusDebug (2, "%s(%p) done, returning %d\n", __func__, stask, ret);
 #endif
