@@ -4049,8 +4049,9 @@ void
 ArgusSourceProcess (struct ArgusSourceStruct *stask)
 {
    if (stask != NULL) {
+      unsigned ArgusSourceCount = 0;
 #if defined(ARGUS_THREADS)
-      int ArgusThreadCount = 0, ArgusThreads = 0;
+      int ArgusThreadCount = 0;
 #endif
       extern uid_t new_uid;
       extern gid_t new_gid;
@@ -4112,7 +4113,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
 
                if (ArgusInitSource (src) > 0) {
-                  stask->srcs[ArgusThreads] = src;
+                  stask->srcs[ArgusSourceCount++] = src;
 
                   if (new_gid > 0) {
                      if (setgid(new_gid) < 0)
@@ -4126,10 +4127,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                   src->status |= ARGUS_LAUNCHED;
                   if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
                      ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
-               }
 
-               ArgusThreads++;
-               ArgusThreadCount++;
+                  ArgusThreadCount++;
+               }
             }
          }
 #else
@@ -4206,9 +4206,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 #endif
                         }
 
-                        if (!found && (ArgusThreads > 0)) {
+                        if (!found && (ArgusSourceCount > 0)) {
                            int i, count;
-                           for (i = 0; i < ArgusThreads && !found; i++) {
+                           for (i = 0; i < ArgusSourceCount && !found; i++) {
                               struct ArgusSourceStruct *src;
                               if ((src = stask->srcs[i]) != NULL) {
                                  struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK);
@@ -4301,11 +4301,11 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                  src->status |= ARGUS_LAUNCHED;
                                  if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
                                     ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                                 ArgusThreadCount++;
                               }
-                  
+
+                              stask->srcs[ArgusSourceCount++] = src;
                               ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                              stask->srcs[ArgusThreads++] = src;
-                              ArgusThreadCount++;
                            }
                         }
                      }
@@ -4334,7 +4334,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
             }
          }
 
-         for (i = 0; i < ArgusThreadCount; i++) {
+         for (i = 0; i < ArgusSourceCount; i++) {
             struct ArgusSourceStruct *src = stask->srcs[i];
 
             if (src != NULL) {
@@ -4344,16 +4344,16 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                   if (src->status & ARGUS_LAUNCHED) {
                      pthread_t thread;
                      void *ptr = NULL;
-                     if ((thread = src->thread) != 0)
+                     if ((thread = src->thread) != 0) {
                         pthread_join(thread, &ptr);
-
-                     src->thread = 0;
+                        ArgusThreadCount--;
+                        src->thread = 0;
+                     }
 
 #ifdef ARGUSDEBUG
                      ArgusDebug (2, "ArgusSourceProcess: ArgusGetPackets[%d] done\n", i);
 #endif
                   }
-                  ArgusThreads--;
                   src->status &= ~(ARGUS_SHUTDOWN | ARGUS_LAUNCHED);
 
                } else {
@@ -4371,13 +4371,14 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         src->status |= ARGUS_LAUNCHED;
                         if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
                            ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                        ArgusThreadCount++;
                      }
                   }
                }
             }
          }
          pthread_mutex_unlock(&stask->lock);
-      } while (!(stask->status & ARGUS_SHUTDOWN) && (ArgusThreads > 0));
+      } while (!(stask->status & ARGUS_SHUTDOWN) && (ArgusThreadCount > 0));
    }
 #endif /* ARGUS_THREADS */
 }
