@@ -4269,6 +4269,11 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
          struct timespec tsbuf, *ts = &tsbuf;
          int retn = 0, i;
 
+	 /* non-zero when the stask->srcs[] array needs to be
+	  * compacted due to source removal
+          */
+         int source_closed;
+
          gettimeofday (&tvp, 0L);
 
          ts->tv_sec  = tvp.tv_sec + 0;
@@ -4450,7 +4455,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
             }
          }
 
-         for (i = 0; i < ArgusSourceCount; i++) {
+         for (source_closed = 0, i = 0; i < ArgusSourceCount; i++) {
             struct ArgusSourceStruct *src = stask->srcs[i];
 
             if (src != NULL) {
@@ -4461,16 +4466,26 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                      pthread_t thread;
                      void *ptr = NULL;
                      if ((thread = src->thread) != 0) {
-                        pthread_join(thread, &ptr);
+                        /* Prevent ArgusCloseModeler from stopping the output
+                         * process
+                         */
+                        if (src->ArgusModel)
+                           src->ArgusModel->ArgusOutputList = NULL;
+
+                        ArgusCloseOneSource(src);
                         ArgusThreadCount--;
-                        src->thread = 0;
+                        stask->srcs[i] = NULL;
+                        source_closed++;
                      }
 
 #ifdef ARGUSDEBUG
                      ArgusDebug (2, "ArgusSourceProcess: ArgusGetPackets[%d] done\n", i);
 #endif
                   }
-                  src->status &= ~(ARGUS_SHUTDOWN | ARGUS_LAUNCHED);
+                  if (stask->srcs[i])
+                     src->status &= ~(ARGUS_SHUTDOWN | ARGUS_LAUNCHED);
+                  else
+                     ArgusFree(src);
 
                } else {
                   if (!(src->status & ARGUS_LAUNCHED)) {
@@ -4493,8 +4508,27 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                }
             }
          }
+
+         /* Compact the source array if one or more sources were closed */
+         if (source_closed) {
+#ifdef ARGUSDEBUG
+            ArgusDebug(2, "%s: compacting stask array\n", __func__);
+#endif
+            /* remove any empty entries from the end */
+            while (ArgusSourceCount > 0
+                   && stask->srcs[ArgusSourceCount-1] == NULL)
+               ArgusSourceCount--;
+            for (i = 0; i < ArgusSourceCount; i++) {
+               if (stask->srcs[i] == NULL) {
+                  /* swap this empty entry with the last entry */
+                  stask->srcs[i] = stask->srcs[ArgusSourceCount-1];
+                  stask->srcs[ArgusSourceCount-1] = NULL;
+                  ArgusSourceCount--;
+               }
+            }
+         }
          pthread_mutex_unlock(&stask->lock);
-      } while (!(stask->status & ARGUS_SHUTDOWN) && (ArgusThreadCount > 0));
+      } while (!(stask->status & ARGUS_SHUTDOWN));
    }
 #endif /* ARGUS_THREADS */
 }
