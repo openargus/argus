@@ -1,6 +1,6 @@
-%define ver 5.0
+%define ver @PACKAGE_VERSION@
 %if %{?rel:0}%{!?rel:1}
-%define rel 3.0
+%define rel @PACKAGE_RELEASE@
 %endif
 %if %{?srcext:0}%{!?srcext:1}
 %define srcext .gz

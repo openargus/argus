@@ -9829,6 +9829,7 @@ do
     "./events/Makefile") CONFIG_FILES="$CONFIG_FILES ./events/Makefile" ;;
     "./pkg/win7/Makefile") CONFIG_FILES="$CONFIG_FILES ./pkg/win7/Makefile" ;;
     "./pkg/win7/argus.wxs") CONFIG_FILES="$CONFIG_FILES ./pkg/win7/argus.wxs" ;;
+    "./lib/argus.spec") CONFIG_FILES="$CONFIG_FILES ./lib/argus.spec" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
