@@ -443,6 +443,7 @@ AC_CONFIG_FILES([
    ./events/Makefile 
    ./pkg/win7/Makefile
    ./pkg/win7/argus.wxs
+   ./lib/argus.spec
 ])
 
 AC_OUTPUT
