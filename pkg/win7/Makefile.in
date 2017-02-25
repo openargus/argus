@@ -4,9 +4,9 @@ top: win7package
 
 WFLAGS = -ext WixUtilExtension
 
-win7package: argus-@PACKAGE_VERSION@.msi
+win7package: argus-@PACKAGE_VERSION@.@PACKAGE_RELEASE@.msi
 
-argus-@PACKAGE_VERSION@.msi: argus.wixobj
+argus-@PACKAGE_VERSION@.@PACKAGE_RELEASE@.msi: argus.wixobj
 	light $(WFLAGS) $^
 
 argus.wixobj: argus.wxs
