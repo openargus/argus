@@ -1,9 +1,11 @@
 <?xml version='1.0' encoding='windows-1252'?>
-<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-  <Product Name='argus-@PACKAGE_VERSION@'
-  Id='1fb9896d-0fdd-405d-b5d1-b087ed9def21'
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Product Name='ArgusPro @PACKAGE_VERSION@'
+  Id="*"
   UpgradeCode='a3661ada-3ca2-44aa-ad48-d6b3c87f77ab'
-  Language='1033' Codepage='1252' Version='1.0.0'
+  Language='1033' Codepage='1252'
+  Version='@PACKAGE_VERSION@.@PACKAGE_RELEASE@'
   Manufacturer='QoSient LLC'>
     <Package Id='*' Keywords='Installer'
     Description="QoSient Argus @PACKAGE_VERSION@ Installer"
