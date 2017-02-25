@@ -13,6 +13,14 @@
     Languages='1033' Compressed='yes' SummaryCodepage='1252' />
     <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes'
     DiskPrompt="CD-ROM #1" />
+
+    <Upgrade Id='6ea0b0c6-6718-4e1b-93dc-056ae2103867'>
+      <UpgradeVersion OnlyDetect='no' Property='PREVIOUSFOUND'
+        Minimum='1.0.0' IncludeMinimum='yes'
+        Maximum='@PACKAGE_VERSION@.@PACKAGE_RELEASE@'
+        IncludeMaximum='yes' />
+    </Upgrade>
+
     <Property Id='DiskPrompt' Value="Argus Installation [1]" />
     <Directory Id='TARGETDIR' Name='SourceDir'>
       <Component Id="REG_MACHINE"
@@ -117,5 +125,10 @@
       <ComponentRef Id='cygrunsrv.exe' />
       <ComponentRef Id='REG_MACHINE' />
     </Feature>
+
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallInitialize" />
+    </InstallExecuteSequence>
+
   </Product>
 </Wix>
