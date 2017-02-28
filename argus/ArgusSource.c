@@ -89,10 +89,7 @@
 #define PPP_HDRLEN      4       /* length of PPP header */
 #endif
 
-#include <ArgusSource.h>
-
 #include "ArgusIfnam.h"
-#include "ArgusGetTimeOfDay.h"
 
 void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
@@ -1324,25 +1321,19 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                                  ArgusSourceTask->type = type;
 
                               } else {
+                                 char inf[5] = {0,};
                                  dev->trans   = ArgusSourceTask->trans;
-                                 dev->idtype  = ArgusSourceTask->type;
-                                 if (dev->idtype & ARGUS_TYPE_INTERFACE) {
-                                    int len = 0;
-                                    char inf[4];
-                                    bzero(inf, 4);
-                                    if (dev && (dev->name != NULL)) {
-                                       if ((len = strlen(dev->name)) > 4) {
-                                          bcopy(dev->name, &inf[0], 3);
-                                          if (isdigit((int)dev->name[len - 1]))
-                                             inf[3] = dev->name[len - 1];
-                                          else
-                                             inf[3] = dev->name[3];
-                                       } else
-                                          bcopy(dev->name, inf, len);
-                                       bcopy(inf, dev->trans.srcid.inf, 4);
-                                       dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+                                 dev->idtype  = ArgusSourceTask->type | ARGUS_TYPE_INTERFACE;
+                                 if (dev && (dev->name != NULL)) {
+                                    shortname_ethdev_unique(dev->name, inf,
+                                                            sizeof(inf),
+                                                            src->ArgusDeviceList);
 
-                                    }
+                                    bcopy(inf, dev->trans.srcid.inf, 4);
+                                    dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+                                    ArgusLog(LOG_INFO,
+                                             "mapping interface name %s -> %s\n",
+                                             dev->name, inf);
                                  }
                               }
                            }
@@ -1403,9 +1394,20 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
 
                      ArgusSourceTask->type = type;
 
-                  } else {
-                     dev->trans   = ArgusSourceTask->trans;
-                     dev->idtype  = ArgusSourceTask->type;
+                     } else {
+                        char inf[5] = {0,};
+                        dev->trans   = ArgusSourceTask->trans;
+                        dev->idtype  = ArgusSourceTask->type | ARGUS_TYPE_INTERFACE;
+                        if (dev && (dev->name != NULL)) {
+                           shortname_ethdev_unique(dev->name, inf,
+                                                   sizeof(inf),
+                                                   src->ArgusDeviceList);
+
+                           bcopy(inf, dev->trans.srcid.inf, 4);
+                           dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+                           ArgusLog(LOG_INFO, "mapping interface name %s -> %s\n", dev->name, inf);
+                        }
+                     }
                   }
                }
 
@@ -1988,16 +1990,15 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
       if (iptr != NULL) {
          int len;
          if (strcmp(iptr, "inf") == 0) {
+            char inf[5] = {0,};
             if (dev && (dev->name != NULL)) {
-               if ((len = strlen(dev->name)) > 4) {
-                  bcopy(dev->name, &buf[slen], 3);
-                  if (isdigit((int)dev->name[len - 1]))
-                     buf[slen+3] = dev->name[len - 1];
-                  else
-                     buf[slen+3] = dev->name[3];
-               } else
-                  bcopy(dev->name, &buf[slen], len);
+               shortname_ethdev_unique(dev->name, inf, sizeof(inf),
+                                       src->ArgusDeviceList);
+               len = strlen(inf);
+               bcopy(inf, &buf[slen], len);
                slen += len;
+               ArgusLog(LOG_INFO, "mapping interface name %s -> %s\n",
+                        dev->name, inf);
             }
             type |= ARGUS_TYPE_INTERFACE;
          } else {
@@ -4536,8 +4537,20 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                  ArgusSourceTask->type = type;
 
                               } else {
+                                 char inf[5] = {0,};
                                  dev->trans = ArgusSourceTask->trans;
                                  dev->idtype  = ArgusSourceTask->type;
+                                 if (dev && (dev->name != NULL)) {
+                                    shortname_ethdev_unique(dev->name, inf,
+                                                            sizeof(inf),
+                                                            ArgusSourceTask->ArgusDeviceList);
+
+                                    bcopy(inf, dev->trans.srcid.inf, 4);
+                                    dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+                                    ArgusLog(LOG_INFO,
+                                            "mapping interface name %s -> %s\n",
+                                            dev->name, inf);
+                                 }
                               }
 
                               src = ArgusCloneSource(stask);

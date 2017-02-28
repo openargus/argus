@@ -1,29 +1,3 @@
-/*
- * Argus-5.0 Software. Argus files - Interface naming
- * Copyright (c) 2000-2024 QoSient, LLC
- * All rights reserved.
- *
- * This program is free software, released under the GNU General
- * Public License; you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software
- * Foundation; either version 3, or any later version.
- *
- * Other licenses are available through QoSient, LLC.
- * Inquire at info@qosient.com.
- *
- * This program is distributed WITHOUT ANY WARRANTY; without even the
- * implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * Written by Carter Bullard
- * QoSient, LLC
- *
- */
-
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
 #endif
@@ -35,7 +9,6 @@
 #include "argus_compat.h"
 #include "ArgusModeler.h"
 #include "ArgusSource.h"
-#include "ArgusIfnam.h"
 
 #define __NAMELENGTH 4
 
@@ -134,7 +107,7 @@ shortname_ethdev_unique(char *in, char *out, size_t outlen,
    size_t inlen;
 
    /* Really only needed for Windows Transport Names */
-   while (*in && !isalpha((int)*in))
+   while (*in && !isalpha(*in))
       in++;
 
    incopy = strdup(in);
@@ -142,7 +115,7 @@ shortname_ethdev_unique(char *in, char *out, size_t outlen,
       return -1;
 
    inlen = strlen(incopy);
-   while (inlen > 0 && !isalnum((int)incopy[inlen-1]))
+   while (inlen > 0 && !isalnum(incopy[inlen-1]))
       incopy[--inlen] = '\0';
 
    ret = shortname_ethdev(incopy, out, outlen);
