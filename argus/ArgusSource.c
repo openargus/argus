@@ -942,19 +942,14 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
       char *params = strdup(cmd);
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
-#if defined(CYGWIN)
-      int i = 0, num, ref = 0;
-#else
       struct ArgusDeviceStruct *dev = NULL;
       int cnt = 0, status = 0;
       char *tok, *stok;
-#endif
 
       if (type == ARGUS_LIVE_DEVICE)
          if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
             ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
 
-#if !defined(CYGWIN)
 // we need to parse this bad thing and construct the devices struct
 
       if (!(strncmp("ind:", params, 4))) {
@@ -1162,43 +1157,6 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
       if (device != NULL)
          ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
       
-#else
-// on cygwin, you get integers not interface names 
-
-      if (device == NULL) {
-         if ((device = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
-            ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
-         device->type = type;
-      }
-
-      device->status = ARGUS_TYPE_IND;
-      num = (int)strtol(cmd, (char **)&ptr, 10);
-      if (ptr != cmd) 
-         ref = 1;
-      if (!(strncmp(cmd, "any", 3))) {
-         ref = 1;
-         num = 1;
-      }
-
-      for (d = alldevs; d != NULL; d = d->next) {
-         i++;
-         if (ref) {
-            if (i == num) {
-               device->name = strdup(d->name);
-               break;
-            }
-         } else {
-            if (!strcmp(cmd, d->name)) {
-               device->name = strdup(d->name);
-               break;
-            }
-         }
-      }
-      if (i == 0) 
-         ArgusLog (LOG_ERR, "setArgusDevice: no interfaces\n");
-
-      ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
-#endif
       free(params);
       if (alldevs != NULL)
          pcap_freealldevs(alldevs);
