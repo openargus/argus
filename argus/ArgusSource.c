@@ -1012,8 +1012,6 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                            if (dlt != NULL) {
 #if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
                               dev->dlt = pcap_datalink_name_to_val(dlt);
-#else
-                              dev->dlt = 0;
 #endif
                               dev->dltname = strdup(dlt);
                            }
@@ -1094,8 +1092,6 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                   if (dlt != NULL) {
 #if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
                      dev->dlt = pcap_datalink_name_to_val(dlt);
-#else
-                     dev->dlt = 0;
 #endif
                      dev->dltname = strdup(dlt);
                   }
@@ -4370,8 +4366,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                            if (dlt != NULL) {
 #if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
                               dev->dlt = pcap_datalink_name_to_val(dlt);
-#else
-                              dev->dlt = 0;
 #endif
                               dev->dltname = strdup(dlt);
                            }
