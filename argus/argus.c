@@ -426,6 +426,7 @@ main (int argc, char *argv[])
 
          case 'i': {
             char Istr[1024], *Iptr = Istr;
+            size_t slen;
 
             if (!commandlinei++)
                clearArgusDevice(ArgusSourceTask);
@@ -453,6 +454,11 @@ main (int argc, char *argv[])
                      optind++;
 
             } while (optarg && (*optarg != '-'));
+
+            /* remove trailing space */
+            slen = strlen(Istr);
+            if (slen > 0 && Istr[slen-1] == ' ')
+               Istr[slen-1] = '\0';
 
             setArgusDevice (ArgusSourceTask, Istr, ARGUS_LIVE_DEVICE, 0);
             break;
