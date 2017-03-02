@@ -1133,22 +1133,6 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
             }
          }
 
-         if (dev != NULL) {
-            if (srcid != NULL) {
-               int type = ArgusSourceTask->type;
-
-               ArgusParseSourceID (ArgusSourceTask, dev, srcid);
-               dev->trans   = ArgusSourceTask->trans;
-               dev->idtype  = ArgusSourceTask->type;
-
-               ArgusSourceTask->type = type;
-
-            } else {
-               dev->trans   = ArgusSourceTask->trans;
-               dev->idtype  = ArgusSourceTask->type;
-            }
-         }
-
          if (srcid != NULL)
             free(srcid);
          ptr = NULL;
