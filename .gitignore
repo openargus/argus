@@ -1,0 +1,35 @@
+# xcode noise
+build/*
+*.pbxuser
+*.mode1v3
+
+# old skool
+.svn
+
+# osx noise
+.DS_Store
+profile
+
+.gitattributes
+.gitignore
+.debug
+.devel
+
+*.o
+*.swp
+Makefile
+bin/*
+!bin/argusclientbug
+!bin/mkdep
+/config.log
+/config.status
+include/argus_config.h
+/common/grammar.c
+/common/scanner.c
+/common/tokdefs.h
+/common/version.c
+/lib/*.a
+/autom4te.cache
+/argus-*.tar.gz
+/lib/argus.spec
+/pkg/win7/argus.wxs
