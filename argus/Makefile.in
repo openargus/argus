@@ -58,9 +58,21 @@ INCLS = -I$(srcdir) @V_INCLS@ @XDR_INCLS@ -I$(srcdir)/../include
 DEFS = @DEFS@
 #DEFS = -DARGUSPERFMETRICS=1 @DEFS@
 
+FLEXLM = @V_FLEXLM@
+FLEXLM_ARCH = @V_FLEXLM_ARCH@
+FLEXLM_ARCH_universal_mac10_LIBS = -framework IOKit -framework CoreFoundation
+FLEXLM_ARCH_x64_lsb_LIBS = -ldl
+FLEXLM_ARCH_i86_n3_LIBS =
+ifneq ($(FLEXLM),)
+    FLEXLM_LDFLAGS = -L$(FLEXLM)/$(FLEXLM_ARCH) -L$(FLEXLM)/$(FLEXLM_ARCH)/activation/lib
+       FLEXLM_LIBS = -llmgr_trl -lcrvs -lsb -llmgr_dongle_stub -lnoact $(FLEXLM_ARCH_$(FLEXLM_ARCH)_LIBS)
+     FLEXLM_CFLAGS = -I$(FLEXLM)/$(FLEXLM_ARCH) -I$(FLEXLM)/machind
+endif
+
+
 # Standard CFLAGS
-CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS)
-LDFLAGS = @LDFLAGS@
+CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS) $(FLEXLM_CFLAGS)
+LDFLAGS = @LDFLAGS@ $(FLEXLM_LDFLAGS)
 
 INSTALL = @INSTALL@
 RANLIB = @V_RANLIB@
@@ -109,6 +121,9 @@ all: $(PROG)
 
 @INSTALL_BIN@/argus: $(OBJ) ../lib/argus_common.a
 	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LDFLAGS) $(LIB)
+
+$(FLEXLM)/$(FLEXLM_ARCH)/lm_new.o:
+	$(MAKE) -C $(FLEXLM)/$(FLEXLM_ARCH) lm_new.o
 
 install: force all
 	[ -d $(DESTDIR)$(SBINDIR) ] || \

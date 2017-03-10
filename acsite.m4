@@ -412,7 +412,7 @@ dnl
 
 AC_DEFUN([AC_QOSIENT_FLEXLM],
   [AC_ARG_WITH(flexlm,
-    [AS_HELP_STRING([--with-flexlm=DIR],[location of Flexnet Publisher distribution])],
+    [AC_HELP_STRING([--with-flexlm=DIR],[location of Flexnet Publisher distribution])],
     [
       with_flexlm="$withval"
       AC_DEFINE([ARGUS_FLEXLM], [], [Using FlexLM])
