@@ -415,6 +415,36 @@ AC_DEFUN([AC_QOSIENT_DEBUG],
        AC_DEFINE([ARGUSDEBUG], [], [Using Argus debug])
     fi])
 
+dnl
+dnl Option to provide location of Flexnet Publisher libraries & source
+dnl
+dnl usage:
+dnl
+dnl   AC_QOSIENT_FLEXLM(dirvariable)
+dnl
+dnl results:
+dnl
+dnl   $1 (flexlm directory set)
+dnl   $2 (flexlm architecture)
+dnl
+
+AC_DEFUN([AC_QOSIENT_FLEXLM],
+  [AC_ARG_WITH(flexlm,
+    [AC_HELP_STRING([--with-flexlm=DIR],[location of Flexnet Publisher distribution])],
+    [
+      with_flexlm="$withval"
+      AC_DEFINE([ARGUS_FLEXLM], [], [Using FlexLM])
+      $1="$withval"
+
+      case $target in
+        x86_64-*-linux-gnu) $2=x64_lsb ;;
+        *-apple-darwin*)    $2=universal_mac10 ;;
+        i686-pc-cygwin)     $2=i86_n3 ;;
+      esac
+    ]
+)])
+
+
 dnl 
 dnl If the file .threads exists:
 dnl   Add ARGUS_THREADS to the condefs.h file.
@@ -427,7 +457,7 @@ dnl results:
 dnl
 dnl   $1 (copt appended)
 dnl
- 
+
 AC_DEFUN([AC_QOSIENT_THREADS],
   [AC_ARG_WITH(threads,
     [AC_HELP_STRING([--without-threads],[don't use native threads package])],
