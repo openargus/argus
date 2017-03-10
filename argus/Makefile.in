@@ -65,8 +65,8 @@ DEFS = @DEFS@
 #DEFS = -DARGUSPERFMETRICS=1 @DEFS@
 
 # Standard CFLAGS
-CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS)
-LDFLAGS = @LDFLAGS@
+CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS) $(FLEXLM_CFLAGS)
+LDFLAGS = @LDFLAGS@ $(FLEXLM_LDFLAGS)
 
 INSTALL = @INSTALL@
 RANLIB = @V_RANLIB@
@@ -90,6 +90,9 @@ SRC =	argus.c ArgusModeler.c ArgusSource.c ArgusUtil.c ArgusOutput.c ArgusUdp.c 
 	ArgusTcp.c ArgusIcmp.c ArgusIgmp.c ArgusEsp.c ArgusArp.c ArgusFrag.c ArgusUdt.c \
 	ArgusLcp.c ArgusIsis.c ArgusAuth.c Argus802.11.c ArgusApp.c ArgusEvents.c \
 	ArgusNetflow.c ArgusSflow.c ArgusVxLan.c ArgusL2TP.c ArgusIfnam.c
+ifneq ($(FLEXLM),)
+SRC += argus_lic.c
+endif
 
 PROG =	@INSTALL_BIN@/argus
 
@@ -115,6 +118,9 @@ all: $(PROG)
 
 @INSTALL_BIN@/argus: $(OBJ) ../lib/argus_common.a
 	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LDFLAGS) $(LIB)
+
+$(FLEXLM)/$(FLEXLM_ARCH)/lm_new.o:
+	$(MAKE) -C $(FLEXLM)/$(FLEXLM_ARCH) lm_new.o
 
 install: force all
 	[ -d $(DESTDIR)$(SBINDIR) ] || \

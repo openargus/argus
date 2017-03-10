@@ -653,6 +653,8 @@ LIB_XDR
 COMPATLIB
 WRAPLIBS
 V_THREADS
+V_FLEXLM_ARCH
+V_FLEXLM
 V_PERL
 V_INCLS
 V_CCOPT
@@ -756,6 +758,7 @@ with_pcre_config
 enable_largefile
 with_hashdebug
 with_nanoseconds
+with_flexlm
 with_threads
 with_tcpwrappers
 enable_year2038
@@ -1411,6 +1414,7 @@ Optional Packages:
   --with-pcre-config=PATH Location of PCRE pcre-config (auto)
   --with-hashdebug        enable hash table debugging
   --without-nanoseconds   don't use nanosecond timestamps
+  --with-flexlm=DIR       location of Flexnet Publisher distribution
   --without-threads       don't use native threads package
   --with-wrappers=DIR     Compile with tcpwrappers in <DIR>
 
@@ -10010,6 +10014,25 @@ printf "%s\n" "yes" >&6; }
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }
   fi
+
+
+# Check whether --with-flexlm was given.
+if test "${with_flexlm+set}" = set; then :
+  withval=$with_flexlm;
+      with_flexlm="$withval"
+
+$as_echo "#define ARGUS_FLEXLM /**/" >>confdefs.h
+
+      V_FLEXLM="$withval"
+
+      case $target in
+        x86_64-*-linux-gnu) V_FLEXLM_ARCH=x64_lsb ;;
+        *-apple-darwin*)    V_FLEXLM_ARCH=universal_mac10 ;;
+        i686-pc-cygwin)     V_FLEXLM_ARCH=i86_n3 ;;
+      esac
+
+
+fi
 
 
 # Check whether --with-threads was given.
