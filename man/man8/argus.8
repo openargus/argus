@@ -109,6 +109,12 @@ specific -i options.
 .fi
 
 .TP 5 5
+.BI \-E days
+Check out a license and cache locally for the specified number of days.
+Any positive integer is valid but the license server may impose a limit
+on this value.  If the value is zero (0) or the option is not specified,
+a floating license is requested for the duration of the process.
+.TP 5 5
 .B \-f
 When reading packets from a packet capture file, the -f option causes argus
 to not stop when end of file is reached, but rather to wait for additional

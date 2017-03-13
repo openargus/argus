@@ -85,6 +85,11 @@ int ArgusDaemon = 0;
 pthread_attr_t attrbuf, *ArgusAttr = &attrbuf;
 #endif
 
+#if defined(ARGUS_FLEXLM)
+# include "argus_lic.h"
+static void *license;
+#endif
+
 static void ArgusShutDown (void);
 
 void
@@ -304,6 +309,11 @@ main (int argc, char *argv[])
    int status;
 #endif
 
+#if defined(ARGUS_FLEXLM)
+   int borrow = 0;
+   struct timeval borrow_expire = {0, };
+#endif
+
    ArgusUid = getuid();
    ArgusGid = getgid();
    
@@ -355,7 +365,21 @@ main (int argc, char *argv[])
                            break;
                      }
                      break;
-
+#if defined(ARGUS_FLEXLM)
+                  case 'E':
+                     /* Borrow a license for the specified Expiration
+                      * in number of days.
+                      */
+                     if (isdigit((int)*++ptr)) {
+                        borrow = atoi(ptr);
+                     } else {
+                        if (isdigit((int)*argv[i + 1]))
+                           borrow = atoi(argv[++i]);
+                        else
+                           break;
+                     }
+                     break;
+#endif
                   case 'X': 
                   case 'F': 
                      doconf++; 
@@ -375,6 +399,15 @@ main (int argc, char *argv[])
          }
       }
    }
+
+#if defined(ARGUS_FLEXLM)
+   if (borrow > 0) {
+      gettimeofday(&borrow_expire, NULL);
+      borrow_expire.tv_sec += (86400 * borrow);
+   }
+   license = ArgusLicenseInit((borrow > 0) ? &borrow_expire : NULL);
+   ArgusLicenseCheckout(license); /* exits process on failure */
+#endif
 
    if ((ArgusModel = ArgusNewModeler()) == NULL)
       ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
@@ -399,7 +432,7 @@ main (int argc, char *argv[])
 
    optind = 1, opterr = 0;
 
-   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:H:i:Jk:lmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
+   while ((op = getopt (argc, argv, "AbB:c:CdD:e:E:fF:g:H:i:Jk:lmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
       switch (op) {
          case 'A': setArgusAflag(ArgusModel, 1); break;
          case 'b': setArgusbpflag (ArgusSourceTask, 1); break;
@@ -419,6 +452,7 @@ main (int argc, char *argv[])
          case 'e': ArgusParseSourceID(ArgusSourceTask, NULL, optarg); break;
 
          case 'H': setArgusHashTableSize (ArgusModel, atoi(optarg)); break;
+         case 'E': /* handled above */ break;
          case 'f': setArgusfflag (ArgusSourceTask, 1); break;
          case 'F': ArgusParseResourceFile (ArgusModel, optarg, readoffline); break;
 
@@ -713,6 +747,7 @@ main (int argc, char *argv[])
 #ifdef HAVE_SYSLOG
    closelog();
 #endif
+
    exit(0);
 }
 
@@ -911,6 +946,11 @@ ArgusShutDown (void)
 
    if (daemonflag)
       ArgusLog(LOG_WARNING, "stopped");
+
+#if defined(ARGUS_FLEXLM)
+   ArgusLicenseCheckin(license);
+   ArgusLicenseCleanup(license);
+#endif
 
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusShutDown()\n");
