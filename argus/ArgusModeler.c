@@ -68,6 +68,43 @@ extern void ArgusTCPKeystroke (struct ArgusModelerStruct *, struct ArgusFlowStru
 static void *ArgusCreateIPv4Flow (struct ArgusModelerStruct *, struct ip *);
 static void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
 
+static int
+ArgusCheckTimeout(const struct ArgusModelerStruct * const model,
+                  const struct timeval * const ts,
+                  const struct timeval * const timeout)
+{
+   long long diff, tdiff;
+   int retn;
+
+#ifdef ARGUSDEBUG
+   diff = 0;
+   tdiff = 0;
+#endif
+
+   if (timeout->tv_sec < 0)  // if timeout is set to less that zero, then we never timeout.
+      retn = 0;
+   else {
+      if ((timeout->tv_sec > 0) || (timeout->tv_usec > 0)) {
+         diff  = ArgusTimeDiff (&model->ArgusGlobalTime, ts);
+         tdiff = (timeout->tv_sec * 1000000LL + timeout->tv_usec);
+
+         if (diff >= tdiff)
+            retn = 1;
+         else
+            retn = 0;
+      } else
+         retn = 1;
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (11, "ArgusCheckTimeout (%p, %d.%06d, %d.%06d) diff %f returning %d\n", model, ts->tv_sec, ts->tv_usec,
+                      timeout->tv_sec, timeout->tv_usec, (diff / 1000000.0), retn);
+#endif
+
+   return (retn);
+}
+
+
 struct ArgusModelerStruct *
 ArgusCloneModeler(struct ArgusModelerStruct *src)
 {

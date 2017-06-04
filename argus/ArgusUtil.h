@@ -185,8 +185,6 @@ struct ArgusQueueHeader *ArgusPopQueue(struct ArgusQueueStruct *, int);
 struct ArgusQueueHeader *ArgusPopBackQueue (struct ArgusQueueStruct *queue, int type);
 struct ArgusQueueHeader *ArgusRemoveFromQueue(struct ArgusQueueStruct *, struct ArgusQueueHeader *, int);
  
-int ArgusCheckTimeout(struct ArgusModelerStruct *, struct timeval *, struct timeval *);
-
 void ArgusProcessQueue(struct ArgusModelerStruct *, struct ArgusQueueStruct *, int);
 void ArgusEmptyQueue(struct ArgusQueueStruct *);
 
@@ -269,8 +267,6 @@ extern int ArgusAddToQueue(struct ArgusQueueStruct *, struct ArgusQueueHeader *,
 extern struct ArgusQueueHeader *ArgusPopQueue(struct ArgusQueueStruct *, int);
 struct ArgusQueueHeader *ArgusPopBackQueue (struct ArgusQueueStruct *queue, int type);
 extern struct ArgusQueueHeader *ArgusRemoveFromQueue(struct ArgusQueueStruct *, struct ArgusQueueHeader *, int);
-
-extern int ArgusCheckTimeout(struct ArgusModelerStruct *, struct timeval *, struct timeval *);
 
 extern void ArgusProcessQueue(struct ArgusModelerStruct *, struct ArgusQueueStruct *, int);
 extern void ArgusEmptyQueue(struct ArgusQueueStruct *);
