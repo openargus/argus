@@ -511,8 +511,6 @@ void ArgusModelerCleanUp (struct ArgusModelerStruct *);
 
 void *ArgusCreateFlow (struct ArgusModelerStruct *, void *, int);
 struct ArgusSystemFlow *ArgusCreateArpFlow (struct ArgusModelerStruct *, struct ether_header *);
-void *ArgusCreateIPv4Flow (struct ArgusModelerStruct *, struct ip *);
-void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
 struct ArgusSystemFlow *ArgusCreateESPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
 struct ArgusSystemFlow *ArgusCreateESPFlow (struct ArgusModelerStruct *, struct ip *);
 struct ArgusSystemFlow *ArgusCreateLcpFlow (struct ArgusModelerStruct *, struct lcp_hdr *);
