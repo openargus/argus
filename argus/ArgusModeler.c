@@ -31,6 +31,8 @@
 #define ArgusModeler
 #endif
 
+#include "ArgusTimeDiff.h"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
