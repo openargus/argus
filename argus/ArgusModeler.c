@@ -68,6 +68,9 @@ int ArgusProcessPPPHdr (struct ArgusModelerStruct *, char *, int);
 
 extern void ArgusTCPKeystroke (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 
+static void *ArgusCreateIPv4Flow (struct ArgusModelerStruct *, struct ip *);
+static void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
+
 struct ArgusModelerStruct *
 ArgusCloneModeler(struct ArgusModelerStruct *src)
 {
@@ -4020,7 +4023,7 @@ ArgusCmp(void *p1, void *p2, int len)
 }
 
 
-void *
+static void *
 ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 {
    void *retn = NULL;
@@ -4209,8 +4212,7 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
    return (retn);
 }
 
-
-void *
+static void *
 ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 {
    void *retn = model->ArgusThisFlow;
