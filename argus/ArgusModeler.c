@@ -4273,18 +4273,6 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
             model->ArgusThisUpHdr = nxtHdr;
 
             switch (proto) {
-               case IPPROTO_ESP:
-                  retn = ArgusCreateESPFlow (model, ip);
-                  return (retn);
- 
-               case IPPROTO_ICMP:
-                  retn = ArgusCreateICMPFlow (model, ip);
-                  return (retn);
- 
-               case IPPROTO_IGMP:
-                  retn = ArgusCreateIGMPFlow (model, ip);
-                  return (retn);
-
                case IPPROTO_TCP: {
                   model->ArgusThisFlow->ip_flow.smask = 0;
                   model->ArgusThisFlow->ip_flow.dmask = 0;
@@ -4313,6 +4301,18 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                   }
                   break;
                }
+
+               case IPPROTO_ESP:
+                  retn = ArgusCreateESPFlow (model, ip);
+                  return (retn);
+
+               case IPPROTO_ICMP:
+                  retn = ArgusCreateICMPFlow (model, ip);
+                  return (retn);
+
+               case IPPROTO_IGMP:
+                  retn = ArgusCreateIGMPFlow (model, ip);
+                  return (retn);
 
                default:
                   break;
