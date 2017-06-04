@@ -4480,6 +4480,10 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                }
             }
          }
+
+         if (stask->ArgusRfileList && ArgusSourceCount == 0)
+            stask->status |= ARGUS_SHUTDOWN;
+
          pthread_mutex_unlock(&stask->lock);
       } while (!(stask->status & ARGUS_SHUTDOWN));
    }
