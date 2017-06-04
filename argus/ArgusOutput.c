@@ -48,6 +48,7 @@
 #include <argus.h>
 #include <argus_parser.h>
 #include <argus_filter.h>
+#include "ArgusTimeDiff.h"
 
 #if defined(ARGUS_THREADS)
 #include <pthread.h>

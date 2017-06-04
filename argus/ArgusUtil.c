@@ -68,38 +68,7 @@
 #include <ArgusModeler.h>
 #include <argus_dscodepoints.h>
 #include <argus_encapsulations.h>
-
-
-long long
-ArgusTimeDiff (struct timeval *start, struct timeval *stop)
-{
-   long long retn, stime, etime;
-
-   stime = (start->tv_sec * 1000000LL) + start->tv_usec;
-   etime = (stop->tv_sec  * 1000000LL) +  stop->tv_usec;
-
-   retn = stime - etime;
-   return (retn);
-}
-
-unsigned long long
-ArgusAbsTimeDiff (struct timeval *start, struct timeval *stop)
-{
-   unsigned long long retn = 0;
-   struct timeval *t1 = start, *t2 = stop;
-
-   if ((stop->tv_sec < start->tv_sec) || ((stop->tv_sec == start->tv_sec) &&
-                                          (stop->tv_usec < start->tv_usec))) {
-      t2 = start;
-      t1 = stop;
-   }
-
-   retn = ((t2->tv_sec * 1000000LL) + t2->tv_usec) - 
-          ((t1->tv_sec * 1000000LL) + t1->tv_usec);
-
-   return (retn);
-}
-
+#include "ArgusTimeDiff.h"
 
 struct ArgusListStruct *
 ArgusNewList ()
