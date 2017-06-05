@@ -719,7 +719,7 @@ struct ArgusSourceStruct {
 
    int ArgusPcapBufSize, type, mode;
 
-   struct timeval ArgusStartTime, ArgusEndTime, marktime, lasttime;
+   struct timeval ArgusStartTime, ArgusEndTime, lasttime;
 
    int ArgusSnapLength, ArgusThisLength;
    unsigned char *ArgusThisSnapEnd;
