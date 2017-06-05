@@ -1760,38 +1760,6 @@ ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    if (p != NULL) {
       unsigned int ind = src->ArgusThisIndex;
 
-#define ARGUS_TIME_THRESHOLD   30
-
-      if ((src->marktime.tv_sec) && !(src->ArgusReadingOffLine)) {
-         if ((tvp->tv_sec < (src->marktime.tv_sec - ARGUS_TIME_THRESHOLD)) ||
-             (tvp->tv_sec > (src->marktime.tv_sec + (10 * ARGUS_TIME_THRESHOLD)))) {
-
-//          ArgusLog (LOG_WARNING, "ArgusInterface timestamps wayyy out of order: now %d then %d\n", tvp->tv_sec, src->lasttime.tv_sec);
-
-            if (src->ArgusDumpPacketOnError && (src->ArgusWriteOutPacketFile != NULL)) {
-               if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
-                  if (src->ArgusPcapOutFile != NULL) {
-                     pcap_dump_close(src->ArgusPcapOutFile);
-                     src->ArgusPcapOutFile = NULL;
-                  }
-  
-                  if ((src->ArgusPcapOutFile = pcap_dump_open(src->ArgusInterface[0].ArgusPd, src->ArgusWriteOutPacketFile)) == NULL)
-                     ArgusLog (LOG_ERR, "%s\n", pcap_geterr (src->ArgusInterface[0].ArgusPd));
-               }
-
-#if defined(HAVE_PCAP_DUMP_FTELL)
-               src->ArgusPacketOffset = pcap_dump_ftell(src->ArgusPcapOutFile);
-#endif
-               pcap_dump((u_char *)src->ArgusPcapOutFile, h, p);
-
-#if defined(HAVE_PCAP_DUMP_FLUSH)
-               pcap_dump_flush(src->ArgusPcapOutFile);
-#endif
-            }
-            return;
-         }
-      }
-
       if (src->ArgusReadingOffLine)
          src->ArgusInputOffset = ftell(src->ArgusPacketInput);
 
@@ -1899,36 +1867,6 @@ ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       tvp->tv_sec++;
    }
 #endif
-
-   if ((src->marktime.tv_sec) && !(src->ArgusReadingOffLine)) {
-      if ((tvp->tv_sec < (src->marktime.tv_sec - ARGUS_TIME_THRESHOLD)) ||
-          (tvp->tv_sec > (src->marktime.tv_sec + ARGUS_TIME_THRESHOLD))) {
-
-//       ArgusLog (LOG_WARNING, "ArgusInterface timestamps wayyy out of order: now %d then %d\n", tvp->tv_sec, src->lasttime.tv_sec);
-
-         if (src->ArgusDumpPacketOnError && (src->ArgusWriteOutPacketFile != NULL)) {
-            if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
-               if (src->ArgusPcapOutFile != NULL) {
-                  pcap_dump_close(src->ArgusPcapOutFile);
-                  src->ArgusPcapOutFile = NULL;
-               }
-
-               if ((src->ArgusPcapOutFile = pcap_dump_open(src->ArgusInterface[0].ArgusPd, src->ArgusWriteOutPacketFile)) == NULL)
-                  ArgusLog (LOG_ERR, "%s\n", pcap_geterr (src->ArgusInterface[0].ArgusPd));
-            }
-
-#if defined(HAVE_PCAP_DUMP_FTELL)
-            src->ArgusPacketOffset = pcap_dump_ftell(src->ArgusPcapOutFile);
-#endif
-            pcap_dump((u_char *)src->ArgusPcapOutFile, h, p);
-
-#if defined(HAVE_PCAP_DUMP_FLUSH)
-            pcap_dump_flush(src->ArgusPcapOutFile);
-#endif
-         }  
-         return;
-      }
-   }
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -4158,8 +4096,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                src = ArgusCloneSource(stask);
                clearArgusDevice(src);
 
-               gettimeofday (&src->marktime, 0L);
-
                if (device->trans.srcid.a_un.value != 0) {
                   src->trans = device->trans;
                } else {
@@ -4349,8 +4285,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                               src = ArgusCloneSource(stask);
                               clearArgusDevice(src);
                   
-                              gettimeofday (&src->marktime, 0L);
-                  
                               if (dev->trans.srcid.a_un.value != 0) {
                                  src->trans = dev->trans;
                               } else {
@@ -4412,8 +4346,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
             struct ArgusSourceStruct *src = stask->srcs[i];
 
             if (src != NULL) {
-               gettimeofday (&src->marktime, 0L);
-
                if (src->status & ARGUS_SHUTDOWN) {
                   if (src->status & ARGUS_LAUNCHED) {
                      pthread_t thread;
