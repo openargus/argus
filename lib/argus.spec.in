@@ -47,8 +47,10 @@ make DESTDIR="$RPM_BUILD_ROOT" install
 install -D -m 0600 pkg/argus.conf $RPM_BUILD_ROOT/etc/argus.conf
 install -D -m 0644 pkg/rhel/sysconfig/argus $RPM_BUILD_ROOT/etc/sysconfig/argus
 install -D -m 0644 pkg/rhel/systemd/argus.server.service $RPM_BUILD_ROOT%{_unitdir}/argus.server.service
+install -D -m 0644 pkg/rhel/systemd/argus@.service $RPM_BUILD_ROOT%{_unitdir}/argus@.service
 install -D -m 0644 pkg/rhel/systemd/argus.workstation.service $RPM_BUILD_ROOT%{_unitdir}/argus.workstation.service
 install -D -m 0700 pkg/rhel/systemd/argus-setup $RPM_BUILD_ROOT/%{argussbin}/argus-setup
+install -D -m 0700 pkg/rhel/systemd/argus-setup-numa $RPM_BUILD_ROOT/%{argussbin}/argus-setup-numa
 install -D -m 0644 pkg/rhel/sasl2/argus.conf $RPM_BUILD_ROOT/etc/sasl2/argus.conf
 install -D -m 0755 support/Archive/argusarchive $RPM_BUILD_ROOT/%{argusbin}/argusarchive
 install -d -m 0755 $RPM_BUILD_ROOT/%{argusdocs}/support
@@ -105,7 +107,9 @@ Service description and supporting files for QoSient servers
 
 %files systemd-server
 %attr(644,root,root) %{_unitdir}/argus.server.service
+%attr(644,root,root) %{_unitdir}/argus@.service
 %{argussbin}/argus-setup
+%{argussbin}/argus-setup-numa
 %ghost %{_unitdir}/argus.service
 
 %post systemd-server
