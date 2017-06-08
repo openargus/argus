@@ -8,7 +8,7 @@
 Summary: Argus Pro (Gargoyle) Software
 Name: argus
 Version: %ver
-Release: %rel%{dist}.4
+Release: %rel%{dist}.5
 License: see COPYING file
 Group: Applications/Internet
 Source: %{name}-%{version}.%{rel}.tar%{srcext}
