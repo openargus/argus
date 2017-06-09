@@ -711,10 +711,17 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
       model->ArgusUpdateTimer.tv_sec  += model->ArgusUpdateInterval.tv_sec;
       model->ArgusUpdateTimer.tv_usec += model->ArgusUpdateInterval.tv_usec;
 
+#if defined(ARGUS_NANOSECONDS)
+      while (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
+         model->ArgusUpdateTimer.tv_sec++; 
+         model->ArgusUpdateTimer.tv_usec -= 1000000000;
+      }
+#else
       while (model->ArgusUpdateTimer.tv_usec >= 1000000) {
          model->ArgusUpdateTimer.tv_sec++; 
          model->ArgusUpdateTimer.tv_usec -= 1000000;
       }
+#endif
 
    } else {
 
@@ -742,10 +749,17 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
                model->ArgusUpdateTimer.tv_sec  += model->ArgusUpdateInterval.tv_sec;
                model->ArgusUpdateTimer.tv_usec += model->ArgusUpdateInterval.tv_usec;
 
+#if defined(ARGUS_NANOSECONDS)
+               while (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
+                  model->ArgusUpdateTimer.tv_sec++;
+                  model->ArgusUpdateTimer.tv_usec -= 1000000000;
+               }
+#else
                while (model->ArgusUpdateTimer.tv_usec >= 1000000) {
                   model->ArgusUpdateTimer.tv_sec++;
                   model->ArgusUpdateTimer.tv_usec -= 1000000;
                }
+#endif
             }
          }
       }
@@ -1998,8 +2012,13 @@ RaDeltaFloatTime (struct timeval *s1, struct timeval *s2)
    float retn = 0.0;
 
    if (s1 && s2) {
+#if defined(ARGUS_NANOSECONDS)
+      double v1 = (s1->tv_sec * 1.0) + (s1->tv_usec / 1000000000.0);
+      double v2 = (s2->tv_sec * 1.0) + (s2->tv_usec / 1000000000.0);
+#else
       double v1 = (s1->tv_sec * 1.0) + (s1->tv_usec / 1000000.0);
       double v2 = (s2->tv_sec * 1.0) + (s2->tv_usec / 1000000.0);
+#endif
 
       retn = v1 - v2;
    }
@@ -2015,8 +2034,13 @@ RaDiffTime (struct timeval *s1, struct timeval *s2, struct timeval *diff)
    if (s1 && s2 && diff) {
       bzero ((char *)diff, sizeof(*diff));
 
+#if defined(ARGUS_NANOSECONDS)
+      double v1 = (s1->tv_sec * 1.0) + (s1->tv_usec / 1000000000.0);
+      double v2 = (s2->tv_sec * 1.0) + (s2->tv_usec / 1000000000.0);
+#else
       double v1 = (s1->tv_sec * 1.0) + (s1->tv_usec / 1000000.0);
       double v2 = (s2->tv_sec * 1.0) + (s2->tv_usec / 1000000.0);
+#endif
       double f, i;
 
       v1 -= v2;
@@ -2024,7 +2048,11 @@ RaDiffTime (struct timeval *s1, struct timeval *s2, struct timeval *diff)
       f = modf(v1, &i);
 
       diff->tv_sec  = i;
+#if defined(ARGUS_NANOSECONDS)
+      diff->tv_usec = f * 1000000000;
+#else
       diff->tv_usec = f * 1000000;
+#endif
 
       retn = 1;
    }
@@ -2041,13 +2069,23 @@ ArgusDiffTime (struct ArgusTime *s1, struct ArgusTime *s2, struct timeval *diff)
    long long v1 = 0, v2 = 0;
 
    if (s1 && s2 && diff) {
+#if defined(ARGUS_NANOSECONDS)
+      v1 = (s1->tv_sec * 1000000000LL) + s1->tv_usec;
+      v2 = (s2->tv_sec * 1000000000LL) + s2->tv_usec;
+#else
       v1 = (s1->tv_sec * 1000000LL) + s1->tv_usec;
       v2 = (s2->tv_sec * 1000000LL) + s2->tv_usec;
+#endif
 
       v1 -= v2;
 
+#if defined(ARGUS_NANOSECONDS)
+      diff->tv_sec  = v1 / 1000000000;
+      diff->tv_usec = v1 % 1000000000;
+#else
       diff->tv_sec  = v1 / 1000000;
       diff->tv_usec = v1 % 1000000;
+#endif
    }
 
    return (v1);
@@ -2150,7 +2188,11 @@ RaGetFloatDuration (struct ArgusRecordStruct *argus)
       }
    }
 
+#if defined(ARGUS_NANOSECONDS)
+   retn  = (sec * 1.0) + usec/1000000000.0;
+#else
    retn  = (sec * 1.0) + usec/1000000.0;
+#endif
    return (retn);
 }
 
@@ -2170,7 +2212,11 @@ RaGetFloatSrcDuration (struct ArgusRecordStruct *argus)
 
       sec  = ltime->tv_sec  - stime->tv_sec;
       usec = ltime->tv_usec - stime->tv_usec;
+#if defined(ARGUS_NANOSECONDS)
+      retn  = (sec * 1.0) + usec/1000000000.0;
+#else
       retn  = (sec * 1.0) + usec/1000000.0;
+#endif
    }
 
    return (retn);
@@ -2192,7 +2238,11 @@ RaGetFloatDstDuration (struct ArgusRecordStruct *argus)
 
       sec  = ltime->tv_sec  - stime->tv_sec;
       usec = ltime->tv_usec - stime->tv_usec;
+#if defined(ARGUS_NANOSECONDS)
+      retn  = (sec * 1.0) + usec/1000000000.0;
+#else
       retn  = (sec * 1.0) + usec/1000000.0;
+#endif
    }
 
    return (retn);
@@ -2260,8 +2310,13 @@ ArgusFetchDstLoad (struct ArgusRecordStruct *ns)
    t1d->tv_usec = ns->canon.time.src.end.tv_usec;
 
    t1d->tv_sec  -= ts1->tv_sec; t1d->tv_usec -= ts1->tv_usec;
-   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000;}
-   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000.0));
+#if defined(ARGUS_NANOSECONDS)
+   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
+   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
+#else
+   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
+   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
+#endif
  
    if ((m1 = (struct ArgusMetricStruct *) ns->dsrs[ARGUS_METRIC_INDEX]) != NULL)
       cnt1 = m1->dst.pkts; 
@@ -2290,8 +2345,13 @@ ArgusFetchLoad (struct ArgusRecordStruct *ns)
    t1d->tv_usec = ns->canon.time.src.end.tv_usec;
 
    t1d->tv_sec  -= ts1->tv_sec; t1d->tv_usec -= ts1->tv_usec;
+#if defined(ARGUS_NANOSECONDS)
+   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
+   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
+#else
    if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000;}
    d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000.0));
+#endif
 
    if ((m1 = (struct ArgusMetricStruct *) ns->dsrs[ARGUS_METRIC_INDEX]) != NULL)
       cnt1 = m1->src.pkts + m1->dst.pkts; 
@@ -2618,8 +2678,13 @@ ArgusFetchSrcRate (struct ArgusRecordStruct *ns)
    t1d->tv_usec = ns->canon.time.src.end.tv_usec;
 
    t1d->tv_sec  -= ts1->tv_sec; t1d->tv_usec -= ts1->tv_usec;
+#if defined(ARGUS_NANOSECONDS)
+   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
+   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
+#else
    if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000;}
    d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000.0));
+#endif
 
    if ((m1 = (struct ArgusMetricStruct *) ns->dsrs[ARGUS_METRIC_INDEX]) != NULL)
       cnt1 = m1->src.bytes * 8;
@@ -2648,8 +2713,13 @@ ArgusFetchDstRate (struct ArgusRecordStruct *ns)
    t1d->tv_usec = ns->canon.time.src.end.tv_usec;
 
    t1d->tv_sec  -= ts1->tv_sec; t1d->tv_usec -= ts1->tv_usec;
+#if defined(ARGUS_NANOSECONDS)
+   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
+   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
+#else
    if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000;}
    d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000.0));
+#endif
 
    if ((m1 = (struct ArgusMetricStruct *) ns->dsrs[ARGUS_METRIC_INDEX]) != NULL)
       cnt1 = m1->dst.bytes * 8;
@@ -2678,8 +2748,13 @@ ArgusFetchRate (struct ArgusRecordStruct *ns)
    t1d->tv_usec = ns->canon.time.src.end.tv_usec;
 
    t1d->tv_sec  -= ts1->tv_sec; t1d->tv_usec -= ts1->tv_usec;
+#if defined(ARGUS_NANOSECONDS)
+   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
+   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
+#else
    if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000;}
    d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000.0));
+#endif
 
    if ((m1 = (struct ArgusMetricStruct *) ns->dsrs[ARGUS_METRIC_INDEX]) != NULL)
       cnt1 = (m1->src.bytes + m1->dst.bytes) * 8;

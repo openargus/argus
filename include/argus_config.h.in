@@ -6,6 +6,9 @@
 /* Using Argus memory */
 #undef ARGUSMEMDEBUG
 
+/* Using nanosecond timestamps */
+#undef ARGUS_NANOSECONDS
+
 /* Using System Pcre Library */
 #undef ARGUS_PCRE
 

@@ -478,6 +478,34 @@ AC_DEFUN([AC_QOSIENT_THREADS],
   fi
 ])
 
+dnl 
+dnl By default:
+dnl   Add ARGUS_NANOSECONDS to the condefs.h file.
+dnl
+dnl usage:
+dnl
+dnl   AC_QOSIENT_NANOSECONDS(copt)
+dnl
+dnl results:
+dnl
+dnl   $1 (copt appended)
+dnl
+ 
+AC_DEFUN([AC_QOSIENT_NANOSECONDS],
+  [AC_ARG_WITH(nanoseconds,
+    [AC_HELP_STRING([--without-nanoseconds],[don't use nanosecond timestamps])],
+      with_nanoseconds="$withval",
+      with_nanoseconds="yes")
+
+  AC_MSG_CHECKING(for nanosecond timestamps)
+  if test "$with_nanoseconds" != no; then
+     AC_DEFINE([ARGUS_NANOSECONDS], [], [Using nanosecond timestamps])
+     AC_MSG_RESULT(yes)
+  else
+     AC_MSG_RESULT(no)
+  fi
+])
+
 
 dnl 
 dnl

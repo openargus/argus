@@ -731,6 +731,7 @@ with_staticsasl
 with_libpcre
 with_pcre_config
 enable_largefile
+with_nanoseconds
 with_threads
 with_tcpwrappers
 with_libpcap
@@ -1373,6 +1374,7 @@ Optional Packages:
   --with-staticsasl=DIR   Compile with staticly linked libsasl in <DIR>
   --with-libpcre=DIR      Compile with libpcre in <DIR>
   --with-pcre-config=PATH Location of PCRE pcre-config (auto)
+  --without-nanoseconds   don't use nanosecond timestamps
   --without-threads       don't use native threads package
   --with-wrappers=DIR     Compile with tcpwrappers in <DIR>
   --with-libpcap=DIR      Compile with libpcap in <DIR>
@@ -8202,6 +8204,28 @@ esac
 $as_echo "#define ARGUSMEMDEBUG /**/" >>confdefs.h
 
     fi
+
+
+# Check whether --with-nanoseconds was given.
+if test "${with_nanoseconds+set}" = set; then :
+  withval=$with_nanoseconds; with_nanoseconds="$withval"
+else
+  with_nanoseconds="yes"
+fi
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for nanosecond timestamps" >&5
+$as_echo_n "checking for nanosecond timestamps... " >&6; }
+  if test "$with_nanoseconds" != no; then
+
+$as_echo "#define ARGUS_NANOSECONDS /**/" >>confdefs.h
+
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  else
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+  fi
 
 
 # Check whether --with-threads was given.

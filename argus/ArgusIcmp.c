@@ -350,7 +350,11 @@ ArgusUpdateICMPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
                   if (time->src.start.tv_sec == 0) {
                      time->hdr.subtype          = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
-                     time->hdr.argus_dsrvl8.qual = ARGUS_TYPE_UTC_MICROSECONDS;
+#if defined(ARGUS_NANOSECONDS)
+                     time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_NANOSECONDS;
+#else
+                     time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
+#endif
                      time->hdr.argus_dsrvl8.len  = 3;
 
                      time->src.start.tv_sec  = model->ArgusGlobalTime.tv_sec;

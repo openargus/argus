@@ -80,9 +80,9 @@ ArgusNewOutput (struct ArgusSourceStruct *src, struct ArgusModelerStruct *model)
      ArgusLog (LOG_ERR, "ArgusNewOutput() ArgusCalloc error %s\n", strerror(errno));
 
    gettimeofday (&retn->ArgusGlobalTime, 0L);
-#if defined(ARGUS_NANOSECONDS)
-   retn->ArgusGlobalTime.tv_usec *= 1000;
-#endif
+   if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+      retn->ArgusGlobalTime.tv_usec *= 1000;
+
    retn->ArgusStartTime = retn->ArgusGlobalTime;
 
    retn->ArgusReportTime.tv_sec   = retn->ArgusGlobalTime.tv_sec + retn->ArgusMarReportInterval.tv_sec;
@@ -554,9 +554,9 @@ ArgusOutputProcess(void *arg)
          struct ArgusRecordStruct *rec = NULL;
 
          gettimeofday (&output->ArgusGlobalTime, 0L);
-#if defined(ARGUS_NANOSECONDS)
-         output->ArgusGlobalTime.tv_usec *= 1000;
-#endif
+         if (output->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+            output->ArgusGlobalTime.tv_usec *= 1000;
+
 #ifdef ARGUSDEBUG
          ArgusDebug (6, "ArgusOutputProcess() looping\n");
 #endif
@@ -1888,9 +1888,9 @@ setArgusMarReportInterval(struct ArgusOutputStruct *output, char *value)
       tvp->tv_usec =  fptr * ARGUS_FRACTION_TIME;
 
       gettimeofday(&now, 0L);
-#if defined(ARGUS_NANOSECONDS)
-      now.tv_usec *= 1000;
-#endif
+      if (output->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+         now.tv_usec *= 1000;
+
       output->ArgusReportTime.tv_sec  = now.tv_sec + tvp->tv_sec;
       output->ArgusReportTime.tv_usec = tvp->tv_usec;
 
