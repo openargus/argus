@@ -154,7 +154,6 @@ struct ArgusSocketStruct {
 
 typedef int (*ArgusHandler)(struct ArgusSocketStruct *, unsigned char *, int, void *);
 
-
 #if defined(ArgusUtil)
 
 #if defined(_LITTLE_ENDIAN)
@@ -162,8 +161,6 @@ void ArgusNtoH (struct ArgusRecord *);
 void ArgusHtoN (struct ArgusRecord *);
 #endif
 
-long long ArgusTimeDiff (struct timeval *, struct timeval *);
-unsigned long long ArgusAbsTimeDiff (struct timeval *, struct timeval *);
 
 struct ArgusListStruct *ArgusNewList(void);
 void ArgusDeleteList(struct ArgusListStruct *, int);
@@ -188,8 +185,6 @@ struct ArgusQueueHeader *ArgusPopQueue(struct ArgusQueueStruct *, int);
 struct ArgusQueueHeader *ArgusPopBackQueue (struct ArgusQueueStruct *queue, int type);
 struct ArgusQueueHeader *ArgusRemoveFromQueue(struct ArgusQueueStruct *, struct ArgusQueueHeader *, int);
  
-int ArgusCheckTimeout(struct ArgusModelerStruct *, struct timeval *, struct timeval *);
-
 void ArgusProcessQueue(struct ArgusModelerStruct *, struct ArgusQueueStruct *, int);
 void ArgusEmptyQueue(struct ArgusQueueStruct *);
 
@@ -250,8 +245,6 @@ extern void ArgusNtoH (struct ArgusRecord *);
 extern void ArgusHtoN (struct ArgusRecord *);
 #endif
 
-extern long long ArgusTimeDiff (struct timeval *, struct timeval *);
-extern unsigned long long ArgusAbsTimeDiff (struct timeval *, struct timeval *);
 extern struct ArgusListStruct *ArgusNewList(void);
 extern void ArgusDeleteList(struct ArgusListStruct *, int);
 
@@ -274,8 +267,6 @@ extern int ArgusAddToQueue(struct ArgusQueueStruct *, struct ArgusQueueHeader *,
 extern struct ArgusQueueHeader *ArgusPopQueue(struct ArgusQueueStruct *, int);
 struct ArgusQueueHeader *ArgusPopBackQueue (struct ArgusQueueStruct *queue, int type);
 extern struct ArgusQueueHeader *ArgusRemoveFromQueue(struct ArgusQueueStruct *, struct ArgusQueueHeader *, int);
-
-extern int ArgusCheckTimeout(struct ArgusModelerStruct *, struct timeval *, struct timeval *);
 
 extern void ArgusProcessQueue(struct ArgusModelerStruct *, struct ArgusQueueStruct *, int);
 extern void ArgusEmptyQueue(struct ArgusQueueStruct *);

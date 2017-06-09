@@ -36,6 +36,8 @@
 #define ArgusModeler
 #endif
 
+#include "ArgusTimeDiff.h"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -67,6 +69,46 @@ int ArgusProcessGreHdr (struct ArgusModelerStruct *, struct ip *, int);
 int ArgusProcessPPPHdr (struct ArgusModelerStruct *, char *, int);
 
 extern void ArgusTCPKeystroke (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
+
+static void *ArgusCreateIPv4Flow (struct ArgusModelerStruct *, struct ip *);
+static void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
+
+static int
+ArgusCheckTimeout(const struct ArgusModelerStruct * const model,
+                  const struct timeval * const ts,
+                  const struct timeval * const timeout)
+{
+   long long diff, tdiff;
+   int retn;
+
+#ifdef ARGUSDEBUG
+   diff = 0;
+   tdiff = 0;
+#endif
+
+   if (timeout->tv_sec < 0)  // if timeout is set to less that zero, then we never timeout.
+      retn = 0;
+   else {
+      if ((timeout->tv_sec > 0) || (timeout->tv_usec > 0)) {
+         diff  = ArgusTimeDiff (&model->ArgusGlobalTime, ts);
+         tdiff = (timeout->tv_sec * 1000000LL + timeout->tv_usec);
+
+         if (diff >= tdiff)
+            retn = 1;
+         else
+            retn = 0;
+      } else
+         retn = 1;
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (11, "ArgusCheckTimeout (%p, %d.%06d, %d.%06d) diff %f returning %d\n", model, ts->tv_sec, ts->tv_usec,
+                      timeout->tv_sec, timeout->tv_usec, (diff / 1000000.0), retn);
+#endif
+
+   return (retn);
+}
+
 
 struct ArgusModelerStruct *
 ArgusCloneModeler(struct ArgusModelerStruct *src)
@@ -4020,7 +4062,7 @@ ArgusCmp(void *p1, void *p2, int len)
 }
 
 
-void *
+static void *
 ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 {
    void *retn = NULL;
@@ -4209,8 +4251,7 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
    return (retn);
 }
 
-
-void *
+static void *
 ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 {
    void *retn = model->ArgusThisFlow;
@@ -4273,18 +4314,6 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
             model->ArgusThisUpHdr = nxtHdr;
 
             switch (proto) {
-               case IPPROTO_ESP:
-                  retn = ArgusCreateESPFlow (model, ip);
-                  return (retn);
- 
-               case IPPROTO_ICMP:
-                  retn = ArgusCreateICMPFlow (model, ip);
-                  return (retn);
- 
-               case IPPROTO_IGMP:
-                  retn = ArgusCreateIGMPFlow (model, ip);
-                  return (retn);
-
                case IPPROTO_TCP: {
                   model->ArgusThisFlow->ip_flow.smask = 0;
                   model->ArgusThisFlow->ip_flow.dmask = 0;
@@ -4313,6 +4342,18 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                   }
                   break;
                }
+
+               case IPPROTO_ESP:
+                  retn = ArgusCreateESPFlow (model, ip);
+                  return (retn);
+
+               case IPPROTO_ICMP:
+                  retn = ArgusCreateICMPFlow (model, ip);
+                  return (retn);
+
+               case IPPROTO_IGMP:
+                  retn = ArgusCreateIGMPFlow (model, ip);
+                  return (retn);
 
                default:
                   break;

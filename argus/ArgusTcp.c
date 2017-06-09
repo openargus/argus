@@ -38,6 +38,7 @@
 
 #include <argus_compat.h>
 #include <ArgusModeler.h>
+#include "ArgusTimeDiff.h"
 
 #include <netinet/tcp.h>
 #include <netinet/tcp_fsm.h>

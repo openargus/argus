@@ -68,38 +68,7 @@
 #include <ArgusModeler.h>
 #include <argus_dscodepoints.h>
 #include <argus_encapsulations.h>
-
-
-long long
-ArgusTimeDiff (struct timeval *start, struct timeval *stop)
-{
-   long long retn, stime, etime;
-
-   stime = (start->tv_sec * 1000000LL) + start->tv_usec;
-   etime = (stop->tv_sec  * 1000000LL) +  stop->tv_usec;
-
-   retn = stime - etime;
-   return (retn);
-}
-
-unsigned long long
-ArgusAbsTimeDiff (struct timeval *start, struct timeval *stop)
-{
-   unsigned long long retn = 0;
-   struct timeval *t1 = start, *t2 = stop;
-
-   if ((stop->tv_sec < start->tv_sec) || ((stop->tv_sec == start->tv_sec) &&
-                                          (stop->tv_usec < start->tv_usec))) {
-      t2 = start;
-      t1 = stop;
-   }
-
-   retn = ((t2->tv_sec * 1000000LL) + t2->tv_usec) - 
-          ((t1->tv_sec * 1000000LL) + t1->tv_usec);
-
-   return (retn);
-}
-
+#include "ArgusTimeDiff.h"
 
 struct ArgusListStruct *
 ArgusNewList ()
@@ -658,38 +627,6 @@ ArgusProcessQueue(struct ArgusModelerStruct *model, struct ArgusQueueStruct *que
    ArgusDebug (8, "ArgusProcessQueue (%p, %d) returning\n", queue, status);
 #endif
 }
-
-
-int
-ArgusCheckTimeout(struct ArgusModelerStruct *model, struct timeval *ts, struct timeval *timeout)
-{
-   long long diff = 0, tdiff = 0;
-   int retn;
-
-   if (timeout->tv_sec < 0)  // if timeout is set to less that zero, then we never timeout.
-      retn = 0;
-   else {
-      if ((timeout->tv_sec > 0) || (timeout->tv_usec > 0)) {
-         diff  = ArgusTimeDiff (&model->ArgusGlobalTime, ts);
-         tdiff = (timeout->tv_sec * 1000000LL + timeout->tv_usec);
-
-         if (diff >= tdiff)
-            retn = 1;
-         else
-            retn = 0;
-      } else
-         retn = 1;
-   }
-
-#ifdef ARGUSDEBUG
-   ArgusDebug (11, "ArgusCheckTimeout (%p, %d.%06d, %d.%06d) diff %f returning %d\n", model, ts->tv_sec, ts->tv_usec,
-                      timeout->tv_sec, timeout->tv_usec, (diff / 1000000.0), retn);
-#endif
-
-   return (retn);
-}
-
-
 
 void
 ArgusDeleteObject(struct ArgusFlowStruct *obj)
