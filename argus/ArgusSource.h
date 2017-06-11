@@ -704,6 +704,7 @@ static int juniper_parse_header (const u_char *, const struct pcap_pkthdr *, str
 
 struct ArgusSourceStruct {
    int state, status, proc;
+   int timeStampType;
  
    struct ArgusListStruct *ArgusDeviceList;
    struct ArgusListStruct *ArgusRfileList;
