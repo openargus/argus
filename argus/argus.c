@@ -749,11 +749,19 @@ ArgusComplete ()
    timediff.tv_usec = ArgusSourceTask->ArgusEndTime.tv_usec - ArgusSourceTask->ArgusStartTime.tv_usec;
  
    if (timediff.tv_usec < 0) {
+#if defined(ARGUS_NANOSECONDS)
+      timediff.tv_usec += 1000000000;
+#else
       timediff.tv_usec += 1000000;
+#endif
       timediff.tv_sec--;
    }
  
+#if defined(ARGUS_NANOSECONDS)
+   totaltime = (double) timediff.tv_sec + (((double) timediff.tv_usec)/1000000000.0);
+#else
    totaltime = (double) timediff.tv_sec + (((double) timediff.tv_usec)/1000000.0);
+#endif
 
    sprintf (buf, "%s\n    Total Pkts %8lld  Rate %f\n", "Total", ArgusTotalPkts, ArgusTotalPkts/totaltime);
 

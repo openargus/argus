@@ -172,7 +172,11 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusSnapLen = ARGUS_MINSNAPLEN;
 
    model->ArgusUpdateInterval.tv_usec = 200000;
-   model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000LL) + model->ArgusUpdateInterval.tv_usec);
+
+   if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+      model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000000LL) + model->ArgusUpdateInterval.tv_usec);
+   else
+      model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000LL) + model->ArgusUpdateInterval.tv_usec);
 
    if ((model->ArgusHashTable = ArgusNewHashTable(ARGUS_HASHTABLESIZE, debug)) == NULL)
       ArgusLog(LOG_ERR, "%s () ArgusNewHashTable error %s\n",
@@ -379,10 +383,19 @@ ArgusQueueManager(void *param)
 
          testime.tv_sec  += update.tv_sec;
          testime.tv_usec += update.tv_usec;
-         if (testime.tv_usec > 1000000) {
-            testime.tv_sec++;
-            testime.tv_usec -= 1000000;
+
+         if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
+            if (testime.tv_usec > 1000000000) {
+               testime.tv_sec++;
+               testime.tv_usec -= 1000000000;
+            }
+         } else {
+            if (testime.tv_usec > 1000000) {
+               testime.tv_sec++;
+               testime.tv_usec -= 1000000;
+            }
          }
+#endif
       }
    }
 */
@@ -1630,11 +1643,11 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
          if (tvalue > 0) {
             struct timespec tsbuf, *ts = &tsbuf;
             if (tvalue < 100000) {
-                  ts->tv_sec  = 0;
-                  ts->tv_nsec = tvalue * 1000;
+               ts->tv_sec  = 0;
+               ts->tv_nsec = tvalue * 1000;
             } else {
-                  ts->tv_sec  = 0;
-                  ts->tv_nsec = 100000000;
+               ts->tv_sec  = 0;
+               ts->tv_nsec = 100000000;
             }
             nanosleep (ts, NULL);
 
@@ -1643,12 +1656,23 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
                ArgusDebug (8, "ArgusProcessPacket: stalling tdiff %lld  rtdiff %lld  tvalue %d\n", tdiff, rtdiff, tvalue);
 #endif 
                model->ArgusGlobalTime = model->ArgusLastPacketTimer;
-               model->ArgusGlobalTime.tv_sec  += (tvalue / 1000000);
-               model->ArgusGlobalTime.tv_usec += (tvalue % 1000000);
 
-               while (model->ArgusGlobalTime.tv_usec > 1000000) {
-                  model->ArgusGlobalTime.tv_sec++;
-                  model->ArgusGlobalTime.tv_usec -= 1000000;
+               if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
+                  model->ArgusGlobalTime.tv_sec  += (tvalue / 1000000000);
+                  model->ArgusGlobalTime.tv_usec += (tvalue % 1000000000);
+
+                  while (model->ArgusGlobalTime.tv_usec > 1000000000) {
+                     model->ArgusGlobalTime.tv_sec++;
+                     model->ArgusGlobalTime.tv_usec -= 1000000000;
+                  }
+               } else {
+                  model->ArgusGlobalTime.tv_sec  += (tvalue / 1000000);
+                  model->ArgusGlobalTime.tv_usec += (tvalue % 1000000);
+
+                  while (model->ArgusGlobalTime.tv_usec > 1000000) {
+                     model->ArgusGlobalTime.tv_sec++;
+                     model->ArgusGlobalTime.tv_usec -= 1000000;
+                  }
                }
 
                if (ArgusUpdateTime (model)) {
@@ -2280,7 +2304,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       flow->dsrs[ARGUS_TIME_INDEX] = (struct ArgusDSRHeader *) time;
       time->hdr.type               = ARGUS_TIME_DSR;
       time->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
-      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
+      time->hdr.argus_dsrvl8.qual  = model->ArgusSrc->timeStampType;
       time->hdr.argus_dsrvl8.len   = 3;
 
       if (model->ArgusThisDir) {
@@ -2782,7 +2806,10 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
          if (ArgusThisTime->lasttime.tv_sec > 0) {
             if ((ArgusThisInterval = ArgusAbsTimeDiff (&model->ArgusGlobalTime, &ArgusThisTime->lasttime)) > 0) {
                timeout = *getArgusFarReportInterval (model);
-               tout = (timeout.tv_sec * 1000000LL) + timeout.tv_usec;
+               if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS)
+                  tout = (timeout.tv_sec * 1000000000LL) + timeout.tv_usec;
+               else
+                  tout = (timeout.tv_sec * 1000000LL) + timeout.tv_usec;
 
                if (tout > 0) {
                   if (ArgusThisInterval < (tout * 2)) {
@@ -4904,7 +4931,10 @@ setArgusFarReportInterval (struct ArgusModelerStruct *model, char *value)
       if (ptr != NULL) {
          fvalue = atof(value);
          model->ArgusFarReportInterval.tv_sec  = floorf(fvalue);
-         model->ArgusFarReportInterval.tv_usec = fabs(remainderf(fvalue, 1.0) * 1000000);
+         if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+            model->ArgusFarReportInterval.tv_usec = fabs(remainderf(fvalue, 1.0) * 1000000000);
+         else
+            model->ArgusFarReportInterval.tv_usec = fabs(remainderf(fvalue, 1.0) * 1000000);
 
       } else {
          if (isdigit(i)) {
