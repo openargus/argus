@@ -186,7 +186,12 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusMinorVersion = VERSION_MINOR;
    model->ArgusSnapLen = ARGUS_MINSNAPLEN;
 
-   ArgusGetTimeOfDay(model->ArgusSrc, &model->ArgusGlobalTime);
+   model->ArgusUpdateInterval.tv_usec = 200000;
+
+   if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+      model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000000LL) + model->ArgusUpdateInterval.tv_usec);
+   else
+      model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000LL) + model->ArgusUpdateInterval.tv_usec);
 
    if ((model->ArgusHashTable = ArgusNewHashTable(ARGUS_HASHTABLESIZE, debug)) == NULL)
       ArgusLog(LOG_ERR, "%s () ArgusNewHashTable error %s\n",
@@ -436,6 +441,7 @@ ArgusQueueManager(void *param)
                testime.tv_usec -= 1000000;
             }
          }
+#endif
       }
    }
 #endif 
@@ -2360,17 +2366,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       flow->dsrs[ARGUS_TIME_INDEX] = (struct ArgusDSRHeader *) time;
       time->hdr.type               = ARGUS_TIME_DSR;
       time->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
-
-      /* The global time precision must be independent of pcap device
-       * precision.  ArgusGlobalTime is always scaled to nanoseconds,
-       * if argus is compiled with nanosecond support, and always scaled
-       * to microseconds otherwise.
-       */
-#if defined(ARGUS_NANOSECONDS)
-      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_NANOSECONDS;
-#else
-      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
-#endif
+      time->hdr.argus_dsrvl8.qual  = model->ArgusSrc->timeStampType;
       time->hdr.argus_dsrvl8.len   = 3;
 
       if (model->ArgusThisDir) {

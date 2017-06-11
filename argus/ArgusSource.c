@@ -349,63 +349,10 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
       pcap_set_promisc(inf->ArgusPd, src->Arguspflag);
       pcap_set_timeout(inf->ArgusPd, 100);
 
-#if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
-      {
-         int *tstamp_types = NULL, cnt, i;
-         if ((cnt = pcap_list_tstamp_types(inf->ArgusPd, &tstamp_types)) > 0) {
-            int hiprec = 0, lowprec = 0, adapter = 0, adapterUnsync = 0;
-            int type = 0;
-            for (i = 0; i < cnt; i++) {
-               if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER) {
-                  adapter = 1;
-               } else
-               if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER_UNSYNCED) {
-                  adapterUnsync = 1;
-               } else
-               if (tstamp_types[i] == PCAP_TSTAMP_HOST_HIPREC) {
-                  hiprec = 1;
-               } else
-               if (tstamp_types[i] == PCAP_TSTAMP_HOST_LOWPREC) {
-                  lowprec = 1;
-               }
-            }
-            pcap_free_tstamp_types(tstamp_types);
-
-            if (hiprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_HIPREC)) {
-               type = PCAP_TSTAMP_HOST_HIPREC;
-            } else
-            if (adapter && (ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER)) {
-               type = PCAP_TSTAMP_ADAPTER;
-            } else
-            if (lowprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_LOWPREC)) {
-               type = PCAP_TSTAMP_HOST_LOWPREC;
-            } else
-            if (adapterUnsync  && ((ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER) &&
-                                   (ArgusTimeStampType & ARGUS_TIMESTAMP_UNSYNCH))) {
-               type = PCAP_TSTAMP_ADAPTER_UNSYNCED;
-            }
-
-            if (type != 0) {
-               pcap_set_tstamp_type(inf->ArgusPd, type);
-#ifdef ARGUSDEBUG
-               ArgusDebug(4, "pcap_set_tstamp_type: set to %s\n", pcap_tstamp_type_val_to_name(type));
-#endif
-            }
-         } else {
-            if (cnt < 0) {
-               ArgusLog (LOG_INFO, "ArgusOpenInterface pcap_list_tstamp_types: %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
-            }
-         }
-      }
-#endif
-
-#if defined(ARGUS_NANOSECONDS) && defined(HAVE_PCAP_SET_TSTAMP_PRECISION)
+#if defined(ARGUS_NANOSECONDS)
       switch (pcap_set_tstamp_precision(inf->ArgusPd, PCAP_TSTAMP_PRECISION_NANO)) {
          case PCAP_ERROR_TSTAMP_PRECISION_NOTSUP:
          case PCAP_ERROR_ACTIVATED:
-#ifdef ARGUSDEBUG
-            ArgusDebug(4, "Cannot set pcap timestamp precision to nanoseconds for %s\n", device->name);
-#endif
             break;
          case 0:
             src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
@@ -413,7 +360,6 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
       }
 #endif
 
-#ifdef HAVE_PCAP_SET_BUFFER_SIZE
       if (src->ArgusPcapBufSize > 0) {
          pcap_set_buffer_size(inf->ArgusPd, src->ArgusPcapBufSize);
 #ifdef ARGUSDEBUG
@@ -744,7 +690,6 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
    ArgusDebug (1, "%s(%p) starting\n", __func__, stask);
 #endif
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
-      int j;
       src = stask->srcs[i];
 
       if (src == NULL)
@@ -2069,16 +2014,6 @@ ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-#if defined(CYGWIN)
-   struct pcap_pkthdr_32 *h32 = (struct pcap_pkthdr_32 *)h;
-   caplen = h32->caplen;
-   length = h32->len;
-#else
-   caplen = h->caplen;
-   length = h->len;
-#endif
-
-
    if (p != NULL) {
       unsigned int ind = src->ArgusThisIndex;
 
@@ -2345,7 +2280,8 @@ ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -2443,7 +2379,8 @@ ArgusHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    unsigned int length = h->len;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -2555,7 +2492,8 @@ ArgusPppHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    unsigned int length = h->len;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -2791,7 +2729,8 @@ Argus802_11Packet (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    struct stat statbuf;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -2852,7 +2791,8 @@ ArgusJuniperPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    struct stat statbuf;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3504,7 +3444,8 @@ ArgusIpPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    struct stat statbuf;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3643,7 +3584,8 @@ ArgusEncPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int length = h->len    - ENC_HDRLEN;
    struct stat statbuf;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3788,7 +3730,8 @@ ArgusFddiPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ether_header *ep;
    struct stat statbuf;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3847,7 +3790,8 @@ ArgusATMPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ether_header *ep;
    struct stat statbuf;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3922,7 +3866,8 @@ ArgusPppPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    struct stat statbuf;
 
-   ArgusGetPcapPkthdrTime(src, h, tvp);
+   tvp->tv_sec  = h->ts.tv_sec;
+   tvp->tv_usec = h->ts.tv_usec;
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -4624,11 +4569,19 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                if (src->status & ARGUS_SHUTDOWN) {
                   if (src->status & ARGUS_LAUNCHED) {
                      pthread_t thread;
-                     void *ptr = NULL;
-                     if ((thread = src->thread) != 0)
-                        pthread_join(thread, &ptr);
 
-                     src->thread = 0;
+                     if ((thread = src->thread) != 0) {
+                        /* Prevent ArgusCloseModeler from stopping the output
+                         * process
+                         */
+                        if (src->ArgusModel)
+                           src->ArgusModel->ArgusOutputList = NULL;
+
+                        ArgusCloseOneSource(src);
+                        ArgusThreadCount--;
+                        stask->srcs[i] = NULL;
+                        source_closed++;
+                     }
 
 #ifdef ARGUSDEBUG
                      ArgusDebug (2, "ArgusSourceProcess: ArgusGetPackets[%d] done\n", i);
@@ -4708,7 +4661,10 @@ ArgusGetPackets (void *arg)
 
       ArgusGetInterfaceStatus(src);
 
-      ArgusGetTimeOfDay(src, &src->ArgusStartTime);
+      gettimeofday (&src->ArgusStartTime, 0L);
+
+      if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+         src->ArgusModel->ArgusStartTime.tv_usec *= 1000;
 
       for (i = 0; i < ARGUS_MAXINTERFACE; i++)
          fds[i] = -1;
@@ -4808,9 +4764,9 @@ ArgusGetPackets (void *arg)
                            if (noPkts++ > 50) {
                               struct timespec tsbuf = {0, 5000}, *ts = &tsbuf;
                               gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-#if defined(ARGUS_NANOSECONDS)
-                              src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-#endif
+                              if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                               nanosleep(ts, NULL);
                               noPkts = 0;
@@ -4870,7 +4826,10 @@ ArgusGetPackets (void *arg)
                               }
 
                            } else {
-                              ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
+                              gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
+                              if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 
 #if defined(ARGUS_NEEDS_LIBPCAP_WORKAROUND)
@@ -4911,9 +4870,9 @@ ArgusGetPackets (void *arg)
                                  nanosleep(ts, NULL);
 
                                  gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-#if defined(ARGUS_NANOSECONDS)
-                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-#endif
+                                 if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                                    src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+
                                  ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 #ifdef ARGUSDEBUG
                                  ArgusDebug (9, "ArgusGetPackets: select() timeout %d up interfaces\n", up);
@@ -4922,7 +4881,10 @@ ArgusGetPackets (void *arg)
 #endif
                            }
                         } else {
-                           ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
+                           gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
+                           if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                              src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+
                            ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 
                            if (up) {
@@ -5016,7 +4978,10 @@ ArgusGetPackets (void *arg)
 #endif
                                  nanosleep(ts, NULL);
 
-                                 ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
+                                 gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
+                                 if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                                    src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+
                                  ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                            }
 
@@ -5050,7 +5015,9 @@ ArgusGetPackets (void *arg)
       ArgusOutputProcess(ArgusOutputTask);
 #endif
 
-      ArgusGetTimeOfDay(src, &src->ArgusEndTime);
+      gettimeofday (&src->ArgusEndTime, 0L);
+      if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS)
+         src->ArgusEndTime.tv_usec *= 1000;
    }
 
 #if defined(ARGUS_THREADS)
@@ -5135,27 +5102,19 @@ pcap_open_offline_with_tstamp_precision() takes an  additional  precision  argum
 */
 
 #if defined(HAVE_PCAP_FOPEN_OFFLINE)
-# if defined(HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION)
-#  if defined(ARGUS_NANOSECONDS)
+#if defined(ARGUS_NANOSECONDS)
       inf->ArgusPd = pcap_fopen_offline_with_tstamp_precision(src->ArgusPacketInput, PCAP_TSTAMP_PRECISION_NANO, errbuf);
       src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
-#  else
-      inf->ArgusPd = pcap_fopen_offline_with_tstamp_precision(src->ArgusPacketInput, PCAP_TSTAMP_PRECISION_MICRO, errbuf);
-#  endif
-# else /* HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION */
-      inf->ArgusPd = pcap_open_offline(device->name, errbuf);
-# endif /* HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION */
 #else
-# if defined(HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION)
-#  if defined(ARGUS_NANOSECONDS)
+      inf->ArgusPd = pcap_fopen_offline_with_tstamp_precision(src->ArgusPacketInput, PCAP_TSTAMP_PRECISION_NANO, errbuf);
+#endif
+#else
+#if defined(ARGUS_NANOSECONDS)
       inf->ArgusPd = pcap_open_offline_with_tstamp_precision(device->name, PCAP_TSTAMP_PRECISION_NANO, errbuf);
       src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
-#  else
+#else
       inf->ArgusPd = pcap_open_offline_with_tstamp_precision(device->name, PCAP_TSTAMP_PRECISION_MICRO, errbuf);
-#  endif
-# else /* HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION */
-      inf->ArgusPd = pcap_open_offline(device->name, errbuf);
-# endif /* HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION */
+#endif
 #endif
 
       if (inf->ArgusPd != NULL) {
