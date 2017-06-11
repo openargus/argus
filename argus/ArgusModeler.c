@@ -453,6 +453,7 @@ ArgusQueueManager(void *param)
                testime.tv_usec -= 1000000;
             }
          }
+#endif
       }
    }
 #endif 

@@ -4684,6 +4684,11 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                src = ArgusCloneSource(stask);
                clearArgusDevice(src);
 
+               gettimeofday (&src->marktime, 0L);
+
+               if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                  src->marktime.tv_usec *= 1000;
+
                if (device->trans.srcid.a_un.value != 0) {
                   src->trans = device->trans;
                } else {
