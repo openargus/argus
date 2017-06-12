@@ -414,7 +414,7 @@ extern "C" {
 */
 
 #define ARGUS_LEN_16BITS                         0x80
-#define ARGUS_TIMEADJUST                         0x01
+#define ARGUS_TIMEADJUST                         0x20
    
 /*    
    Argus Record Data Qualifier Field
