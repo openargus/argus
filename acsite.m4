@@ -474,8 +474,6 @@ AC_DEFUN([AC_QOSIENT_THREADS],
   fi
 ])
 
-/*
-
 dnl 
 dnl By default:
 dnl   Add ARGUS_NANOSECONDS to the condefs.h file.
@@ -504,7 +502,6 @@ AC_DEFUN([AC_QOSIENT_NANOSECONDS],
   fi
 ])
 
-*/
 
 dnl 
 dnl
