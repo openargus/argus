@@ -78,6 +78,8 @@ rm -rf $RPM_BUILD_ROOT
 %{argusbin}/argus-snmp
 %{argusbin}/argus-stumbler
 %{argusbin}/argus-vmstat
+%{argusbin}/argus-ipaddr
+%{argusbin}/argus-top
 %{argusbin}/argusbug
 %{argusbin}/argusarchive
 
