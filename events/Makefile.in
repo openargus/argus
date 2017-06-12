@@ -138,6 +138,8 @@ install: all force
 	$(INSTALL) $(srcdir)/../bin/argus-snmp     $(DESTDIR)$(BINDIR)/argus-snmp
 	$(INSTALL) $(srcdir)/../bin/argus-vmstat   $(DESTDIR)$(BINDIR)/argus-vmstat
 	$(INSTALL) $(srcdir)/../bin/argus-airport  $(DESTDIR)$(BINDIR)/argus-airport
+	$(INSTALL) $(srcdir)/../bin/argus-top      $(DESTDIR)$(BINDIR)/argus-top
+	$(INSTALL) $(srcdir)/../bin/argus-ipaddr   $(DESTDIR)$(BINDIR)/argus-ipaddr
 
 uninstall: all force
 	rm -f $(DESTDIR)$(BINDIR)/argus-extip
@@ -147,6 +149,8 @@ uninstall: all force
 	rm -f $(DESTDIR)$(BINDIR)/argus-snmp
 	rm -f $(DESTDIR)$(BINDIR)/argus-vmstat
 	rm -f $(DESTDIR)$(BINDIR)/argus-airport
+	rm -f $(DESTDIR)$(BINDIR)/argus-top
+	rm -f $(DESTDIR)$(BINDIR)/argus-ipaddr
 
 clean:
 	rm -f $(CLEANFILES)
