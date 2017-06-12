@@ -278,6 +278,9 @@ generate_sensor_config_default() {
 	echo "ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS=yes"
 	echo "ARGUS_CAPTURE_FULL_CONTROL_DATA=yes"
 	echo 'ARGUS_CONTROLPLANE_PROTO="udp:name,udp:nicname,udp:domain,xns-time,udp:ntp,udp:router,udp:ripng,timed,mdns,mdnsresponder,udp:bootps,udp:bootpc"'
+
+        echo 'ARGUS_EVENT_DATA="prog:/usr/bin/argus-top:30s:compress"'
+        echo 'ARGUS_EVENT_DATA="prog:/usr/bin/argus-ipaddr:30s:compress"'
 }
 
 generate_collector_config_default(){
