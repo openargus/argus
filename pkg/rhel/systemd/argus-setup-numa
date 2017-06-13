@@ -262,15 +262,17 @@ get_monitor_id() {
 
 generate_sensor_config_default() {
 	numanode=$1
+	infalias=""
 	if [[ "$numanode" = all ]] ; then
 		(( offset = 0 ))
 	else
 		(( offset = numanode + 1 ))
+		infalias="//arg0"
 	fi
 
 	echo "ARGUS_MONITOR_ID=$(get_monitor_id)"
 	for itf in $(find_monitor_devs $1 $2) $(find_mgmt_devs $1) ; do
-		echo "ARGUS_INTERFACE=ind:$itf"
+		echo "ARGUS_INTERFACE=ind:${itf}${infalias}"
 	done
 	echo 'ARGUS_BIND_IP="::1,127.0.0.1"'
 	echo "ARGUS_MONITOR_ID_INCLUDE_INF=yes"
@@ -286,6 +288,7 @@ generate_sensor_config_default() {
 	echo "ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS=yes"
 	echo "ARGUS_CAPTURE_FULL_CONTROL_DATA=yes"
 	echo 'ARGUS_CONTROLPLANE_PROTO="udp:name,udp:nicname,udp:domain,xns-time,udp:ntp,udp:router,udp:ripng,timed,mdns,mdnsresponder,udp:bootps,udp:bootpc"'
+	echo "ARGUS_MAR_STATUS_INTERVAL=5"
 
         if [[ ! $1 = all ]] ; then
                 return
