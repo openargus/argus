@@ -921,6 +921,9 @@ ArgusCreateFlowKey (struct ArgusModelerStruct *model, struct ArgusSystemFlow *fl
       hstruct->hash ^= hstruct->hash >> 8;
    }
 
+#ifdef ARGUSDEBUG
+// ArgusDebug (8, "ArgusCreateFlowKey () generated 0x%x hash\n", retn);
+#endif
    return (retn);
 }
 
@@ -978,7 +981,6 @@ ArgusFindFlow (struct ArgusModelerStruct *model, struct ArgusHashStruct *hstruct
    return (retn);
 }
 
-#define ARGUS_HASH_DEBUG	1
 
 struct ArgusHashTableHeader *
 ArgusAddHashEntry (struct ArgusHashTable *table, struct ArgusFlowStruct *flow, struct ArgusHashStruct *hstruct)

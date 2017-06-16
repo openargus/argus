@@ -248,19 +248,41 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 }
 
 
+extern struct ArgusHashStats *ArgusHashTableStats;
+
 void
 ArgusCloseModeler(struct ArgusModelerStruct *model)
 {
    struct ArgusRecordStruct *argus = NULL;
 
    if (model) {
+      struct ArgusHashTable *htbl = model->ArgusHashTable;
+
+      if (htbl && (htbl->status & ARGUSHASHTABLETRACK)) {
+#ifdef ARGUSDEBUG
+         extern int ArgusHashTableMax;
+
+         int i, size = htbl->size;
+         int occupied = 0;
+
+         for (i = 0; i < size; i++) {
+            if (htbl->array[i] != NULL) {
+               occupied++;
+            }
+         }
+         ArgusDebug (1, "ArgusHashTracking: ArgusHashTableMax %d Occupied %d Size %d\n", ArgusHashTableMax, occupied, size);
+#endif 
+      }
+
       ArgusModelerCleanUp (model); 
    
       if (model->ArgusHashTable) {
          struct ArgusHashTable *htbl = model->ArgusHashTable;
-         if (htbl->array)
-            ArgusFree(htbl->array);
-         ArgusFree(htbl);
+         if (htbl != NULL) {
+            if (htbl->array)
+               ArgusFree(htbl->array);
+            ArgusFree(htbl);
+         }
          model->ArgusHashTable = NULL;
       }
 

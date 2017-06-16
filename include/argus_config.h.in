@@ -6,6 +6,9 @@
 /* Using Argus memory */
 #undef ARGUSMEMDEBUG
 
+/* Enabling hashtable debugging */
+#undef ARGUS_HASH_DEBUG
+
 /* Using nanosecond timestamps */
 #undef ARGUS_NANOSECONDS
 

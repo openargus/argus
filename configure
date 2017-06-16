@@ -733,6 +733,7 @@ with_staticsasl
 with_libpcre
 with_pcre_config
 enable_largefile
+with_hashdebug
 with_nanoseconds
 with_threads
 with_tcpwrappers
@@ -1376,6 +1377,7 @@ Optional Packages:
   --with-staticsasl=DIR   Compile with staticly linked libsasl in <DIR>
   --with-libpcre=DIR      Compile with libpcre in <DIR>
   --with-pcre-config=PATH Location of PCRE pcre-config (auto)
+  --with-hashdebug        enable hash table debugging
   --without-nanoseconds   don't use nanosecond timestamps
   --without-threads       don't use native threads package
   --with-wrappers=DIR     Compile with tcpwrappers in <DIR>
@@ -8243,6 +8245,21 @@ esac
 $as_echo "#define ARGUSMEMDEBUG /**/" >>confdefs.h
 
     fi
+
+
+# Check whether --with-hashdebug was given.
+if test "${with_hashdebug+set}" = set; then :
+  withval=$with_hashdebug; with_hashdebug="$withval"
+else
+  with_hashdebug="no"
+fi
+
+
+  if test "$with_hashdebug" != no; then
+
+$as_echo "#define ARGUS_HASH_DEBUG /**/" >>confdefs.h
+
+  fi
 
 
 # Check whether --with-nanoseconds was given.
