@@ -491,6 +491,31 @@ dnl
 dnl   $1 (copt appended)
 dnl
  
+AC_DEFUN([AC_QOSIENT_HASHDEBUG],
+  [AC_ARG_WITH(hashdebug,
+    [AC_HELP_STRING([--with-hashdebug],[enable hash table debugging ])],
+      with_hashdebug="$withval",
+      with_hashdebug="no")
+
+  if test "$with_hashdebug" != no; then
+     AC_DEFINE([ARGUS_HASH_DEBUG], [], [Enabling hashtable debugging])
+  fi
+])
+
+
+dnl 
+dnl By default:
+dnl   Add ARGUS_NANOSECONDS to the condefs.h file.
+dnl
+dnl usage:
+dnl
+dnl   AC_QOSIENT_NANOSECONDS(copt)
+dnl
+dnl results:
+dnl
+dnl   $1 (copt appended)
+dnl
+ 
 AC_DEFUN([AC_QOSIENT_NANOSECONDS],
   [AC_ARG_WITH(nanoseconds,
     [AC_HELP_STRING([--without-nanoseconds],[don't use nanosecond timestamps])],
