@@ -152,6 +152,7 @@ extern char  RaFieldDelimiter;
 
 void *ArgusMalloc (int);
 void *ArgusCalloc (int, int);
+void *ArgusMallocAligned(int, size_t);
 void ArgusFree (void *);
 void ArgusFreeListRecord (void *buf);
 void ArgusInitMallocList (int length);
@@ -168,6 +169,7 @@ extern void ArgusAdjustGlobalTime (struct timeval *);
 
 extern void *ArgusMalloc (int);
 extern void *ArgusCalloc (int, int);
+void *ArgusMallocAligned(int, size_t);
 extern void ArgusFree (void *);
 extern void ArgusFreeListRecord (void *buf);
 extern void ArgusInitMallocList (int length);
