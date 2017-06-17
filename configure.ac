@@ -248,6 +248,7 @@ AC_CHECK_FUNCS([alarm bzero endgrent endpwent floor gethostbyaddr gethostbyname 
 AC_CHECK_FUNCS([memchr memmove memset mkdir modf pow putenv realpath regcomp select setenv socket sqrt strcasecmp strchr])
 AC_CHECK_FUNCS([strdup strlcat strncasecmp strpbrk strrchr strstr strtol srandomdev tzset])
 AC_CHECK_FUNCS([gethostuuid])
+AC_CHECK_FUNCS([posix_memalign memalign])
 
 case "$target_os" in
    *darwin*)

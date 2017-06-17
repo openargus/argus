@@ -59,6 +59,12 @@
 #include <pthread.h>
 #endif
 
+#ifndef HAVE_POSIX_MEMALIGN
+# ifdef HAVE_MEMALIGN
+#  include <malloc.h>
+# endif
+#endif
+
 #include <string.h>
 #include <argus_compat.h>
 
@@ -1038,18 +1044,19 @@ struct ArgusMemoryList memory = {NULL, 0};
 #define ARGUS_ALIGN	128
 */
 
-void *     
-ArgusMalloc (int bytes) 
+typedef void *(*allocator_func)(size_t, void *);
+
+static void *
+__argus_malloc (int bytes, allocator_func alloc, void *aux)
 {          
    void *retn = NULL; 
    int offset;
  
    if (bytes) {
-      if (ArgusAllocTotal++ == 0) {
 #if defined(ARGUS_THREADS)
-         pthread_mutex_init(&memory.lock, NULL);
+      pthread_mutex_lock(&memory.lock);
 #endif
-      }
+      ArgusAllocTotal++;
 #if defined(ARGUSMEMDEBUG)
       ArgusAllocBytes += bytes;
       if (ArgusAllocMax < ArgusAllocBytes)
@@ -1063,9 +1070,9 @@ ArgusMalloc (int bytes)
 #endif
 
 #if !defined(ARGUSMEMDEBUG)
-      retn = (void *) malloc (bytes + offset);
+      retn = (void *) alloc(bytes + offset, aux);
 #else
-      if ((retn = (u_int *) malloc (bytes + sizeof(struct ArgusMemoryHeader) + offset)) != NULL) {
+      if ((retn = (u_int *) alloc(bytes + sizeof(struct ArgusMemoryHeader) + offset, aux)) != NULL) {
          struct ArgusMemoryHeader *mem = (struct ArgusMemoryHeader *)retn;
          mem->tag = ARGUS_ALLOC;
          mem->len = bytes;
@@ -1074,9 +1081,6 @@ ArgusMalloc (int bytes)
          mem->frame[0] = __builtin_return_address(0);
          mem->frame[1] = __builtin_return_address(1);
          mem->frame[2] = __builtin_return_address(2);
-#endif
-#if defined(ARGUS_THREADS)
-         pthread_mutex_lock(&memory.lock);
 #endif
          if (memory.start) {
             mem->nxt = memory.start;
@@ -1092,9 +1096,6 @@ ArgusMalloc (int bytes)
          }
          memory.count++;
          memory.total++;
-#if defined(ARGUS_THREADS)
-         pthread_mutex_unlock(&memory.lock);
-#endif
          retn = (void *)(mem + 1);
       }
 #endif
@@ -1108,90 +1109,75 @@ ArgusMalloc (int bytes)
          ((unsigned short *)retn)[-1] = toff;
       }
 #endif
+#if defined(ARGUS_THREADS)
+      pthread_mutex_unlock(&memory.lock);
+#endif
    }
 #ifdef ARGUSDEBUG
-   ArgusDebug (6, "ArgusMalloc (%d) returning %p\n", bytes, retn); 
+   ArgusDebug (6, "%s(%d) returning %p\n", __func__, bytes, retn);
 #endif
    return (retn); 
+}
+
+static void *
+__malloc(size_t bytes, void *aux __attribute__((unused)))
+{
+   return malloc(bytes);
+}
+
+void *
+ArgusMalloc(int bytes)
+{
+   return __argus_malloc(bytes, __malloc, NULL);
+}
+
+static void *
+__calloc(size_t bytes, void *aux __attribute__((unused)))
+{
+   return calloc(1, bytes);
 }
 
 void *
 ArgusCalloc (int nitems, int bytes)
 {
-   int offset, total = nitems * bytes;
-   void *retn = NULL;
-
-   if (total) {
-      if (ArgusAllocTotal++ == 0) {
-#if defined(ARGUS_THREADS)
-         pthread_mutex_init(&memory.lock, NULL);
-#endif
-      }
-#if defined(ARGUSMEMDEBUG)
-      ArgusAllocBytes += total;
-      if (ArgusAllocMax < ArgusAllocBytes)
-         ArgusAllocMax = ArgusAllocBytes;
-#endif
-
-#if defined(ARGUS_ALIGN)
-      offset = ARGUS_ALIGN;
-#else
-      offset = 0;
-#endif
-
-#if !defined(ARGUSMEMDEBUG)
-      retn = calloc (1, total + offset);
-#else
-      if ((retn = calloc (1, total + sizeof(struct ArgusMemoryHeader) + offset)) != NULL) {
-         struct ArgusMemoryHeader *mem = retn;
-         mem->tag = ARGUS_ALLOC;
-         mem->len = total;
-         mem->offset = offset;
-#if defined(__GNUC__)
-         mem->frame[0] = __builtin_return_address(0);
-         mem->frame[1] = __builtin_return_address(1);
-         mem->frame[2] = __builtin_return_address(2);
-#endif
-
-#if defined(ARGUS_THREADS)
-         pthread_mutex_lock(&memory.lock);
-#endif
-         if (memory.start) {
-            mem->nxt = memory.start;
-            mem->prv = memory.start->prv;
-            mem->prv->nxt = mem;
-            mem->nxt->prv = mem;
-            memory.end = mem;
-         } else {
-            memory.start = mem;
-            memory.end = mem;
-            mem->nxt = mem;
-            mem->prv = mem;
-         }
-         memory.total++;
-         memory.count++;
-#if defined(ARGUS_THREADS)
-         pthread_mutex_unlock(&memory.lock);
-#endif
-         retn = (void *)(mem + 1);
-      }
-#endif
-
-#if defined(ARGUS_ALIGN)
-      if (retn != NULL) {
-         unsigned short toff;
-         toff = ((unsigned long)retn & (offset - 1));
-         toff = offset - toff;
-         retn = (void *)((char *)retn + toff);
-         ((unsigned short *)retn)[-1] = toff;
-      }
-#endif
-   }
+   int total = nitems * bytes;
+   void *retn = __argus_malloc(total, __calloc, NULL);
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (6, "ArgusCalloc (%d, %d) returning %p\n", nitems, bytes, retn);
+   ArgusDebug (6, "ArgusCalloc (%d, %d) returning 0x%x\n", nitems, bytes, retn);
 #endif
    return (retn);
+}
+
+static void *
+__malloc_aligned(size_t bytes, void *aux)
+{
+    void *mem;
+    size_t alignment = *(size_t *)aux;
+#if defined(HAVE_POSIX_MEMALIGN)
+    int res = posix_memalign(&mem, alignment, bytes);
+#else
+    int res = -1;
+
+# if defined(HAVE_MEMALIGN)
+    mem = memalign(alignment, bytes);
+# else
+    mem = malloc(bytes);
+# endif
+    if (mem)
+       res = 0;
+#endif
+
+    if (res == 0)
+       return mem;
+
+    return NULL;
+}
+
+void *
+ArgusMallocAligned(int bytes, size_t alignment)
+{
+   return __argus_malloc(bytes, __malloc_aligned, &alignment);
 }
 
 
@@ -1201,6 +1187,10 @@ ArgusFree (void *buf)
    void *ptr = buf;
 
    if (ptr) {
+#if defined(ARGUS_THREADS)
+      pthread_mutex_lock(&memory.lock);
+#endif
+      ArgusFreeTotal++;
 #if defined(ARGUSMEMDEBUG)
       {
          struct ArgusMemoryHeader *mem = ptr;
@@ -1210,11 +1200,8 @@ ArgusFree (void *buf)
 #endif
          mem--;
          if (mem->tag != ARGUS_ALLOC)
-            ArgusLog (LOG_ERR, "ArgusFree: buffer error %p", ptr);
+            ArgusLog (LOG_ERR, "ArgusFree: buffer error 0x%x", ptr);
 
-#if defined(ARGUS_THREADS)
-         pthread_mutex_lock(&memory.lock);
-#endif
          if (memory.count == 1) {
             memory.start = NULL;
             memory.end = NULL;
@@ -1229,9 +1216,6 @@ ArgusFree (void *buf)
          }
          ArgusAllocBytes -= mem->len;
          memory.count--;
-#if defined(ARGUS_THREADS)
-         pthread_mutex_unlock(&memory.lock);
-#endif
          ptr = mem;
       }
 #else
@@ -1247,12 +1231,10 @@ ArgusFree (void *buf)
       if (ArgusAllocTotal > 0)
          ArgusAllocTotal--;
    }
-
-#ifdef ARGUSDEBUG
-   ArgusDebug (6, "ArgusFree (%p)\n", buf);
+#if defined(ARGUS_THREADS)
+      pthread_mutex_unlock(&memory.lock);
 #endif
 }
-
 /* 
    the argus malloc list is the list of free MallocLists for the system.
    these are blocks that are used to convey flow data from the modeler
