@@ -162,8 +162,9 @@ struct AHHeader {
 
 struct ArgusHashStruct {
    unsigned int len, hash;
+   unsigned int ind;
 #if defined(__APPLE_CC__) || defined(__APPLE__)
-   unsigned int pad[2];
+   unsigned int pad;
    unsigned int key[24];
 #else
    unsigned int key[24];
