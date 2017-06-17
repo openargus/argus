@@ -170,19 +170,18 @@ struct AHHeader {
 struct ArgusHashStruct {
    unsigned int len, hash;
    unsigned int ind;
-#if defined(__APPLE_CC__) || defined(__APPLE__)
    unsigned int pad;
    unsigned int key[24];
-#else
-   unsigned int key[24];
-#endif
 };
  
 struct ArgusHashTableHeader {
    struct ArgusHashTableHeader *nxt, *prv;
    struct ArgusHashTable *htbl;
-   struct ArgusHashStruct hstruct;
    void *object;
+   char pad[32];
+
+   struct ArgusHashStruct hstruct;
+   char pad1[16];
 };
 
 
@@ -192,11 +191,10 @@ struct ArgusHashTable {
    unsigned int size;
    int status;
    int bins, items;
-
+   struct ArgusHashTableHeader **array;
 #if defined(ARGUS_THREADS)
    pthread_mutex_t lock;
 #endif
-   struct ArgusHashTableHeader **array;
 };
 
 #define ARGUS_MAX_MPLS_LABELS	4
