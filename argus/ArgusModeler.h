@@ -222,8 +222,6 @@ struct ArgusModelerStruct {
 
    struct ArgusSourceStruct *ArgusSrc;
    struct ArgusQueueStruct *ArgusStatusQueue;
-   struct ArgusQueueStruct *ArgusTimeOutQueues;
-   struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
    struct ArgusListStruct *ArgusOutputList;
    struct ArgusHashTable *ArgusHashTable;
    struct ArgusSystemFlow  *ArgusThisFlow;
@@ -337,6 +335,9 @@ struct ArgusModelerStruct {
    unsigned int ArgusLocalNet;
    unsigned int ArgusNetMask;
    unsigned int ArgusLink;
+
+   struct ArgusQueueStruct *ArgusTimeOutQueues;
+   struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
 };
 
 
