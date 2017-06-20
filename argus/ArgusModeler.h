@@ -76,7 +76,7 @@
 #define ARGUS_DEBUG		0xFF
 
 #define ARGUS_RECORD_WRITTEN	0x00000001
-#define ARGUSTIMEOUTQS		65534
+#define ARGUSTIMEOUTQS		64
 
 #define ARGUS_CLNS    129
 #define ARGUS_ESIS    130
@@ -217,7 +217,6 @@ struct ArgusModelerStruct {
    struct ArgusSourceStruct *ArgusSrc;
    struct ArgusQueueStruct *ArgusStatusQueue;
    struct ArgusQueueStruct *ArgusTimeOutQueues;
-   struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
    struct ArgusListStruct *ArgusOutputList;
    struct ArgusHashTable *ArgusHashTable;
    struct ArgusSystemFlow  *ArgusThisFlow;
@@ -302,8 +301,6 @@ struct ArgusModelerStruct {
    struct timeval ArgusLastPacketTimer;
    struct timeval ArgusAdjustedTimer;
  
-   int ArgusMajorVersion;
-   int ArgusMinorVersion;
    int ArgusSnapLen;
  
    int ArgusTunnelDiscovery;
@@ -311,19 +308,23 @@ struct ArgusModelerStruct {
    int ArgusVXLanParsing;
 
    int ArgusUserDataLen;
-   int ArgusAflag, ArgusTCPflag, Argusmflag;
-   int ArgusSelfSynchronize, vflag;
+ 
+   char ArgusMajorVersion;
+   char ArgusMinorVersion;
+   char ArgusTunnelDiscovery;
+   char ArgusOSFingerPrinting;
+   char ArgusAflag, ArgusTCPflag, Argusmflag;
+   char ArgusSelfSynchronize, vflag;
 
-   int ArgusIPTimeout;
-   int ArgusTCPTimeout;
-   int ArgusICMPTimeout;
-   int ArgusIGMPTimeout;
-   int ArgusFRAGTimeout;
-   int ArgusARPTimeout;
-   int ArgusOtherTimeout;
-
-   int ArgusReportAllTime;
-   int ArgusResponseStatus;
+   char ArgusIPTimeout;
+   char ArgusTCPTimeout;
+   char ArgusICMPTimeout;
+   char ArgusIGMPTimeout;
+   char ArgusFRAGTimeout;
+   char ArgusARPTimeout;
+   char ArgusOtherTimeout;
+   char ArgusReportAllTime;
+   char ArgusResponseStatus;
 
    struct timeval ArgusFarReportInterval;
    struct timeval ArgusQueueInterval;
@@ -333,6 +334,7 @@ struct ArgusModelerStruct {
    unsigned int ArgusLocalNet;
    unsigned int ArgusNetMask;
    unsigned int ArgusLink;
+   struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
 };
 
 

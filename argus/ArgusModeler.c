@@ -1629,13 +1629,14 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
    struct ArgusSystemFlow *tflow = NULL;
    struct ArgusFlowStruct *flow = NULL;
    char *ptr = p;
-   float value;
    int retn = 0;
+
+// float value;
 
    model->ArgusTotalPacket++;
 
-   if (model->ArgusSrc->sNflag >= model->ArgusTotalPacket)
-      return (retn);
+// if (model->ArgusSrc->sNflag >= model->ArgusTotalPacket)
+//    return (retn);
 
    model->ArgusThisInterface = src->ArgusThisIndex;
    model->ArgusThisStats = NULL;
@@ -1645,18 +1646,19 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
    model->ArgusThisNetworkFlowType = 0;
    model->ArgusInProtocol = 1;
 
+/*
    if ((value = getArgusRealTime (model->ArgusSrc)) > 0) {
       long long tdiff, rtdiff;
       int tvalue;
 
       gettimeofday(&model->ArgusNowTime, 0L);
-/*
+
 #ifdef ARGUSDEBUG
       ArgusDebug (3, "ArgusProcessPacket: now %d.%06d global %d.%06d \n",
                           model->ArgusNowTime.tv_sec, model->ArgusNowTime.tv_usec,
                           model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec);
 #endif 
-*/
+
       if (model->ArgusLastPacketTimer.tv_sec) {
          tdiff  = ArgusTimeDiff (tvp, &model->ArgusLastPacketTimer);
          rtdiff = ArgusTimeDiff (&model->ArgusNowTime, &model->ArgusAdjustedTimer);
@@ -1716,6 +1718,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
       model->ArgusLastPacketTimer = *tvp;
       model->ArgusAdjustedTimer   = model->ArgusNowTime;
    }
+*/
 
    if (!(length) && !(tvp) && !(p) && !(ArgusShutDownFlag))
       ArgusModelerCleanUp (model); 
@@ -2283,15 +2286,19 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    if ((encaps = (struct ArgusEncapsStruct *) flow->dsrs[ARGUS_ENCAPS_INDEX]) == NULL) {
       flow->dsrs[ARGUS_ENCAPS_INDEX] = (struct ArgusDSRHeader *) &flow->canon.encaps.hdr;
       encaps = (struct ArgusEncapsStruct *) flow->dsrs[ARGUS_ENCAPS_INDEX];
-      memset(encaps, 0, sizeof(*encaps));
       encaps->hdr.type              = ARGUS_ENCAPS_DSR;
+      encaps->hdr.subtype           = 0;
+      encaps->hdr.argus_dsrvl8.qual = 0;
       encaps->hdr.argus_dsrvl8.len  = 3;
       flow->dsrindex |= 0x01 << ARGUS_ENCAPS_INDEX;
 
-      if (model->ArgusThisDir)
+      if (model->ArgusThisDir) {
          encaps->src = model->ArgusThisEncaps;
-      else
+         encaps->dst = 0;
+      } else {
+         encaps->src = 0;
          encaps->dst = model->ArgusThisEncaps;
+      }
 
    } else {
       if (model->ArgusThisDir) {
@@ -2312,8 +2319,9 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
    if ((metric = (struct ArgusMetricStruct *) flow->dsrs[ARGUS_METRIC_INDEX]) == NULL) {
       metric = (struct ArgusMetricStruct *)&flow->canon.metric.hdr;
-      memset(metric, 0, sizeof(*metric));
       flow->dsrs[ARGUS_METRIC_INDEX] = (struct ArgusDSRHeader *) metric;
+
+      memset(metric, 0, sizeof(*metric));
       metric->hdr.type               = ARGUS_METER_DSR;
       metric->hdr.argus_dsrvl8.len   = (sizeof(struct ArgusMetricStruct) + 3) / 4;
 
@@ -2322,7 +2330,6 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
    if ((time = (struct ArgusTimeObject *) flow->dsrs[ARGUS_TIME_INDEX]) == NULL) {
       time = &flow->canon.time;
-      memset(time, 0, sizeof(*time));
       flow->dsrs[ARGUS_TIME_INDEX] = (struct ArgusDSRHeader *) time;
       time->hdr.type               = ARGUS_TIME_DSR;
       time->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
@@ -2338,6 +2345,8 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       }
       dtime->start.tv_sec  = model->ArgusGlobalTime.tv_sec;
       dtime->start.tv_usec = model->ArgusGlobalTime.tv_usec;
+      otime->start.tv_sec  = 0;
+      otime->start.tv_usec = 0;
 
    } else {
       if (model->ArgusThisDir) {
@@ -2368,7 +2377,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       if ((mac = (struct ArgusMacStruct *) flow->dsrs[ARGUS_MAC_INDEX]) == NULL) {
          if (model->ArgusThisEpHdr != NULL) {
             mac = (struct ArgusMacStruct *) &flow->canon.mac.hdr;
-            memset(mac, 0, sizeof(*mac));
+
             flow->dsrs[ARGUS_MAC_INDEX] = &mac->hdr;
             mac->hdr.type                = ARGUS_MAC_DSR;
             mac->hdr.subtype             = 0;
@@ -2383,8 +2392,8 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
                bcopy ((char *)&model->ArgusThisEpHdr->ether_shost, 
                       (char *)&mac->mac.mac_union.ether.ehdr.ether_dhost, sizeof(struct ether_header));
             }
-            mac->mac.mac_union.ether.ehdr.ether_type = ntohs(model->ArgusThisEpHdr->ether_type); 
 
+            mac->mac.mac_union.ether.ehdr.ether_type = ntohs(model->ArgusThisEpHdr->ether_type); 
             flow->dsrindex |= 1 << ARGUS_MAC_INDEX;
          }
 
@@ -2410,7 +2419,6 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
    if ((net = (struct ArgusNetworkStruct *) flow->dsrs[ARGUS_NETWORK_INDEX]) == NULL) {
       net = (struct ArgusNetworkStruct *) &flow->canon.net;
-      memset(net, 0, sizeof(*net));
       flow->dsrs[ARGUS_NETWORK_INDEX] = (struct ArgusDSRHeader *) net;
 
       if ((state == ARGUS_START) && (model->ArgusThisFlow->hdr.argus_dsrvl8.qual & ARGUS_FRAGMENT)) {
@@ -2420,21 +2428,29 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          net->hdr.argus_dsrvl8.len  = ((sizeof(struct ArgusFragObject) + 3)/4) + 1;
       } else {
          net->hdr.type              = ARGUS_NETWORK_DSR;
+         net->hdr.subtype           = 0;
+         net->hdr.argus_dsrvl8.qual = 0;
          net->hdr.argus_dsrvl8.len  = 1;
          flow->dsrindex |= 1 << ARGUS_NETWORK_INDEX;
       }
+      memset(&net->hdr + 1, 0, sizeof(*net) - sizeof(net->hdr));
    }
+
    if (model->ArgusThisEncaps & ARGUS_ENCAPS_MPLS) {
       int test = 0, value;
       if ((mpls = (struct ArgusMplsStruct *) flow->dsrs[ARGUS_MPLS_INDEX]) == NULL) {
          mpls = (struct ArgusMplsStruct *) &flow->canon.mpls;
-         memset(mpls, 0, sizeof(*mpls));
          flow->dsrs[ARGUS_MPLS_INDEX] = (struct ArgusDSRHeader *) mpls;
          mpls->hdr.type                = ARGUS_MPLS_DSR;
          mpls->hdr.subtype             = 0;
          mpls->hdr.argus_dsrvl8.qual   = 0;
          mpls->hdr.argus_dsrvl8.len    = 1;
          flow->dsrindex |= 1 << ARGUS_MPLS_INDEX;
+         if (model->ArgusThisDir) {
+            mpls->dlabel = 0;
+         } else {
+            mpls->slabel = 0;
+         }
       } else 
          test++;
 
@@ -2453,13 +2469,18 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    if (model->ArgusThisEncaps & ARGUS_ENCAPS_8021Q) {
       if ((vlan = (struct ArgusVlanStruct *) flow->dsrs[ARGUS_VLAN_INDEX]) == NULL) {
          vlan = (struct ArgusVlanStruct *) &flow->canon.vlan;
-         memset(vlan, 0, sizeof(*vlan));
+
          flow->dsrs[ARGUS_VLAN_INDEX] = (struct ArgusDSRHeader *) vlan;
          vlan->hdr.type               = ARGUS_VLAN_DSR;
          vlan->hdr.subtype            = 0;
          vlan->hdr.argus_dsrvl8.qual  = 0;
          vlan->hdr.argus_dsrvl8.len   = 2;
          flow->dsrindex |= 1 << ARGUS_VLAN_INDEX;
+         if (model->ArgusThisDir) {
+            vlan->did = 0;
+         } else {
+            vlan->sid = 0;
+         }
       }
 
       if (model->ArgusThisDir) {
@@ -2496,10 +2517,11 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    if (model->ArgusGenerateTime) {
       if ((jitter = (struct ArgusJitterStruct *) flow->dsrs[ARGUS_JITTER_INDEX]) == NULL) {
          jitter = (struct ArgusJitterStruct *) &flow->canon.jitter;
-         memset(jitter, 0, sizeof(*jitter));
+
          flow->dsrs[ARGUS_JITTER_INDEX]    = (struct ArgusDSRHeader *) jitter;
          jitter->hdr.type                  = ARGUS_JITTER_DSR;
          jitter->hdr.subtype               = 0;
+         jitter->hdr.argus_dsrvl8.qual     = 0;
          jitter->hdr.argus_dsrvl8.len      = 1;
 
          flow->dsrindex |= 1 << ARGUS_JITTER_INDEX;
@@ -2533,11 +2555,12 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
       if ((attr = (struct ArgusIPAttrStruct *) flow->dsrs[ARGUS_IPATTR_INDEX]) == NULL) {
          flow->dsrs[ARGUS_IPATTR_INDEX] = &flow->canon.attr.hdr;
          attr = &flow->canon.attr;
-         memset(attr, 0, sizeof(*attr));
          attr->hdr.type              = ARGUS_IPATTR_DSR;
          attr->hdr.subtype           = 0;
          attr->hdr.argus_dsrvl8.qual = 0;
          attr->hdr.argus_dsrvl8.len  = 1;
+         memset(&attr->src, 0, sizeof(attr->src));
+         memset(&attr->dst, 0, sizeof(attr->dst));
          flow->dsrindex |= 1 << ARGUS_IPATTR_INDEX;
       }
 
@@ -2607,13 +2630,13 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
                   if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
                      ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
                 
-                  memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
                   frag->canon.net.hdr.type            = ARGUS_NETWORK_DSR;
                   frag->canon.net.hdr.subtype         = ARGUS_NETWORK_SUBTYPE_FRAG;
                   frag->canon.net.hdr.argus_dsrvl8.qual = 0;
                   frag->canon.net.hdr.argus_dsrvl8.len  = ((sizeof(struct ArgusFragObject) + 3)/4) + 1;
                   frag->dsrs[ARGUS_FRAG_INDEX] = (struct ArgusDSRHeader *) &frag->canon.net.hdr;
 
+                  memset (&frag->canon.net.net_union.frag, 0, sizeof(struct ArgusFragObject) + 4);
                   frag->canon.net.net_union.frag.parent = flow;
                   frag->canon.net.net_union.frag.frag_id = iphdr->ip_id;
 
@@ -2711,13 +2734,13 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
                      if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
                         ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
                    
-                     memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
                      frag->canon.net.hdr.type             = ARGUS_NETWORK_DSR;
                      frag->canon.net.hdr.subtype          = ARGUS_NETWORK_SUBTYPE_FRAG;
                      frag->canon.net.hdr.argus_dsrvl8.qual = 0;
                      frag->canon.net.hdr.argus_dsrvl8.len  = (sizeof(struct ArgusFragObject) + 3)/4 + 1;
                      frag->dsrs[ARGUS_FRAG_INDEX] = (struct ArgusDSRHeader *) &frag->canon.net.hdr;
 
+                     memset (&frag->canon.net.net_union.frag, 0, sizeof(struct ArgusFragObject) + 4);
                      frag->canon.net.net_union.frag.parent = flow;
 
                      ArgusUpdateBasicFlow (model, frag, state);
@@ -2785,10 +2808,16 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
 
       if (psize == NULL) {
          psize = &flow->canon.psize;
-         memset (psize, 0, sizeof(*psize));
-         psize->hdr.type     = ARGUS_PSIZE_DSR;
+         psize->hdr.type              = ARGUS_PSIZE_DSR;
+         psize->hdr.subtype           = 0;
+         psize->hdr.argus_dsrvl8.qual = 0;
+         psize->hdr.argus_dsrvl8.len  = (sizeof(struct ArgusPacketSizeStruct) + 3)/4 + 1;
+
          psize->src.psizemin = 0xFFFF;
+         psize->src.psizemax = 0;
          psize->dst.psizemin = 0xFFFF;
+         psize->dst.psizemax = 0;
+
          flow->dsrs[ARGUS_PSIZE_INDEX] = &flow->canon.psize.hdr;
          flow->dsrindex |= 1 << ARGUS_PSIZE_INDEX;
       }
@@ -2918,10 +2947,10 @@ ArgusUpdateState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow
          } else {
             switch (ip_p) {
                case IPPROTO_TCP: {
+                  ArgusUpdateTCPState (model, flowstr, &state);
+
                   if (model->ArgusKeyStroke.status)
                      ArgusTCPKeystroke(model, flowstr, &state);
-
-                  ArgusUpdateTCPState (model, flowstr, &state);
 
                   if (flowstr->timeout != model->ArgusTCPTimeout)
                      flowstr->timeout = model->ArgusTCPTimeout;
@@ -4316,35 +4345,28 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
    return (retn);
 }
 
+
 static void *
 ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 {
-   void *retn = model->ArgusThisFlow;
-   unsigned char *nxtHdr = (unsigned char *)((char *)ip + (ip->ip_hl << 2));
-   struct ip tipbuf, *tip = &tipbuf;
-   arg_uint16 sport = 0, dport = 0;
-   arg_uint8  proto, tp_p = 0;
-   arg_uint32 len;
-   int hlen, ArgusOptionLen;
+   struct ArgusSystemFlow *retn;
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
+      struct  in_addr ip_src,ip_dst;  /* source and dest address */
+      int hlen, ArgusOptionLen;
+
+      arg_uint32 len;
+      arg_uint16 sport = 0, dport = 0;
+      arg_uint8  proto = 0;
+
+      retn = model->ArgusThisFlow;
       model->ArgusThisIpHdr = ip;
  
-#ifdef _LITTLE_ENDIAN
-      bzero(tip, sizeof(*tip));
-      tip->ip_len = ntohs(ip->ip_len);
-      tip->ip_id  = ntohs(ip->ip_id);
-      tip->ip_v   = ip->ip_v;
-      tip->ip_hl  = ip->ip_hl;
-      tip->ip_off = ntohs(ip->ip_off);
-      tip->ip_src.s_addr =  ntohl(ip->ip_src.s_addr);
-      tip->ip_dst.s_addr =  ntohl(ip->ip_dst.s_addr);
-#else
-      tip = ip;
-#endif 
-   
-      hlen = tip->ip_hl << 2;
-      len = (tip->ip_len - hlen);
+      ip_src.s_addr =  ntohl(ip->ip_src.s_addr);
+      ip_dst.s_addr =  ntohl(ip->ip_dst.s_addr);
+
+      hlen = ip->ip_hl << 2;
+      len = (ntohs(ip->ip_len) - hlen);
 
       model->ArgusOptionIndicator = '\0';
       if ((ArgusOptionLen = (hlen - sizeof (struct ip))) > 0)
@@ -4356,15 +4378,16 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
       model->ArgusSnapLength -= hlen;
 
       if (model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE) {
-         bzero ((char *)model->ArgusThisFlow, sizeof(*model->ArgusThisFlow));
-         model->ArgusThisFlow->hdr.type             = ARGUS_FLOW_DSR;
-         model->ArgusThisFlow->hdr.subtype          = ARGUS_FLOW_CLASSIC5TUPLE;
-         model->ArgusThisFlow->hdr.argus_dsrvl8.qual = ARGUS_TYPE_IPV4;
-         model->ArgusThisFlow->hdr.argus_dsrvl8.len  = 5;
+         retn->hdr.type              = ARGUS_FLOW_DSR;
+         retn->hdr.subtype           = ARGUS_FLOW_CLASSIC5TUPLE;
+         retn->hdr.argus_dsrvl8.qual = ARGUS_TYPE_IPV4;
+         retn->hdr.argus_dsrvl8.len  = 5;
 
          proto = ip->ip_p;
 
-         if (!(tip->ip_off & 0x1fff)) {
+         if (!(ntohs(ip->ip_off) & 0x1fff)) {      // not a fragment
+            unsigned char *nxtHdr = (unsigned char *)((char *)ip + hlen);
+
             if (proto == IPPROTO_AH) {
                struct AHHeader *ah = (struct AHHeader *) nxtHdr;
 
@@ -4380,8 +4403,6 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 
             switch (proto) {
                case IPPROTO_TCP: {
-                  model->ArgusThisFlow->ip_flow.smask = 0;
-                  model->ArgusThisFlow->ip_flow.dmask = 0;
                   if (len >= sizeof (struct tcphdr)) {
                      struct tcphdr *tp = (struct tcphdr *) nxtHdr;
                      if (BYTESCAPTURED(model, *tp, 4)) {
@@ -4389,11 +4410,11 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                         dport = ntohs(tp->th_dport);
                      }
                   }
+                  retn->ip_flow.smask = 0;
+                  retn->ip_flow.dmask = 0;
                   break;
                } 
                case IPPROTO_UDP: {
-                  model->ArgusThisFlow->ip_flow.smask = 0;
-                  model->ArgusThisFlow->ip_flow.dmask = 0;
                   if (len >= sizeof (struct udphdr)) {
                      struct udphdr *up = (struct udphdr *) nxtHdr;
                      if (BYTESCAPTURED(model, *up, 4)) {
@@ -4402,9 +4423,12 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                      }
                      if ((sport == 53) || (dport == 53) || (sport == 5353) || (dport == 5353)) {
                         unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
-                        bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
-                     }
-                  }
+                        bcopy(&pad, &retn->ip_flow.smask, 2);
+                     } else
+                        retn->ip_flow.smask = 0;
+                  } else
+                     retn->ip_flow.smask = 0;
+                  retn->ip_flow.dmask = 0;
                   break;
                }
 
@@ -4421,80 +4445,91 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                   return (retn);
 
                default:
+                  retn->ip_flow.smask = 0;
+                  retn->ip_flow.dmask = 0;
                   break;
             }
 
             if (model->ArgusFlowType == ARGUS_BIDIRECTIONAL)
-               if ((tip->ip_src.s_addr > tip->ip_dst.s_addr) ||
-                   ((tip->ip_src.s_addr == tip->ip_dst.s_addr) &&
-                    sport > dport))
+               if ((ip_src.s_addr > ip_dst.s_addr) || ((ip_src.s_addr == ip_dst.s_addr) && (sport > dport)))
                   model->state |= ARGUS_DIRECTION;
 
             if (model->state & ARGUS_DIRECTION) {
-               model->ArgusThisFlow->hdr.subtype     |= ARGUS_REVERSE;
-               model->ArgusThisFlow->ip_flow.ip_src   = tip->ip_dst.s_addr;
-               model->ArgusThisFlow->ip_flow.ip_dst   = tip->ip_src.s_addr;
-                  model->ArgusThisFlow->ip_flow.sport = dport;
-               model->ArgusThisFlow->ip_flow.dport    = sport;
+               retn->hdr.subtype     |= ARGUS_REVERSE;
+               retn->ip_flow.ip_src   = ip_dst.s_addr;
+               retn->ip_flow.ip_dst   = ip_src.s_addr;
+               retn->ip_flow.sport    = dport;
+               retn->ip_flow.dport    = sport;
             } else {
-               model->ArgusThisFlow->ip_flow.ip_src   = tip->ip_src.s_addr;
-               model->ArgusThisFlow->ip_flow.ip_dst   = tip->ip_dst.s_addr;
-               model->ArgusThisFlow->ip_flow.sport    = sport;
-               model->ArgusThisFlow->ip_flow.dport    = dport;
+               retn->ip_flow.ip_src   = ip_src.s_addr;
+               retn->ip_flow.ip_dst   = ip_dst.s_addr;
+               retn->ip_flow.sport    = sport;
+               retn->ip_flow.dport    = dport;
             }
 
-            model->ArgusThisFlow->ip_flow.ip_p        = proto;
-            model->ArgusThisFlow->ip_flow.tp_p        = tp_p;
+            retn->ip_flow.ip_p        = proto;
+            retn->ip_flow.tp_p        = 0;
 
          } else {
             if (model->ArgusFlowType == ARGUS_BIDIRECTIONAL) {
-               if (tip->ip_src.s_addr > tip->ip_dst.s_addr) {
+               if (ip_src.s_addr > ip_dst.s_addr) {
                   model->state |= ARGUS_DIRECTION;
-                  model->ArgusThisFlow->hdr.argus_dsrvl8.qual |= ARGUS_DIRECTION;
-                  model->ArgusThisFlow->hdr.subtype           |= ARGUS_REVERSE;
+                  retn->hdr.argus_dsrvl8.qual |= ARGUS_DIRECTION;
+                  retn->hdr.subtype           |= ARGUS_REVERSE;
                }
             }
 
-            model->ArgusThisFlow->hdr.argus_dsrvl8.qual |= ARGUS_FRAGMENT;
+            retn->hdr.argus_dsrvl8.qual |= ARGUS_FRAGMENT;
 
             if (model->state & ARGUS_DIRECTION) {
-               model->ArgusThisFlow->frag_flow.ip_dst = tip->ip_src.s_addr;
-               model->ArgusThisFlow->frag_flow.ip_src = tip->ip_dst.s_addr;
+               retn->frag_flow.ip_dst = ip_src.s_addr;
+               retn->frag_flow.ip_src = ip_dst.s_addr;
             } else {
-               model->ArgusThisFlow->frag_flow.ip_src = tip->ip_src.s_addr;
-               model->ArgusThisFlow->frag_flow.ip_dst = tip->ip_dst.s_addr;
+               retn->frag_flow.ip_src = ip_src.s_addr;
+               retn->frag_flow.ip_dst = ip_dst.s_addr;
             }
-            model->ArgusThisFlow->frag_flow.ip_p      = proto;
-            model->ArgusThisFlow->frag_flow.ip_id     = tip->ip_id;
+            retn->frag_flow.ip_p      = proto;
+            retn->frag_flow.ip_id     = ntohs(ip->ip_id);
+            retn->frag_flow.tp_p      = 0;
+            retn->ip_flow.smask       = 0;
+            retn->ip_flow.dmask       = 0;
          }
 
       } else {
          if (model->ArgusFlowKey & ARGUS_FLOW_KEY_LAYER_3_MATRIX) {
-            model->ArgusThisFlow->hdr.type             = ARGUS_FLOW_DSR;
-            model->ArgusThisFlow->hdr.subtype          = ARGUS_FLOW_LAYER_3_MATRIX;
-            model->ArgusThisFlow->hdr.argus_dsrvl8.qual = ARGUS_TYPE_IPV4;
-            model->ArgusThisFlow->hdr.argus_dsrvl8.len  = 3;
+            retn->hdr.type             = ARGUS_FLOW_DSR;
+            retn->hdr.subtype          = ARGUS_FLOW_LAYER_3_MATRIX;
+            retn->hdr.argus_dsrvl8.qual = ARGUS_TYPE_IPV4;
+            retn->hdr.argus_dsrvl8.len  = 3;
 
             switch (model->ArgusFlowType) {
                case ARGUS_UNIDIRECTIONAL:
                   break;
                case ARGUS_BIDIRECTIONAL: {
-                  if (tip->ip_src.s_addr > tip->ip_dst.s_addr)
+                  if (ip_src.s_addr > ip_dst.s_addr)
                      model->state |= ARGUS_DIRECTION;
                   break;
                }
             }
 
             if (model->state & ARGUS_DIRECTION) {
-               model->ArgusThisFlow->ip_flow.ip_src   = tip->ip_dst.s_addr;
-               model->ArgusThisFlow->ip_flow.ip_dst   = tip->ip_src.s_addr;
+               retn->ip_flow.ip_src   = ip_dst.s_addr;
+               retn->ip_flow.ip_dst   = ip_src.s_addr;
             } else {
-               model->ArgusThisFlow->ip_flow.ip_src   = tip->ip_src.s_addr;
-               model->ArgusThisFlow->ip_flow.ip_dst   = tip->ip_dst.s_addr;
+               retn->ip_flow.ip_src   = ip_src.s_addr;
+               retn->ip_flow.ip_dst   = ip_dst.s_addr;
             }
+
+            retn->frag_flow.ip_p      = 0;
+            retn->frag_flow.ip_id     = 0;
+            retn->frag_flow.tp_p      = 0;
+            retn->ip_flow.smask       = 0;
+            retn->ip_flow.dmask       = 0;
          }
       }
-   }
+
+   } else
+      retn = NULL;
 
 #ifdef ARGUSDEBUG
    ArgusDebug (9, "ArgusCreateIPv4Flow (0x%x, 0x%x) returning 0x%x\n", model, ip, retn);
@@ -4502,6 +4537,7 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 
    return (retn);
 }
+
 
 #if !defined(IPOPT_RA)
 #define IPOPT_RA	148
