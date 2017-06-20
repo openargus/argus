@@ -1,6 +1,6 @@
 /*
  * Gargoyle Software.  Argus files - Output processor
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2017 QoSient, LLC
  * All rights reserved.
  *
  * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
