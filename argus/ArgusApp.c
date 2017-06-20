@@ -366,14 +366,14 @@ ArgusUpdateAppState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                      flowstr->dsrs[ind] = NULL;
                   } else {
                      user->count = 0;
-                     memset(user->array, 0, len);
                   }
                }
             }
 
             if ((user = (struct ArgusDataStruct *) flowstr->dsrs[ind]) == NULL) {
-               if ((user = (void *) ArgusCalloc(tlen, 4)) != NULL) {
+               if ((user = (void *) ArgusMalloc(tlen * 4)) != NULL) {
                   flowstr->dsrs[ind] = (void *) user;
+                  user->count                = 0;
                   user->size                 = len;
                   user->hdr.type             = ARGUS_DATA_DSR;
                   user->hdr.subtype          = ARGUS_LEN_16BITS;
