@@ -277,7 +277,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                if (ArgusUpdateTCPSequence(model, flowstr, tcp)) {
                   switch (ArgusUpdateTCPStateMachine(model, flowstr, tcp)) {
                      case TCPS_LISTEN:
-                        if (flags == TH_SYN) {
+                        if (flags & TH_SYN) {
                            ArgusThisTCPsrc->bytes -= model->ArgusThisLength;
                            model->ArgusThisUpHdr  -= tcphlen;
                            model->ArgusThisLength = tcplen;
@@ -403,9 +403,6 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                state = TCPS_ESTABLISHED;
                tcpExt->status |= ARGUS_CON_ESTABLISHED;
                ArgusThisTCPsrc->status |= ARGUS_CON_ESTABLISHED;
-/*
-               flowstr->ArgusTimeout = ARGUS_IPTIMEOUT;
-*/
             }
             break;
     
@@ -420,9 +417,6 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                if (flags & TH_ACK) {
                   state = TCPS_ESTABLISHED;
                   tcpExt->status |= ARGUS_CON_ESTABLISHED;
-/*
-                  flowstr->ArgusTimeout = ARGUS_IPTIMEOUT;
-*/
                   ArgusThisTCPsrc->status |= ARGUS_CON_ESTABLISHED;
                   if (ArgusThisTCPsrc->seq == ArgusThisTCPdst->ack) {
                      struct timeval lasttime;
