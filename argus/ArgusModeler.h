@@ -89,7 +89,7 @@
 #define ARGUS_DEBUG		0xFF
 
 #define ARGUS_RECORD_WRITTEN	0x00000001
-#define ARGUSTIMEOUTQS		64
+#define ARGUSTIMEOUTQS		65534
 
 #define ARGUS_CLNS    129
 #define ARGUS_ESIS    130
@@ -314,6 +314,8 @@ struct ArgusModelerStruct {
    struct timeval ArgusLastPacketTimer;
    struct timeval ArgusAdjustedTimer;
  
+   int ArgusMajorVersion;
+   int ArgusMinorVersion;
    int ArgusSnapLen;
  
    int ArgusTunnelDiscovery;
@@ -323,15 +325,16 @@ struct ArgusModelerStruct {
    int ArgusHashflag;
    int ArgusSelfSynchronize, vflag;
 
-   char ArgusIPTimeout;
-   char ArgusTCPTimeout;
-   char ArgusICMPTimeout;
-   char ArgusIGMPTimeout;
-   char ArgusFRAGTimeout;
-   char ArgusARPTimeout;
-   char ArgusOtherTimeout;
-   char ArgusReportAllTime;
-   char ArgusResponseStatus;
+   int ArgusIPTimeout;
+   int ArgusTCPTimeout;
+   int ArgusICMPTimeout;
+   int ArgusIGMPTimeout;
+   int ArgusFRAGTimeout;
+   int ArgusARPTimeout;
+   int ArgusOtherTimeout;
+
+   int ArgusReportAllTime;
+   int ArgusResponseStatus;
 
    struct timeval ArgusFarReportInterval;
    struct timeval ArgusQueueInterval;

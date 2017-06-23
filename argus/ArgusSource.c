@@ -2469,6 +2469,7 @@ ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct timeval tvpbuf, *tvp = &tvpbuf;
    unsigned int length, caplen;
    unsigned long long ts;
+   struct stat statbuf;
    int ind = src->ArgusThisIndex;
 
    length = ntohs(hdr->wlen);
