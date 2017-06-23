@@ -1,6 +1,6 @@
 /*
  * Gargoyle Software.  Argus files - TCP Protocol processing
- * Copyright (c) 2000-2017 QoSient, LLC
+ * Copyright (c) 2000-2015 QoSient, LLC
  * All rights reserved.
  *
  * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
@@ -43,8 +43,10 @@
 #include <netinet/tcp.h>
 #include <netinet/tcp_fsm.h>
 
+extern void ArgusZeroRecord(struct ArgusFlowStruct *);
 
-/* These tcp options do not have the size octet */
+
+/* These tcp optinos do not have the size octet */
 #define ZEROLENOPT(o) ((o) == TCPOPT_EOL || (o) == TCPOPT_NOP)
 
 #if !defined(TH_ECE)
@@ -93,7 +95,6 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
 #else
       bcopy ((char *) thdr, (char *)tcp, sizeof(tcpbuf));
 #endif
-
       if (*state == ARGUS_START) {
          struct ArgusNetworkStruct *net = (struct ArgusNetworkStruct *) &flowstr->canon.net;
          net->hdr.type             = ARGUS_NETWORK_DSR;
@@ -282,7 +283,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                if (ArgusUpdateTCPSequence(model, flowstr, tcp)) {
                   switch (ArgusUpdateTCPStateMachine(model, flowstr, tcp)) {
                      case TCPS_LISTEN:
-                        if (flags & TH_SYN) {
+                        if (flags == TH_SYN) {
                            ArgusThisTCPsrc->bytes -= model->ArgusThisLength;
                            model->ArgusThisUpHdr  -= tcphlen;
                            model->ArgusThisLength = tcplen;
@@ -408,6 +409,9 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                state = TCPS_ESTABLISHED;
                tcpExt->status |= ARGUS_CON_ESTABLISHED;
                ArgusThisTCPsrc->status |= ARGUS_CON_ESTABLISHED;
+/*
+               flowstr->ArgusTimeout = ARGUS_IPTIMEOUT;
+*/
             }
             break;
     
@@ -422,6 +426,9 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                if (flags & TH_ACK) {
                   state = TCPS_ESTABLISHED;
                   tcpExt->status |= ARGUS_CON_ESTABLISHED;
+/*
+                  flowstr->ArgusTimeout = ARGUS_IPTIMEOUT;
+*/
                   ArgusThisTCPsrc->status |= ARGUS_CON_ESTABLISHED;
                   if (ArgusThisTCPsrc->seq == ArgusThisTCPdst->ack) {
                      struct timeval lasttime;
@@ -459,34 +466,34 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
     
          case TCPS_CLOSE_WAIT:
          case TCPS_FIN_WAIT_1:
-         case TCPS_LAST_ACK:
-         case TCPS_FIN_WAIT_2:
-
             if ((flags & TH_SYN) && !(flags & TH_ACK)) {
                state = TCPS_LISTEN;
-            } else {
-               if (flags & TH_FIN) {
-                  if (!(flags & TH_ACK)) {
-                     if (ArgusThisTCPdst->status & ARGUS_FIN_ACK) {
-                        ArgusThisTCPsrc->status |= ARGUS_PKTS_RETRANS;
-                        ArgusThisTCPsrc->retrans++;
-                     }
-                  } else {
-                     tcpExt->status |= ARGUS_FIN;
-                     ArgusThisTCPsrc->status |= ARGUS_FIN;
-                  }
-               }
+            } else
 
-               if ((flags & TH_ACK) && !(len)) {
-                  if (ArgusThisTCPdst->status & ARGUS_FIN) {
-                     if (ArgusThisTCPdst->seq == ArgusThisTCPsrc->ack) {
-                        state = TCPS_FIN_WAIT_2;
-                        tcpExt->status |= ARGUS_FIN_ACK;
-                        ArgusThisTCPdst->status |= ARGUS_FIN_ACK;
-                     }
+         case TCPS_LAST_ACK:
+         case TCPS_FIN_WAIT_2:
+            if (flags & TH_FIN) {
+               if (!(flags & TH_ACK)) {
+                  if (ArgusThisTCPdst->status & ARGUS_FIN_ACK) {
+                     ArgusThisTCPsrc->status |= ARGUS_PKTS_RETRANS;
+                     ArgusThisTCPsrc->retrans++;
+                  }
+               } else {
+                  tcpExt->status |= ARGUS_FIN;
+                  ArgusThisTCPsrc->status |= ARGUS_FIN;
+               }
+            }
+
+            if ((flags & TH_ACK) && !(len)) {
+               if (ArgusThisTCPdst->status & ARGUS_FIN) {
+                  if (ArgusThisTCPdst->seq == ArgusThisTCPsrc->ack) {
+                     state = TCPS_FIN_WAIT_2;
+                     tcpExt->status |= ARGUS_FIN_ACK;
+                     ArgusThisTCPdst->status |= ARGUS_FIN_ACK;
                   }
                }
             }
+
             break;
       
          case TCPS_CLOSING:
