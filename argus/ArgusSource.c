@@ -115,6 +115,7 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
    retn->mode   = src->mode;
 
    retn->ArgusPcapBufSize   = src->ArgusPcapBufSize;
+   retn->ArgusPcapDispatchNum = src->ArgusPcapDispatchNum;
 
    if (src->ArgusDeviceList) {
       int i, count = src->ArgusDeviceList->count;
