@@ -718,7 +718,7 @@ struct ArgusSourceStruct {
    struct ArgusTransportStruct trans;
    char * ArgusMarIncludeInterface;
 
-   int ArgusPcapBufSize, type, mode;
+   int ArgusPcapBufSize, ArgusPcapDispatchNum, type, mode;
 
    struct timeval ArgusStartTime, ArgusEndTime, lasttime;
 

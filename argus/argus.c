@@ -189,6 +189,7 @@ static char ArgusPidFileName[MAXPATHNAMELEN];
 char * ArgusCreatePIDFile (struct ArgusSourceStruct *, char *, char *);
 void setArgusEventDataRecord (char *);
 extern void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
+extern void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
 
 #define ARGUS_MAX_INSTANCES	5
 
@@ -973,7 +974,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				54
+#define ARGUS_RCITEMS				55
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1029,6 +1030,7 @@ getArguspidflag ()
 #define ARGUS_PCAP_BUF_SIZE			51
 #define ARGUS_OS_FINGERPRINTING			52
 #define ARGUS_CONTROLPLANE_PROTO		53
+#define ARGUS_PCAP_DISPATCH_NUM			54
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1086,6 +1088,7 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_PCAP_BUF_SIZE=",
    "ARGUS_OS_FINGERPRINTING=",
    "ARGUS_CONTROLPLANE_PROTO=",
+   "ARGUS_PCAP_DISPATCH_NUM=",
 };
 
 
@@ -1694,6 +1697,11 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
 
                               setArgusPcapBufSize (ArgusSourceTask, size);
                            }
+                           break;
+                        }
+                        case ARGUS_PCAP_DISPATCH_NUM: {
+                           int num = atoi(optarg);
+                           setArgusPcapDispatchNumber (ArgusSourceTask, num);
                            break;
                         }
                      }
