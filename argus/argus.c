@@ -183,6 +183,7 @@ static char ArgusPidFileName[MAXPATHNAMELEN];
 char * ArgusCreatePIDFile (struct ArgusSourceStruct *, char *, char *);
 void setArgusEventDataRecord (char *);
 extern void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
+extern void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
 
 #define ARGUS_MAX_INSTANCES	5
 
@@ -1720,6 +1721,11 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
 
                               setArgusPcapBufSize (ArgusSourceTask, size);
                            }
+                           break;
+                        }
+                        case ARGUS_PCAP_DISPATCH_NUM: {
+                           int num = atoi(optarg);
+                           setArgusPcapDispatchNumber (ArgusSourceTask, num);
                            break;
                         }
                      }
