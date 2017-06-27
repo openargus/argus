@@ -4516,14 +4516,7 @@ ArgusGetPackets (void *arg)
                            if (src->ArgusInterface[i].ArgusPd) {
                               src->ArgusThisIndex = i;
                               {
-#if defined(HAVE_PCAP_NEXT_EX)
-                                 struct pcap_pkthdr *header;
-                                 const u_char *pkt_data;
-                                 if ((cnt = pcap_next_ex(src->ArgusInterface[i].ArgusPd, &header, &pkt_data)) > 0)
-                                    src->ArgusInterface[i].ArgusCallBack((u_char *)src, header, pkt_data);
-#else
                                  cnt = pcap_dispatch(src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src);
-#endif
                               }
                            }
                         }
@@ -4542,7 +4535,7 @@ ArgusGetPackets (void *arg)
                               noPkts = 0;
                            }
                         } else {
-                           ArgusLog(LOG_INFO, "%s: pcap_next_ex() failed\n", __func__);
+                           ArgusLog(LOG_INFO, "%s: pcap_dispatch() failed\n", __func__);
                            noerror = 0;
                         }
 
@@ -4610,18 +4603,6 @@ ArgusGetPackets (void *arg)
                                  cnt = 0;
                                  for (i = 0; i < src->ArgusInterfaces; i++) {
                                     if ((fd = fds[i]) != -1) {
-#if defined(HAVE_PCAP_NEXT_EX)
-                                       struct pcap_pkthdr *header;
-                                       const u_char *pkt_data;
-                                       if ((ret = pcap_next_ex(src->ArgusInterface[i].ArgusPd, &header, &pkt_data)) > 0) {
-                                          pkts++;
-                                          cnt += ret;
-                                          src->ArgusThisIndex = i;
-                                          src->ArgusInterface[i].ArgusCallBack((u_char *)src, header, pkt_data);
-                                       } else
-                                          if (ret < 0)
-                                             noerror = 0;
-#else
                                        src->ArgusThisIndex = i;
                                        if ((ret = pcap_dispatch(src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) > 0) {
                                           pkts++;
@@ -4630,7 +4611,6 @@ ArgusGetPackets (void *arg)
                                           if (ret < 0)
                                              noerror = 0;
                                        }
-#endif
                                     }
                                  }
                               } while (cnt > 0);
