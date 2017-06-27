@@ -95,16 +95,6 @@ void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
 
-int ArgusGetInterfaceFD = -1;
-
-extern int ArgusShutDownFlag;
-
-struct anamemem {
-   struct anamemem *n_nxt;
-   unsigned int status, hashval;
-   char *name;
-};
-
 extern int ArgusShutDownFlag;
 
 struct ArgusDeviceStruct *
@@ -236,7 +226,6 @@ ArgusNewSource(struct ArgusModelerStruct *model)
 
    retn->ArgusSnapLen = ARGUS_MINSNAPLEN;
    retn->ArgusPcapDispatchNum = 1;
-   retn->ArgusInterfaceScanInterval = 2;
 
 #if defined(ARGUS_THREADS)
    if (pthread_mutex_init(&retn->lock, NULL))
@@ -822,17 +811,6 @@ setArgusPcapDispatchNumber (struct ArgusSourceStruct *src, int num)
    
 #ifdef ARGUSDEBUG
    ArgusDebug (3, "setArgusPcapDispatchNumber(%p, %d)\n", src, num);
-#endif
-}
-
-void
-setArgusInterfaceScanInterval (struct ArgusSourceStruct *src, int num)
-{
-   if (src != NULL)
-      src->ArgusInterfaceScanInterval = num;
-
-#ifdef ARGUSDEBUG
-   ArgusDebug (3, "setArgusInterfaceScanInterval(%p, %d)\n", src, num);
 #endif
 }
 
@@ -2099,7 +2077,6 @@ ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct timeval tvpbuf, *tvp = &tvpbuf;
    unsigned int length, caplen;
    unsigned long long ts;
-   struct stat statbuf;
    int ind = src->ArgusThisIndex;
 
    length = ntohs(hdr->wlen);
@@ -4753,7 +4730,7 @@ ArgusGetPackets (void *arg)
                                  if ((cnt = pcap_next_ex(src->ArgusInterface[i].ArgusPd, &header, &pkt_data)) > 0)
                                     src->ArgusInterface[i].ArgusCallBack((u_char *)src, header, pkt_data);
 #else
-                                 cnt = pcap_dispatch(src->ArgusInterface[i].ArgusPd, 1, src->ArgusInterface[i].ArgusCallBack, (u_char *)src);
+                                 cnt = pcap_dispatch(src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src);
 #endif
                               }
                            }
@@ -4792,7 +4769,7 @@ ArgusGetPackets (void *arg)
                                        src->ArgusThisIndex = i;
                                        switch (src->ArgusInterface[i].ArgusInterfaceType) {
                                           case ARGUSLIBPPKTFILE:
-                                             if ((pcap_dispatch (src->ArgusInterface[i].ArgusPd, 1, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) < 0) {
+                                             if ((pcap_dispatch (src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) < 0) {
                                                 if (!(strncmp (pcap_geterr(src->ArgusInterface[i].ArgusPd), "recvfrom", 8))) {
 #ifdef ARGUSDEBUG
                                                    ArgusDebug (3, "ArgusGetPackets: pcap_dispatch() returned %s\n", pcap_geterr(src->ArgusInterface[i].ArgusPd));
@@ -4857,7 +4834,7 @@ ArgusGetPackets (void *arg)
                                              noerror = 0;
 #else
                                        src->ArgusThisIndex = i;
-                                       if ((ret = pcap_dispatch(src->ArgusInterface[i].ArgusPd, 1, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) > 0) {
+                                       if ((ret = pcap_dispatch(src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) > 0) {
                                           pkts++;
                                           cnt += ret;
                                        } else {
@@ -4958,7 +4935,7 @@ ArgusGetPackets (void *arg)
                            if (offset > 0)
                               fseek(src->ArgusPacketInput, offset, SEEK_SET);
 
-                           if ((retn = pcap_dispatch (src->ArgusInterface[i].ArgusPd, 1, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) < 0) {
+                           if ((retn = pcap_dispatch (src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) < 0) {
                               if ((estr = pcap_geterr(src->ArgusInterface[i].ArgusPd)) != NULL) {
 #ifdef ARGUSDEBUG
                                     ArgusDebug (2, "ArgusGetPackets () pcap_dispatch returned %s\n", estr);
