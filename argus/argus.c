@@ -1764,6 +1764,8 @@ clearArgusConfiguration (struct ArgusModelerStruct *model)
       ArgusSourceTask->ArgusInputFilter = NULL;
    }
 
+   setArgusPcapDispatchNumber(ArgusSourceTask, 1);
+
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "clearArgusConfiguration () returning\n");
 #endif 
