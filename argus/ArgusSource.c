@@ -78,6 +78,7 @@
 
 void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
+void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
 
 extern int ArgusShutDownFlag;
 
@@ -198,7 +199,9 @@ ArgusNewSource(struct ArgusModelerStruct *model)
    retn->ArgusModel = model;
    retn->sNflag = -1;
    retn->eNflag = -1;
+
    retn->ArgusSnapLen = ARGUS_MINSNAPLEN;
+   retn->ArgusPcapDispatchNum = 1;
 
 #if defined(ARGUS_THREADS)
    if (pthread_mutex_init(&retn->lock, NULL))
@@ -751,6 +754,18 @@ setArgusPcapBufSize (struct ArgusSourceStruct *src, int size)
    }
 #ifdef ARGUSDEBUG
    ArgusDebug (3, "setArgusPcapBufSize(%p, %d)\n", src, size);
+#endif
+}
+
+void
+setArgusPcapDispatchNumber (struct ArgusSourceStruct *src, int num)
+{
+   if (src != NULL) {
+      src->ArgusPcapDispatchNum = num;
+   }
+   
+#ifdef ARGUSDEBUG
+   ArgusDebug (3, "setArgusPcapDispatchNumber(%p, %d)\n", src, num);
 #endif
 }
 
@@ -1847,7 +1862,6 @@ ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct timeval tvpbuf, *tvp = &tvpbuf;
    unsigned int length, caplen;
    unsigned long long ts;
-   struct stat statbuf;
    int ind = src->ArgusThisIndex;
 
    length = ntohs(hdr->wlen);
@@ -4424,14 +4438,7 @@ ArgusGetPackets (void *arg)
                            if (src->ArgusInterface[i].ArgusPd) {
                               src->ArgusThisIndex = i;
                               {
-#if defined(HAVE_PCAP_NEXT_EX)
-                                 struct pcap_pkthdr *header;
-                                 const u_char *pkt_data;
-                                 if ((cnt = pcap_next_ex(src->ArgusInterface[i].ArgusPd, &header, &pkt_data)) > 0)
-                                    src->ArgusInterface[i].ArgusCallBack((u_char *)src, header, pkt_data);
-#else
-                                 cnt = pcap_dispatch(src->ArgusInterface[i].ArgusPd, 1, src->ArgusInterface[i].ArgusCallBack, (u_char *)src);
-#endif
+                                 cnt = pcap_dispatch(src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src);
                               }
                            }
                         }
@@ -4450,7 +4457,7 @@ ArgusGetPackets (void *arg)
                               noPkts = 0;
                            }
                         } else {
-                           ArgusLog(LOG_INFO, "%s: pcap_next_ex() failed\n", __func__);
+                           ArgusLog(LOG_INFO, "%s: pcap_dispatch() failed\n", __func__);
                            noerror = 0;
                         }
 
@@ -4466,7 +4473,7 @@ ArgusGetPackets (void *arg)
                                        src->ArgusThisIndex = i;
                                        switch (src->ArgusInterface[i].ArgusInterfaceType) {
                                           case ARGUSLIBPPKTFILE:
-                                             if ((pcap_dispatch (src->ArgusInterface[i].ArgusPd, 1, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) < 0) {
+                                             if ((pcap_dispatch (src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) < 0) {
                                                 if (!(strncmp (pcap_geterr(src->ArgusInterface[i].ArgusPd), "recvfrom", 8))) {
 #ifdef ARGUSDEBUG
                                                    ArgusDebug (3, "ArgusGetPackets: pcap_dispatch() returned %s\n", pcap_geterr(src->ArgusInterface[i].ArgusPd));
@@ -4518,27 +4525,14 @@ ArgusGetPackets (void *arg)
                                  cnt = 0;
                                  for (i = 0; i < src->ArgusInterfaces; i++) {
                                     if ((fd = fds[i]) != -1) {
-#if defined(HAVE_PCAP_NEXT_EX)
-                                       struct pcap_pkthdr *header;
-                                       const u_char *pkt_data;
-                                       if ((ret = pcap_next_ex(src->ArgusInterface[i].ArgusPd, &header, &pkt_data)) > 0) {
-                                          pkts++;
-                                          cnt += ret;
-                                          src->ArgusThisIndex = i;
-                                          src->ArgusInterface[i].ArgusCallBack((u_char *)src, header, pkt_data);
-                                       } else
-                                          if (ret < 0)
-                                             noerror = 0;
-#else
                                        src->ArgusThisIndex = i;
-                                       if ((ret = pcap_dispatch(src->ArgusInterface[i].ArgusPd, 1, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) > 0) {
+                                       if ((ret = pcap_dispatch(src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) > 0) {
                                           pkts++;
                                           cnt += ret;
                                        } else {
                                           if (ret < 0)
                                              noerror = 0;
                                        }
-#endif
                                     }
                                  }
                               } while (cnt > 0);
@@ -4630,7 +4624,7 @@ ArgusGetPackets (void *arg)
                            if (offset > 0)
                               fseek(src->ArgusPacketInput, offset, SEEK_SET);
 
-                           if ((retn = pcap_dispatch (src->ArgusInterface[i].ArgusPd, 1, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) < 0) {
+                           if ((retn = pcap_dispatch (src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) < 0) {
                               if ((estr = pcap_geterr(src->ArgusInterface[i].ArgusPd)) != NULL) {
 #ifdef ARGUSDEBUG
                                     ArgusDebug (2, "ArgusGetPackets () pcap_dispatch returned %s\n", estr);
