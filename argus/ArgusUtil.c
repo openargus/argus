@@ -1324,9 +1324,9 @@ ArgusSetChroot(char *dir)
 #include <fcntl.h>
 
 #define ARGUS_MAXERROR		200000
-#define ARGUS_MAXWRITENUM	10000
+#define ARGUS_MAXWRITENUM	100000
 
-int ArgusMaxListLength = 100000;
+int ArgusMaxListLength = 1000000;
 int ArgusCloseFile = 0;
 
 
