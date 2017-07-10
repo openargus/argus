@@ -382,12 +382,14 @@ struct ArgusKeyStrokeState {
 
 struct ArgusFlowStruct {
    struct ArgusQueueHeader qhdr;
-   struct ArgusHashTableHeader htblbuf, *htblhdr;
+   struct ArgusHashTableHeader htblbuf;
+   unsigned int state, status, dsrindex;
+   unsigned int ArgusEncaps;
+
+   struct ArgusHashTableHeader *htblhdr;
    struct ArgusDSRHeader *dsrs[ARGUSMAXDSRTYPE];
    struct ArgusQueueStruct frag;
 
-   unsigned int state, status, dsrindex;
-   unsigned int ArgusEncaps;
 
    unsigned short trans, timeout;
    unsigned short userlen;
