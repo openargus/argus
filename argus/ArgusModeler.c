@@ -2161,8 +2161,11 @@ ArgusNewFlow (struct ArgusModelerStruct *model, struct ArgusSystemFlow *flow, st
       model->ArgusTotalNewFlows++;
       userlen = getArgusUserDataLen(model);
 
-      if ((retn = (struct ArgusFlowStruct *) ArgusCalloc (1, sizeof(*retn))) != NULL) {
+      retn = (struct ArgusFlowStruct *) ArgusMallocAligned(sizeof(*retn), 64);
+      if (retn != NULL) {
          int value;
+
+         memset(retn, 0, sizeof(*retn));
          retn->status          = ARGUS_START;
          retn->state           = model->state & ARGUS_DIRECTION;
          retn->trans           = model->ArgusTransactionNum++;

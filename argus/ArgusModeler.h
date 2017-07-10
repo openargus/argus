@@ -169,19 +169,19 @@ struct AHHeader {
 
 struct ArgusHashStruct {
    unsigned int len, hash;
-#if defined(__APPLE_CC__) || defined(__APPLE__)
-   unsigned int pad[2];
+   unsigned int ind;
+   unsigned int pad;
    unsigned int key[24];
-#else
-   unsigned int key[24];
-#endif
 };
  
 struct ArgusHashTableHeader {
    struct ArgusHashTableHeader *nxt, *prv;
    struct ArgusHashTable *htbl;
-   struct ArgusHashStruct hstruct;
    void *object;
+   char pad[32];
+
+   struct ArgusHashStruct hstruct;
+   char pad1[16];
 };
 
 
@@ -191,11 +191,10 @@ struct ArgusHashTable {
    unsigned int size;
    int status;
    int bins, items;
-
+   struct ArgusHashTableHeader **array;
 #if defined(ARGUS_THREADS)
    pthread_mutex_t lock;
 #endif
-   struct ArgusHashTableHeader **array;
 };
 
 #define ARGUS_MAX_MPLS_LABELS	4
@@ -223,8 +222,6 @@ struct ArgusModelerStruct {
 
    struct ArgusSourceStruct *ArgusSrc;
    struct ArgusQueueStruct *ArgusStatusQueue;
-   struct ArgusQueueStruct *ArgusTimeOutQueues;
-   struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
    struct ArgusListStruct *ArgusOutputList;
    struct ArgusHashTable *ArgusHashTable;
    struct ArgusSystemFlow  *ArgusThisFlow;
@@ -338,6 +335,9 @@ struct ArgusModelerStruct {
    unsigned int ArgusLocalNet;
    unsigned int ArgusNetMask;
    unsigned int ArgusLink;
+
+   struct ArgusQueueStruct *ArgusTimeOutQueues;
+   struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
 };
 
 
@@ -382,12 +382,14 @@ struct ArgusKeyStrokeState {
 
 struct ArgusFlowStruct {
    struct ArgusQueueHeader qhdr;
-   struct ArgusHashTableHeader htblbuf, *htblhdr;
+   struct ArgusHashTableHeader htblbuf;
+   unsigned int state, status, dsrindex;
+   unsigned int ArgusEncaps;
+
+   struct ArgusHashTableHeader *htblhdr;
    struct ArgusDSRHeader *dsrs[ARGUSMAXDSRTYPE];
    struct ArgusQueueStruct frag;
 
-   unsigned int state, status, dsrindex;
-   unsigned int ArgusEncaps;
 
    unsigned short trans, timeout;
    unsigned short userlen;

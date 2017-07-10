@@ -795,9 +795,10 @@ ArgusNewHashTable (size_t size, int status)
    if ((retn = (struct ArgusHashTable *) ArgusCalloc (1, sizeof(*retn))) == NULL)
       ArgusLog (LOG_ERR, "ArgusNewHashTable: ArgusCalloc(1, %d) error %s\n", size, strerror(errno));
 
-   if ((retn->array = (struct ArgusHashTableHeader **) ArgusCalloc (size, 
-                                      sizeof (struct ArgusHashTableHeader *))) == NULL)
+   if ((retn->array = (struct ArgusHashTableHeader **)
+                      ArgusMallocAligned (size * sizeof(struct ArgusHashTableHeader *), 64)) == NULL)
       ArgusLog (LOG_ERR, "RaMergeQueue: ArgusCalloc error %s\n", strerror(errno));
+   memset(retn->array, 0, size * sizeof (struct ArgusHashTableHeader *));
 
    retn->size = size;
 #if defined(ARGUS_HASH_DEBUG)
@@ -926,6 +927,7 @@ ArgusCreateFlowKey (struct ArgusModelerStruct *model, struct ArgusSystemFlow *fl
 
       hstruct->hash ^= hstruct->hash >> 16;
       hstruct->hash ^= hstruct->hash >> 8;
+      hstruct->ind = hstruct->hash % (ARGUS_HASHTABLESIZE - 1);
    }
 
 #ifdef ARGUSDEBUG
@@ -944,9 +946,9 @@ ArgusFindFlow (struct ArgusModelerStruct *model, struct ArgusHashStruct *hstruct
 
    if (table && hstruct) {
       unsigned int hash = hstruct->hash;
-      unsigned int ind = (hash % (table->size - 1)), i;
+      unsigned int i;
 
-      if ((target = table->array[ind]) != NULL) {
+      if ((target = table->array[hstruct->ind]) != NULL) {
          unsigned int *ptr3 = hstruct->key;
          int len = hstruct->len;
          head = target;
@@ -975,7 +977,7 @@ ArgusFindFlow (struct ArgusModelerStruct *model, struct ArgusHashStruct *hstruct
     
          if (hashEntry != NULL) {
             if (hashEntry != head)
-               table->array[ind] = hashEntry;
+               table->array[hstruct->ind] = hashEntry;
             retn = hashEntry->object;
          }
       }
@@ -996,14 +998,12 @@ ArgusAddHashEntry (struct ArgusHashTable *table, struct ArgusFlowStruct *flow, s
 
    if (table != NULL) {
       unsigned int hash = hstruct->hash;
-      int ind;
+      unsigned int ind = hstruct->ind;
 
       retn = &flow->htblbuf;
       memcpy(&retn->hstruct, hstruct, sizeof(*hstruct));
       retn->object = flow;
 
-      ind = (hash % (table->size - 1));
-      
       if ((start = table->array[ind]) != NULL) {
          retn->nxt = start;
          retn->prv = start->prv;
@@ -1046,7 +1046,7 @@ ArgusRemoveHashEntry (struct ArgusHashTableHeader *htblhdr)
       struct ArgusHashTable *table = htblhdr->htbl;
 
       if (table != NULL) {
-         int ind = (hash % (table->size - 1));
+         unsigned int ind = htblhdr->hstruct.ind;
 
          htblhdr->prv->nxt = htblhdr->nxt;
          htblhdr->nxt->prv = htblhdr->prv;
