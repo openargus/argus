@@ -795,9 +795,10 @@ ArgusNewHashTable (size_t size, int status)
    if ((retn = (struct ArgusHashTable *) ArgusCalloc (1, sizeof(*retn))) == NULL)
       ArgusLog (LOG_ERR, "ArgusNewHashTable: ArgusCalloc(1, %d) error %s\n", size, strerror(errno));
 
-   if ((retn->array = (struct ArgusHashTableHeader **) ArgusCalloc (size, 
-                                      sizeof (struct ArgusHashTableHeader *))) == NULL)
+   if ((retn->array = (struct ArgusHashTableHeader **)
+                      ArgusMallocAligned (size * sizeof(struct ArgusHashTableHeader *), 64)) == NULL)
       ArgusLog (LOG_ERR, "RaMergeQueue: ArgusCalloc error %s\n", strerror(errno));
+   memset(retn->array, 0, size * sizeof (struct ArgusHashTableHeader *));
 
    retn->size = size;
 #if defined(ARGUS_HASH_DEBUG)
