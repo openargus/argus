@@ -38,7 +38,7 @@ Copyright: (c) 2000-2015 QoSient, LLC
 %setup -q -n %{name}-%{ver}.%{rel}
 %build
 ./configure --prefix=%{argusdir} --with-sasl
-make
+make EXTRA_CFLAGS="-ggdb"
 
 %install
 rm -rf $RPM_BUILD_ROOT

@@ -46,7 +46,7 @@ INCLS = -I$(srcdir) @V_INCLS@ -I$(srcdir)/../include  -I$(srcdir)/../argus
 DEFS = @DEFS@
 
 # Standard CFLAGS
-CFLAGS = $(CCOPT) $(INCLS) $(DEFS)
+CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS)
 LDFLAGS = @LDFLAGS@
 
 INSTALL = @INSTALL@
