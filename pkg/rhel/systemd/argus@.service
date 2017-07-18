@@ -1,6 +1,6 @@
 [Unit]
 Description=Argus Flow Monitor Node %I
-After=syslog.target network.target
+After=syslog.target network.target napatech.service
 Wants=firewalld.service napatech.service
 Conflicts=argus.service
 
