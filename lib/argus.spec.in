@@ -80,6 +80,7 @@ rm -rf $RPM_BUILD_ROOT
 %{argusbin}/argus-vmstat
 %{argusbin}/argus-ipaddr
 %{argusbin}/argus-top
+%{argusbin}/argus-ipmitool
 %{argusbin}/argusbug
 %{argusbin}/argusarchive
 
