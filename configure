@@ -8939,6 +8939,28 @@ _ACEOF
 fi
 done
 
+   for ac_func in pcap_open_offline_with_tstamp_precision
+do :
+  ac_fn_c_check_func "$LINENO" "pcap_open_offline_with_tstamp_precision" "ac_cv_func_pcap_open_offline_with_tstamp_precision"
+if test "x$ac_cv_func_pcap_open_offline_with_tstamp_precision" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION 1
+_ACEOF
+
+fi
+done
+
+   for ac_func in pcap_fopen_offline_with_tstamp_precision
+do :
+  ac_fn_c_check_func "$LINENO" "pcap_fopen_offline_with_tstamp_precision" "ac_cv_func_pcap_fopen_offline_with_tstamp_precision"
+if test "x$ac_cv_func_pcap_fopen_offline_with_tstamp_precision" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION 1
+_ACEOF
+
+fi
+done
+
    LIBS="$LBL_LIBS"
 
 if test ! -z "$V_PCAPDEP"; then
