@@ -4765,19 +4765,27 @@ pcap_open_offline_with_tstamp_precision() takes an  additional  precision  argum
 */
 
 #if defined(HAVE_PCAP_FOPEN_OFFLINE)
-#if defined(ARGUS_NANOSECONDS)
+# if defined(HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION)
+#  if defined(ARGUS_NANOSECONDS)
       inf->ArgusPd = pcap_fopen_offline_with_tstamp_precision(src->ArgusPacketInput, PCAP_TSTAMP_PRECISION_NANO, errbuf);
       src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
-#else
+#  else
       inf->ArgusPd = pcap_fopen_offline_with_tstamp_precision(src->ArgusPacketInput, PCAP_TSTAMP_PRECISION_NANO, errbuf);
-#endif
+#  endif
+# else /* HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION */
+      inf->ArgusPd = pcap_open_offline(device->name, errbuf);
+# endif /* HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION */
 #else
-#if defined(ARGUS_NANOSECONDS)
+# if defined(HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION)
+#  if defined(ARGUS_NANOSECONDS)
       inf->ArgusPd = pcap_open_offline_with_tstamp_precision(device->name, PCAP_TSTAMP_PRECISION_NANO, errbuf);
       src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
-#else
+#  else
       inf->ArgusPd = pcap_open_offline_with_tstamp_precision(device->name, PCAP_TSTAMP_PRECISION_MICRO, errbuf);
-#endif
+#  endif
+# else /* HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION */
+      inf->ArgusPd = pcap_open_offline(device->name, errbuf);
+# endif /* HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION */
 #endif
 
       if (inf->ArgusPd != NULL) {
