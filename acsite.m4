@@ -877,6 +877,7 @@ AC_DEFUN([AC_QOSIENT_LIBPCAP], [
    AC_CHECK_FUNCS(pcap_dump_flush)
    AC_CHECK_FUNCS(pcap_open_offline_with_tstamp_precision)
    AC_CHECK_FUNCS(pcap_fopen_offline_with_tstamp_precision)
+   AC_CHECK_FUNCS(pcap_set_tstamp_precision)
    LIBS="$LBL_LIBS"
 ])
 

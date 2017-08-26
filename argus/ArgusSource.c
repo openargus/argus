@@ -313,7 +313,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
       pcap_set_promisc(inf->ArgusPd, !src->Arguspflag);
       pcap_set_timeout(inf->ArgusPd, 100);
 
-#if defined(ARGUS_NANOSECONDS)
+#if defined(ARGUS_NANOSECONDS) && defined(HAVE_PCAP_SET_TSTAMP_PRECISION)
       switch (pcap_set_tstamp_precision(inf->ArgusPd, PCAP_TSTAMP_PRECISION_NANO)) {
          case PCAP_ERROR_TSTAMP_PRECISION_NOTSUP:
          case PCAP_ERROR_ACTIVATED:
