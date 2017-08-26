@@ -236,6 +236,10 @@
 /* Define to 1 if you have the `pcap_fopen_offline' function. */
 #undef HAVE_PCAP_FOPEN_OFFLINE
 
+/* Define to 1 if you have the `pcap_fopen_offline_with_tstamp_precision'
+   function. */
+#undef HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION
+
 /* Define to 1 if you have the `pcap_get_selectable_fd' function. */
 #undef HAVE_PCAP_GET_SELECTABLE_FD
 
@@ -245,11 +249,18 @@
 /* Define to 1 if you have the `pcap_next_ex' function. */
 #undef HAVE_PCAP_NEXT_EX
 
+/* Define to 1 if you have the `pcap_open_offline_with_tstamp_precision'
+   function. */
+#undef HAVE_PCAP_OPEN_OFFLINE_WITH_TSTAMP_PRECISION
+
 /* Define to 1 if you have the `pcap_set_buffer_size' function. */
 #undef HAVE_PCAP_SET_BUFFER_SIZE
 
 /* pcap set datalink */
 #undef HAVE_PCAP_SET_DATALINK
+
+/* Define to 1 if you have the `pcap_set_tstamp_precision' function. */
+#undef HAVE_PCAP_SET_TSTAMP_PRECISION
 
 /* Define to 1 if you have the `pfopen' function. */
 #undef HAVE_PFOPEN
