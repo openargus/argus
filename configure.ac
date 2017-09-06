@@ -451,6 +451,7 @@ INSTALL_BIN="../bin"
 
 AC_SUBST(PACKAGE_VERSION)
 AC_SUBST(PACKAGE_RELEASE)
+AC_SUBST(ARGUSPRO_VERSION)
 AC_SUBST(LIBS)
 AC_SUBST(INCLS)
 AC_SUBST(V_ARCH)
@@ -481,6 +482,9 @@ AC_CONFIG_FILES([
    ./pkg/win7/Makefile
    ./pkg/win7/argus.wxs
    ./lib/argus.spec
+   ./licenses/arguspro_sensor_appliance.lic.template
+   ./licenses/arguspro_sensor_floating.lic.template
+   ./licenses/arguspro_sensor_workstation.lic.template
 ])
 
 AC_OUTPUT

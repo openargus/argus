@@ -656,6 +656,7 @@ V_INCLS
 V_CCOPT
 V_ARCH
 INCLS
+ARGUSPRO_VERSION
 PACKAGE_RELEASE
 PCAP_CONFIG
 POW_LIB
@@ -11531,6 +11532,9 @@ do
     "./pkg/win7/Makefile") CONFIG_FILES="$CONFIG_FILES ./pkg/win7/Makefile" ;;
     "./pkg/win7/argus.wxs") CONFIG_FILES="$CONFIG_FILES ./pkg/win7/argus.wxs" ;;
     "./lib/argus.spec") CONFIG_FILES="$CONFIG_FILES ./lib/argus.spec" ;;
+    "./licenses/arguspro_sensor_appliance.lic.template") CONFIG_FILES="$CONFIG_FILES ./licenses/arguspro_sensor_appliance.lic.template" ;;
+    "./licenses/arguspro_sensor_floating.lic.template") CONFIG_FILES="$CONFIG_FILES ./licenses/arguspro_sensor_floating.lic.template" ;;
+    "./licenses/arguspro_sensor_workstation.lic.template") CONFIG_FILES="$CONFIG_FILES ./licenses/arguspro_sensor_workstation.lic.template" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

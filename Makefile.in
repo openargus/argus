@@ -54,7 +54,7 @@ OSXPACKAGE_INSTDIRS = ./argus
 DISTFILES = AUTHORS ChangeLog INSTALL MANIFEST Makefile.in\
 	CREDITS README VERSION bin common argus events doc include pkg debian\
 	lib man support aclocal.m4 acsite.m4 config configure configure.ac\
-	lib/argus.spec .threads
+	lib/argus.spec .threads licenses
 
 .c.o:
 	$(CC) -c $(CPPFLAGS) $(DEFS) $(CFLAGS) $<
