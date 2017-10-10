@@ -394,7 +394,7 @@ main (int argc, char *argv[])
 
    optind = 1, opterr = 0;
 
-   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:i:JlmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
+   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:H:i:JlmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
       switch (op) {
          case 'A': setArgusAflag(ArgusModel, 1); break;
          case 'b': setArgusbpflag (ArgusSourceTask, 1); break;
@@ -412,6 +412,8 @@ main (int argc, char *argv[])
          case 'd': ArgusDaemon = ArgusDaemon ? 0 : 1; break;
          case 'D': setArgusdflag (ArgusModel, atoi (optarg)); break;
          case 'e': ArgusParseSourceID(ArgusSourceTask, NULL, optarg); break;
+
+         case 'H': setArgusHashTableSize (ArgusModel, atoi(optarg)); break;
          case 'f': setArgusfflag (ArgusSourceTask, 1); break;
          case 'F': ArgusParseResourceFile (ArgusModel, optarg); break;
 
@@ -1097,7 +1099,6 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
 };
 
 
-
 extern pcap_dumper_t *ArgusPcapOutFile;
 extern char *ArgusWriteOutPacketFile;
 
@@ -1726,6 +1727,18 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                         case ARGUS_PCAP_DISPATCH_NUM: {
                            int num = atoi(optarg);
                            setArgusPcapDispatchNumber (ArgusSourceTask, num);
+                           break;
+                        }
+
+                        case ARGUS_HASHTABLE_SIZE: {
+                           setArgusHashTableSize (model, atoi(optarg));
+                           break;
+                        }
+                        case ARGUS_GENERATE_HASH_METRICS: {
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              setArgusHashflag(model, 1);
+                           else
+                              setArgusHashflag(model, 0);
                            break;
                         }
                      }

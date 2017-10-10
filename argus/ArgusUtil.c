@@ -920,7 +920,7 @@ ArgusCreateFlowKey (struct ArgusModelerStruct *model, struct ArgusSystemFlow *fl
 
       hstruct->hash ^= hstruct->hash >> 16;
       hstruct->hash ^= hstruct->hash >> 8;
-      hstruct->ind = hstruct->hash % (ARGUS_HASHTABLESIZE - 1);
+      hstruct->ind = hstruct->hash % (model->ArgusHashTableSize - 1);
    }
 
 #ifdef ARGUSDEBUG

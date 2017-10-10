@@ -546,6 +546,11 @@ struct ArgusSystemFlow {
 #define    wlan_flow flow_un.wlan
 #define     udt_flow flow_un.udt
 
+struct ArgusFlowHashStruct {
+   struct ArgusDSRHeader hdr;
+   unsigned int hash;
+   unsigned int ind;
+};
 
 struct ArgusAddrStruct {
    union {
@@ -930,6 +935,7 @@ struct ArgusNetworkStruct {
 struct ArgusCanonRecord {
    struct ArgusRecordHeader      hdr;
    struct ArgusFlow              flow;
+   struct ArgusFlowHashStruct    hash;
    struct ArgusTransportStruct   trans;
    struct ArgusTimeObject        time;
    struct ArgusEncapsStruct      encaps;

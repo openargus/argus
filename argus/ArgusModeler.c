@@ -178,7 +178,7 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    else
       model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000LL) + model->ArgusUpdateInterval.tv_usec);
 
-   if ((model->ArgusHashTable = ArgusNewHashTable(ARGUS_HASHTABLESIZE, debug)) == NULL)
+   if ((model->ArgusHashTable = ArgusNewHashTable(model->ArgusHashTableSize, debug)) == NULL)
       ArgusLog(LOG_ERR, "%s () ArgusNewHashTable error %s\n",
                __func__, strerror(errno));
 
@@ -234,7 +234,6 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
       model->ArgusStatusQueue->timeout = tvp->tv_sec;
 
    model->ArgusTCPflag = 1;
-
    model->ArgusThisDir = 0;
 
    ArgusInitMallocList(sizeof(struct ArgusRecordStruct));
@@ -2366,6 +2365,26 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
    flow->dsrindex |= 1 << ARGUS_TIME_INDEX;
 
+   if (getArgusHashflag (model)) {
+      struct ArgusFlowHashStruct *hash;
+      if ((hash = (struct ArgusFlowHashStruct *) flow->dsrs[ARGUS_FLOW_HASH_INDEX]) == NULL) {
+         hash = (struct ArgusFlowHashStruct *) &flow->canon.hash.hdr;
+         memset(hash, 0, sizeof(*hash));
+         flow->dsrs[ARGUS_FLOW_HASH_INDEX] = &hash->hdr;
+         hash->hdr.type                = ARGUS_FLOW_HASH_DSR;
+//       hash->hdr.subtype             = 0;
+//       hash->hdr.argus_dsrvl8.qual   = 0;
+         hash->hdr.argus_dsrvl8.len    = 3;
+
+         if (model->hstruct != NULL) {
+            hash->hash = model->hstruct->hash;
+            hash->ind  = model->hstruct->ind;
+         }
+
+         flow->dsrindex |= 1 << ARGUS_FLOW_HASH_INDEX;
+      }
+   }
+
    if (getArgusmflag (model)) {
       struct ArgusMacStruct *mac;
       if ((mac = (struct ArgusMacStruct *) flow->dsrs[ARGUS_MAC_INDEX]) == NULL) {
@@ -3022,13 +3041,19 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
             for (i = 0, ind = 1; (dsrindex && (i < ARGUSMAXDSRTYPE)); i++, ind <<= 1) {
                if ((dsr = rec->dsrs[i]) != NULL) {
                   len = ((dsr->type & 0x80) ? 1 : 
-                         ((dsr->type == ARGUS_DATA_DSR) ? dsr->argus_dsrvl16.len :
-                                                          dsr->argus_dsrvl8.len  ));
+                        ((dsr->type == ARGUS_DATA_DSR) ? dsr->argus_dsrvl16.len :
+                                                         dsr->argus_dsrvl8.len  ));
                   switch (i) {
                      default:
                         for (x = 0; x < len; x++)
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
                         break;
+
+                     case ARGUS_FLOW_HASH_INDEX:
+                        for (x = 0; x < len; x++)
+                           *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+                        break;
+
 
                      case ARGUS_TRANSPORT_INDEX: {
                         struct ArgusTransportStruct *trans = (struct ArgusTransportStruct *)rec->dsrs[i];
@@ -3705,6 +3730,7 @@ ArgusCopyRecordStruct (struct ArgusRecordStruct *rec)
                            case ARGUS_TRANSPORT_INDEX: retn->dsrs[i] = &retn->canon.trans.hdr; break;
                            case ARGUS_TIME_INDEX:      retn->dsrs[i] = &retn->canon.time.hdr; break;
                            case ARGUS_FLOW_INDEX:      retn->dsrs[i] = &retn->canon.flow.hdr; break;
+                           case ARGUS_FLOW_HASH_INDEX: retn->dsrs[i] = &retn->canon.hash.hdr; break;
                            case ARGUS_METRIC_INDEX:    retn->dsrs[i] = &retn->canon.metric.hdr; break;
                            case ARGUS_NETWORK_INDEX:   retn->dsrs[i] = &retn->canon.net.hdr; break;
                            case ARGUS_IPATTR_INDEX:    retn->dsrs[i] = &retn->canon.attr.hdr; break;
@@ -3782,6 +3808,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                      case ARGUS_TIME_INDEX:        retn->dsrs[i] = &retn->canon.time.hdr; break;
                      case ARGUS_ENCAPS_INDEX:      retn->dsrs[i] = &retn->canon.encaps.hdr; break;
                      case ARGUS_FLOW_INDEX:        retn->dsrs[i] = &retn->canon.flow.hdr; break;
+                     case ARGUS_FLOW_HASH_INDEX:   retn->dsrs[i] = &retn->canon.hash.hdr; break;
                      case ARGUS_METRIC_INDEX:      retn->dsrs[i] = &retn->canon.metric.hdr; break;
                      case ARGUS_PSIZE_INDEX:       retn->dsrs[i] = &retn->canon.psize.hdr; break;
                      case ARGUS_IPATTR_INDEX:      retn->dsrs[i] = &retn->canon.attr.hdr; break;
@@ -4543,6 +4570,14 @@ ArgusParseIPOptions (unsigned char *ptr, int len)
 }
 
 void
+setArgusHashTableSize (struct ArgusModelerStruct *model, int value)
+{
+   if (model != NULL) {
+      model->ArgusHashTableSize = value;
+   }
+}
+
+void
 setArgusIpTimeout (struct ArgusModelerStruct *model, int value)
 {
    if (model != NULL) {
@@ -4596,6 +4631,13 @@ setArgusOtherTimeout (struct ArgusModelerStruct *model, int value)
    if (model != NULL) {
       model->ArgusOtherTimeout = value;
    }
+}
+
+
+int
+getArgusHashTableSize (struct ArgusModelerStruct *model)
+{
+   return(model->ArgusHashflag);
 }
 
 int
@@ -4991,6 +5033,17 @@ void
 setArgusTCPflag(struct ArgusModelerStruct *model, int value)
 {
    model->ArgusTCPflag = value;
+}
+
+int
+getArgusHashflag(struct ArgusModelerStruct *model) {
+   return (model->ArgusHashflag);
+}
+
+void
+setArgusHashflag(struct ArgusModelerStruct *model, int value)
+{
+   model->ArgusHashflag = value;
 }
 
 

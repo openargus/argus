@@ -370,6 +370,8 @@ extern "C" {
 #define ARGUS_FLOW_DSR				0x02
 #define ARGUS_TIME_DSR				0x03
 
+#define ARGUS_FLOW_HASH_DSR			0x07
+
 #define ARGUS_METER_DSR				0x10
 #define ARGUS_PSIZE_DSR                         0x12
 
@@ -1805,6 +1807,12 @@ extern "C" {
 #define ARGUS_INODE_ADDR		0x04
 
 #define ARGUS_ADDR_MASK         	0x07
+
+
+/* Argus Flow Hash DSR */
+#define ARGUS_FLOW_HASH_DSR		0x07
+#define ARGUS_FLOW_HASH_INDEX           21
+
 
 /*
     0                   1                   2                   3

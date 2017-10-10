@@ -485,6 +485,13 @@ ArgusHtoN (struct ArgusRecord *argus)
                      break;
                   }
 
+                  case ARGUS_FLOW_HASH_DSR: {
+                     struct ArgusFlowHashStruct *hash = (struct ArgusFlowHashStruct *) dsr;
+                     hash->hash = htonl(hash->hash);
+                     hash->ind = htonl(hash->ind);
+                     break;
+                  }
+
                   case ARGUS_ENCAPS_DSR: {
                      struct ArgusEncapsStruct *encaps = (struct ArgusEncapsStruct *) dsr;
                      encaps->src = htonl(encaps->src);

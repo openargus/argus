@@ -252,6 +252,8 @@ struct ArgusModelerStruct {
    int ArgusControlMonitor;
    struct ArgusControlProtocols *cps;
 
+   int ArgusHashTableSize;
+
    int ArgusSnapLength;
    int ArgusGenerateTime;
    int ArgusGeneratePacketSize;
@@ -313,6 +315,7 @@ struct ArgusModelerStruct {
    int ArgusOSFingerPrinting;
    int ArgusUserDataLen;
    int ArgusAflag, ArgusTCPflag, Argusmflag;
+   int ArgusHashflag;
    int ArgusSelfSynchronize, vflag;
 
    int ArgusIPTimeout;
@@ -451,6 +454,7 @@ void ArgusTallyTime (struct ArgusFlowStruct *, unsigned char);
 
 unsigned short ArgusParseIPOptions (unsigned char *, int);
 
+void setArgusHashTableSize (struct ArgusModelerStruct *model, int value);
 void setArgusIpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusTcpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusIcmpTimeout (struct ArgusModelerStruct *model, int value);
@@ -489,6 +493,8 @@ int getArgusAflag(struct ArgusModelerStruct *);
 void setArgusAflag(struct ArgusModelerStruct *, int);
 int getArgusTCPflag(struct ArgusModelerStruct *);
 void setArgusTCPflag(struct ArgusModelerStruct *, int);
+int getArgusHashflag(struct ArgusModelerStruct *);
+void setArgusHashflag(struct ArgusModelerStruct *, int);
 int getArgusmflag(struct ArgusModelerStruct *);
 void setArgusmflag(struct ArgusModelerStruct *, int);
 int getArgusUserDataLen(struct ArgusModelerStruct *);
@@ -723,6 +729,8 @@ extern int getArgusAflag(struct ArgusModelerStruct *);
 extern void setArgusAflag(struct ArgusModelerStruct *, int);
 extern int getArgusTCPflag(struct ArgusModelerStruct *);
 extern void setArgusTCPflag(struct ArgusModelerStruct *, int);
+extern int getArgusHashflag(struct ArgusModelerStruct *);
+extern void setArgusHashflag(struct ArgusModelerStruct *, int);
 extern int getArgusmflag(struct ArgusModelerStruct *);
 extern void setArgusmflag(struct ArgusModelerStruct *, int);
 extern int getArgusUserDataLen(struct ArgusModelerStruct *);
@@ -806,6 +814,9 @@ extern void setArgusStatusReportInterval(struct ArgusModelerStruct *, int);
 
 extern int getArgusResponseStatus(struct ArgusModelerStruct *);
 extern void setArgusResponseStatus(struct ArgusModelerStruct *, int value);
+
+extern int getArgusHashTableSize (struct ArgusModelerStruct *model);
+extern void setArgusHashTableSize (struct ArgusModelerStruct *model, int value);
 
 extern int getArgusIPTimeout(struct ArgusModelerStruct *);
 extern void setArgusIPTimeout(struct ArgusModelerStruct *, int);
