@@ -193,7 +193,7 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    else
       model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000LL) + model->ArgusUpdateInterval.tv_usec);
 
-   if ((model->ArgusHashTable = ArgusNewHashTable(ARGUS_HASHTABLESIZE, debug)) == NULL)
+   if ((model->ArgusHashTable = ArgusNewHashTable(model->ArgusHashTableSize, debug)) == NULL)
       ArgusLog(LOG_ERR, "%s () ArgusNewHashTable error %s\n",
                __func__, strerror(errno));
 
@@ -3150,6 +3150,12 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         for (x = 0; x < len; x++)
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
                         break;
+
+                     case ARGUS_FLOW_HASH_INDEX:
+                        for (x = 0; x < len; x++)
+                           *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+                        break;
+
 
                      case ARGUS_TRANSPORT_INDEX: {
                         struct ArgusTransportStruct *trans = (struct ArgusTransportStruct *)rec->dsrs[i];

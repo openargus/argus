@@ -260,6 +260,8 @@ struct ArgusModelerStruct {
    int ArgusControlMonitor;
    struct ArgusControlProtocols *cps;
 
+   int ArgusHashTableSize;
+
    int ArgusSnapLength;
    int ArgusGenerateTime;
    int ArgusGeneratePacketSize;
@@ -321,6 +323,7 @@ struct ArgusModelerStruct {
    int ArgusOSFingerPrinting;
    int ArgusUserDataLen;
    int ArgusAflag, ArgusTCPflag, Argusmflag;
+   int ArgusHashflag;
    int ArgusSelfSynchronize, vflag;
 
    int ArgusIPTimeout;
