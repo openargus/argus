@@ -516,6 +516,13 @@ ArgusNtoH (struct ArgusRecord *argus)
                      break;
                   }
 
+                  case ARGUS_FLOW_HASH_DSR: {
+                     struct ArgusFlowHashStruct *hash = (struct ArgusFlowHashStruct *) dsr;
+                     hash->hash = ntohl(hash->hash);
+                     hash->ind = ntohl(hash->ind);
+                     break;
+                  }
+
                   case ARGUS_ENCAPS_DSR: {
                      struct ArgusEncapsStruct *encaps = (struct ArgusEncapsStruct *) dsr;
                      encaps->src = ntohl(encaps->src);
