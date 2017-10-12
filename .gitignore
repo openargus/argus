@@ -33,3 +33,4 @@ include/argus_config.h
 /argus-*.tar.gz
 /lib/argus.spec
 /pkg/win7/argus.wxs
+/pkg/osx/osx-pkg/Library/PreferencePanes/Argus.prefPane/Contents/Resources/Argus-apps.plist

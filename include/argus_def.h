@@ -314,7 +314,7 @@ extern "C" {
  
 /* Argus Record Data Specific Record (DSR) Types */
 
-#define ARGUSMAXDSRTYPE				21
+#define ARGUSMAXDSRTYPE				22
 
 /* Argus Data Specific Record (DSR) Formats
       There are two types of DSR, 1) a Type Value (TV) record
@@ -369,6 +369,8 @@ extern "C" {
 #define ARGUS_TRANSPORT_DSR			0x01
 #define ARGUS_FLOW_DSR				0x02
 #define ARGUS_TIME_DSR				0x03
+
+#define ARGUS_FLOW_HASH_DSR			0x07
 
 #define ARGUS_METER_DSR				0x10
 #define ARGUS_PSIZE_DSR                         0x12
@@ -1798,6 +1800,12 @@ extern "C" {
 #define ARGUS_INODE_ADDR		0x04
 
 #define ARGUS_ADDR_MASK         	0x07
+
+
+/* Argus Flow Hash DSR */
+#define ARGUS_FLOW_HASH_DSR		0x07
+#define ARGUS_FLOW_HASH_INDEX           21
+
 
 /*
     0                   1                   2                   3
