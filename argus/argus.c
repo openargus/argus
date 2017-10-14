@@ -579,6 +579,7 @@ main (int argc, char *argv[])
    setArgusArgv   (ArgusSourceTask, argv);
    setArgusOptind (ArgusSourceTask, optind);
    setArgusCmdBuf (ArgusSourceTask);
+
    if (ArgusSourceTask->ArgusCmdBuf != NULL)
       ArgusSourceTask->ArgusInputFilter = strdup(ArgusSourceTask->ArgusCmdBuf);
 
@@ -1498,6 +1499,8 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                         case ARGUS_FLOW_KEY: {
                            char *tok = NULL;
 
+                           setArgusFlowKey (model, 0);
+
                            while ((tok = strtok(optarg, " +\t")) != NULL) {
                               if (!(strncasecmp(tok, "CLASSIC_5_TUPLE", 14)))
                                  setArgusFlowKey (model, ARGUS_FLOW_KEY_CLASSIC5TUPLE);
@@ -1767,6 +1770,8 @@ clearArgusConfiguration (struct ArgusModelerStruct *model)
    setArgusCaptureFlag (ArgusSourceTask, 0);
    setArgusAflag(model, 0);
    setArgusTimeReport(model, 0);
+   setArgusFlowKey (model, ARGUS_FLOW_KEY_CLASSIC5TUPLE);
+   setArgusFlowType(model, ARGUS_BIDIRECTIONAL);
 
    if (ArgusSourceTask->ArgusWriteOutPacketFile) {
       if (ArgusSourceTask->ArgusPcapOutFile != NULL) {
