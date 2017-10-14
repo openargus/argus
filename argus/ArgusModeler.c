@@ -164,7 +164,6 @@ ArgusNewModeler()
    if ((retn = (struct ArgusModelerStruct *) ArgusCalloc (1, sizeof (struct ArgusModelerStruct))) == NULL)
       ArgusLog (LOG_ERR, "ArgusNewModeler () ArgusCalloc error %s\n", strerror(errno));
 
-   retn->ArgusHashTableSize = ARGUS_HASHTABLESIZE;
    setArgusFlowKey (retn, ARGUS_FLOW_KEY_CLASSIC5TUPLE);
    setArgusFlowType (retn, ARGUS_BIDIRECTIONAL);
 
@@ -235,6 +234,7 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    model->ArgusSeqNum = 1;
    model->ArgusReportAllTime = 1;
+
 
    if (!(model->ArgusFlowType)) {
       if (model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE)
