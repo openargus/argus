@@ -4470,6 +4470,9 @@ ArgusGetPackets (void *arg)
                            if (tmp > 0) {
                               for (i = 0; i < src->ArgusInterfaces; i++) {
                                  if ((fd = fds[i]) != -1) {
+                                    if (src->ArgusInterface[i].ArgusPd == NULL) {
+                                       fds[i] = -1;
+                                    } else
                                     if (FD_ISSET(fd, &ArgusReadMask)) {
                                        src->ArgusThisIndex = i;
                                        switch (src->ArgusInterface[i].ArgusInterfaceType) {
@@ -4770,7 +4773,7 @@ pcap_open_offline_with_tstamp_precision() takes an  additional  precision  argum
       inf->ArgusPd = pcap_fopen_offline_with_tstamp_precision(src->ArgusPacketInput, PCAP_TSTAMP_PRECISION_NANO, errbuf);
       src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
 #  else
-      inf->ArgusPd = pcap_fopen_offline_with_tstamp_precision(src->ArgusPacketInput, PCAP_TSTAMP_PRECISION_NANO, errbuf);
+      inf->ArgusPd = pcap_fopen_offline_with_tstamp_precision(src->ArgusPacketInput, PCAP_TSTAMP_PRECISION_MICRO, errbuf);
 #  endif
 # else /* HAVE_PCAP_FOPEN_OFFLINE_WITH_TSTAMP_PRECISION */
       inf->ArgusPd = pcap_open_offline(device->name, errbuf);
