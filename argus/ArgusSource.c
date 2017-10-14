@@ -4548,6 +4548,9 @@ ArgusGetPackets (void *arg)
                            if (tmp > 0) {
                               for (i = 0; i < src->ArgusInterfaces; i++) {
                                  if ((fd = fds[i]) != -1) {
+                                    if (src->ArgusInterface[i].ArgusPd == NULL) {
+                                       fds[i] = -1;
+                                    } else
                                     if (FD_ISSET(fd, &ArgusReadMask)) {
                                        src->ArgusThisIndex = i;
                                        switch (src->ArgusInterface[i].ArgusInterfaceType) {
