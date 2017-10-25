@@ -115,7 +115,7 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS(openlog syslog)
 AC_CHECK_FUNCS(vfprintf strlcpy)
 AC_CHECK_FUNCS(strftime)
-AC_CHECK_FUNCS(inet_aton)
+AC_CHECK_FUNCS([inet_aton inet_pton inet_ntop])
 AC_CHECK_FUNCS(setlinebuf)
 AC_CHECK_FUNCS(strerror strtof)
 AC_CHECK_FUNCS(floorf remainderf)
