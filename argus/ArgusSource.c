@@ -1685,8 +1685,26 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
 
       } else
       if (strchr(optarg, ':')) {
+         struct in6_addr in6;
+         int rv;
+
+         slen = 0;
          type = ARGUS_TYPE_IPV6;
-         slen = strlen(optarg);
+
+#ifdef HAVE_INET_PTON
+         rv = inet_pton(AF_INET6, optarg, &in6);
+         if (rv == 1) {
+            slen = sizeof(in6.s6_addr);
+            bcopy(&in6.s6_addr, buf, slen);
+         } else if (rv == 0) {
+            ArgusLog(LOG_WARNING, "invalid IPv6 address \"%s\".\n", optarg);
+         } else {
+            ArgusLog(LOG_WARNING, "inet_pton: %s\n", strerror(errno));
+         }
+#else
+         ArgusLog(LOG_WARNING, "skipping IPv6 source ID %s; no support.\n",
+                  optarg);
+#endif
       } else
       if (isalnum((int)*optarg)) {
          long value;
