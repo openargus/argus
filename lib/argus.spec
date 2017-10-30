@@ -8,7 +8,7 @@
 Summary: ARGUS Software
 Name: argus
 Version: %ver
-Release: %{rel}
+Release: %{rel}%{dist}
 License: see COPYING file
 Group: Applications/Internet
 Source: %{name}-%{version}.%{rel}.tar%{srcext}
