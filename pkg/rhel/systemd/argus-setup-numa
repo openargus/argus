@@ -238,7 +238,14 @@ sensor_restore(){
 
 generate_monitor_id() {
 	local uuid=$(dmidecode -s system-uuid)
-	if [[ -z "$uuid" ]] ; then
+	local is_uuid=0
+	local pattern='^[A-F0-9]+-[A-F0-9]+-[A-F0-9]+-[A-F0-9]+-[A-F0-9]+$'
+
+	if echo "$uuid" | egrep -q "${pattern}" ; then
+		is_uuid=1
+	fi
+
+	if [[ -z "$uuid" || $is_uuid != 1 ]] ; then
 		uuid=$(uuidgen -t)
 	fi
 
