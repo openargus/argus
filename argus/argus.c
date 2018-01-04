@@ -184,6 +184,7 @@ char * ArgusCreatePIDFile (struct ArgusSourceStruct *, char *, char *);
 void setArgusEventDataRecord (char *);
 extern void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 extern void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
+extern void setArgusInterfaceScanInterval (struct ArgusSourceStruct *, int);
 
 #define ARGUS_MAX_INSTANCES	5
 
@@ -1034,6 +1035,7 @@ getArguspidflag ()
 #define ARGUS_DEDUP_TIME			58
 
 
+#define ARGUS_INTERFACE_SCAN_INTERVAL_MAX	60
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MONITOR_ID=",
@@ -1739,6 +1741,25 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                               setArgusHashflag(model, 1);
                            else
                               setArgusHashflag(model, 0);
+                           break;
+                        }
+                        case ARGUS_INTERFACE_SCAN_INTERVAL: {
+                           long num;
+
+                           num = strtol(optarg, NULL, 0);
+                           if (num <= 0) {
+                              ArgusLog(LOG_WARNING,
+                                       "%s: Scan interval must be positive integer.  Using 1 second.\n",
+                                       __func__);
+                              num = 1;
+                           } else if (num > ARGUS_INTERFACE_SCAN_INTERVAL_MAX) {
+                              ArgusLog(LOG_WARNING,
+                                       "%s: Limiting interface scan interval to %d\n",
+                                       __func__,
+                                       ARGUS_INTERFACE_SCAN_INTERVAL_MAX);
+                              num = ARGUS_INTERFACE_SCAN_INTERVAL_MAX;
+                           }
+                           setArgusInterfaceScanInterval(ArgusSourceTask, num);
                            break;
                         }
                      }

@@ -282,6 +282,17 @@ Commandline equivalent   -i
 \fBARGUS_INTERFACE\fP=ind:en0/"en0",en2/19234
 .fi
 
+.SH ARGUS_INTERFACE_SCAN_INTERVAL
+
+This is the number of seconds between checks for changes in the
+available network interfaces and determines the upper bound on the
+time until a new interface is discovered by Argus.
+Must be a positive integer less than or equal to 60.
+The default value is 1.
+
+.nf
+\fBARGUS_INTERFACE_SCAN_INTERVAL=\fP1
+.fi
 
 .SH ARGUS_GO_PROMISCUOUS
 

@@ -716,6 +716,7 @@ struct ArgusSourceStruct {
    char * ArgusMarIncludeInterface;
 
    int ArgusPcapBufSize, ArgusPcapDispatchNum, type, mode;
+   int ArgusInterfaceScanInterval;
 
    struct timeval ArgusStartTime, ArgusEndTime, lasttime;
 
