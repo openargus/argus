@@ -38,6 +38,10 @@
       </Component>
       <Directory Id='ProgramFilesFolder' Name='PFiles'>
         <Directory Id='QoSientTopDir' Name='Argus'>
+          <Directory Id='VARDIR' Name='var'>
+            <Directory Id='VARLOGDIR' Name='log'>
+            </Directory>
+          </Directory>
           <Directory Id='etc' Name='etc'>
             <Component Id='Config' Guid="*">
               <File Id='argus.conf' Name='argus.conf' DiskId='1'
@@ -113,6 +117,47 @@
       </Directory>
       <Directory Id="DesktopFolder" Name="Desktop" />
     </Directory>
+
+    <!--All files and directories created by argus are owned by
+        "NT AUTHORITY\SYSTEM".  Directories created by openlog(3)
+        do not allow administrators to delete the directory contents.
+        Files created by open(2) in Cygwin have an ACL that does not allow
+        administrators to delete the file.  Create the directories from
+        the installer and set the permissions to what we want before
+        Cygwin's openlog() gets the chance.  If the directory's ACL
+        allows deleting subdirectories and files, the lack of delete
+        permissions on the files in that directory are overridden.-->
+
+    <DirectoryRef Id='VARDIR'>
+      <Component Id='create_var_directory'
+                 Guid="252c66f4-096d-46fe-9429-dad6ba442134">
+        <CreateFolder>
+          <util:PermissionEx User="BUILTIN\Administrators"
+                             Delete="yes"
+                             DeleteChild="yes"
+                             Read="yes"
+                             ReadExtendedAttributes="yes"
+                             WriteExtendedAttributes="yes"
+                             Synchronize="yes"/>
+        </CreateFolder>
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id='VARLOGDIR'>
+      <Component Id='create_varlog_directory'
+                 Guid="9b377bf9-05b3-44df-bef7-18feb6611c81">
+        <CreateFolder>
+          <util:PermissionEx User="BUILTIN\Administrators"
+                             Delete="yes"
+                             DeleteChild="yes"
+                             Read="yes"
+                             ReadExtendedAttributes="yes"
+                             WriteExtendedAttributes="yes"
+                             Synchronize="yes"/>
+        </CreateFolder>
+      </Component>
+    </DirectoryRef>
+
     <Feature Id='Complete' Level='1'>
       <ComponentRef Id='MainExecutable' />
       <ComponentRef Id='dash.exe' />
@@ -124,6 +169,8 @@
       <ComponentRef Id='Config' />
       <ComponentRef Id='cygrunsrv.exe' />
       <ComponentRef Id='REG_MACHINE' />
+      <ComponentRef Id='create_var_directory' />
+      <ComponentRef Id='create_varlog_directory' />
     </Feature>
 
     <InstallExecuteSequence>
