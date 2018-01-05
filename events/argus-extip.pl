@@ -13,17 +13,17 @@
 use POSIX;
 use strict;
 
-my $wget    = `which wget`;
+my $curl    = `which curl`;
 my $host    = "qosient.com/argus/argusPublicIP.php";
-my $options = "-q -O -";
+my $options = "-L -s";
 
-chomp($wget);
+chomp($curl);
 
-my @args = "$wget $host $options";
+my @args = "$curl $options $host";
 my $data;
 
 print "<ArgusEvent>\n";
-print "  <ArgusEventData Type = \"Program: $wget $host $options\">\n";
+print "  <ArgusEventData Type = \"Program: $curl $host $options\">\n";
 
 open(SESAME, "@args |");
 
