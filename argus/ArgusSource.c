@@ -116,6 +116,7 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
 
    retn->ArgusPcapBufSize   = src->ArgusPcapBufSize;
    retn->ArgusPcapDispatchNum = src->ArgusPcapDispatchNum;
+   retn->ArgusInterfaceScanInterval = src->ArgusInterfaceScanInterval;
 
    if (src->ArgusDeviceList) {
       int i, count = src->ArgusDeviceList->count;
@@ -203,6 +204,7 @@ ArgusNewSource(struct ArgusModelerStruct *model)
 
    retn->ArgusSnapLen = ARGUS_MINSNAPLEN;
    retn->ArgusPcapDispatchNum = 1;
+   retn->ArgusInterfaceScanInterval = 1;
 
 #if defined(ARGUS_THREADS)
    if (pthread_mutex_init(&retn->lock, NULL))
@@ -767,6 +769,17 @@ setArgusPcapDispatchNumber (struct ArgusSourceStruct *src, int num)
    
 #ifdef ARGUSDEBUG
    ArgusDebug (3, "setArgusPcapDispatchNumber(%p, %d)\n", src, num);
+#endif
+}
+
+void
+setArgusInterfaceScanInterval (struct ArgusSourceStruct *src, int num)
+{
+   if (src != NULL)
+      src->ArgusInterfaceScanInterval = num;
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (3, "setArgusInterfaceScanInterval(%p, %d)\n", src, num);
 #endif
 }
 
@@ -4082,7 +4095,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
          ts->tv_sec  = tvp.tv_sec + 0;
          ts->tv_nsec = (tvp.tv_usec * 1000) + 0;
-         ts->tv_sec++;
+         ts->tv_sec += stask->ArgusInterfaceScanInterval;
 
          if (stask->ArgusDeviceStr != NULL) {
             pcap_if_t *alldevs = NULL, *d;
