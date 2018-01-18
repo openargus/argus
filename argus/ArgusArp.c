@@ -144,9 +144,6 @@ ArgusCreateArpFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
    if (STRUCTCAPTURED(model, *ahdr)) {
       retn = model->ArgusThisFlow;
 
-      retn->hdr.type              = ARGUS_FLOW_DSR;
-      retn->hdr.subtype           = ARGUS_FLOW_ARP;
-
       switch (OP(ahdr)) {
          case ARPOP_REQUEST: {
             retn->hdr.argus_dsrvl8.len  = sizeof(struct ArgusArpFlow)/4 + 1;
@@ -243,9 +240,16 @@ ArgusCreateArpFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
             bcopy (THA(ahdr), &retn->rarp_flow.dhaddr, HLN(ahdr));
             break;
          }
+
+         default:
+            retn = NULL;
+            goto out;
       }
+      retn->hdr.type              = ARGUS_FLOW_DSR;
+      retn->hdr.subtype           = ARGUS_FLOW_ARP;
    }
 
+out:
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "ArgusCreateArpFlow (0x%x) returning %d\n", ep, retn);
 #endif
