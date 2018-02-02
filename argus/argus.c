@@ -400,7 +400,7 @@ main (int argc, char *argv[])
 
    optind = 1, opterr = 0;
 
-   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:H:i:JlmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
+   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:H:i:Jk:lmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
       switch (op) {
          case 'A': setArgusAflag(ArgusModel, 1); break;
          case 'b': setArgusbpflag (ArgusSourceTask, 1); break;
@@ -473,6 +473,7 @@ main (int argc, char *argv[])
          }
 
          case 'J': setArgusGenerateTime  (ArgusModel, 1); break;
+         case 'k': setArgusLogDisplayPriority (atoi(optarg)); break;
          case 'l': setArgusListInterfaces  (ArgusSourceTask, 1); break;
          case 'm': setArgusmflag (ArgusModel, 1); break;
          case 'M': setArgusMarReportInterval (ArgusOutputTask, optarg); break;
@@ -982,7 +983,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				58
+#define ARGUS_RCITEMS				59
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1042,6 +1043,7 @@ getArguspidflag ()
 #define ARGUS_HASHTABLE_SIZE			55
 #define ARGUS_GENERATE_HASH_METRICS		56
 #define ARGUS_INTERFACE_SCAN_INTERVAL		57
+#define ARGUS_LOG_DISPLAY_PRIORITY		58
 
 #define ARGUS_INTERFACE_SCAN_INTERVAL_MAX	60
 
@@ -1104,6 +1106,7 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_HASHTABLE_SIZE=",
    "ARGUS_GENERATE_HASH_METRICS=",
    "ARGUS_INTERFACE_SCAN_INTERVAL=",
+   "ARGUS_LOG_DISPLAY_PRIORITY=",
 };
 
 
@@ -1755,6 +1758,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                            setArgusInterfaceScanInterval(ArgusSourceTask, num);
                            break;
                         }
+                        case ARGUS_LOG_DISPLAY_PRIORITY:
+                           setArgusLogDisplayPriority(atoi(optarg));
+                           break;
                      }
 
                      done = 1;

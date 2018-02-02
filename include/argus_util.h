@@ -160,6 +160,7 @@ void ArgusDeleteMallocList (void);
 void *ArgusMallocListRecord (int length);
 
 void ArgusLog (int, char *, ...);
+void setArgusLogDisplayPriority(int);
 
 void ArgusInitServarray(struct ArgusParserStruct *);
 
@@ -177,6 +178,7 @@ extern void ArgusDeleteMallocList (void);
 extern void *ArgusMallocListRecord (int length);
 
 extern void ArgusLog (int, char *, ...);
+extern void setArgusLogDisplayPriority (int);
 
 #endif 
 #endif /* Argus_util_h */

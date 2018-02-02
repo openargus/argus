@@ -2081,7 +2081,16 @@ struct ArgusLogPriorityStruct ArgusPriorityStr[ARGUSPRIORITYSTR] =
    { LOG_DEBUG,   "    ArgusDebug" },
 };
 
-      
+/* log level for non-syslog display (stderr) */
+static int ArgusLogDisplayPriority = LOG_WARNING;
+
+void setArgusLogDisplayPriority(int prio)
+{
+   if (prio < LOG_EMERG || prio > LOG_DEBUG)
+      return;
+
+   ArgusLogDisplayPriority = prio;
+}
 
 #include <sys/time.h>
 
@@ -2135,7 +2144,7 @@ ArgusLog (int priority, char *fmt, ...)
 #ifdef HAVE_SYSLOG
       syslog (LOG_ALERT, "%s", buf);
 #endif
-   } else {
+   } else if (priority <= ArgusLogDisplayPriority) {
       char *label = NULL;
       int i;
       if (*fmt) {
