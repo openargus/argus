@@ -4181,7 +4181,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
          ts->tv_nsec = (tvp.tv_usec * 1000) + 0;
          ts->tv_sec += stask->ArgusInterfaceScanInterval;
 
-         if (stask->ArgusDeviceStr != NULL) {
+         if (stask->ArgusDeviceStr != NULL && !stask->ArgusReadingOffLine) {
             pcap_if_t *alldevs = NULL, *d;
             char errbuf[PCAP_ERRBUF_SIZE];
 
