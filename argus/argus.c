@@ -79,7 +79,7 @@
 void bind_proc(int);
 #endif
 
-void ArgusParseResourceFile (struct ArgusModelerStruct *, char *);
+void ArgusParseResourceFile (struct ArgusModelerStruct *, char *, int);
 
 char *ArgusPidFile = NULL;
 pid_t ArgusSessionId = 0;
@@ -286,6 +286,7 @@ main (int argc, char *argv[])
    int commandlinew = 0, doconf = 0;
    static char path[MAXPATHNAMELEN];
    int dodebug = 0, i, pid = 0;
+   int readoffline = 0;
    char *tmparg, *filter;
    extern char *optarg;
    struct stat statbuf;
@@ -342,6 +343,9 @@ main (int argc, char *argv[])
                break;
             do {
                switch (*ptr) {
+                  case 'r':
+                     readoffline = 1;
+                     break;
                   case 'D': 
                      if (isdigit((int)*++ptr)) {
                         setArgusdflag (ArgusModel, atoi (ptr));
@@ -390,7 +394,7 @@ main (int argc, char *argv[])
    if (!doconf) {
       snprintf (path, MAXPATHNAMELEN - 1, "/etc/argus.conf");
       if (stat (path, &statbuf) == 0) {
-         ArgusParseResourceFile (ArgusModel, path);
+         ArgusParseResourceFile (ArgusModel, path, readoffline);
       }
    }
 
@@ -417,7 +421,7 @@ main (int argc, char *argv[])
 
          case 'H': setArgusHashTableSize (ArgusModel, atoi(optarg)); break;
          case 'f': setArgusfflag (ArgusSourceTask, 1); break;
-         case 'F': ArgusParseResourceFile (ArgusModel, optarg); break;
+         case 'F': ArgusParseResourceFile (ArgusModel, optarg, readoffline); break;
 
          case 'g': {
             struct group *gr;
@@ -428,7 +432,7 @@ main (int argc, char *argv[])
             break;
          }
 
-         case 'i': {
+         case 'i': if (!readoffline) {
             char Istr[1024], *Iptr = Istr;
             size_t slen;
 
@@ -1144,7 +1148,8 @@ close_out:
 #endif
 
 void
-ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
+ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
+                        int readoffline)
 {
    FILE *fd;
    char strbuf[MAXSTRLEN], *str = strbuf, *optarg;
@@ -1318,6 +1323,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                         }
 
                         case ARGUS_INTERFACE:
+                           if (readoffline)
+                              break;
+
                            if (!interfaces++)
                               clearArgusDevice(ArgusSourceTask);
                            setArgusDevice (ArgusSourceTask, optarg, ARGUS_LIVE_DEVICE, 0);
