@@ -399,7 +399,7 @@ main (int argc, char *argv[])
 
    optind = 1, opterr = 0;
 
-   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:H:i:JlmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
+   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:H:i:Jk:lmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
       switch (op) {
          case 'A': setArgusAflag(ArgusModel, 1); break;
          case 'b': setArgusbpflag (ArgusSourceTask, 1); break;
@@ -472,6 +472,7 @@ main (int argc, char *argv[])
          }
 
          case 'J': setArgusGenerateTime  (ArgusModel, 1); break;
+         case 'k': setArgusLogDisplayPriority (atoi(optarg)); break;
          case 'l': setArgusListInterfaces  (ArgusSourceTask, 1); break;
          case 'm': setArgusmflag (ArgusModel, 1); break;
          case 'M': setArgusMarReportInterval (ArgusOutputTask, optarg); break;
@@ -1770,6 +1771,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                            setArgusInterfaceScanInterval(ArgusSourceTask, num);
                            break;
                         }
+                        case ARGUS_LOG_DISPLAY_PRIORITY:
+                           setArgusLogDisplayPriority(atoi(optarg));
+                           break;
                      }
 
                      done = 1;
