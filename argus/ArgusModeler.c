@@ -3292,6 +3292,13 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                               len = 3;
                            }
 
+                           /* This function confuses the gcc optimizer.
+                            * Access this memory (subtype) before
+                            * serialization below so that the resulting
+                            * packet has the correct contents.
+                            */
+                           dtime->hdr.subtype &= ~(0x78);
+
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[0];
                            *dsrptr++ = mint->tv_sec;
                            *dsrptr++ = mint->tv_usec;
