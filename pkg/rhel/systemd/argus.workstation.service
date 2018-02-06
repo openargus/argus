@@ -6,7 +6,8 @@ After=syslog.target network.target
 Type=forking
 Restart=always
 RestartSec=5
-ExecStart=/usr/sbin/argus -X -d -F /etc/argus.conf
+EnvironmentFile=/etc/sysconfig/argus
+ExecStart=/usr/sbin/argus -X -d -F /etc/argus.conf $DAEMON_ARGS
 
 [Install]
 WantedBy=multi-user.target

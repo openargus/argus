@@ -8,8 +8,9 @@ Conflicts=argus.service
 Type=forking
 Restart=always
 RestartSec=5
+EnvironmentFile=/etc/sysconfig/argus
 ExecStartPre=/usr/sbin/argus-setup-numa start %i 14
-ExecStart=/bin/numactl -N %i -l /usr/sbin/argus -X -d -F /run/argus/argus.%i.conf
+ExecStart=/bin/numactl -N %i -l /usr/sbin/argus -X -d -F /run/argus/argus.%i.conf $DAEMON_ARGS
 ExecStopPost=/usr/sbin/argus-setup-numa stop %i 14
 
 [Install]
