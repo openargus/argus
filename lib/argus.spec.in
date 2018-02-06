@@ -91,7 +91,6 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %config /etc/argus.conf
-%config /etc/sysconfig/argus
 %config /etc/sasl2/argus.conf
 %ghost %config(noreplace) /etc/pam.d/argus
 
@@ -113,6 +112,7 @@ Service description and supporting files for QoSient servers
 %attr(644,root,root) %{_unitdir}/argus@.service
 %{argussbin}/argus-setup
 %{argussbin}/argus-setup-numa
+%config /etc/sysconfig/argus
 %ghost %{_unitdir}/argus.service
 
 %post systemd-server
@@ -143,6 +143,7 @@ Service description and supporting files for QoSient servers
 
 %files systemd-workstation
 %attr(644,root,root) %{_unitdir}/argus.workstation.service
+%config /etc/sysconfig/argus
 %ghost %{_unitdir}/argus.service
 
 %post systemd-workstation
