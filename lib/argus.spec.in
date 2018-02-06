@@ -19,6 +19,8 @@ BuildRequires: cyrus-sasl-devel
 BuildRequires: zlib-devel
 Requires: wget
 Requires: cyrus-sasl
+Conflicts: argus-systemd-workstation < 5.0-3.2%{dist}.2
+Conflicts: argus-systemd-server < 5.0-3.2%{dist}.2
 
 %description
 Gargoyle is codename for the commerical release of Argus (Audit Record Generation And Utilization System),
@@ -93,7 +95,7 @@ rm -rf $RPM_BUILD_ROOT
 %package systemd-server
 Summary: ArgusPro Server Systemd support files
 Group: Applications/Internet
-Requires: argus >= 5.0-3.0%{dist}.2
+Requires: argus >= %{version}-%{release}
 Conflicts: argus-systemd-workstation
 Conflicts: argus < 5.0-3.0%{dist}.2
 BuildArch: noarch
@@ -116,6 +118,37 @@ if [ "$1" = 0 ] ; then
 fi
 
 %postun systemd-server
+if [ "$1" -ge "1" ]; then
+  service argus condrestart >/dev/null 2>&1
+fi
+
+
+%package systemd-workstation
+Summary: ArgusPro Workstation Systemd support files
+Group: Applications/Internet
+Requires: argus >= %{version}-%{release}
+Conflicts: argus-systemd-server
+Conflicts: argus < 5.0-3.0.el7.2
+BuildArch: noarch
+
+%description systemd-workstation
+Service description and supporting files for QoSient servers
+
+%files systemd-workstation
+%attr(644,root,root) %{_unitdir}/argus.workstation.service
+%config /etc/sysconfig/argus
+%ghost %{_unitdir}/argus.service
+
+%post systemd-workstation
+ln -f %{_unitdir}/argus.workstation.service %{_unitdir}/argus.service
+
+%preun systemd-workstation
+if [ "$1" = 0 ] ; then
+  systemctl stop argus
+  rm -f %{_unitdir}/argus.service
+fi
+
+%postun systemd-workstation
 if [ "$1" -ge "1" ]; then
   service argus condrestart >/dev/null 2>&1
 fi
