@@ -8,7 +8,7 @@
 Summary: Argus Pro (Gargoyle) Software
 Name: argus
 Version: %ver
-Release: %rel%{dist}.1
+Release: %rel%{dist}.2
 License: see COPYING file
 Group: Applications/Internet
 Source: %{name}-%{version}.%{rel}.tar%{srcext}
@@ -19,6 +19,8 @@ BuildRequires: cyrus-sasl-devel
 BuildRequires: zlib-devel
 Requires: wget
 Requires: cyrus-sasl
+Conflicts: argus-systemd-workstation < 5.0-3.2%{dist}.2
+Conflicts: argus-systemd-server < 5.0-3.2%{dist}.2
 
 %description
 Gargoyle is codename for the commerical release of Argus (Audit Record Generation And Utilization System),
@@ -99,7 +101,7 @@ rm -rf $RPM_BUILD_ROOT
 %package systemd-server
 Summary: ArgusPro Server Systemd support files
 Group: Applications/Internet
-Requires: argus >= 5.0-3.0%{dist}.2
+Requires: argus >= %{version}-%{release}
 Conflicts: argus-systemd-workstation
 Conflicts: argus < 5.0-3.0%{dist}.2
 BuildArch: noarch
@@ -133,7 +135,7 @@ fi
 %package systemd-workstation
 Summary: ArgusPro Workstation Systemd support files
 Group: Applications/Internet
-Requires: argus >= %{version}-%{rel}%{dist}
+Requires: argus >= %{version}-%{release}
 Conflicts: argus-systemd-server
 Conflicts: argus < 5.0-3.0.el7.2
 BuildArch: noarch
