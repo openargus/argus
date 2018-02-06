@@ -133,7 +133,7 @@ fi
 %package systemd-workstation
 Summary: ArgusPro Workstation Systemd support files
 Group: Applications/Internet
-Requires: argus >= %{version}-%{rel}%{dist}.2
+Requires: argus >= %{version}-%{rel}%{dist}
 Conflicts: argus-systemd-server
 Conflicts: argus < 5.0-3.0.el7.2
 BuildArch: noarch
