@@ -67,6 +67,7 @@
 #include <netdb.h>
 #include <ctype.h>
 #include <argus.h>
+#include <libgen.h> /* basename */
 
 #include <sys/mman.h>
 #include <net/ppp.h>
@@ -973,11 +974,6 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
    if (src->ArgusDeviceList == NULL)
       src->ArgusDeviceList = ArgusNewList();
 
-   if (src->ArgusDeviceStr != NULL)
-      free(src->ArgusDeviceStr);
-
-   src->ArgusDeviceStr = strdup(cmd);
-
    if (cmd) {
       struct ArgusDeviceStruct *device = NULL;
       char errbuf[PCAP_ERRBUF_SIZE];
@@ -988,9 +984,19 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
       int cnt = 0, status = 0;
       char *tok, *stok;
 
-      if (type == ARGUS_LIVE_DEVICE)
+      if (src->ArgusDeviceStr != NULL)
+         free(src->ArgusDeviceStr);
+
+      if (type == ARGUS_LIVE_DEVICE) {
+         src->ArgusDeviceStr = strdup(cmd);
          if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
             ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
+      } else {
+         /* forward slashes cause confusion later since they are assumed
+          * to separate srcid and inf.  Remove directory path elements.
+          */
+         src->ArgusDeviceStr = strdup(basename(cmd));
+      }
 
 // we need to parse this bad thing and construct the devices struct
 
@@ -4097,7 +4103,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
          ts->tv_nsec = (tvp.tv_usec * 1000) + 0;
          ts->tv_sec += stask->ArgusInterfaceScanInterval;
 
-         if (stask->ArgusDeviceStr != NULL) {
+         if (stask->ArgusDeviceStr != NULL && !stask->ArgusReadingOffLine) {
             pcap_if_t *alldevs = NULL, *d;
             char errbuf[PCAP_ERRBUF_SIZE];
 

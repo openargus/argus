@@ -507,6 +507,18 @@ Commandline equivalent  -J
  
 \fBARGUS_GENERATE_JITTER_DATA=\fPno
 
+.SH ARGUS_LOG_DISPLAY_PRIORITY
+
+Specify the log level when sending messages to the terminal.
+The value must be an integer in the range 0..7.
+These correspond to the eight syslog levels LOG_EMERG through LOG_DEBUG.
+The default level is LOG_WARNING.
+
+Commandline equivalent -k
+
+.nf
+\fBARGUS_LOG_DISPLAY_PRIORITY=4
+.fi
 
 .SH ARGUS_GENERATE_MAC_DATA
 
