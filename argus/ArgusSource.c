@@ -547,7 +547,8 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
    } else {
 #ifdef ARGUSDEBUG
-      ArgusDebug (1, "ArgusInitSource: no packet sources for this device.");
+      ArgusDebug (1, "ArgusInitSource: no packet sources for device %s.",
+                  src->ArgusDeviceStr ? src->ArgusDeviceStr : "(unknown)");
 #endif
    }
 #ifdef ARGUSDEBUG
