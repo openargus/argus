@@ -547,7 +547,8 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
    } else {
 #ifdef ARGUSDEBUG
-      ArgusDebug (1, "ArgusInitSource: no packet sources for this device.");
+      ArgusDebug (1, "ArgusInitSource: no packet sources for device %s.",
+                  src->ArgusDeviceStr ? src->ArgusDeviceStr : "(unknown)");
 #endif
    }
 #ifdef ARGUSDEBUG
@@ -4122,6 +4123,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 #if defined(ARGUS_THREADS)
                            if (pthread_mutex_lock(&stask->ArgusDeviceList->lock) == 0) {
                               int i, count = stask->ArgusDeviceList->count;
+                              int per_dev_count;
                            
                               if (count > 0) {
                                  for (i = 0; i < count && !found; i++) {
@@ -4129,9 +4131,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     if (device != NULL) {
                                        if (!strcmp(device->name, d->name)) 
                                           found = 1;
-                                       if (device->list && (count = device->list->count)) {
+                                       if (device->list && (per_dev_count = device->list->count)) {
                                           int x;
-                                          for (x = 0; x < count && !found; x++) {
+                                          for (x = 0; x < per_dev_count && !found; x++) {
                                              struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
                                              if (!strcmp(dev->name, d->name))
                                                 found = 1;
@@ -4151,16 +4153,16 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         }
 
                         if (!found && (ArgusSourceCount > 0)) {
-                           int i, count;
+                           int i, per_dev_count;
                            for (i = 0; i < ArgusSourceCount && !found; i++) {
                               struct ArgusSourceStruct *src;
                               if ((src = stask->srcs[i]) != NULL) {
                                  struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK);
                                  if (!strcmp(device->name, d->name)) 
                                     found = 1;
-                                 if (device->list && (count = device->list->count)) {
+                                 if (device->list && (per_dev_count = device->list->count)) {
                                     int x;
-                                    for (x = 0; x < count && !found; x++) {
+                                    for (x = 0; x < per_dev_count && !found; x++) {
                                        struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
                                        if (!strcmp(dev->name, d->name)) 
                                           found = 1;
@@ -4485,7 +4487,7 @@ ArgusGetPackets (void *arg)
                            noPkts = 0;
                         } else if (cnt == 0) {
                            if (noPkts++ > 50) {
-                              struct timespec tsbuf = {0, 5000}, *ts = &tsbuf;
+                              struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; /* 5 millisec */
                               gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                               if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
                                  src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
