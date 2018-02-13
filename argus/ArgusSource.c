@@ -4565,7 +4565,7 @@ ArgusGetPackets (void *arg)
                            noPkts = 0;
                         } else if (cnt == 0) {
                            if (noPkts++ > 50) {
-                              struct timespec tsbuf = {0, 5000}, *ts = &tsbuf;
+                              struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; /* 5 millisec */
                               gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                               if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
                                  src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
