@@ -631,10 +631,13 @@ INSTALL_LIB
 COMPATLIB
 WRAPLIBS
 V_THREADS
+V_FLEXLM_ARCH
+V_FLEXLM
 V_PERL
 V_INCLS
 V_CCOPT
 INCLS
+ARGUSPRO_VERSION
 PACKAGE_RELEASE
 PCAP_CONFIG
 POW_LIB
@@ -733,6 +736,7 @@ with_pcre_config
 enable_largefile
 with_hashdebug
 with_nanoseconds
+with_flexlm
 with_threads
 with_tcpwrappers
 with_libpcap
@@ -1377,6 +1381,7 @@ Optional Packages:
   --with-pcre-config=PATH Location of PCRE pcre-config (auto)
   --with-hashdebug        enable hash table debugging
   --without-nanoseconds   don't use nanosecond timestamps
+  --with-flexlm=DIR       location of Flexnet Publisher distribution
   --without-threads       don't use native threads package
   --with-wrappers=DIR     Compile with tcpwrappers in <DIR>
   --with-libpcap=DIR      Compile with libpcap in <DIR>
@@ -2472,6 +2477,10 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 PACKAGE_RELEASE='3.2'
+ARGUSPRO_VERSION='1.1'
+
+$as_echo "#define ARGUSPRO_VERSION_STRING \"1.1\"" >>confdefs.h
+
 
 ac_aux_dir=
 for ac_dir in config "$srcdir"/config; do
@@ -8258,6 +8267,25 @@ $as_echo "no" >&6; }
   fi
 
 
+# Check whether --with-flexlm was given.
+if test "${with_flexlm+set}" = set; then :
+  withval=$with_flexlm;
+      with_flexlm="$withval"
+
+$as_echo "#define ARGUS_FLEXLM /**/" >>confdefs.h
+
+      V_FLEXLM="$withval"
+
+      case $target in
+        x86_64-*-linux-gnu) V_FLEXLM_ARCH=x64_lsb ;;
+        *-apple-darwin*)    V_FLEXLM_ARCH=universal_mac10 ;;
+        i686-pc-cygwin)     V_FLEXLM_ARCH=i86_n3 ;;
+      esac
+
+
+fi
+
+
 # Check whether --with-threads was given.
 if test "${with_threads+set}" = set; then :
   withval=$with_threads; with_threads="$withval"
@@ -9180,7 +9208,10 @@ INSTALL_BIN="../bin"
 
 
 
-ac_config_files="$ac_config_files Makefile ./common/Makefile ./argus/Makefile ./events/Makefile ./pkg/win7/Makefile ./pkg/win7/argus.wxs ./lib/argus.spec"
+
+
+
+ac_config_files="$ac_config_files Makefile ./common/Makefile ./argus/Makefile ./events/Makefile ./pkg/win7/Makefile ./pkg/win7/argus.wxs ./lib/argus.spec ./licenses/arguspro_sensor_appliance.lic.template ./licenses/arguspro_sensor_floating.lic.template ./licenses/arguspro_sensor_workstation.lic.template"
 
 
 cat >confcache <<\_ACEOF
@@ -9882,6 +9913,9 @@ do
     "./pkg/win7/Makefile") CONFIG_FILES="$CONFIG_FILES ./pkg/win7/Makefile" ;;
     "./pkg/win7/argus.wxs") CONFIG_FILES="$CONFIG_FILES ./pkg/win7/argus.wxs" ;;
     "./lib/argus.spec") CONFIG_FILES="$CONFIG_FILES ./lib/argus.spec" ;;
+    "./licenses/arguspro_sensor_appliance.lic.template") CONFIG_FILES="$CONFIG_FILES ./licenses/arguspro_sensor_appliance.lic.template" ;;
+    "./licenses/arguspro_sensor_floating.lic.template") CONFIG_FILES="$CONFIG_FILES ./licenses/arguspro_sensor_floating.lic.template" ;;
+    "./licenses/arguspro_sensor_workstation.lic.template") CONFIG_FILES="$CONFIG_FILES ./licenses/arguspro_sensor_workstation.lic.template" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

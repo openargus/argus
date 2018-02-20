@@ -27,6 +27,8 @@
 AC_PREREQ(2.61)
 AC_INIT([Argus Pro (Gargoyle) Server Programs], [5.0], [bug-report@qosient.com], [argus], [http://qosient.com/argus])
 PACKAGE_RELEASE='3.2'
+ARGUSPRO_VERSION='1.1'
+AC_DEFINE([ARGUSPRO_VERSION_STRING], ["1.1"], [Product version number string])
 AC_CONFIG_SRCDIR([argus/argus.c])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_HEADER([include/argus_config.h])
@@ -256,6 +258,7 @@ AC_QOSIENT_MEMORY
 
 AC_QOSIENT_HASHDEBUG()
 AC_QOSIENT_NANOSECONDS()
+AC_QOSIENT_FLEXLM(V_FLEXLM, V_FLEXLM_ARCH)
 AC_QOSIENT_THREADS(V_THREADS)
 AC_QOSIENT_TCPWRAP(V_WRAPDEP, V_INCLS)
 if test ! -z "$V_WRAPDEP"; then
@@ -423,6 +426,7 @@ INSTALL_BIN="../bin"
 
 AC_SUBST(PACKAGE_VERSION)
 AC_SUBST(PACKAGE_RELEASE)
+AC_SUBST(ARGUSPRO_VERSION)
 AC_SUBST(LIBS)
 AC_SUBST(INCLS)
 AC_SUBST(V_CCOPT)
@@ -431,6 +435,8 @@ AC_SUBST(V_RANLIB)
 AC_SUBST(V_YACC)
 AC_SUBST(V_LEX)
 AC_SUBST(V_PERL)
+AC_SUBST(V_FLEXLM)
+AC_SUBST(V_FLEXLM_ARCH)
 AC_SUBST(V_THREADS)
 AC_SUBST(WRAPLIBS)
 AC_SUBST(COMPATLIB)
@@ -447,6 +453,9 @@ AC_CONFIG_FILES([
    ./pkg/win7/Makefile
    ./pkg/win7/argus.wxs
    ./lib/argus.spec
+   ./licenses/arguspro_sensor_appliance.lic.template
+   ./licenses/arguspro_sensor_floating.lic.template
+   ./licenses/arguspro_sensor_workstation.lic.template
 ])
 
 AC_OUTPUT

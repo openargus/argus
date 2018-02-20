@@ -6,6 +6,12 @@
 /* Using Argus memory */
 #undef ARGUSMEMDEBUG
 
+/* Product version number string */
+#undef ARGUSPRO_VERSION_STRING
+
+/* Using FlexLM */
+#undef ARGUS_FLEXLM
+
 /* Enabling hashtable debugging */
 #undef ARGUS_HASH_DEBUG
 
