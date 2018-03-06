@@ -3380,6 +3380,22 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                                  ((unsigned int *)(dsr + 1))[4] = ((unsigned int) metric->dst.bytes);
                                  ((unsigned int *)(dsr + 1))[5] = ((unsigned int) metric->dst.appbytes);
                                  break;
+                              case ARGUS_SRCDST_LONGLONG:
+                                 dsr->argus_dsrvl8.qual = type;
+                                 dsr->argus_dsrvl8.len = 13;
+                                 ((unsigned int *)(dsr + 1))[0]  = (((unsigned int *)&metric->src.pkts)[0]);
+                                 ((unsigned int *)(dsr + 1))[1]  = (((unsigned int *)&metric->src.pkts)[1]);
+                                 ((unsigned int *)(dsr + 1))[2]  = (((unsigned int *)&metric->src.bytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[3]  = (((unsigned int *)&metric->src.bytes)[1]);
+                                 ((unsigned int *)(dsr + 1))[4]  = (((unsigned int *)&metric->src.appbytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[5]  = (((unsigned int *)&metric->src.appbytes)[1]);
+                                 ((unsigned int *)(dsr + 1))[6]  = (((unsigned int *)&metric->dst.pkts)[0]);
+                                 ((unsigned int *)(dsr + 1))[7]  = (((unsigned int *)&metric->dst.pkts)[1]);
+                                 ((unsigned int *)(dsr + 1))[8]  = (((unsigned int *)&metric->dst.bytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[9]  = (((unsigned int *)&metric->dst.bytes)[1]);
+                                 ((unsigned int *)(dsr + 1))[10] = (((unsigned int *)&metric->dst.appbytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[11] = (((unsigned int *)&metric->dst.appbytes)[1]);
+                                 break;
 
                               case ARGUS_SRC_BYTE: {
                                  dsr->argus_dsrvl8.qual = type;
@@ -3404,6 +3420,17 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                                  ((unsigned int *)(dsr + 1))[1] = ((unsigned int) metric->src.bytes);
                                  ((unsigned int *)(dsr + 1))[2] = ((unsigned int) metric->src.appbytes);
                                  break;
+                              case ARGUS_SRC_LONGLONG:
+                                 dsr->argus_dsrvl8.qual = type;
+                                 dsr->argus_dsrvl8.len = 7;
+                                 ((unsigned int *)(dsr + 1))[0] = (((unsigned int *)&metric->src.pkts)[0]);
+                                 ((unsigned int *)(dsr + 1))[1] = (((unsigned int *)&metric->src.pkts)[1]);
+                                 ((unsigned int *)(dsr + 1))[2] = (((unsigned int *)&metric->src.bytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[3] = (((unsigned int *)&metric->src.bytes)[1]);
+                                 ((unsigned int *)(dsr + 1))[4] = (((unsigned int *)&metric->src.appbytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[5] = (((unsigned int *)&metric->src.appbytes)[1]);
+                                 break;
+
                               case ARGUS_DST_BYTE:
                                  dsr->argus_dsrvl8.qual = type;
                                  dsr->argus_dsrvl8.len = 2;
@@ -3424,6 +3451,16 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                                  ((unsigned int *)(dsr + 1))[0] = ((unsigned int) metric->dst.pkts);
                                  ((unsigned int *)(dsr + 1))[1] = ((unsigned int) metric->dst.bytes);
                                  ((unsigned int *)(dsr + 1))[2] = ((unsigned int) metric->dst.appbytes);
+                                 break;
+                              case ARGUS_DST_LONGLONG:
+                                 dsr->argus_dsrvl8.qual = type;
+                                 dsr->argus_dsrvl8.len = 7;
+                                 ((unsigned int *)(dsr + 1))[0] = (((unsigned int *)&metric->dst.pkts)[0]);
+                                 ((unsigned int *)(dsr + 1))[1] = (((unsigned int *)&metric->dst.pkts)[1]);
+                                 ((unsigned int *)(dsr + 1))[2] = (((unsigned int *)&metric->dst.bytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[3] = (((unsigned int *)&metric->dst.bytes)[1]);
+                                 ((unsigned int *)(dsr + 1))[4] = (((unsigned int *)&metric->dst.appbytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[5] = (((unsigned int *)&metric->dst.appbytes)[1]);
                                  break;
                            }
                         } else {
@@ -3456,6 +3493,14 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                               case ARGUS_SRCDST_LONGLONG:
                                  dsr->argus_dsrvl8.qual = type;
                                  dsr->argus_dsrvl8.len = 9;
+                                 ((unsigned int *)(dsr + 1))[0] = (((unsigned int *)&metric->src.pkts)[0]);
+                                 ((unsigned int *)(dsr + 1))[1] = (((unsigned int *)&metric->src.pkts)[1]);
+                                 ((unsigned int *)(dsr + 1))[2] = (((unsigned int *)&metric->src.bytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[3] = (((unsigned int *)&metric->src.bytes)[1]);
+                                 ((unsigned int *)(dsr + 1))[4] = (((unsigned int *)&metric->dst.pkts)[0]);
+                                 ((unsigned int *)(dsr + 1))[5] = (((unsigned int *)&metric->dst.pkts)[1]);
+                                 ((unsigned int *)(dsr + 1))[6] = (((unsigned int *)&metric->dst.bytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[7] = (((unsigned int *)&metric->dst.bytes)[1]);
                                  break;
 
                               case ARGUS_SRC_SHORT: {
@@ -3477,6 +3522,10 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                               case ARGUS_SRC_LONGLONG:
                                  dsr->argus_dsrvl8.qual = type;
                                  dsr->argus_dsrvl8.len = 5;
+                                 ((unsigned int *)(dsr + 1))[0] = (((unsigned int *)&metric->src.pkts)[0]);
+                                 ((unsigned int *)(dsr + 1))[1] = (((unsigned int *)&metric->src.pkts)[1]);
+                                 ((unsigned int *)(dsr + 1))[2] = (((unsigned int *)&metric->src.bytes)[0]);
+                                 ((unsigned int *)(dsr + 1))[3] = (((unsigned int *)&metric->src.bytes)[1]);
                                  break;
 
                               case ARGUS_DST_SHORT:
