@@ -1132,6 +1132,11 @@ ArgusHtoN (struct ArgusRecord *argus)
                               ((unsigned int *)(dsr + 1))[3] = htonl(((unsigned int *)(dsr + 1))[3]);
                               break;
                            case ARGUS_SRCDST_LONGLONG:
+                              ((long long *)(dsr + 1))[0] = htonll(((long long *)(dsr + 1))[0]);
+                              ((long long *)(dsr + 1))[1] = htonll(((long long *)(dsr + 1))[1]);
+                              ((long long *)(dsr + 1))[2] = htonll(((long long *)(dsr + 1))[2]);
+                              ((long long *)(dsr + 1))[3] = htonll(((long long *)(dsr + 1))[3]);
+                              break;
                               break;
                            case ARGUS_SRC_SHORT:
                               ((unsigned short *)(dsr + 1))[0] = htons(((unsigned short *)(dsr + 1))[0]);
@@ -1142,6 +1147,9 @@ ArgusHtoN (struct ArgusRecord *argus)
                               ((unsigned int *)(dsr + 1))[1] = htonl(((unsigned int *)(dsr + 1))[1]);
                               break;
                            case ARGUS_SRC_LONGLONG:
+                           case ARGUS_DST_LONGLONG:
+                              ((long long *)(dsr + 1))[0] = htonll(((long long *)(dsr + 1))[0]);
+                              ((long long *)(dsr + 1))[1] = htonll(((long long *)(dsr + 1))[1]);
                               break;
                            case ARGUS_DST_SHORT:
                               ((unsigned short *)(dsr + 1))[0] = htons(((unsigned short *)(dsr + 1))[0]);
@@ -1150,8 +1158,6 @@ ArgusHtoN (struct ArgusRecord *argus)
                            case ARGUS_DST_INT:
                               ((unsigned int *)(dsr + 1))[0] = htonl(((unsigned int *)(dsr + 1))[0]);
                               ((unsigned int *)(dsr + 1))[1] = htonl(((unsigned int *)(dsr + 1))[1]);
-                              break;
-                           case ARGUS_DST_LONGLONG:
                               break;
 
                         }
@@ -1178,6 +1184,14 @@ ArgusHtoN (struct ArgusRecord *argus)
                               ((unsigned int *)(dsr + 1))[4] = htonl(((unsigned int *)(dsr + 1))[4]);
                               ((unsigned int *)(dsr + 1))[5] = htonl(((unsigned int *)(dsr + 1))[5]);
                               break;
+                           case ARGUS_SRCDST_LONGLONG:
+                              ((long long *)(dsr + 1))[0] = htonll(((long long *)(dsr + 1))[0]);
+                              ((long long *)(dsr + 1))[1] = htonll(((long long *)(dsr + 1))[1]);
+                              ((long long *)(dsr + 1))[2] = htonll(((long long *)(dsr + 1))[2]);
+                              ((long long *)(dsr + 1))[3] = htonll(((long long *)(dsr + 1))[3]);
+                              ((long long *)(dsr + 1))[4] = htonll(((long long *)(dsr + 1))[4]);
+                              ((long long *)(dsr + 1))[5] = htonll(((long long *)(dsr + 1))[5]);
+                              break;
                            case ARGUS_SRC_SHORT:
                               ((unsigned short *)(dsr + 1))[0] = htons(((unsigned short *)(dsr + 1))[0]);
                               ((unsigned short *)(dsr + 1))[1] = htons(((unsigned short *)(dsr + 1))[1]);
@@ -1188,6 +1202,11 @@ ArgusHtoN (struct ArgusRecord *argus)
                               ((unsigned int *)(dsr + 1))[1] = htonl(((unsigned int *)(dsr + 1))[1]);
                               ((unsigned int *)(dsr + 1))[2] = htonl(((unsigned int *)(dsr + 1))[2]);
                               break;
+                           case ARGUS_SRC_LONGLONG:
+                           case ARGUS_DST_LONGLONG:
+                              ((long long *)(dsr + 1))[0] = htonll(((long long *)(dsr + 1))[0]);
+                              ((long long *)(dsr + 1))[1] = htonll(((long long *)(dsr + 1))[1]);
+                              ((long long *)(dsr + 1))[2] = htonll(((long long *)(dsr + 1))[2]);
                            case ARGUS_DST_SHORT:
                               ((unsigned short *)(dsr + 1))[0] = htons(((unsigned short *)(dsr + 1))[0]);
                               ((unsigned short *)(dsr + 1))[1] = htons(((unsigned short *)(dsr + 1))[1]);
