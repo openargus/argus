@@ -318,21 +318,6 @@ ArgusHtoN (struct ArgusRecord *argus)
 
    switch (argus->hdr.type & 0xF0) {
       case ARGUS_MAR: {
-         switch (argus->argus_mar.status & (ARGUS_IDIS_STRING | ARGUS_IDIS_INT | ARGUS_IDIS_IPV4)) {
-            case ARGUS_IDIS_STRING: 
-            case ARGUS_IDIS_IPV6:
-            case ARGUS_IDIS_UUID:
-               break;
-
-            case ARGUS_IDIS_INT: {
-               argus->argus_mar.value = htonl(argus->argus_mar.value);
-               break;
-            }
-            case ARGUS_IDIS_IPV4: {
-               argus->argus_mar.ipv4 = htonl(argus->argus_mar.ipv4);
-               break;
-            }
-         }
          argus->argus_mar.status            = htonl(argus->argus_mar.status);
          argus->argus_mar.argusid           = htonl(argus->argus_mar.argusid);
          argus->argus_mar.localnet          = htonl(argus->argus_mar.localnet);
