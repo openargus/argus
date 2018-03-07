@@ -293,7 +293,6 @@ int check_time_format (struct tm *tm, char *str);
 int parseTime (struct tm *, struct tm *, char *);
 
 #if defined(_LITTLE_ENDIAN)
-void ArgusNtoH (struct ArgusRecord *argus);
 void ArgusHtoN (struct ArgusRecord *argus);
 #endif
 
@@ -496,7 +495,6 @@ extern int check_time_format (struct tm *tm, char *str);
 extern int parseTime (struct tm *, struct tm *, char *);
 
 #if defined(_LITTLE_ENDIAN)
-extern void ArgusNtoH (struct ArgusRecord *argus);
 extern void ArgusHtoN (struct ArgusRecord *argus);
 #endif
 
