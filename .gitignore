@@ -34,3 +34,4 @@ include/argus_config.h
 /lib/argus.spec
 /pkg/win7/argus.wxs
 /pkg/osx/osx-pkg/Library/PreferencePanes/Argus.prefPane/Contents/Resources/Argus-apps.plist
+/licenses/*.lic.template
