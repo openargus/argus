@@ -391,6 +391,10 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                      lasttime.tv_usec = ArgusThisTCPdst->lasttime.tv_usec;
 
                      tcpExt->synAckuSecs = ArgusAbsTimeDiff (&model->ArgusGlobalTime, &lasttime);
+#if defined(ARGUS_NANOSECONDS)
+                     /* convert this from ns to us */
+                     tcpExt->synAckuSecs /= 1000;
+#endif
                   }
                }
 
@@ -431,6 +435,10 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                      lasttime.tv_usec = ArgusThisTCPdst->lasttime.tv_usec;
 
                      tcpExt->ackDatauSecs = ArgusAbsTimeDiff (&model->ArgusGlobalTime, &lasttime);
+#if defined(ARGUS_NANOSECONDS)
+                     /* convert this from ns to us */
+                     tcpExt->ackDatauSecs /= 1000;
+#endif
                   }
                }
 

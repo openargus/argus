@@ -476,6 +476,9 @@ ArgusOutputStatusTime(struct ArgusOutputStruct *output)
        (output->ArgusReportTime.tv_usec < output->ArgusGlobalTime.tv_usec))) {
 
       long long dtime = ArgusTimeDiff(&output->ArgusGlobalTime, &output->ArgusReportTime);
+#if defined(ARGUS_NANOSECONDS)
+      dtime /= 1000;
+#endif
 
       if (dtime > 1000000)
          output->ArgusReportTime  = output->ArgusGlobalTime;
