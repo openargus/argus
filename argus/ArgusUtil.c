@@ -2316,8 +2316,8 @@ ArgusFetchDstLoad (struct ArgusRecordStruct *ns)
    if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
    d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
 #else
-   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
-   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
+   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000;}
+   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000.0));
 #endif
  
    if ((m1 = (struct ArgusMetricStruct *) ns->dsrs[ARGUS_METRIC_INDEX]) != NULL)
