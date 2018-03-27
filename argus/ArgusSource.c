@@ -668,9 +668,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
       switch (pcap_set_tstamp_precision(inf->ArgusPd, PCAP_TSTAMP_PRECISION_NANO)) {
          case PCAP_ERROR_TSTAMP_PRECISION_NOTSUP:
          case PCAP_ERROR_ACTIVATED:
-#ifdef ARGUSDEBUG
-            ArgusDebug(4, "Cannot set pcap timestamp precision to nanoseconds for %s\n", device->name);
-#endif
+            ArgusLog(LOG_WARNING,
+                     "Cannot set pcap timestamp precision to nanoseconds for %s\n",
+                     device->name);
             break;
          case 0:
             src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
