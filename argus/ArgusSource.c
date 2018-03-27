@@ -77,6 +77,25 @@ void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
 
 extern int ArgusShutDownFlag;
 
+static void
+ArgusGetPcapPkthdrTime(const struct ArgusSourceStruct * const src,
+                       const struct pcap_pkthdr * const hdr,
+                       struct timeval *tvp)
+{
+   tvp->tv_sec  = hdr->ts.tv_sec;
+   tvp->tv_usec = hdr->ts.tv_usec;
+#if defined(ARGUS_NANOSECONDS)
+   /* If we have nanosecond support compiled in, times are stored
+    * with nanosecond precision.  However, if libpcap doesn't support
+    * nanosecond precision for this interface it will return times
+    * in microseconds and we need to scale this value.
+    */
+
+   if (src->timeStampType == ARGUS_TYPE_UTC_MICROSECONDS)
+      tvp->tv_usec *= 1000;
+#endif
+}
+
 struct ArgusDeviceStruct *
 ArgusCloneDevice(struct ArgusDeviceStruct *dev)
 {
@@ -1828,8 +1847,7 @@ ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct timeval tvpbuf, *tvp = &tvpbuf;
    struct stat statbuf;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (p != NULL) {
       unsigned int ind = src->ArgusThisIndex;
@@ -2097,8 +2115,7 @@ ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -2196,8 +2213,7 @@ ArgusHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    unsigned int length = h->len;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -2309,8 +2325,7 @@ ArgusPppHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    unsigned int length = h->len;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -2546,8 +2561,7 @@ Argus802_11Packet (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    struct stat statbuf;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -2608,8 +2622,7 @@ ArgusJuniperPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    struct stat statbuf;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3261,8 +3274,7 @@ ArgusIpPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    struct stat statbuf;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3401,8 +3413,7 @@ ArgusEncPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int length = h->len    - ENC_HDRLEN;
    struct stat statbuf;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3547,8 +3558,7 @@ ArgusFddiPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ether_header *ep;
    struct stat statbuf;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3607,8 +3617,7 @@ ArgusATMPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ether_header *ep;
    struct stat statbuf;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
@@ -3683,8 +3692,7 @@ ArgusPppPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int caplen = h->caplen;
    struct stat statbuf;
 
-   tvp->tv_sec  = h->ts.tv_sec;
-   tvp->tv_usec = h->ts.tv_usec;
+   ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (src->ArgusWriteOutPacketFile) {
       if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
