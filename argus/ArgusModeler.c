@@ -2344,7 +2344,17 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       flow->dsrs[ARGUS_TIME_INDEX] = (struct ArgusDSRHeader *) time;
       time->hdr.type               = ARGUS_TIME_DSR;
       time->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
-      time->hdr.argus_dsrvl8.qual  = model->ArgusSrc->timeStampType;
+
+      /* The global time precision must be independent of pcap device
+       * precision.  ArgusGlobalTime is always scaled to nanoseconds,
+       * if argus is compiled with nanosecond support, and always scaled
+       * to microseconds otherwise.
+       */
+#if defined(ARGUS_NANOSECONDS)
+      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_NANOSECONDS;
+#else
+      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
+#endif
       time->hdr.argus_dsrvl8.len   = 3;
 
       if (model->ArgusThisDir) {
