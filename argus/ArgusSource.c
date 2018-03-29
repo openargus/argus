@@ -478,24 +478,24 @@ ArgusInitSource (struct ArgusSourceStruct *src)
    }
 
    if (src->ArgusDeviceList) {
-      int count = src->ArgusDeviceList->count;
+      struct ArgusDeviceStruct *device;
 
-      for (i = 0; i < count; i++) {
-         struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK);
+      pthread_mutex_lock(&src->ArgusDeviceList->lock);
+      for (device = (struct ArgusDeviceStruct *)src->ArgusDeviceList->start;
+           device;
+           device = (struct ArgusDeviceStruct *)device->nxt) {
 
-         if (device != NULL) {
-            switch (device->type) {
-               case ARGUS_LIVE_DEVICE:
-                  src->ArgusInterfaces += ArgusOpenDevice(src, device, &src->ArgusInterface[src->ArgusInterfaces]);
-                  break;
+         switch (device->type) {
+            case ARGUS_LIVE_DEVICE:
+               src->ArgusInterfaces += ArgusOpenDevice(src, device, &src->ArgusInterface[src->ArgusInterfaces]);
+               break;
 
-               case ARGUS_FILE_DEVICE:
-                  src->ArgusInterfaces += ArgusOpenInputPacketFile(src, device, &src->ArgusInterface[i]);
-                  break;
-            }
-            ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
+            case ARGUS_FILE_DEVICE:
+               src->ArgusInterfaces += ArgusOpenInputPacketFile(src, device, &src->ArgusInterface[i]);
+               break;
          }
       }
+      pthread_mutex_unlock(&src->ArgusDeviceList->lock);
    }
 
    if (src->ArgusInterfaces > 0) {
