@@ -4235,19 +4235,27 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                            for (i = 0; i < ArgusSourceCount && !found; i++) {
                               struct ArgusSourceStruct *src;
                               if ((src = stask->srcs[i]) != NULL) {
-                                 struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK);
+                                 pthread_mutex_lock(&src->ArgusDeviceList->lock);
+                                 struct ArgusDeviceStruct *device;
+
+                                 device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
                                  if (!strcmp(device->name, d->name)) 
                                     found = 1;
-                                 if (device->list && (per_dev_count = device->list->count)) {
+
+                                 if (device->list) {
                                     int x;
+
+                                    pthread_mutex_lock(&device->list->lock);
                                     for (x = 0; x < per_dev_count && !found; x++) {
-                                       struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
+                                       struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_NOLOCK);
                                        if (!strcmp(dev->name, d->name)) 
                                           found = 1;
-                                       ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                                       ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_NOLOCK);
                                     }
+                                    pthread_mutex_unlock(&device->list->lock);
                                  }
-                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
+                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
+                                 pthread_mutex_unlock(&src->ArgusDeviceList->lock);
                               }
                            }
                         }
@@ -5022,20 +5030,26 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
    char errbuf[PCAP_ERRBUF_SIZE];
    struct ifreq ifr;
    int fd, i;
+   char *devicename = NULL;
 
    if (ArgusShutDownFlag)
       return;
 
-   if (src && src->ArgusDeviceList)
-      if ((device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK)) != NULL)
-         ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
+   if (src && src->ArgusDeviceList) {
+      if (pthread_mutex_lock(&src->ArgusDeviceList->lock) == 0) {
+         device = (struct ArgusDeviceStruct *)src->ArgusDeviceList->start;
+         if (device)
+            devicename = strdup(device->name);
+         pthread_mutex_unlock(&src->ArgusDeviceList->lock);
+      }
+   }
 
-   if (device == NULL)
+   if (devicename == NULL)
       return;
 
-   if ((strstr(device->name, "dag")) || (strstr(device->name, "napa")) || 
-       (strstr(device->name, "dna")) || (strstr(device->name, "zc"))   ||
-      ((strstr(device->name, "eth")) && (strstr(device->name, "@")))) {
+   if ((strstr(devicename, "dag")) || (strstr(devicename, "napa")) || 
+       (strstr(devicename, "dna")) || (strstr(devicename, "zc"))   ||
+      ((strstr(devicename, "eth")) && (strstr(devicename, "@")))) {
       for (i = 0; i < src->ArgusInterfaces; i++) {
          if (src->ArgusInterface[i].ArgusPd)
             bzero ((char *)&src->ArgusInterface[i].ifr, sizeof(ifr));
@@ -5043,10 +5057,10 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
          src->ArgusInterface[i].ifr.ifr_flags |= IFF_UP;
          setArgusInterfaceStatus(src, 1);
       }
-      return;
+      goto out;
    }
 
-   if (strstr(device->name, "default")) {
+   if (strstr(devicename, "default")) {
       for (i = 0; i < src->ArgusInterfaces; i++) {
          if (src->ArgusInterface[i].ArgusPd && (pcap_fileno(src->ArgusInterface[i].ArgusPd) > 0))
             bzero ((char *)&src->ArgusInterface[i].ifr, sizeof(ifr));
@@ -5054,7 +5068,7 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
          src->ArgusInterface[i].ifr.ifr_flags |= IFF_UP;
          setArgusInterfaceStatus(src, 1);
       }
-      return;
+      goto out;
    }
 
    if (ArgusGetInterfaceFD < 0)
@@ -5072,7 +5086,7 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
             if (src->ArgusInterface[i].ArgusPd) {
                pcap_close(src->ArgusInterface[i].ArgusPd);
                src->ArgusInterface[i].ArgusPd = NULL;
-               return;
+               goto out;
             }
          }
 #else
@@ -5099,6 +5113,8 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
       }
    }
 
+out:
+   free(devicename);
    return;
 }
 
