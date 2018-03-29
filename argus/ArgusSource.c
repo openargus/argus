@@ -120,17 +120,25 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
    retn->ArgusInterfaceScanInterval = src->ArgusInterfaceScanInterval;
 
    if (src->ArgusDeviceList) {
-      int i, count = src->ArgusDeviceList->count;
+      struct ArgusDeviceStruct *device;
+      int i;
 
+      pthread_mutex_lock(&src->ArgusDeviceList->lock);
       retn->ArgusDeviceList = ArgusNewList();
-      for (i = 0; i < count; i++) {
-         struct ArgusDeviceStruct *dev, *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK);
-         if ((dev = ArgusCloneDevice(device)) == NULL)
-            ArgusLog (LOG_ERR, "ArgusCloneSource: ArgusCloneDevice error %s\n", strerror(errno));
+      for (device = (struct ArgusDeviceStruct *)src->ArgusDeviceList->start;
+           device;
+           device = (struct ArgusDeviceStruct *)device->nxt) {
+         struct ArgusDeviceStruct *dev;
 
-         ArgusPushBackList(retn->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-         ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
+         if ((dev = ArgusCloneDevice(device)) == NULL)
+            ArgusLog (LOG_ERR, "%s: ArgusCloneDevice error %s\n", __func__,
+                      strerror(errno));
+
+         /* nobody is using this list yet, don't bother locking */
+         ArgusPushBackList(retn->ArgusDeviceList, (struct ArgusListRecord *)dev,
+                           ARGUS_NOLOCK);
       }
+      pthread_mutex_unlock(&src->ArgusDeviceList->lock);
    }
 
    if (src->ArgusInputFilter)
