@@ -738,6 +738,7 @@ setArgusCaptureFlag(struct ArgusSourceStruct *src, int value)
    src->ArgusCaptureFlag = value;
 }
 
+/* getArgusDevice: caller is responsible for freeing return value */
 char *
 getArgusDevice (struct ArgusSourceStruct *src)
 {
@@ -745,19 +746,22 @@ getArgusDevice (struct ArgusSourceStruct *src)
    char *retn = NULL;
 
    if (src->ArgusDeviceList != NULL) {
-      if ((device = (struct ArgusDeviceStruct *) ArgusPopFrontList(src->ArgusDeviceList, ARGUS_LOCK)) != NULL)
-         ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
+      pthread_mutex_lock(&src->ArgusDeviceList->lock);
+
+      device = (struct ArgusDeviceStruct *)src->ArgusDeviceList->start;
+      if (device)
+         retn = strdup(device->name);
+
+      pthread_mutex_unlock(&src->ArgusDeviceList->lock);
    } else {
 #ifdef ARGUSDEBUG
       ArgusDebug (1, "getArgusDevice(%p) src->ArgusDeviceList is NULL\n", src);
 #endif
    }
 
-   if (device != NULL)
-      retn = device->name;
-
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "getArgusDevice(%p) returning %s\n", src, retn);
+   ArgusDebug (1, "getArgusDevice(%p) returning %s\n", src,
+               retn ? retn : "NULL");
 #endif
    return (retn);
 }

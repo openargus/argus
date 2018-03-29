@@ -198,7 +198,9 @@ ArgusCreatePIDFile (struct ArgusSourceStruct *src, char *pidpath, char *appname)
    ArgusDebug (1, "ArgusCreatePIDFile(%s, %s) pidpath is %s\n", pidpath, appname, pidpath);
 #endif 
 
-   if ((appname != NULL) && ((dev = getArgusDevice(src)) != NULL) && (pidpath != NULL)) {
+   dev = getArgusDevice(src);
+
+   if ((appname != NULL) && dev != NULL && (pidpath != NULL)) {
       if ((devstr = strrchr(dev, (int)'/')) != NULL)
          devstr++;
       else
@@ -257,6 +259,9 @@ ArgusCreatePIDFile (struct ArgusSourceStruct *src, char *pidpath, char *appname)
          ArgusDebug (1, "ArgusCreatePIDFile(%s, %s) dev is null\n", pidpath, appname);
 #endif 
    }
+
+   if (dev != NULL)
+      free(dev); /* allocated by strdup in getArgusDevice() */
 
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusCreatePIDFile(%s, %s) returning %s\n", pidpath, appname, retn);
