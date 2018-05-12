@@ -11,17 +11,17 @@ long long
 ArgusTimeDiff(const struct timeval * const start,
               const struct timeval * const stop)
 {
-   long long retn, stime, etime;
+   long long retn, t1, t2;
 
 #if defined(ARGUS_NANOSECONDS)
-   stime = (start->tv_sec * 1000000000LL) + start->tv_usec;
-   etime = (stop->tv_sec  * 1000000000LL) +  stop->tv_usec;
+   t1 = (start->tv_sec * 1000000000LL) + (start->tv_usec * 1LL);
+   t2 = (stop->tv_sec  * 1000000000LL) + ( stop->tv_usec * 1LL);
 #else
-   stime = (start->tv_sec * 1000000LL) + start->tv_usec;
-   etime = (stop->tv_sec  * 1000000LL) +  stop->tv_usec;
+   t1 = (start->tv_sec * 1000000LL) + (start->tv_usec * 1LL);
+   t2 = (stop->tv_sec  * 1000000LL) + ( stop->tv_usec * 1LL);
 #endif
 
-   retn = stime - etime;
+   retn = t2 - t1;
    return (retn);
 }
 
