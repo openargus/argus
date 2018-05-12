@@ -8,12 +8,12 @@ long long
 ArgusTimeDiff(const struct timeval * const start,
               const struct timeval * const stop)
 {
-   long long retn, stime, etime;
+   long long retn, t1, t2;
 
    stime = (start->tv_sec * 1000000LL) + start->tv_usec;
    etime = (stop->tv_sec  * 1000000LL) +  stop->tv_usec;
 
-   retn = stime - etime;
+   retn = t2 - t1;
    return (retn);
 }
 
