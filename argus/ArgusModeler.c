@@ -195,9 +195,10 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusMinorVersion = VERSION_MINOR;
    model->ArgusSnapLen = ARGUS_MINSNAPLEN;
 
-   ArgusGetTimeOfDay(model->ArgusSrc, &model->ArgusGlobalTime);
+   gettimeofday (&model->ArgusGlobalTime, 0L);
 
    if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
+      model->ArgusGlobalTime.tv_usec *= 1000;
       model->ArgusUpdateInterval.tv_usec = 500000000;
       model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000000LL) + model->ArgusUpdateInterval.tv_usec);
    } else {
@@ -475,8 +476,17 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
    while ((!done)) {
       if (queue->start != NULL) {
          if ((last = (struct ArgusFlowStruct *) queue->start->prv) != NULL) {
-            struct timeval *now;
+            struct timeval nowbuf, *now;
+
             now = &model->ArgusGlobalTime;
+/*
+            if (ArgusSourceTask->ArgusReadingOffLine) {
+               now = &model->ArgusGlobalTime;
+            } else {
+               now = &nowbuf;
+               gettimeofday(now, 0L);
+            }
+*/
 
             if (queue == model->ArgusStatusQueue) {
                if (ArgusCheckTimeout(model, &last->qhdr.qtime, now, getArgusFarReportInterval(model))) {
@@ -545,7 +555,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 #endif
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (8, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
+   ArgusDebug (1, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
 #endif 
 }
 
