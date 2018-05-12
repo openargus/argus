@@ -5192,7 +5192,9 @@ ArgusGetPackets (void *arg)
 
       ArgusGetInterfaceStatus(src);
 
-      ArgusGetTimeOfDay(src, &src->ArgusStartTime);
+      gettimeofday (&src->ArgusStartTime, 0L);
+      if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+         src->ArgusModel->ArgusStartTime.tv_usec *= 1000;
 
       for (i = 0; i < ARGUS_MAXINTERFACE; i++)
          fds[i] = -1;
@@ -5265,9 +5267,14 @@ ArgusGetPackets (void *arg)
                         if (cnt > 0) {
                            noPkts = 0;
                         } else if (cnt == 0) {
-#if !defined(CYGWIN)
-                           if (noPkts++ > 5) {
-                              struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; // 5 millisec
+                           if (noPkts++ > 50) {
+                              struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; /* 5 millisec */
+
+                              gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
+                              if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+
+                              ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                               nanosleep(ts, NULL);
 
                               ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
