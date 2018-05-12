@@ -468,21 +468,13 @@ int ArgusOutputStatusTime(struct ArgusOutputStruct *);
 int
 ArgusOutputStatusTime(struct ArgusOutputStruct *output)
 {
+   long long dtime;
    int retn = 0;
 
+   if ((dtime = ArgusTimeDiff(&output->ArgusReportTime, &output->ArgusGlobalTime)) >= 0) {
+      retn = 1;
 
-   if ((output->ArgusReportTime.tv_sec  < output->ArgusGlobalTime.tv_sec) ||
-      ((output->ArgusReportTime.tv_sec == output->ArgusGlobalTime.tv_sec) &&
-       (output->ArgusReportTime.tv_usec < output->ArgusGlobalTime.tv_usec))) {
-
-      long long dtime = ArgusTimeDiff(&output->ArgusGlobalTime, &output->ArgusReportTime);
-#if defined(ARGUS_NANOSECONDS)
-      dtime /= 1000;
-#endif
-
-      if (dtime > 1000000)
-         output->ArgusReportTime  = output->ArgusGlobalTime;
-
+      output->ArgusReportTime  = output->ArgusGlobalTime;
       output->ArgusReportTime.tv_sec  += getArgusMarReportInterval(output)->tv_sec;
       output->ArgusReportTime.tv_usec += getArgusMarReportInterval(output)->tv_usec;
 
@@ -490,8 +482,6 @@ ArgusOutputStatusTime(struct ArgusOutputStruct *output)
          output->ArgusReportTime.tv_sec++;
          output->ArgusReportTime.tv_usec -= ARGUS_FRACTION_TIME;
       }
-
-      retn++;
    }
 
 #ifdef ARGUSDEBUG
