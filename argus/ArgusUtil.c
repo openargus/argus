@@ -427,11 +427,14 @@ ArgusAddToQueue(struct ArgusQueueStruct *queue, struct ArgusQueueHeader *obj, in
             pthread_mutex_unlock(&queue->lock); 
 #endif
          obj->queue = queue;
+         obj->qtime = ArgusModel->ArgusGlobalTime;
 
+/*
          if (ArgusSourceTask->ArgusReadingOffLine)
             obj->qtime = ArgusModel->ArgusGlobalTime;
          else
             gettimeofday(&obj->qtime, 0L);
+*/
          retn = 1;
 
       } else
@@ -693,62 +696,86 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
    if (model->ArgusUpdateTimer.tv_sec == 0) 
       model->ArgusUpdateTimer = model->ArgusGlobalTime;
 
-   diff = ArgusTimeDiff(&model->ArgusGlobalTime, &model->ArgusUpdateTimer);
-
-   if (diff >= 0) {
+   if ((diff = ArgusTimeDiff(&model->ArgusUpdateTimer, &model->ArgusGlobalTime)) >= 0) {
       retn = 1;
 
-      if (diff > ival) 
-         model->ArgusUpdateTimer = model->ArgusGlobalTime;
+#ifdef ARGUSDEBUG
+#if defined(ARGUS_NANOSECONDS)
+      ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%09d global time %d.%09d returning %d\n",
+                   model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
+                   model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
+#else
+      ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%06d global time %d.%06d returning %d\n",
+                   model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
+                   model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
+#endif
+#endif
 
+      model->ArgusUpdateTimer = model->ArgusGlobalTime;
       model->ArgusUpdateTimer.tv_sec  += model->ArgusUpdateInterval.tv_sec;
       model->ArgusUpdateTimer.tv_usec += model->ArgusUpdateInterval.tv_usec;
 
 #if defined(ARGUS_NANOSECONDS)
-      while (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
+      if (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
          model->ArgusUpdateTimer.tv_sec++; 
          model->ArgusUpdateTimer.tv_usec -= 1000000000;
+         if (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
+            ArgusLog (LOG_ERR, "ArgusUpdateTime: usec still too big %d(using NANO)\n", model->ArgusUpdateTimer.tv_usec);
+         }
       }
 #else
-      while (model->ArgusUpdateTimer.tv_usec >= 1000000) {
+      if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
          model->ArgusUpdateTimer.tv_sec++; 
          model->ArgusUpdateTimer.tv_usec -= 1000000;
+         if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
+            ArgusLog (LOG_ERR, "ArgusUpdateTime: usec still too big %d(using MICRO)\n", model->ArgusUpdateTimer.tv_usec);
+         }
       }
 #endif
 
    } else {
 
+#ifdef ARGUSDEBUG
+#if defined(ARGUS_NANOSECONDS)
+      ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%09d global time %d.%09d returning %d\n",
+                   model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
+                   model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
+#else
+      ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%06d global time %d.%06d returning %d\n",
+                   model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
+                   model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
+#endif
+#endif
+/*
       if (ArgusSourceTask != NULL) {
          if (!(ArgusSourceTask->ArgusReadingOffLine)) {
             if (llabs(diff) > (ival * 2)) {
 
-// something is wrong, so try to figure out if ArgusGlobalTime needs to be adjusted.
-// Must be kernel time bug, so try to reset the ArgusUpdateTimer, and declare
-// that the timer has popped.  Redefine global timer if needed.
+// something is wrong, so try to reset the ArgusUpdateTimer, and declare
+// that the timer has popped.  Redefine global timer.
 
-               unsigned long long tdiff;
-               struct timeval now;
-
+#ifdef ARGUSDEBUG
+               ArgusDebug (8, "ArgusUpdateTime (%p) diff %ld exceeds %d\n", model, diff, ival * 2);
+#endif
                retn = 1;
 
-               gettimeofday(&now, 0L);
-               tdiff =  ArgusAbsTimeDiff(&now, &model->ArgusGlobalTime);
-
-               if (tdiff > (ival * 2))
-                  model->ArgusGlobalTime = now;
+               gettimeofday (&model->ArgusGlobalTime, 0L);
+               if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
+                  model->ArgusGlobalTime.tv_usec *= 1000;
+               }
+               ArgusModel->ArgusGlobalTime = model->ArgusGlobalTime;
 
                model->ArgusUpdateTimer = model->ArgusGlobalTime;
-
                model->ArgusUpdateTimer.tv_sec  += model->ArgusUpdateInterval.tv_sec;
                model->ArgusUpdateTimer.tv_usec += model->ArgusUpdateInterval.tv_usec;
 
 #if defined(ARGUS_NANOSECONDS)
-               while (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
+               if (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
                   model->ArgusUpdateTimer.tv_sec++;
                   model->ArgusUpdateTimer.tv_usec -= 1000000000;
                }
 #else
-               while (model->ArgusUpdateTimer.tv_usec >= 1000000) {
+               if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
                   model->ArgusUpdateTimer.tv_sec++;
                   model->ArgusUpdateTimer.tv_usec -= 1000000;
                }
@@ -756,13 +783,11 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
             }
          }
       }
+*/
    }
 
 #ifdef ARGUSDEBUG
-   if (retn) {
-      ArgusDebug (8, "ArgusUpdateTime (%p) global time %d.%06d update %d.%06d returning %d\n",
-                   model, model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec,
-                   model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec, retn);
+   if (retn > 0) {
    } else
       ArgusDebug (8, "ArgusUpdateTime (%p) not time\n", model);
 #endif
