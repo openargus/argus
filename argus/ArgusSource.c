@@ -1376,6 +1376,7 @@ ArgusMoatTshRead (struct ArgusSourceStruct *src)
       src->ArgusModel->ArgusGlobalTime.tv_usec = ntohl(*((int *)&ArgusMoatPktHdr->interface));
 #else
       src->ArgusModel->ArgusGlobalTime.tv_sec  = ArgusMoatPktHdr->sec;
+      src->ArgusModel->ArgusGlobalTime.tv_usec = *((int *)&ArgusMoatPktHdr->interface);
 #endif
 
       if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS)
@@ -4517,7 +4518,6 @@ ArgusGetPackets (void *arg)
       ArgusGetInterfaceStatus(src);
 
       gettimeofday (&src->ArgusStartTime, 0L);
-
       if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
          src->ArgusModel->ArgusStartTime.tv_usec *= 1000;
 
@@ -4593,6 +4593,7 @@ ArgusGetPackets (void *arg)
                         } else if (cnt == 0) {
                            if (noPkts++ > 50) {
                               struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; /* 5 millisec */
+
                               gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                               if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
                                  src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
