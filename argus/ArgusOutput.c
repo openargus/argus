@@ -485,18 +485,7 @@ ArgusOutputStatusTime(struct ArgusOutputStruct *output)
    if ((dtime = ArgusTimeDiff(&output->ArgusReportTime, &output->ArgusGlobalTime)) >= 0) {
       retn = 1;
 
-   if ((output->ArgusReportTime.tv_sec  < output->ArgusGlobalTime.tv_sec) ||
-      ((output->ArgusReportTime.tv_sec == output->ArgusGlobalTime.tv_sec) &&
-       (output->ArgusReportTime.tv_usec < output->ArgusGlobalTime.tv_usec))) {
-
-      long long dtime = ArgusTimeDiff(&output->ArgusGlobalTime, &output->ArgusReportTime);
-#if defined(ARGUS_NANOSECONDS)
-      dtime /= 1000;
-#endif
-
-      if (dtime > 1000000)
-         output->ArgusReportTime  = output->ArgusGlobalTime;
-
+      output->ArgusReportTime  = output->ArgusGlobalTime;
       output->ArgusReportTime.tv_sec  += getArgusMarReportInterval(output)->tv_sec;
       output->ArgusReportTime.tv_usec += getArgusMarReportInterval(output)->tv_usec;
 
