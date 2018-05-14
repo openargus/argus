@@ -140,7 +140,6 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
 
    if (src->ArgusDeviceList) {
       struct ArgusDeviceStruct *device;
-      int i;
 
       pthread_mutex_lock(&src->ArgusDeviceList->lock);
       retn->ArgusDeviceList = ArgusNewList();
@@ -4147,7 +4146,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 #if defined(ARGUS_THREADS)
                            if (pthread_mutex_lock(&stask->ArgusDeviceList->lock) == 0) {
                               int i, count = stask->ArgusDeviceList->count;
-                              int per_dev_count;
+                              int per_dev_count = 0;
                            
                               if (count > 0) {
                                  for (i = 0; i < count && !found; i++) {
@@ -4177,7 +4176,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         }
 
                         if (!found && (ArgusSourceCount > 0)) {
-                           int i, per_dev_count;
+                           int i, per_dev_count = 0;
                            for (i = 0; i < ArgusSourceCount && !found; i++) {
                               struct ArgusSourceStruct *src;
                               if ((src = stask->srcs[i]) != NULL) {
@@ -4378,9 +4377,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
             ArgusDebug(2, "%s: compacting stask array\n", __func__);
 #endif
             /* remove any empty entries from the end */
-            while (ArgusSourceCount > 0
-                   && stask->srcs[ArgusSourceCount-1] == NULL)
+            while ((ArgusSourceCount > 0) && (stask->srcs[ArgusSourceCount-1] == NULL))
                ArgusSourceCount--;
+
             for (i = 0; i < ArgusSourceCount; i++) {
                if (stask->srcs[i] == NULL) {
                   /* swap this empty entry with the last entry */
@@ -4439,7 +4438,8 @@ ArgusGetPackets (void *arg)
       FD_ZERO(&ArgusWriteMask);
       FD_ZERO(&ArgusExceptMask);
 
-      wait.tv_sec = 0; wait.tv_usec = 200000;
+#define ARGUS_INTERFACE_TIMEOUT	500000
+      wait.tv_sec = 0; wait.tv_usec = ARGUS_INTERFACE_TIMEOUT;
 
       ArgusGetInterfaceStatus(src);
 
@@ -4516,18 +4516,19 @@ ArgusGetPackets (void *arg)
 
                         if (cnt > 0) {
                            noPkts = 0;
+
                         } else if (cnt == 0) {
                            if (noPkts++ > 50) {
                               struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; /* 5 millisec */
+                              nanosleep(ts, NULL);
 
                               gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                               if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
                                  src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
-                              nanosleep(ts, NULL);
                               noPkts = 0;
                            }
+
                         } else {
                            ArgusLog(LOG_INFO, "%s: pcap_dispatch() failed\n", __func__);
                            noerror = 0;
@@ -4589,7 +4590,6 @@ ArgusGetPackets (void *arg)
                               gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                               if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
                                  src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 
 #if defined(ARGUS_NEEDS_LIBPCAP_WORKAROUND)
@@ -4613,13 +4613,12 @@ ArgusGetPackets (void *arg)
                               } while (cnt > 0);
 
                               if (!pkts) {
-                                 struct timespec tsbuf = {0, 50000}, *ts = &tsbuf;
+                                 struct timespec tsbuf = {0, 50000000}, *ts = &tsbuf;
                                  nanosleep(ts, NULL);
 
                                  gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                                  if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
                                     src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-
                                  ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 #ifdef ARGUSDEBUG
                                  ArgusDebug (9, "ArgusGetPackets: select() timeout %d up interfaces\n", up);
@@ -4632,8 +4631,8 @@ ArgusGetPackets (void *arg)
                            gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                            if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
                               src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-
                            ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
+
                            if (up) {
 #ifdef ARGUSDEBUG
                               ArgusDebug (3, "ArgusGetPackets: select() returned %s\n", strerror(errno));
@@ -4644,6 +4643,10 @@ ArgusGetPackets (void *arg)
                               ArgusDebug (5, "ArgusGetPackets: no interfaces up: sleeping\n");
 #endif
                               nanosleep(ts, NULL);
+                              gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
+                              if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+                              ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                            }
                         }
                         width = 0;
@@ -4667,7 +4670,7 @@ ArgusGetPackets (void *arg)
                            }
                         }
 
-                        wait.tv_sec = 0; wait.tv_usec = 200000;
+                        wait.tv_sec = 0; wait.tv_usec = ARGUS_INTERFACE_TIMEOUT;
                      }
 /*
 #endif  
@@ -4707,7 +4710,7 @@ ArgusGetPackets (void *arg)
                               }
 
                            }
-                              if (retn > 0) {
+                           if (retn > 0) {
                                  if (src->eNflag > 0)
                                     src->eNflag -= retn;
 #ifdef ARGUSDEBUG
@@ -4715,8 +4718,13 @@ ArgusGetPackets (void *arg)
 #endif
                                  offset = src->ArgusInputOffset;
 
-                              } else {
+                           } else {
                                  struct timespec tsbuf = {0, 100000000}, *ts = &tsbuf;
+
+                                 gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
+                                 if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+                                    src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+                                 ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 #ifdef ARGUSDEBUG
                                  ArgusDebug (2, "ArgusGetPackets () pcap_dispatch read 0 packets...sleeping", retn);
 #endif
@@ -4725,9 +4733,8 @@ ArgusGetPackets (void *arg)
                                  gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                                  if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
                                     src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-
                                  ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
-                              }
+                           }
 
 #if !defined(ARGUS_THREADS)
                            ArgusOutputProcess(ArgusOutputTask);
