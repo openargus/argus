@@ -377,8 +377,7 @@ ArgusQueueManager(void *param)
    }
 
 #ifdef ARGUSDEBUG
-/*
-   {
+   if (7 <= Argusdflag) {
       struct timeval now, testime = {0,0}, update = {1,0};
       gettimeofday(&now, 0L);
 
@@ -419,10 +418,8 @@ ArgusQueueManager(void *param)
                testime.tv_usec -= 1000000;
             }
          }
-#endif
       }
    }
-*/
 #endif 
  
    return (retn);
@@ -442,17 +439,8 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
    while ((!done)) {
       if (queue->start != NULL) {
          if ((last = (struct ArgusFlowStruct *) queue->start->prv) != NULL) {
-            struct timeval nowbuf, *now;
-
+            struct timeval *now;
             now = &model->ArgusGlobalTime;
-/*
-            if (ArgusSourceTask->ArgusReadingOffLine) {
-               now = &model->ArgusGlobalTime;
-            } else {
-               now = &nowbuf;
-               gettimeofday(now, 0L);
-            }
-*/
 
             if (queue == model->ArgusStatusQueue) {
                if (ArgusCheckTimeout(model, &last->qhdr.qtime, now, getArgusFarReportInterval(model))) {
