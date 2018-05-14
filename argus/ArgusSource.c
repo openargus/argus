@@ -4519,7 +4519,7 @@ ArgusGetPackets (void *arg)
 
                         } else if (cnt == 0) {
                            if (noPkts++ > 50) {
-                              struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; /* 5 millisec */
+                              struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; // 5 millisec
                               nanosleep(ts, NULL);
 
                               gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
@@ -4613,7 +4613,7 @@ ArgusGetPackets (void *arg)
                               } while (cnt > 0);
 
                               if (!pkts) {
-                                 struct timespec tsbuf = {0, 50000000}, *ts = &tsbuf;
+                                 struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; // 5 milliseconds.
                                  nanosleep(ts, NULL);
 
                                  gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
