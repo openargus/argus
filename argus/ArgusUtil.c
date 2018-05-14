@@ -706,6 +706,7 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
    if ((diff = ArgusTimeDiff(&model->ArgusUpdateTimer, &model->ArgusGlobalTime)) >= 0) {
       retn = 1;
 
+#ifdef ARGUSDEBUG
 #if defined(ARGUS_NANOSECONDS)
       ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%09d global time %d.%09d returning %d\n",
                    model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
@@ -714,6 +715,7 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
       ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%06d global time %d.%06d returning %d\n",
                    model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
                    model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
+#endif
 #endif
 
       model->ArgusUpdateTimer = model->ArgusGlobalTime;
@@ -740,6 +742,7 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
 
    } else {
 
+#ifdef ARGUSDEBUG
 #if defined(ARGUS_NANOSECONDS)
       ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%09d global time %d.%09d returning %d\n",
                    model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
@@ -748,6 +751,7 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
       ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%06d global time %d.%06d returning %d\n",
                    model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
                    model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
+#endif
 #endif
 /*
       if (ArgusSourceTask != NULL) {
