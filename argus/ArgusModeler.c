@@ -75,7 +75,8 @@ static void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *)
 
 static int
 ArgusCheckTimeout(const struct ArgusModelerStruct * const model,
-                  const struct timeval * const ts,
+                  const struct timeval * const ts1,
+                  const struct timeval * const ts2,
                   const struct timeval * const timeout)
 {
    long long diff, tdiff;
@@ -90,7 +91,7 @@ ArgusCheckTimeout(const struct ArgusModelerStruct * const model,
       retn = 0;
    else {
       if ((timeout->tv_sec > 0) || (timeout->tv_usec > 0)) {
-         diff  = ArgusTimeDiff (&model->ArgusGlobalTime, ts);
+         diff  = ArgusTimeDiff (ts1, ts2);
 #if defined(ARGUS_NANOSECONDS)
          tdiff = (timeout->tv_sec * 1000000000LL + timeout->tv_usec);
 #else
@@ -107,10 +108,10 @@ ArgusCheckTimeout(const struct ArgusModelerStruct * const model,
 
 #ifdef ARGUSDEBUG
 #if defined(ARGUS_NANOSECONDS)
-   ArgusDebug (11, "ArgusCheckTimeout (%p, %d.%09d, %d.%09d) diff %f returning %d\n", model, ts->tv_sec, ts->tv_usec,
+   ArgusDebug (11, "ArgusCheckTimeout (%p, %d.%09d, %d.%09d) diff %f returning %d\n", model, ts1->tv_sec, ts1->tv_usec,
                       timeout->tv_sec, timeout->tv_usec, (diff / 1000000000.0), retn);
 #else
-   ArgusDebug (11, "ArgusCheckTimeout (%p, %d.%06d, %d.%06d) diff %f returning %d\n", model, ts->tv_sec, ts->tv_usec,
+   ArgusDebug (11, "ArgusCheckTimeout (%p, %d.%06d, %d.%06d) diff %f returning %d\n", model, ts1->tv_sec, ts1->tv_usec,
                       timeout->tv_sec, timeout->tv_usec, (diff / 1000000.0), retn);
 #endif
 #endif
@@ -186,12 +187,17 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusMinorVersion = VERSION_MINOR;
    model->ArgusSnapLen = ARGUS_MINSNAPLEN;
 
-   model->ArgusUpdateInterval.tv_usec = 200000;
+   gettimeofday (&model->ArgusGlobalTime, 0L);
 
-   if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+   if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
+      model->ArgusGlobalTime.tv_usec *= 1000;
+      model->ArgusUpdateInterval.tv_usec = 500000000;
       model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000000LL) + model->ArgusUpdateInterval.tv_usec);
-   else
+   } else {
+      model->ArgusUpdateInterval.tv_usec = 500000;
       model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000LL) + model->ArgusUpdateInterval.tv_usec);
+   }
+   ArgusModel->ArgusGlobalTime = model->ArgusGlobalTime;
 
    if ((model->ArgusHashTable = ArgusNewHashTable(model->ArgusHashTableSize, debug)) == NULL)
       ArgusLog(LOG_ERR, "%s () ArgusNewHashTable error %s\n",
@@ -217,9 +223,6 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    model->ArgusOutputList = ArgusOutputTask->ArgusInputList;
 
-   gettimeofday (&model->ArgusGlobalTime, 0L);
-   ArgusModel->ArgusGlobalTime = model->ArgusGlobalTime;
-
    if ((model->ArgusThisLLC = (struct llc  *) ArgusCalloc (1, sizeof (struct llc ) + 32)) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
 
@@ -234,7 +237,7 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
          setArgusFlowType (model, ARGUS_UNIDIRECTIONAL);
    }
 
-   model->ArgusQueueInterval.tv_usec  = 50000;
+   model->ArgusQueueInterval.tv_usec  = 250000;
    model->ArgusListenInterval.tv_usec = 250000;
 
    model->ArgusIPTimeout    = (model->ArgusIPTimeout == 0) ? ARGUS_IPTIMEOUT : model->ArgusIPTimeout;
@@ -389,8 +392,7 @@ ArgusQueueManager(void *param)
    }
 
 #ifdef ARGUSDEBUG
-/*
-   {
+   if (7 <= Argusdflag) {
       struct timeval now, testime = {0,0}, update = {1,0};
       gettimeofday(&now, 0L);
 
@@ -431,10 +433,8 @@ ArgusQueueManager(void *param)
                testime.tv_usec -= 1000000;
             }
          }
-#endif
       }
    }
-*/
 #endif 
  
    return (retn);
@@ -445,7 +445,7 @@ void
 ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStruct *queue)
 {
    struct ArgusFlowStruct *last = NULL;
-   int done = 0;
+   int done = 0, count = 0;
 
    queue->turns++;
 #if defined(ARGUS_THREADS)
@@ -454,19 +454,14 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
    while ((!done)) {
       if (queue->start != NULL) {
          if ((last = (struct ArgusFlowStruct *) queue->start->prv) != NULL) {
+            struct timeval *now;
+            now = &model->ArgusGlobalTime;
+
             if (queue == model->ArgusStatusQueue) {
-               struct timeval nowbuf, *now;
-
-               if (ArgusSourceTask->ArgusReadingOffLine) {
-                  now = &model->ArgusGlobalTime;
-               } else {
-                  now = &nowbuf;
-                  gettimeofday(now, 0L);
-               }
-
-               if (ArgusCheckTimeout(model, &last->qhdr.qtime, getArgusFarReportInterval(model))) {
+               if (ArgusCheckTimeout(model, &last->qhdr.qtime, now, getArgusFarReportInterval(model))) {
                   struct ArgusFlowStruct *frag;
 
+                  count++;
                   ArgusRemoveFromQueue(queue, &last->qhdr, ARGUS_NOLOCK);
 
                   if ((frag = (struct ArgusFlowStruct *)last->frag.start) != NULL) {
@@ -475,7 +470,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                         struct ArgusFlowStruct *nxt = (struct ArgusFlowStruct *)frag->qhdr.nxt;
                         ArgusUpdateParentFlow(model, frag);
 
-                        if (ArgusCheckTimeout(model, &frag->qhdr.qtime, &timeout))
+                        if (ArgusCheckTimeout(model, &frag->qhdr.qtime, now, &timeout))
                            ArgusDeleteObject(frag);
 
                         frag = nxt;
@@ -503,9 +498,6 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                      ArgusDeleteObject(last);
 
                } else {
-#ifdef ARGUSDEBUG
-                  ArgusDebug (10, "ArgusProcessQueueTimeout(%p, %p) done with %d records\n", model, queue, queue->count);
-#endif 
                   done++;
                }
 
@@ -513,7 +505,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                struct timeval timeout = {0,0};
                timeout.tv_sec = queue->timeout;
 
-               if (ArgusCheckTimeout(model, &last->qhdr.qtime, &timeout)) {
+               if (ArgusCheckTimeout(model, &last->qhdr.qtime, now, &timeout)) {
                   ArgusRemoveFromQueue(queue, &last->qhdr, ARGUS_NOLOCK);
                   ArgusDeleteObject(last);
                } else {
@@ -532,7 +524,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 #endif
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (10, "ArgusProcessQueueTimeout(%p, %p) done with %d records\n", model, queue, queue->count);
+   ArgusDebug (1, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
 #endif 
 }
 
@@ -1674,8 +1666,8 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
 #endif 
 */
       if (model->ArgusLastPacketTimer.tv_sec) {
-         tdiff  = ArgusTimeDiff (tvp, &model->ArgusLastPacketTimer);
-         rtdiff = ArgusTimeDiff (&model->ArgusNowTime, &model->ArgusAdjustedTimer);
+         tdiff  = ArgusTimeDiff (&model->ArgusLastPacketTimer, tvp);
+         rtdiff = ArgusTimeDiff (&model->ArgusAdjustedTimer, &model->ArgusNowTime);
          tvalue = (int)(rtdiff * value);
 
          if (tvalue > 0) {
@@ -1722,7 +1714,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
                }
 
                gettimeofday(&model->ArgusNowTime, 0L);
-               rtdiff = ArgusTimeDiff (&model->ArgusNowTime, &model->ArgusAdjustedTimer);
+               rtdiff = ArgusTimeDiff (&model->ArgusAdjustedTimer, &model->ArgusNowTime);
                tvalue = (long long)(rtdiff * value);
             }
          }
@@ -1755,7 +1747,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
             if ((queue = flow->qhdr.queue) != NULL) {
                model->ArgusTotalCacheHits++;
                if (queue == model->ArgusStatusQueue) {
-                  if (ArgusCheckTimeout(model, &flow->qhdr.qtime, getArgusFarReportInterval(model))) {
+                  if (ArgusCheckTimeout(model, &flow->qhdr.qtime, &model->ArgusGlobalTime, getArgusFarReportInterval(model))) {
                      ArgusProcessQueueTimeout (model, model->ArgusStatusQueue);
                      ArgusRemoveFromQueue(flow->qhdr.queue, &flow->qhdr, ARGUS_LOCK);
                      ArgusPushQueue(model->ArgusStatusQueue, &flow->qhdr, ARGUS_LOCK);
@@ -1860,7 +1852,7 @@ ArgusProcessIpPacket (struct ArgusModelerStruct *model, struct ip *ip, int lengt
                   model->ArgusTotalCacheHits++;
 
                   if ((queue = flow->qhdr.queue) == model->ArgusStatusQueue) {
-                     if (ArgusCheckTimeout(model, &flow->qhdr.qtime, getArgusFarReportInterval(model))) {
+                     if (ArgusCheckTimeout(model, &flow->qhdr.qtime, &model->ArgusGlobalTime, getArgusFarReportInterval(model))) {
                         if (flow != (struct ArgusFlowStruct *) queue->start->prv)
                            ArgusProcessQueueTimeout (model, model->ArgusStatusQueue);       // if this record is timed out, all entries in status queue need to be timed out
                         if (!(flow->status & ARGUS_RECORD_WRITTEN))
@@ -1957,7 +1949,7 @@ ArgusProcessEtherPacket (struct ArgusModelerStruct *model, struct ether_header *
                if ((queue = flow->qhdr.queue) != NULL) {
                   model->ArgusTotalCacheHits++;
                   if ((queue = flow->qhdr.queue) == model->ArgusStatusQueue) {
-                     if (ArgusCheckTimeout(model, &flow->qhdr.qtime, getArgusFarReportInterval(model))) {
+                     if (ArgusCheckTimeout(model, &flow->qhdr.qtime,  &model->ArgusGlobalTime, getArgusFarReportInterval(model))) {
                         if (flow != (struct ArgusFlowStruct *) queue->start->prv) 
                            ArgusProcessQueueTimeout (model, model->ArgusStatusQueue);       // if this record is not last, other entries in status queue need to be timed out
                         if (!(flow->status & ARGUS_RECORD_WRITTEN))
@@ -2344,7 +2336,17 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       flow->dsrs[ARGUS_TIME_INDEX] = (struct ArgusDSRHeader *) time;
       time->hdr.type               = ARGUS_TIME_DSR;
       time->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
-      time->hdr.argus_dsrvl8.qual  = model->ArgusSrc->timeStampType;
+
+      /* The global time precision must be independent of pcap device
+       * precision.  ArgusGlobalTime is always scaled to nanoseconds,
+       * if argus is compiled with nanosecond support, and always scaled
+       * to microseconds otherwise.
+       */
+#if defined(ARGUS_NANOSECONDS)
+      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_NANOSECONDS;
+#else
+      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
+#endif
       time->hdr.argus_dsrvl8.len   = 3;
 
       if (model->ArgusThisDir) {
@@ -3825,6 +3827,7 @@ ArgusCopyRecordStruct (struct ArgusRecordStruct *rec)
                retn->drate     = rec->drate;
                retn->sload     = rec->sload;
                retn->dload     = rec->dload;
+               retn->dur       = rec->dur;
                retn->pcr       = rec->pcr;
                retn->sploss    = rec->sploss;
                retn->dploss    = rec->dploss;
@@ -4045,6 +4048,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
          retn->drate     = ArgusFetchDstRate(retn);
          retn->sload     = ArgusFetchSrcLoad(retn);
          retn->dload     = ArgusFetchDstRate(retn);
+         retn->dur       = ArgusFetchDuration(retn);
          retn->pcr       = ArgusFetchAppByteRatio(retn);
          retn->sploss    = ArgusFetchPercentSrcLoss(retn);
          retn->dploss    = ArgusFetchPercentDstLoss(retn);
