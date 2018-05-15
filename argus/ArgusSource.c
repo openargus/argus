@@ -4146,7 +4146,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 #if defined(ARGUS_THREADS)
                            if (pthread_mutex_lock(&stask->ArgusDeviceList->lock) == 0) {
                               int i, count = stask->ArgusDeviceList->count;
-                              int per_dev_count = 0;
+                              int per_dev_count;
                            
                               if (count > 0) {
                                  for (i = 0; i < count && !found; i++) {
@@ -4176,7 +4176,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         }
 
                         if (!found && (ArgusSourceCount > 0)) {
-                           int i, per_dev_count = 0;
+                           int i, per_dev_count;
                            for (i = 0; i < ArgusSourceCount && !found; i++) {
                               struct ArgusSourceStruct *src;
                               if ((src = stask->srcs[i]) != NULL) {
@@ -4191,6 +4191,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     int x;
 
                                     pthread_mutex_lock(&device->list->lock);
+                                    per_dev_count = device->list->count;
                                     for (x = 0; x < per_dev_count && !found; x++) {
                                        struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_NOLOCK);
                                        if (!strcmp(dev->name, d->name)) 
