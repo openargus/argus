@@ -312,6 +312,7 @@ main (int argc, char *argv[])
 #if defined(ARGUS_FLEXLM)
    int borrow = 0;
    struct timeval borrow_expire = {0, };
+   sigset_t prev_blocked_signals;
 #endif
 
    ArgusUid = getuid();
@@ -399,15 +400,6 @@ main (int argc, char *argv[])
          }
       }
    }
-
-#if defined(ARGUS_FLEXLM)
-   if (borrow > 0) {
-      gettimeofday(&borrow_expire, NULL);
-      borrow_expire.tv_sec += (86400 * borrow);
-   }
-   license = ArgusLicenseInit((borrow > 0) ? &borrow_expire : NULL);
-   ArgusLicenseCheckout(license); /* exits process on failure */
-#endif
 
    if ((ArgusModel = ArgusNewModeler()) == NULL)
       ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
@@ -669,6 +661,23 @@ main (int argc, char *argv[])
          }
       }
    }
+
+#if defined(ARGUS_FLEXLM)
+   if (borrow > 0) {
+      gettimeofday(&borrow_expire, NULL);
+      borrow_expire.tv_sec += (86400 * borrow);
+   }
+
+   sigfillset(&blocked_signals);
+   if (pthread_sigmask(SIG_BLOCK, &blocked_signals, &prev_blocked_signals) != 0)
+       ArgusLog(LOG_ERR, "unable to block all signals\n");
+
+   license = ArgusLicenseInit((borrow > 0) ? &borrow_expire : NULL);
+   ArgusLicenseCheckout(license); /* exits process on failure */
+   sigemptyset(&blocked_signals);
+   if (pthread_sigmask(SIG_SETMASK, &prev_blocked_signals, NULL) != 0)
+       ArgusLog(LOG_ERR, "unable to unblock all signals\n");
+#endif
 
 #if defined(ARGUS_THREADS)
    pthread_mutex_init(&ArgusMainLock, NULL);
