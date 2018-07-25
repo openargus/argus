@@ -1526,22 +1526,15 @@ ArgusLog (int priority, char *fmt, ...)
    char buf[1024], *ptr;
    struct timeval now;
 
-#ifdef HAVE_SYSLOG
    gettimeofday (&now, 0L);
-
-   (void) snprintf (buf, 1024, "%s ", print_time(&now));
-   ptr = &buf[strlen(buf)];
-#else
-   int i;
-   char *label;
+   buf[0] = 0;
+   ptr = &buf[0];
 
    if (priority == LOG_NOTICE)
       return;
 
-   gettimeofday (&now, 0L);
-
+   if (!daemonflag) {
 #if defined(ARGUS_THREADS)
-   {
       pthread_t ptid;
       char pbuf[128];
       int i;
@@ -1552,13 +1545,11 @@ ArgusLog (int priority, char *fmt, ...)
          snprintf (&pbuf[i*2], 3, "%02hhx", ((char *)&ptid)[i]);
       }
       (void) snprintf (buf, 1024, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
-   }
 #else
-   (void) snprintf (buf, 1024, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
+      (void) snprintf (buf, 1024, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
 #endif
-
-   ptr = &buf[strlen(buf)];
-#endif
+      ptr = &buf[strlen(buf)];
+   }
 
    va_start (ap, fmt);
    (void) vsnprintf (ptr, 1024, fmt, ap);
