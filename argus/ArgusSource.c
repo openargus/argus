@@ -5052,6 +5052,8 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
          setArgusInterfaceStatus(src, 1);
 #endif
          if ((ifr.ifr_flags & IFF_UP) != (src->ArgusInterface[i].ifr.ifr_flags & IFF_UP)) {
+            int loglevel = LOG_INFO;
+
             setArgusInterfaceStatus(src, (src->ArgusInterface[i].ifr.ifr_flags & IFF_UP) ? 1 : 0);
  
             if (!((pcap_lookupnet (src->ArgusInterface[i].ArgusDevice->name, 
@@ -5062,8 +5064,13 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
                src->ArgusInterface[i].ArgusNetMask  = ntohl(src->ArgusInterface[i].ArgusNetMask);
 #endif
             }
-            ArgusLog (LOG_ALERT, "ArgusGetInterfaceStatus: interface %s is %s\n", src->ArgusInterface[i].ifr.ifr_name,
-               (src->ArgusInterface[i].ifr.ifr_flags & IFF_UP) ? "up" : "down");
+
+            if (!(src->ArgusInterface[i].ifr.ifr_flags & IFF_UP))
+                loglevel = LOG_ALERT;
+
+            ArgusLog (loglevel, "ArgusGetInterfaceStatus: interface %s is %s\n",
+                      src->ArgusInterface[i].ifr.ifr_name,
+                      (src->ArgusInterface[i].ifr.ifr_flags & IFF_UP) ? "up" : "down");
          }
 
          pcap_stats (src->ArgusInterface[i].ArgusPd, &src->ArgusInterface[i].ArgusStat);
