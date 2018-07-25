@@ -1567,7 +1567,7 @@ ArgusLog (int priority, char *fmt, ...)
 
    if (daemonflag) {
 #ifdef HAVE_SYSLOG
-      syslog (LOG_ALERT, "%s", buf);
+      syslog (priority, "%s", buf);
 #endif
    } else if (priority <= ArgusLogDisplayPriority) {
       char *label = NULL;
