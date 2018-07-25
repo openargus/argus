@@ -646,8 +646,6 @@ main (int argc, char *argv[])
          } else {
             ArgusSessionId = setsid();
 
-            ArgusLog(LOG_WARNING, "started");
-
             if ((freopen ("/dev/null", "w", stdout)) == NULL)
                ArgusLog (LOG_ERR, "Cannot map stdout to /dev/null");
 
@@ -678,6 +676,8 @@ main (int argc, char *argv[])
    if (pthread_sigmask(SIG_SETMASK, &prev_blocked_signals, NULL) != 0)
        ArgusLog(LOG_ERR, "unable to unblock all signals\n");
 #endif
+
+   ArgusLog(LOG_INFO, "started");
 
 #if defined(ARGUS_THREADS)
    pthread_mutex_init(&ArgusMainLock, NULL);
@@ -954,7 +954,7 @@ ArgusShutDown (void)
    ArgusDeleteMallocList();
 
    if (daemonflag)
-      ArgusLog(LOG_WARNING, "stopped");
+      ArgusLog(LOG_INFO, "stopped");
 
 #if defined(ARGUS_FLEXLM)
    ArgusLicenseCheckin(license);

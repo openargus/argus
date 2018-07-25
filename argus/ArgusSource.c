@@ -4121,8 +4121,12 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
          ArgusThreadCount = 0;
 #endif
 
+#if defined(ARGUSDEBUG)
          if (!(stask->ArgusReadingOffLine))
-            ArgusLog(LOG_ALERT, "started");
+            ArgusDebug(1, "%s started with %d device%s", __func__,
+                       stask->ArgusDeviceList->count,
+                       stask->ArgusDeviceList->count > 1 ? "s" : "");
+#endif
 
          if (daemonflag)
             if (getArguspidflag() && ((ArgusPidFile = ArgusCreatePIDFile (ArgusSourceTask, ArgusPidPath, ArgusProgramName)) == NULL))
