@@ -2478,10 +2478,10 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-PACKAGE_RELEASE='3.3'
-ARGUSPRO_VERSION='1.1'
+PACKAGE_RELEASE='3.4'
+ARGUSPRO_VERSION='1.2'
 
-$as_echo "#define ARGUSPRO_VERSION_STRING \"1.1\"" >>confdefs.h
+$as_echo "#define ARGUSPRO_VERSION_STRING \"1.2\"" >>confdefs.h
 
 
 ac_aux_dir=
