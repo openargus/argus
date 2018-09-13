@@ -363,7 +363,11 @@ ArgusUpdateICMPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
                   } else {
                      if (time->hdr.argus_dsrvl8.len != 5) {
                         time->hdr.subtype          = ARGUS_TIME_ABSOLUTE_RANGE;
-                        time->hdr.argus_dsrvl8.qual = ARGUS_TYPE_UTC_MICROSECONDS;
+#if defined(ARGUS_NANOSECONDS)
+                     time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_NANOSECONDS;
+#else
+                     time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
+#endif
                         time->hdr.argus_dsrvl8.len  = 5;
                      }
 
