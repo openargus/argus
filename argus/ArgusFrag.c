@@ -493,7 +493,11 @@ ArgusUpdateParentFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct 
 
             if (ptime->hdr.subtype == ARGUS_TIME_ABSOLUTE_TIMESTAMP) {
                ptime->hdr.subtype           = ARGUS_TIME_ABSOLUTE_RANGE;
-               ptime->hdr.argus_dsrvl8.qual = ARGUS_TYPE_UTC_MICROSECONDS;
+#if defined(ARGUS_NANOSECONDS)
+               ptime->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_NANOSECONDS;
+#else
+               ptime->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
+#endif
                ptime->hdr.argus_dsrvl8.len  = 5;
                if ((pstime->start.tv_sec  > ftime->src.start.tv_sec) ||
                   ((pstime->start.tv_sec == ftime->src.start.tv_sec) &&
