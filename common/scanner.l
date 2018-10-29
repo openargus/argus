@@ -324,8 +324,8 @@ timexed      return TIMEXED;
 
 [A-Za-z0-9][-_.A-Za-z0-9]*[.A-Za-z0-9] { yylval.s = Argussdup((char *)yytext); return ID; }
 "\\"[^ !()\n\t]+   { yylval.s = Argussdup((char *)yytext + 1); return ID; }
-[^ \[\]\t\n\-_.A-Za-z0-9!<>()&|=]+i { ArgusLog(LOG_ERR, "illegal token: %s\n", yytext); }
-.         { ArgusLog (LOG_ERR, "illegal char '%c'", *yytext); }
+[^ \[\]\t\n\-_.A-Za-z0-9!<>()&|=]+i { ArgusLog(LOG_INFO, "illegal token: %s\n", yytext); }
+.         { ArgusLog (LOG_INFO, "illegal char '%c'", *yytext); }
 
 %%
 void
