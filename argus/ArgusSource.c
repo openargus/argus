@@ -70,6 +70,7 @@
 #endif
 
 #include "ArgusIfnam.h"
+#include "ArgusGetTimeOfDay.h"
 
 void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
@@ -4522,9 +4523,7 @@ ArgusGetPackets (void *arg)
 
       ArgusGetInterfaceStatus(src);
 
-      gettimeofday (&src->ArgusStartTime, 0L);
-      if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-         src->ArgusModel->ArgusStartTime.tv_usec *= 1000;
+      ArgusGetTimeOfDay(src, &src->ArgusStartTime);
 
       for (i = 0; i < ARGUS_MAXINTERFACE; i++)
          fds[i] = -1;
@@ -4602,9 +4601,7 @@ ArgusGetPackets (void *arg)
                               struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; // 5 millisec
                               nanosleep(ts, NULL);
 
-                              gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                              if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+                              ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                               noPkts = 0;
                            }
@@ -4667,16 +4664,12 @@ ArgusGetPackets (void *arg)
                               }
 
                            } else {
-                              gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                              if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+                              ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 
                            }
                         } else {
-                           gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                           if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                              src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+                           ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
                            ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 
                            if (up) {
@@ -4689,9 +4682,7 @@ ArgusGetPackets (void *arg)
                               ArgusDebug (5, "ArgusGetPackets: no interfaces up: sleeping\n");
 #endif
                               nanosleep(ts, NULL);
-                              gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                              if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+                              ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                            }
                         }
@@ -4772,9 +4763,7 @@ ArgusGetPackets (void *arg)
 #endif
                                  nanosleep(ts, NULL);
 
-                                 gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                                 if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                                    src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
+                                 ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
                                  ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                            }
 
@@ -4808,9 +4797,7 @@ ArgusGetPackets (void *arg)
       ArgusOutputProcess(ArgusOutputTask);
 #endif
 
-      gettimeofday (&src->ArgusEndTime, 0L);
-      if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS)
-         src->ArgusEndTime.tv_usec *= 1000;
+      ArgusGetTimeOfDay(src, &src->ArgusEndTime);
    }
 
 #if defined(ARGUS_THREADS)
