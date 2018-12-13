@@ -4693,10 +4693,6 @@ ArgusGetPackets (void *arg)
                            } else {
                                  struct timespec tsbuf = {0, 100000000}, *ts = &tsbuf;
 
-                                 gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                                 if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                                    src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-                                 ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 #ifdef ARGUSDEBUG
                                  ArgusDebug (2, "ArgusGetPackets () pcap_dispatch read 0 packets...sleeping", retn);
 #endif
