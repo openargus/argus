@@ -4598,41 +4598,7 @@ ArgusGetPackets (void *arg)
                                  src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 
-#if defined(ARGUS_NEEDS_LIBPCAP_WORKAROUND)
-/* libpcap workaround */
-                              int pkts = 0, cnt, ret;
-
-                              do {
-                                 cnt = 0;
-                                 for (i = 0; i < src->ArgusInterfaces; i++) {
-                                    if ((fd = fds[i]) != -1) {
-                                       src->ArgusThisIndex = i;
-                                       if ((ret = pcap_dispatch(src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src)) > 0) {
-                                          pkts++;
-                                          cnt += ret;
-                                       } else {
-                                          if (ret < 0)
-                                             noerror = 0;
-                                       }
-                                    }
-                                 }
-                              } while (cnt > 0);
-
-                              if (!pkts) {
-                                 struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; // 5 milliseconds.
-                                 nanosleep(ts, NULL);
-
-                                 gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                                 if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                                    src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-                                 ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
-#ifdef ARGUSDEBUG
-                                 ArgusDebug (9, "ArgusGetPackets: select() timeout %d up interfaces\n", up);
-#endif
-                              }
-#endif
                            }
-
                         } else {
                            gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
                            if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
