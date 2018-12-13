@@ -54,6 +54,8 @@
 #include <pthread.h>
 #endif
 
+#include "ArgusGetTimeOfDay.h"
+
 void *ArgusOutputProcess(void *);
 
 #define ARGUS_SOCKET_PATH  "/tmp/argus.sock"
@@ -82,10 +84,7 @@ ArgusNewOutput (struct ArgusSourceStruct *src, struct ArgusModelerStruct *model)
    if ((retn = (struct ArgusOutputStruct *) ArgusCalloc (1, sizeof (struct ArgusOutputStruct))) == NULL)
      ArgusLog (LOG_ERR, "ArgusNewOutput() ArgusCalloc error %s\n", strerror(errno));
 
-   gettimeofday (&retn->ArgusGlobalTime, 0L);
-   if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-      retn->ArgusGlobalTime.tv_usec *= 1000;
-
+   ArgusGetTimeOfDay(src, &retn->ArgusGlobalTime);
    retn->ArgusStartTime = retn->ArgusGlobalTime;
 
    retn->ArgusReportTime.tv_sec   = retn->ArgusGlobalTime.tv_sec + retn->ArgusMarReportInterval.tv_sec;

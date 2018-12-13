@@ -56,6 +56,7 @@
 #include <argus/extract.h>
 
 #include <argus_ethertype.h>
+#include "ArgusGetTimeOfDay.h"
 
 extern int ArgusShutDownFlag;
 
@@ -187,10 +188,9 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusMinorVersion = VERSION_MINOR;
    model->ArgusSnapLen = ARGUS_MINSNAPLEN;
 
-   gettimeofday (&model->ArgusGlobalTime, 0L);
+   ArgusGetTimeOfDay(model->ArgusSrc, &model->ArgusGlobalTime);
 
    if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
-      model->ArgusGlobalTime.tv_usec *= 1000;
       model->ArgusUpdateInterval.tv_usec = 500000000;
       model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000000LL) + model->ArgusUpdateInterval.tv_usec);
    } else {
