@@ -753,44 +753,6 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
                    model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
 #endif
 #endif
-/*
-      if (ArgusSourceTask != NULL) {
-         if (!(ArgusSourceTask->ArgusReadingOffLine)) {
-            if (llabs(diff) > (ival * 2)) {
-
-// something is wrong, so try to reset the ArgusUpdateTimer, and declare
-// that the timer has popped.  Redefine global timer.
-
-#ifdef ARGUSDEBUG
-               ArgusDebug (8, "ArgusUpdateTime (%p) diff %ld exceeds %d\n", model, diff, ival * 2);
-#endif
-               retn = 1;
-
-               gettimeofday (&model->ArgusGlobalTime, 0L);
-               if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
-                  model->ArgusGlobalTime.tv_usec *= 1000;
-               }
-               ArgusModel->ArgusGlobalTime = model->ArgusGlobalTime;
-
-               model->ArgusUpdateTimer = model->ArgusGlobalTime;
-               model->ArgusUpdateTimer.tv_sec  += model->ArgusUpdateInterval.tv_sec;
-               model->ArgusUpdateTimer.tv_usec += model->ArgusUpdateInterval.tv_usec;
-
-#if defined(ARGUS_NANOSECONDS)
-               if (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
-                  model->ArgusUpdateTimer.tv_sec++;
-                  model->ArgusUpdateTimer.tv_usec -= 1000000000;
-               }
-#else
-               if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
-                  model->ArgusUpdateTimer.tv_sec++;
-                  model->ArgusUpdateTimer.tv_usec -= 1000000;
-               }
-#endif
-            }
-         }
-      }
-*/
    }
 
 #ifdef ARGUSDEBUG
