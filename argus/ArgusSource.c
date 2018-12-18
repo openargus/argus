@@ -4587,9 +4587,10 @@ ArgusGetPackets (void *arg)
                         for (i = 0; i < src->ArgusInterfaces; i++) {
                            if (src->ArgusInterface[i].ArgusPd) {
                               src->ArgusThisIndex = i;
-                              {
-                                 cnt = pcap_dispatch(src->ArgusInterface[i].ArgusPd, src->ArgusPcapDispatchNum, src->ArgusInterface[i].ArgusCallBack, (u_char *)src);
-                              }
+                              cnt = pcap_dispatch(src->ArgusInterface[i].ArgusPd,
+                                                  src->ArgusPcapDispatchNum,
+                                                  src->ArgusInterface[i].ArgusCallBack,
+                                                  (u_char *)src);
                            }
                         }
 
