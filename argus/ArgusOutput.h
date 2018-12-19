@@ -159,7 +159,6 @@ void ArgusInitOutputProcess(void);
 
 void *ArgusOutputProcess(void *);
 
-int ArgusEstablishListen (struct ArgusOutputStruct *, char *);
 int  ArgusTcpWrapper (int, struct sockaddr *);
 
 void ArgusUsr1Sig (int);
@@ -215,7 +214,6 @@ extern struct timeval *getArgusMarReportInterval(struct ArgusOutputStruct *);
 extern void setArgusMarReportInterval(struct ArgusOutputStruct *, char *);
 
 extern void ArgusCheckClientStatus (struct ArgusOutputStruct *, int);
-extern int ArgusEstablishListen (struct ArgusOutputStruct *, char *);
 extern int  ArgusTcpWrapper (int, struct sockaddr *);
 
 extern void ArgusCloseSocket (int);
