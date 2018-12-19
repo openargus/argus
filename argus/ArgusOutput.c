@@ -62,6 +62,9 @@ void *ArgusOutputProcess(void *);
 extern int ArgusFirstTile;
 #endif
 
+static int ArgusEstablishListen(struct ArgusOutputStruct *output, char *errbuf,
+                                size_t errbuflen);
+
 struct timeval *getArgusMarReportInterval(struct ArgusOutputStruct *);
 void setArgusMarReportInterval(struct ArgusOutputStruct *, char *);
 
@@ -213,7 +216,7 @@ ArgusInitOutput (struct ArgusOutputStruct *output)
 
    if (output->ArgusPortNum != 0) {
       char errbuf[256];
-      if (ArgusEstablishListen (output, errbuf) < 0)
+      if (ArgusEstablishListen (output, errbuf, sizeof(errbuf)) < 0)
          ArgusLog (LOG_ERR, "%s", errbuf);
    }
 
@@ -881,8 +884,9 @@ ArgusOutputProcess(void *arg)
 #include <netdb.h>
 #include <sys/un.h>
 
-int
-ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
+static int
+ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
+                      size_t errbuflen)
 {
    int port = output->ArgusPortNum;
    struct ArgusBindAddrStruct *ArgusBindAddrs = NULL;
@@ -973,7 +977,9 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                               if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
                                  output->ArgusLfd[output->ArgusListens++] = s;
                               } else {
-                                 snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() failure", ArgusProgramName);
+                                 snprintf(errbuf, errbuflen,
+                                          "%s: ArgusEstablishListen: listen() failure",
+                                          ArgusProgramName);
                               }
                               break;
 
@@ -982,10 +988,14 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                               break;
                         }
                      } else {
-                        snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() error", ArgusProgramName);
+                        snprintf(errbuf, errbuflen,
+                                 "%s: ArgusEstablishListen: bind() error",
+                                 ArgusProgramName);
                      }
                   } else
-                     snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() error", ArgusProgramName);
+                     snprintf(errbuf, errbuflen,
+                              "%s: ArgusEstablishListen: fcntl() error",
+                              ArgusProgramName);
 
                   if (retn == -1) {
                      close (s);
@@ -993,7 +1003,9 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                   }
 
                } else
-                  snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
+                  snprintf(errbuf, errbuflen,
+                           "%s: ArgusEstablishListen: socket() error",
+                           ArgusProgramName);
 
                hp = hp->ai_next;
 
@@ -1039,17 +1051,25 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                   } else {
                      close (s);
                      s = -1;
-                     snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() failure", ArgusProgramName);
+                     snprintf(errbuf, errbuflen,
+                              "%s: ArgusEstablishListen: listen() failure",
+                              ArgusProgramName);
                   }
                } else {
                   close (s);
                   s = -1;
-                  snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() error", ArgusProgramName);
+                  snprintf(errbuf, errbuflen,
+                           "%s: ArgusEstablishListen: bind() error",
+                           ArgusProgramName);
                }
             } else
-               snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() error", ArgusProgramName);
+               snprintf(errbuf, errbuflen,
+                        "%s: ArgusEstablishListen: fcntl() error",
+                        ArgusProgramName);
          } else
-            snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
+            snprintf(errbuf, errbuflen,
+                     "%s: ArgusEstablishListen: socket() error",
+                     ArgusProgramName);
 #endif
          if (ArgusBindAddrs) {
             if ((ArgusBindAddrs = (struct ArgusBindAddrStruct *)ArgusBindAddrs->nxt) != NULL) {
@@ -1070,7 +1090,9 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
       switch (stat(ARGUS_SOCKET_PATH, &statbuf)) {
          case 0:
             if (unlink(ARGUS_SOCKET_PATH))
-               snprintf(errbuf, 1024, "%s: ArgusEstablishListen: unlink() %s", ArgusProgramName, strerror(errno));
+               snprintf(errbuf, errbuflen,
+                        "%s: ArgusEstablishListen: unlink() %s",
+                        ArgusProgramName, strerror(errno));
             break;
 
          case ENOENT:  break;
@@ -1086,13 +1108,18 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
                   output->ArgusLfd[output->ArgusListens++] = s;
                } else {
-                  snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() %s", ArgusProgramName, strerror(errno));
+                  snprintf(errbuf, errbuflen,
+                           "%s: ArgusEstablishListen: listen() %s",
+                           ArgusProgramName, strerror(errno));
                }
             } else {
-               snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() %s", ArgusProgramName, strerror(errno));
+               snprintf(errbuf, errbuflen,
+                        "%s: ArgusEstablishListen: bind() %s",
+                        ArgusProgramName, strerror(errno));
             }
          } else
-            snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() %s", ArgusProgramName, strerror(errno));
+            snprintf(errbuf, errbuflen, "%s: ArgusEstablishListen: fcntl() %s",
+                     ArgusProgramName, strerror(errno));
 
          if (retn == -1) {
             close (s);
@@ -1100,7 +1127,8 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
          }
 
       } else
-         snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
+         snprintf(errbuf, errbuflen, "%s: ArgusEstablishListen: socket() error",
+                  ArgusProgramName);
    }
      
 #ifdef ARGUSDEBUG
