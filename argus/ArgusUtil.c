@@ -696,7 +696,6 @@ ArgusDeleteObject(struct ArgusFlowStruct *obj)
 int
 ArgusUpdateTime (struct ArgusModelerStruct *model)
 {
-   long long ival = model->ival;
    long long diff;
    int retn = 0;
 
@@ -984,7 +983,6 @@ ArgusAddHashEntry (struct ArgusHashTable *table, struct ArgusFlowStruct *flow, s
    struct ArgusHashTableHeader *retn = NULL, *start = NULL;
 
    if (table != NULL) {
-      unsigned int hash = hstruct->hash;
       unsigned int ind = hstruct->ind;
 
       retn = &flow->htblbuf;
@@ -1029,7 +1027,6 @@ void
 ArgusRemoveHashEntry (struct ArgusHashTableHeader *htblhdr)
 {
    if (htblhdr != NULL) {
-      unsigned int hash = htblhdr->hstruct.hash;
       struct ArgusHashTable *table = htblhdr->htbl;
 
       if (table != NULL) {
