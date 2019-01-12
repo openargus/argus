@@ -177,6 +177,7 @@ struct ArgusDeviceStruct {
    struct ArgusListStruct *list;
 
    struct ArgusSourceStruct *src;
+   struct ArgusMarInterfaceStruct *inf;
 
 #if defined(ARGUS_TILERA)
    netio_input_config_t config;
