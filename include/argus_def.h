@@ -207,7 +207,9 @@ extern "C" {
 #define ARGUS_CLOSED				0x70   /* Argus Initiates Shutdown */
 
 #define ARGUS_ERROR				0x80   /* Error - Major Problem */
-#define ARGUS_SUPPLEMENTAL			0x90   /* Argus Supplemental Record */
+
+#define ARGUS_MAR_SUPPLEMENTAL			0x90   /* Argus Supplemental Record */
+#define ARGUS_MAR_INTERFACE   			0xA0   /* Argus Interface Record */
 
 /*
    Argus  Record Header Option Field
@@ -1974,8 +1976,8 @@ extern "C" {
 #define ARGUS_V2_RMON		0x40    /* New RMON style FAR Record Format */
 
 #define ARGUS_V2_FAR 		0x01    /* Normal Argus Data Record */
-#define ARGUS_V2_DATASUP		0x02    /* New Supplemental Argus Data Record */
-#define ARGUS_V2_ARCHIVE		0x03    /* New Archival Argus Data Record */
+#define ARGUS_V2_DATASUP	0x02    /* New Supplemental Argus Data Record */
+#define ARGUS_V2_ARCHIVE	0x03    /* New Archival Argus Data Record */
 
 
 /* Argus Record Cause */

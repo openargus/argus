@@ -863,6 +863,49 @@ struct ArgusMarSupStruct {
    struct ArgusInputStruct input;
 };
 
+
+#define ARGUS_L2_ADDRESS	0x01
+#define ARGUS_IPV4_ADDRESS	0x02
+#define ARGUS_IPV6_ADDRESS	0x03
+
+struct ArgusIPv4Addr {
+   unsigned int addr, mask;
+};
+
+struct ArgusIPv6Addr {
+   unsigned int addr[4];
+   unsigned int prefixlen;
+};
+
+struct ArgusAddressStruct {
+   unsigned char type, length;
+   unsigned short status;
+
+   union {
+      struct ArgusHAddr    l2addr;
+      struct ArgusIPv4Addr ipv4;
+      struct ArgusIPv6Addr ipv6;
+   } addr;
+};
+
+
+struct ArgusMarInterfaceStruct {
+   unsigned char type, length;
+   unsigned short status;
+
+   unsigned char inf[4];
+   short mtu;
+   struct ArgusAddressStruct addr[];
+};
+
+struct ArgusMarInfStruct {
+   unsigned int status;
+   struct ArgusAddrStruct srcid;
+   struct ArgusTime startime, now;
+
+   struct ArgusMarInterfaceStruct inf[];
+};
+
 struct ArgusFarStruct {
    struct ArgusFlow flow;
 };
@@ -890,6 +933,7 @@ struct ArgusRecord {
    struct ArgusRecordHeader hdr;
    union {
       struct ArgusMarStruct    mar;
+      struct ArgusMarInfStruct inf;
       struct ArgusMarSupStruct sup;
       struct ArgusFarStruct    far;
       struct ArgusEventStruct  event;
@@ -897,6 +941,7 @@ struct ArgusRecord {
 };
 
 #define argus_mar       ar_un.mar
+#define argus_inf       ar_un.inf
 #define argus_sup       ar_un.sup
 #define argus_far       ar_un.far
 #define argus_event     ar_un.event
