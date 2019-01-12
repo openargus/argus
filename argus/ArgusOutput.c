@@ -71,7 +71,7 @@ struct timeval *getArgusMarReportInterval(struct ArgusOutputStruct *);
 void setArgusMarReportInterval(struct ArgusOutputStruct *, char *);
 
 struct ArgusRecord *ArgusGenerateInitialMar (struct ArgusOutputStruct *);
-struct ArgusRecordStruct *ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *, unsigned char);
+struct ArgusRecordStruct *ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *, unsigned char);
 struct ArgusRecordStruct *ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *, unsigned char);
 
 int RaDiffTime (struct timeval *, struct timeval *, struct timeval *);
@@ -1616,18 +1616,78 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
    return (retn);
 }
 
-// The supplemental mar record is designed to extend the descriptions of the sensors, their inputs,
-// providing interfaces, names, interface types, extended argus identifiers (> 4 bytes), 
-// and stats, if appropriate,
+
+// The supplemental mar record is designed to provide extended management information,
+// such as extending the descriptions of the sensors, their inputs, providing interfaces, 
+// names, interface types, extended argus identifiers (> 4 bytes), and stats, if appropriate,
 //
-// This will be the way we provide long argus id's, IPv6, ethernet, and long strings.
-// 
 // Minimally it should provide the argusid, used in all records, and the list of input descriptions,
 // as well as the extended argus id itself.
 
 
 struct ArgusRecordStruct *
 ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *output, unsigned char status)
+{
+   struct ArgusRecordStruct *retn = NULL;
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (4, "ArgusGenerateSupplementalMarRecord(%p, %d) returning 0x%x", output, status, retn);
+#endif
+
+   return (retn);
+}
+
+
+// The mar interface record is designed to provide the hardware and internet addresses assigned
+// to the monitored interfaces on this node.  
+//
+// Minimally it should provide the argusid, the inf, the interface type, hardware address and
+// the configured internet addresses.
+//
+// such as extending the descriptions of the sensors, their inputs, providing interfaces, 
+// names, interface types, extended argus identifiers (> 4 bytes), and stats, if appropriate,
+//
+/*
+struct ArgusIPv4Addr {
+   unsigned int addr, mask;
+};
+
+struct ArgusIPv6Addr {
+   unsigned int addr[4];
+   unsigned int prefixlen;
+};
+
+struct ArgusAddressStruct {
+   unsigned char type, length;
+   unsigned short status;
+
+   union {
+      struct ArgusHAddr    l2addr;
+      struct ArgusIPv4Addr ipv4;
+      struct ArgusIPv6Addr ipv6;
+   } addr;
+};
+
+
+struct ArgusMarInterfaceStruct {
+   unsigned char type, length;
+   unsigned short status;
+
+   unsigned char inf[4];
+   short mtu;
+   struct ArgusAddressStruct addr[];
+};
+
+struct ArgusMarInfStruct {
+   unsigned int status;
+   struct ArgusAddrStruct srcid;
+
+   struct ArgusMarInterfaceStruct inf[];
+};
+*/
+
+struct ArgusRecordStruct *
+ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char status)
 {
    struct ArgusRecordStruct *retn = NULL;
    struct ArgusRecord *rec = NULL;
@@ -1643,74 +1703,40 @@ ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *output, unsigned c
    }
 
    if (retn) {
-      struct ArgusSourceStruct *ArgusSrc = NULL, *aSrc = NULL;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
       struct timeval now;
 
       memset(retn, 0, sizeof(*retn));
       
       retn->hdr.type    = ARGUS_MAR | ARGUS_VERSION;
-      retn->hdr.cause   = ARGUS_SUPPLEMENTAL;
-      retn->hdr.len     = (sizeof(struct ArgusMarSupStruct)/4) + 1;  // have size for one interface, and add as you go
+      retn->hdr.cause   = ARGUS_MAR_INTERFACE;
+      retn->hdr.len     = (sizeof(struct ArgusMarInfStruct)/4) + 1;  // have size for one interface, and add as you go
 
       rec = (struct ArgusRecord *) &retn->canon;
       rec->hdr = retn->hdr;
 
       if (getArgusID(ArgusSourceTask, asptr))
-        bcopy (&asptr->a_un.value, &rec->argus_sup.argusid, sizeof(rec->argus_sup.argusid));
+        bcopy (&asptr->a_un.value, &rec->argus_inf.srcid, sizeof(rec->argus_inf.srcid));
 
       switch (getArgusIDType(ArgusSourceTask)) {
-         case ARGUS_TYPE_STRING: rec->argus_sup.status |= ARGUS_IDIS_STRING; break;
-         case ARGUS_TYPE_INT:    rec->argus_sup.status |= ARGUS_IDIS_INT; break;
-         case ARGUS_TYPE_IPV4:   rec->argus_sup.status |= ARGUS_IDIS_IPV4; break;
-         case ARGUS_TYPE_IPV6:   rec->argus_sup.status |= ARGUS_IDIS_IPV6; break;
-         case ARGUS_TYPE_UUID:   rec->argus_sup.status |= ARGUS_IDIS_UUID; break;
+         case ARGUS_TYPE_STRING: rec->argus_inf.status |= ARGUS_IDIS_STRING; break;
+         case ARGUS_TYPE_INT:    rec->argus_inf.status |= ARGUS_IDIS_INT; break;
+         case ARGUS_TYPE_IPV4:   rec->argus_inf.status |= ARGUS_IDIS_IPV4; break;
+         case ARGUS_TYPE_IPV6:   rec->argus_inf.status |= ARGUS_IDIS_IPV6; break;
+         case ARGUS_TYPE_UUID:   rec->argus_inf.status |= ARGUS_IDIS_UUID; break;
       }
-
-      if (getArgusManInf(ArgusSourceTask) != NULL)
-        rec->argus_sup.status |=  ARGUS_ID_INC_INF;
 
       gettimeofday (&now, 0L);
 
-      rec->argus_sup.startime.tv_sec  = output->ArgusLastMarUpdateTime.tv_sec;
-      rec->argus_sup.startime.tv_usec = output->ArgusLastMarUpdateTime.tv_usec;
+      rec->argus_inf.startime.tv_sec  = output->ArgusLastMarUpdateTime.tv_sec;
+      rec->argus_inf.startime.tv_usec = output->ArgusLastMarUpdateTime.tv_usec;
 
-      rec->argus_sup.now.tv_sec  = now.tv_sec;
-      rec->argus_sup.now.tv_usec = now.tv_usec;
-
-      if ((ArgusSrc = output->ArgusSrc) != NULL) {
-         int x;
-         for (x = 0; x < ARGUS_MAXINTERFACE; x++) {
-            if ((aSrc = ArgusSrc->srcs[x]) != NULL) {
-               if (aSrc->ArgusInterface[0].ArgusPd != NULL) {
-                  int i;
-                  rec->argus_mar.interfaceType = pcap_datalink(aSrc->ArgusInterface[0].ArgusPd);
-                  rec->argus_mar.interfaceStatus = getArgusInterfaceStatus(aSrc);
-
-                  rec->argus_mar.pktsRcvd  = 0;
-                  rec->argus_mar.bytesRcvd = 0;
-                  rec->argus_mar.dropped   = 0;
-
-                  for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
-                     rec->argus_mar.pktsRcvd  += aSrc->ArgusInterface[i].ArgusTotalPkts - 
-                                                 aSrc->ArgusInterface[i].ArgusLastPkts;
-                     rec->argus_mar.bytesRcvd += aSrc->ArgusInterface[i].ArgusTotalBytes -
-                                                 aSrc->ArgusInterface[i].ArgusLastBytes;
-                     rec->argus_mar.dropped   += aSrc->ArgusInterface[i].ArgusStat.ps_drop - 
-                                                 aSrc->ArgusInterface[i].ArgusLastDrop;
-
-                     aSrc->ArgusInterface[i].ArgusLastPkts  = aSrc->ArgusInterface[i].ArgusTotalPkts;
-                     aSrc->ArgusInterface[i].ArgusLastDrop  = aSrc->ArgusInterface[i].ArgusStat.ps_drop;
-                     aSrc->ArgusInterface[i].ArgusLastBytes = aSrc->ArgusInterface[i].ArgusTotalBytes;
-                  }
-               }
-            }
-         }
-      }
+      rec->argus_inf.now.tv_sec  = now.tv_sec;
+      rec->argus_inf.now.tv_usec = now.tv_usec;
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (4, "ArgusGenerateSupplementalMarRecord(%p, %d) returning 0x%x", output, status, retn);
+   ArgusDebug (4, "ArgusGenerateMarInterfaceRecord(%p, %d) returning 0x%x", output, status, retn);
 #endif
 
    return (retn);
