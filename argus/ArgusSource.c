@@ -40,13 +40,19 @@
 #define ArgusSource
 #endif
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+
 #include <stdlib.h>
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
-#include <sys/ioctl.h>
 #include <net/bpf.h>
-#endif
+#include <net/if_dl.h>
 
+#else
+#include <linux/if_packet.h>
+#endif
 
 #if defined(HAVE_NETINET_IN_H)
 #include <netinet/in.h>
@@ -56,15 +62,10 @@
 #include <arpa/inet.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <net/if.h>
 
-#include <linux/if_packet.h>
 #include <net/ethernet.h> /* the L2 protocols */
 
 #include <netdb.h>
@@ -1025,7 +1026,7 @@ ArgusGenerateMarInfStruct(struct ArgusDeviceStruct *dev, pcap_if_t *d)
       while (dev_addr != NULL) {
         struct sockaddr *sa = dev_addr->addr;
         struct ArgusAddressStruct taddrbuf, *taddr = &taddrbuf;
-        int len = 0, plen = 0;
+        int len = 0;
 
         bzero(taddr, sizeof(*taddr));
 /*
@@ -1045,6 +1046,15 @@ struct ArgusAddressStruct {
         if (sa != NULL) {
            taddr->type = sa->sa_family;
            switch (sa->sa_family) {
+#if defined(__APPLE_CC__) || defined(__APPLE__)
+              case AF_LINK: {
+                 struct sockaddr_dl *dl = (struct sockaddr_dl *) sa;
+                 char *addr = (char *)&taddr->addr.l2addr;
+                 len = dl->sdl_alen;
+                 memcpy(addr, LLADDR(dl), len);
+                 break;
+              }
+#else
               case AF_PACKET: {
                  struct sockaddr_ll *ll = (struct sockaddr_ll *) sa;
                  char *addr = (char *)&taddr->addr.l2addr;
@@ -1052,6 +1062,7 @@ struct ArgusAddressStruct {
                  bcopy(&ll->sll_addr, addr, len);
                  break;
               }
+#endif
               case AF_INET: {
                  struct sockaddr_in *sin = (struct sockaddr_in *)sa;
                  char *addr = (char *)&taddr->addr.ipv4.addr;
