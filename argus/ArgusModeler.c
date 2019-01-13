@@ -523,7 +523,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 #endif
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
+   ArgusDebug (8, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
 #endif 
 }
 
