@@ -65,7 +65,9 @@
 #endif
 #endif
 
-#include <pcap.h>
+#else
+#include <linux/if_packet.h>
+#endif
 
 #if defined(HAVE_NETINET_IN_H)
 #include <netinet/in.h>
@@ -79,15 +81,6 @@
 #include <fcntl.h>
 #include <net/if.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <net/if.h>
-
-#include <linux/if_packet.h>
 #include <net/ethernet.h> /* the L2 protocols */
 
 #include <netdb.h>
@@ -1372,7 +1365,7 @@ ArgusGenerateMarInfStruct(struct ArgusDeviceStruct *dev, pcap_if_t *d)
       while (dev_addr != NULL) {
         struct sockaddr *sa = dev_addr->addr;
         struct ArgusAddressStruct taddrbuf, *taddr = &taddrbuf;
-        int len = 0, plen = 0;
+        int len = 0;
 
         bzero(taddr, sizeof(*taddr));
 /*
@@ -1410,6 +1403,7 @@ struct ArgusAddressStruct {
                  bcopy(&ll->sll_addr, addr, len);
                  break;
               }
+#endif
               case AF_INET: {
                  struct sockaddr_in *sin = (struct sockaddr_in *)sa;
                  char *addr = (char *)&taddr->addr.ipv4.addr;
