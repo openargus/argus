@@ -493,6 +493,37 @@ ArgusOutputStatusTime(struct ArgusOutputStruct *output)
 }
 
 
+int
+ArgusOutputMarInfTime(struct ArgusOutputStruct *output)
+{
+   long long dtime;
+   int retn = 0;
+/*
+   struct timeval ArgusMarInfTime;
+   struct timeval ArgusLastMarInfUpdateTime;
+   struct timeval ArgusMarInfReportInterval;
+*/
+
+   if ((dtime = ArgusTimeDiff(&output->ArgusMarInfTime, &output->ArgusGlobalTime)) >= 0) {
+      retn = 1;
+
+      output->ArgusMarInfTime  = output->ArgusGlobalTime;
+      output->ArgusMarInfTime.tv_sec  += getArgusMarInfReportInterval(output)->tv_sec;
+      output->ArgusMarInfTime.tv_usec += getArgusMarInfReportInterval(output)->tv_usec;
+
+      if (output->ArgusMarInfTime.tv_usec > ARGUS_FRACTION_TIME) {
+         output->ArgusMarInfTime.tv_sec++;
+         output->ArgusReportTime.tv_usec -= ARGUS_FRACTION_TIME;
+      }
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (7, "ArgusOutputStatusTime(%p) done", output);
+#endif
+   return (retn);
+}
+
+
 
 void *
 ArgusOutputProcess(void *arg)
@@ -698,6 +729,32 @@ ArgusOutputProcess(void *arg)
                ArgusFreeListRecord (rec);
             }
          }
+
+         if (ArgusOutputMarInfTime(output)) {
+            if ((rec = ArgusGenerateMarInterfaceRecord(output, ARGUS_STATUS)) != NULL) {
+               if (output->ArgusClients) {
+#if defined(ARGUS_THREADS)
+                  pthread_mutex_lock(&output->ArgusClients->lock);
+#endif
+                  if (output->ArgusClients->count) {
+                     struct ArgusClientData *client = (void *)output->ArgusClients->start;
+                     do {
+                        if ((client->fd != -1) && (client->sock != NULL) && client->ArgusClientStart) {
+                           if (ArgusWriteSocket (output, client, rec) < 0) {
+                              ArgusDeleteSocket(output, client);
+                           }
+                        }
+                        client = (void *) client->qhdr.nxt;
+                     } while (client != (void *)output->ArgusClients->start);
+                  }
+#if defined(ARGUS_THREADS)
+                  pthread_mutex_unlock(&output->ArgusClients->lock);
+#endif
+               }
+               ArgusFreeListRecord (rec);
+            }
+         }
+
 
          if (output->ArgusOutputList && !(ArgusListEmpty(list))) {
             int done = 0;
@@ -1897,6 +1954,10 @@ getArgusMarReportInterval(struct ArgusOutputStruct *output) {
    return (&output->ArgusMarReportInterval);
 }
 
+struct timeval *
+getArgusMarInfReportInterval(struct ArgusOutputStruct *output) {
+   return (&output->ArgusMarInfReportInterval);
+}
 
 #include <ctype.h>
 #include <math.h>
@@ -1909,7 +1970,7 @@ setArgusMarReportInterval(struct ArgusOutputStruct *output, char *value)
    struct timeval ovalue, now;
    double thisvalue = 0.0, iptr, fptr;
    int ivalue = 0;
-   char *ptr = NULL;;
+   char *ptr = NULL;
 
    if (tvp != NULL) {
       ovalue = *tvp;
@@ -1947,6 +2008,56 @@ setArgusMarReportInterval(struct ArgusOutputStruct *output, char *value)
 
 #ifdef ARGUSDEBUG
    ArgusDebug (4, "setArgusMarReportInterval(%s) returning\n", value);
+#endif
+}
+
+
+void
+setArgusMarInfReportInterval(struct ArgusOutputStruct *output, char *value)
+{
+   struct timeval *tvp = getArgusMarInfReportInterval(output);
+
+   struct timeval ovalue, now;
+   double thisvalue = 0.0, iptr, fptr;
+   int ivalue = 0;
+   char *ptr = NULL;
+
+   if (tvp != NULL) {
+      ovalue = *tvp;
+      tvp->tv_sec  = 0;
+      tvp->tv_usec = 0;
+   } else {
+      ovalue.tv_sec  = 0;
+      ovalue.tv_usec = 0;
+   }
+
+   if (((ptr = strchr (value, '.')) != NULL) || isdigit((int)*value)) {
+      if (ptr != NULL) {
+         thisvalue = atof(value);
+      } else {
+         if (isdigit((int)*value)) {
+            ivalue = atoi(value);
+            thisvalue = ivalue * 1.0;
+         }
+      }
+
+      fptr =  modf(thisvalue, &iptr);
+
+      tvp->tv_sec = iptr;
+      tvp->tv_usec =  fptr * ARGUS_FRACTION_TIME;
+
+      gettimeofday(&now, 0L);
+      if (output->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+         now.tv_usec *= 1000;
+
+      output->ArgusMarInfTime.tv_sec  = now.tv_sec + tvp->tv_sec;
+      output->ArgusMarInfTime.tv_usec = tvp->tv_usec;
+
+   } else
+      *tvp = ovalue;
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (4, "setArgusMarInfReportInterval(%s) returning\n", value);
 #endif
 }
 
