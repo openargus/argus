@@ -1349,16 +1349,14 @@ __pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf,
 #endif
 
 
-#define ARGUS_INTERFACE_TYPE   0x01
+#define ARGUS_INTERFACE_TYPE	0x01
 
 struct ArgusMarInterfaceStruct *
 ArgusGenerateMarInfStruct(struct ArgusDeviceStruct *dev, pcap_if_t *d)
 {
    struct ArgusMarInterfaceStruct *retn = NULL;
    pcap_addr_t *dev_addr;
-#if !defined(CYGWIN)
    struct ifreq ifr;
-#endif
 
    char *tptr;
 
@@ -1374,7 +1372,7 @@ ArgusGenerateMarInfStruct(struct ArgusDeviceStruct *dev, pcap_if_t *d)
       while (dev_addr != NULL) {
         struct sockaddr *sa = dev_addr->addr;
         struct ArgusAddressStruct taddrbuf, *taddr = &taddrbuf;
-        int len = 0;
+        int len = 0, plen = 0;
 
         bzero(taddr, sizeof(*taddr));
 /*
@@ -1392,6 +1390,7 @@ struct ArgusAddressStruct {
 */
 
         if (sa != NULL) {
+           taddr->type = sa->sa_family;
            switch (sa->sa_family) {
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
               case AF_LINK: {
@@ -1407,18 +1406,14 @@ struct ArgusAddressStruct {
               case AF_PACKET: {
                  struct sockaddr_ll *ll = (struct sockaddr_ll *) sa;
                  char *addr = (char *)&taddr->addr.l2addr;
-                 taddr->type = IANA_AF_802;
                  len = ll->sll_halen;
                  bcopy(&ll->sll_addr, addr, len);
                  break;
               }
-# endif
-#endif
               case AF_INET: {
                  struct sockaddr_in *sin = (struct sockaddr_in *)sa;
                  char *addr = (char *)&taddr->addr.ipv4.addr;
                  char *mask = (char *)&taddr->addr.ipv4.mask;
-                 taddr->type = IANA_AF_IP;
                  len = sizeof(sin->sin_addr.s_addr);
 
                  if (dev_addr->addr) {
@@ -1438,7 +1433,6 @@ struct ArgusAddressStruct {
                  unsigned char n = 0;
                  int i = 0, j = 0;
 
-                 taddr->type = IANA_AF_IP6;
                  len = sizeof(sin6->sin6_addr.s6_addr);
                  bcopy((char *)sin6->sin6_addr.s6_addr, addr, len);
 
@@ -1486,10 +1480,12 @@ struct ArgusAddressStruct {
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "ArgusGenerateMarInfStruct(%p, %p) returning %p\n", dev, d, retn);
+   ArgusDebug (3, "ArgusGenerateMarInfStruct(%p, %p) returning %p\n", dev, d, retn);
 #endif
    return (retn);
 }
+
+
 
 // The syntax for specifying this either on the command line or in this file:
 //    -i ind:all
@@ -4634,12 +4630,6 @@ extern char * ArgusCreatePIDFile (struct ArgusSourceStruct *, char *, char *);
 extern char *ArgusPidFile;
 extern char *ArgusPidPath;
 
-
-#define ARGUS_LAUNCHED      0x01
-#define ARGUS_INITED      0x02
-#define ARGUS_COMPLETE      0x04
-
-
 void
 ArgusSourceProcess (struct ArgusSourceStruct *stask)
 {
@@ -4715,29 +4705,15 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                      src->type       = stask->type;
                   }
 
-               if (device->trans.srcid.a_un.value != 0) {
-                  src->trans = device->trans;
-               } else {
-                  device->trans   = stask->trans;
-                  device->idtype  = stask->type;
-                  src->trans      = stask->trans;
-                  src->type       = stask->type;
-               }
+                  src->ArgusDeviceStr = strdup(device->name);
 
-               ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
-               stask->srcs[ArgusSourceCount++] = src;
-               src->ArgusDeviceStr = strdup(device->name);
-
-               lookup_interface(interfacetable, (const u_char *)device->name);
-
-               if (ArgusInitSource (src) > 0) {
-                  if (new_gid > 0) {
-                     if (setgid(new_gid) < 0)
-                        ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
-                  }
-                  if (new_uid > 0) {
-                     if (setuid(new_uid) < 0)
-                        ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
+                  if (device->trans.srcid.a_un.value != 0) {
+                     src->trans = device->trans;
+                  } else {
+                     device->trans   = stask->trans;
+                     device->idtype  = stask->type;
+                     src->trans      = stask->trans;
+                     src->type       = stask->type;
                   }
 
                      src->status |= ARGUS_LAUNCHED;
@@ -5687,7 +5663,6 @@ pcap_open_offline_with_tstamp_precision() takes an  additional  precision  argum
 #endif
    return (retn);
 }
-
 
 
 void
