@@ -888,7 +888,7 @@ struct ArgusMarInterfaceStruct {
    unsigned short status;
 
    unsigned char inf[4];
-   short mtu;
+   int flags, mtu;
    struct ArgusAddressStruct addr[];
 };
 
