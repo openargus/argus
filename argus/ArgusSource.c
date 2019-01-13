@@ -651,6 +651,7 @@ ArgusInitSource (struct ArgusSourceStruct *src)
       retn = 1;
 
    } else {
+      src->status |= ARGUS_NOSOURCES;
 #ifdef ARGUSDEBUG
       ArgusDebug (1, "ArgusInitSource: no packet sources for device %s.",
                   src->ArgusDeviceStr ? src->ArgusDeviceStr : "(unknown)");
@@ -4156,10 +4157,12 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                }
 
                ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
+               stask->srcs[ArgusSourceCount++] = src;
+               src->ArgusDeviceStr = strdup(device->name);
+
+               lookup_interface(interfacetable, (const u_char *)device->name);
 
                if (ArgusInitSource (src) > 0) {
-                  stask->srcs[ArgusSourceCount++] = src;
-
                   if (new_gid > 0) {
                      if (setgid(new_gid) < 0)
                         ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
@@ -4210,7 +4213,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
          ts->tv_sec += stask->ArgusInterfaceScanInterval;
 
          if (stask->ArgusDeviceStr != NULL && !stask->ArgusReadingOffLine) {
-            char errbuf[PCAP_ERRBUF_SIZE];
 
 //       OK, periodically look for new devices to be created.
 //       For laptops that may be the pflog0 device coming and going.
@@ -4227,7 +4229,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                   if (!(ifa->ifa_flags & IFF_LOOPBACK)) {
                      if (get_interface((const u_char *)ifa->ifa_name, interfacetable) == NULL) {
                         int found = 0;
-                        if (stask->ArgusDeviceList) {
+                        if (stask->ArgusDeviceList->count) {
 #if defined(ARGUS_THREADS)
                            if (pthread_mutex_lock(&stask->ArgusDeviceList->lock) == 0) {
                               int i, count = stask->ArgusDeviceList->count;
@@ -4443,7 +4445,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                      ArgusFree(src);
 
                } else {
-                  if (!(src->status & ARGUS_LAUNCHED)) {
+                  if (!(src->status & (ARGUS_LAUNCHED | ARGUS_NOSOURCES))) {
                      if (ArgusInitSource (src) > 0) {
                         if (new_gid > 0) {
                            if (setgid(new_gid) < 0)
