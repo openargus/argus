@@ -81,7 +81,17 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <net/if.h>
+
+#include <linux/if_packet.h>
+#include <net/ethernet.h> /* the L2 protocols */
+
 #include <netdb.h>
+
 #include <ctype.h>
 #include <argus.h>
 
@@ -896,7 +906,6 @@ ArgusInitSource (struct ArgusSourceStruct *src)
       if (pthread_cond_init(&src->cond, NULL))
          ArgusLog (LOG_ERR, "ArgusInitSource: pthread_cond_init error\n");
 #endif
-
       retn = 1;
 
    } else {
@@ -906,6 +915,9 @@ ArgusInitSource (struct ArgusSourceStruct *src)
                   src->ArgusDeviceStr ? src->ArgusDeviceStr : "(unknown)");
 #endif
    }
+
+   src->status |= ARGUS_INITED;
+
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusInitSource(%p) returning %d\n", src, retn);
 #endif
@@ -1656,6 +1668,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                            ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
 
                   dev->name = strdup(stok);
+
                   dev->status = status;
                   dev->type = type;
                   dev->mode = mode;
@@ -1689,6 +1702,13 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                            dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
                            ArgusLog(LOG_INFO, "mapping interface name %s -> %s\n", dev->name, inf);
                         }
+                     }
+                  }
+
+                  for (d = alldevs; d != NULL; d = d->next) {
+                     if (!(strcmp(dev->name, d->name))) {
+                        dev->inf = ArgusGenerateMarInfStruct(dev, d);
+                        break;
                      }
                   }
 
@@ -4602,7 +4622,6 @@ ArgusNullPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 }
 #endif
 
-#include <sys/ioctl.h>
 
 #if defined(HAVE_SOLARIS)
 #include <sys/sockio.h>
@@ -4682,13 +4701,19 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
             if (device != NULL) {
                struct ArgusSourceStruct *src = NULL;
 
-               src = ArgusCloneSource(stask);
-               clearArgusDevice(src);
+               if ((src = ArgusCloneSource(stask)) != NULL) {
+                  clearArgusDevice(src);
 
-               gettimeofday (&src->marktime, 0L);
+                  src->ArgusDeviceStr = strdup(device->name);
 
-               if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                  src->marktime.tv_usec *= 1000;
+                  if (device->trans.srcid.a_un.value != 0) {
+                     src->trans = device->trans;
+                  } else {
+                     device->trans   = stask->trans;
+                     device->idtype  = stask->type;
+                     src->trans      = stask->trans;
+                     src->type       = stask->type;
+                  }
 
                if (device->trans.srcid.a_un.value != 0) {
                   src->trans = device->trans;
@@ -4715,11 +4740,12 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
                   }
 
-                  src->status |= ARGUS_LAUNCHED;
-                  if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
-                     ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                     src->status |= ARGUS_LAUNCHED;
+                     if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
+                        ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
 
-                  ArgusThreadCount++;
+                     ArgusThreadCount++;
+                  }
                }
             }
 
