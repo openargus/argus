@@ -181,10 +181,6 @@ void ArgusChildExit (int);
 void ArgusClientError(void);
 void ArgusInitClientProcess(struct ArgusClientData *, struct ArgusWfileStruct *);
 
-struct ArgusRecordStruct *ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *, unsigned char);
-
-int ArgusOutputMarInfTime(struct ArgusOutputStruct *);
-
 struct timeval *getArgusMarReportInterval(struct ArgusOutputStruct *);
 void setArgusMarReportInterval(struct ArgusOutputStruct *, char *);
 
