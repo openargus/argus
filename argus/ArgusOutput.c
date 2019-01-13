@@ -498,14 +498,9 @@ ArgusOutputMarInfTime(struct ArgusOutputStruct *output)
 {
    long long dtime;
    int retn = 0;
-/*
-   struct timeval ArgusMarInfTime;
-   struct timeval ArgusLastMarInfUpdateTime;
-   struct timeval ArgusMarInfReportInterval;
-*/
 
    if ((dtime = ArgusTimeDiff(&output->ArgusMarInfTime, &output->ArgusGlobalTime)) >= 0) {
-      retn = 1;
+//    retn = 1;
 
       output->ArgusMarInfTime  = output->ArgusGlobalTime;
       output->ArgusMarInfTime.tv_sec  += getArgusMarInfReportInterval(output)->tv_sec;
