@@ -78,7 +78,6 @@
 #include <fcntl.h>
 #include <net/if.h>
 
-#include <linux/if_packet.h>
 #include <net/ethernet.h> /* the L2 protocols */
 
 #include <netdb.h>
