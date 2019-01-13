@@ -32,6 +32,7 @@
 #define ArgusModeler_h
 
 #define ARGUS_MARSTATUSTIMER	"60"
+#define ARGUS_MARINTERFACETIMER	"60"
 #define ARGUS_FARSTATUSTIMER	"5"
 
 #define ARGUS_INITIMEOUT	5
