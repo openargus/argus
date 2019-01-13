@@ -580,6 +580,7 @@ ArgusInitSource (struct ArgusSourceStruct *src)
       retn = 1;
 
    } else {
+      src->status |= ARGUS_NOSOURCES;
 #ifdef ARGUSDEBUG
       ArgusDebug (1, "ArgusInitSource: no packet sources for device %s.",
                   src->ArgusDeviceStr ? src->ArgusDeviceStr : "(unknown)");
@@ -4660,7 +4661,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                      ArgusFree(src);
 
                } else {
-                  if (!(src->status & ARGUS_LAUNCHED)) {
+                  if (!(src->status & (ARGUS_LAUNCHED | ARGUS_NOSOURCES))) {
                      if (ArgusInitSource (src) > 0) {
                         if (new_gid > 0) {
                            if (setgid(new_gid) < 0)
