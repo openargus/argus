@@ -420,6 +420,7 @@ main (int argc, char *argv[])
 
    setArgusFarReportInterval (ArgusModel, ARGUS_FARSTATUSTIMER);
    setArgusMarReportInterval (ArgusOutputTask,ARGUS_MARSTATUSTIMER);
+   setArgusMarInfReportInterval (ArgusOutputTask,ARGUS_MARINTERFACETIMER);
 
    if (!doconf) {
       snprintf (path, MAXPATHNAMELEN - 1, "/etc/argus.conf");
@@ -1037,7 +1038,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				59
+#define ARGUS_RCITEMS				60
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1098,8 +1099,8 @@ getArguspidflag ()
 #define ARGUS_GENERATE_HASH_METRICS		56
 #define ARGUS_INTERFACE_SCAN_INTERVAL		57
 #define ARGUS_LOG_DISPLAY_PRIORITY		58
+#define ARGUS_MAR_INTERFACE_INTERVAL		59
 
-#define ARGUS_INTERFACE_SCAN_INTERVAL_MAX	60
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MONITOR_ID=",
@@ -1161,8 +1162,11 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_GENERATE_HASH_METRICS=",
    "ARGUS_INTERFACE_SCAN_INTERVAL=",
    "ARGUS_LOG_DISPLAY_PRIORITY=",
+   "ARGUS_MAR_INTERFACE_INTERVAL=",
 };
 
+
+#define ARGUS_INTERFACE_SCAN_INTERVAL_MAX	60
 
 extern pcap_dumper_t *ArgusPcapOutFile;
 extern char *ArgusWriteOutPacketFile;
@@ -1413,6 +1417,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_MAR_STATUS_INTERVAL:
                            setArgusMarReportInterval (ArgusOutputTask, optarg);
+                           break;
+
+                        case ARGUS_MAR_INTERFACE_INTERVAL:
+                           setArgusMarInfReportInterval (ArgusOutputTask, optarg);
                            break;
 
                         case ARGUS_CAPTURE_DATA_LEN:
