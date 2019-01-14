@@ -4330,6 +4330,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
             if (src != NULL) {
                if (src->status & ARGUS_SHUTDOWN) {
+                  stask->status |= ARGUS_SHUTDOWN;
+
                   if (src->status & ARGUS_LAUNCHED) {
                      pthread_t thread;
 
