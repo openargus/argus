@@ -67,7 +67,10 @@
 #include <netdb.h>
 #include <ctype.h>
 #include <argus.h>
+
 #include <libgen.h> /* basename */
+#include <ifaddrs.h>
+
 
 #include <sys/mman.h>
 #include <net/ppp.h>
@@ -130,6 +133,40 @@ get_interface(const u_char *inf, struct anamemem *table)
    }
 
    return (retn);
+}
+
+void
+delete_interface(const u_char *inf)
+{
+   struct anamemem *table = interfacetable;
+   struct anamemem *fap = NULL, *ap = NULL;
+
+   if (inf != NULL) {
+      u_int hash;
+
+      hash  = getnamehash(inf);
+      hash %= (HASHNAMESIZE - 1);
+
+      ap = &table[hash];
+      while (ap->n_nxt && (fap == NULL)) {
+         if (!strcmp((char *)inf, ap->name))
+            fap = ap;
+         else
+            ap = ap->n_nxt;
+      }
+   }
+
+   if (fap != NULL) {
+      free(fap->name);
+      if (fap->n_nxt) {
+         ap = fap->n_nxt;
+         bcopy(fap->n_nxt, fap, sizeof(*fap));
+         if (ap->n_nxt == NULL)
+            free (ap);
+      } else {
+         bzero(fap, sizeof(fap));
+      }
+   }
 }
 
 struct anamemem *
@@ -1328,6 +1365,10 @@ clearArgusDevice (struct ArgusSourceStruct *src)
                ArgusFree(lrec);
             }
          }
+
+         if (device->inf != NULL)
+            ArgusFree(device->inf);
+
          if (device->name != NULL)
             free(device->name);
          ArgusFree(retn);
@@ -4216,8 +4257,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
 //       OK, periodically look for new devices to be created.
 //       For laptops that may be the pflog0 device coming and going.
-
-#include <ifaddrs.h>
 
             if (strstr(stask->ArgusDeviceStr, "all")) {
                struct ifaddrs *ifap, *ifa;
