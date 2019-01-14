@@ -113,8 +113,15 @@ ArgusDeleteList (struct ArgusListStruct *list, int type)
 
              case ARGUS_DEVICE_LIST: {
                 struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) retn;
-                if (device->name != NULL)
+                extern void delete_interface(const u_char *);
+
+                if (device->inf != NULL)
+                   ArgusFree(device->inf);
+
+                if (device->name != NULL) {
+                   delete_interface((const u_char *)device->name);
                    free(device->name);
+                }
                 ArgusFree(retn);
                 break;
              }
