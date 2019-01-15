@@ -49,6 +49,10 @@
 #define ArgusSource
 #endif
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+
 #include <stdlib.h>
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
@@ -74,6 +78,10 @@
 #include <arpa/inet.h>
 #endif
 
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <net/if.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -98,6 +106,8 @@
 void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
+
+int ArgusGetInterfaceFD = -1;
 
 extern int ArgusShutDownFlag;
 
@@ -678,7 +688,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
          case PCAP_ERROR_PROMISC_PERM_DENIED:
 #endif
          case PCAP_ERROR:  {
-            ArgusLog (LOG_WARNING, "ArgusOpenInterface %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
+            ArgusLog (LOG_INFO, "ArgusOpenInterface %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
             pcap_close(inf->ArgusPd);
             inf->ArgusPd = NULL;
             retn = 0;
@@ -2257,12 +2267,12 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
             slen = sizeof(in6.s6_addr);
             bcopy(&in6.s6_addr, buf, slen);
          } else if (rv == 0) {
-            ArgusLog(LOG_WARNING, "invalid IPv6 address \"%s\".\n", optarg);
+            ArgusLog(LOG_INFO, "invalid IPv6 address \"%s\".\n", optarg);
          } else {
-            ArgusLog(LOG_WARNING, "inet_pton: %s\n", strerror(errno));
+            ArgusLog(LOG_INFO, "inet_pton: %s\n", strerror(errno));
          }
 #else
-         ArgusLog(LOG_WARNING, "skipping IPv6 source ID %s; no support.\n",
+         ArgusLog(LOG_INFO, "skipping IPv6 source ID %s; no support.\n",
                   optarg);
 #endif
       } else
@@ -4609,6 +4619,69 @@ extern char *ArgusPidPath;
 #define ARGUS_INITED		0x02
 #define ARGUS_COMPLETE		0x04
 
+struct Argusifaddrs {
+   struct Argusifaddrs  *nxt;   /* Next item in list */
+   char                 *name;  /* Name of interface */
+   unsigned int          flags; /* Flags from SIOCGIFFLAGS */
+   struct sockaddr      *addr;  /* Address of interface */
+   struct sockaddr      *mask;  /* Netmask of interface */
+   union {
+      struct sockaddr   *broadaddr; /* Broadcast address of interface */
+      struct sockaddr   *dstaddr;   /* Point-to-point destination address */
+   } ifu;
+   void                 *data;    /* Address-specific data */
+};
+
+int
+Argus_findall_interfaces(struct Argusifaddrs **aif)
+{
+   struct Argusifaddrs *taif, *laif = NULL;
+   struct ifaddrs *ifa, *ifap;
+   char *ptr;
+   int retn = 0;
+
+   if ((retn =  getifaddrs(&ifap)) != 0)
+      return (-1);
+
+   for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
+      if ((taif = (struct Argusifaddrs *) ArgusCalloc(1, sizeof(*taif))) == NULL)
+         ArgusLog (LOG_ERR, "Argus_findall_interfaces: ArgusCalloc %s\n",  strerror(errno));
+
+      if (ifa->ifa_name != NULL) {
+         if ((ptr = strchr(ifa->ifa_name, ':')) != NULL) {
+            *ptr = '\0';
+         }
+         taif->name = strdup(ifa->ifa_name);
+      }
+
+      taif->flags = ifa->ifa_flags;
+
+      if (laif == NULL) {
+         *aif = taif;
+      } else {
+         laif->nxt = taif;
+      }
+      laif = taif;
+   }
+   freeifaddrs(ifa);
+
+   return (retn);
+}
+
+
+void
+Argus_free_interfaces(struct Argusifaddrs *aifa)
+{
+   while (aifa != NULL) {
+      struct Argusifaddrs *nafa = aifa->nxt;
+      if (aifa->name != NULL)
+         free (aifa->name);
+
+      ArgusFree(aifa);
+      aifa = nafa;
+   }
+}
+
 void
 ArgusSourceProcess (struct ArgusSourceStruct *stask)
 {
@@ -4981,14 +5054,14 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                               lookup_interface(interfacetable, (const u_char *)ifa->name);
 #ifdef ARGUSDEBUG
-                        ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->ifa_name);
+                        ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", afa->name);
 #endif
                      }
                   }
                   if (ifap != NULL)
                      pcap_freealldevs(ifap);
                }
-               freeifaddrs(ifap);
+               Argus_free_interfaces(afap);
             }
          }
          if ((retn = pthread_mutex_lock(&stask->lock))) {
@@ -5652,12 +5725,6 @@ pcap_open_offline_with_tstamp_precision() takes an  additional  precision  argum
 }
 
 
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-
-int ArgusGetInterfaceFD = -1;
 
 void
 ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
