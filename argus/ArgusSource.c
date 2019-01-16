@@ -52,6 +52,7 @@
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
 #include <net/bpf.h>
+#include <pcap.h>
 #include <net/if_dl.h>
 #else
 #if !defined(CYGWIN)
@@ -4758,9 +4759,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         } else {
                         }
 
-                        lookup_interface(interfacetable, (const u_char *)afa->name);
+                        lookup_interface(interfacetable, (const u_char *)ifa->name);
 #ifdef ARGUSDEBUG
-                        ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", afa->name);
+                        ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
 #endif
                      }
                   }
