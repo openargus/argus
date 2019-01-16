@@ -1573,6 +1573,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                                              dev->name, inf);
                                  }
                               }
+                              dev->inf = ArgusGenerateMarInfStruct(dev, d);
                            }
 
                            switch (status) {
