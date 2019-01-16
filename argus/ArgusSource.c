@@ -40,7 +40,7 @@
 #include "argus_config.h"
 #endif
 
-#define ARGUS_NEW_INTERFACE_STRATEGY	1   
+#define ARGUS_NEW_INTERFACE_STRATEGY   1   
 
 #if !defined(ArgusSource)
 #define ArgusSource
@@ -92,6 +92,7 @@
 #include "ArgusIfnam.h"
 #include "ArgusGetTimeOfDay.h"
 
+static char *get_if_description(const char *);
 void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
@@ -1114,7 +1115,7 @@ __pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf,
 #endif
 
 
-#define ARGUS_INTERFACE_TYPE	0x01
+#define ARGUS_INTERFACE_TYPE   0x01
 
 struct ArgusMarInterfaceStruct *
 ArgusGenerateMarInfStruct(struct ArgusDeviceStruct *dev, pcap_if_t *d)
@@ -2749,7 +2750,7 @@ ArgusPppEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #endif
 }
 
-#define PFLOG_RULESET_NAME_SIZE	16
+#define PFLOG_RULESET_NAME_SIZE   16
 
 struct pfloghdr {
    u_int8_t   length;
@@ -4278,27 +4279,68 @@ extern char *ArgusPidFile;
 extern char *ArgusPidPath;
 
 
-#define ARGUS_LAUNCHED		0x01
-#define ARGUS_INITED		0x02
-#define ARGUS_COMPLETE		0x04
+#define ARGUS_LAUNCHED      0x01
+#define ARGUS_INITED      0x02
+#define ARGUS_COMPLETE      0x04
 
-struct Argusifaddrs {
-   struct Argusifaddrs  *nxt;   /* Next item in list */
-   char                 *name;  /* Name of interface */
-   unsigned int          flags; /* Flags from SIOCGIFFLAGS */
-   struct sockaddr      *addr;  /* Address of interface */
-   struct sockaddr      *mask;  /* Netmask of interface */
-   union {
-      struct sockaddr   *broadaddr; /* Broadcast address of interface */
-      struct sockaddr   *dstaddr;   /* Point-to-point destination address */
-   } ifu;
-   void                 *data;    /* Address-specific data */
+struct argus_addr {
+   struct argus_addr *next;
+   struct sockaddr *addr;          /* address */
+   struct sockaddr *netmask;       /* netmask for that address */
+   struct sockaddr *broadaddr;     /* broadcast address for that address */
+   struct sockaddr *dstaddr;       /* P2P destination address for that address */
 };
 
-int
-Argus_findall_interfaces(struct Argusifaddrs **aif)
+typedef struct argus_addr argus_addr_t;
+
+struct argus_if {
+   struct argus_if  *nxt;   /* Next item in list */
+   char             *name;  /* Name of interface */
+   char             *description;  /* description of interface */
+   argus_addr_t     *addr;
+   unsigned int      flags; /* Flags from SIOCGIFFLAGS */
+};
+
+typedef struct argus_if argus_if_t;
+
+#ifndef SA_LEN
+#ifdef HAVE_STRUCT_SOCKADDR_SA_LEN
+#define SA_LEN(addr)    ((addr)->sa_len)
+#else /* HAVE_STRUCT_SOCKADDR_SA_LEN */
+#ifdef HAVE_STRUCT_SOCKADDR_STORAGE
+static size_t
+get_sa_len(struct sockaddr *addr)
 {
-   struct Argusifaddrs *taif, *laif = NULL;
+   switch (addr->sa_family) {
+#ifdef AF_INET
+      case AF_INET: return (sizeof (struct sockaddr_in));
+#endif
+
+#ifdef AF_INET6
+      case AF_INET6: return (sizeof (struct sockaddr_in6));
+#endif
+
+#if (defined(linux) || defined(__Lynx__)) && defined(AF_PACKET)
+      case AF_PACKET: return (sizeof (struct sockaddr_ll));
+#endif
+#if defined(__APPLE_CC__) || defined(__APPLE__)
+      case AF_LINK: { return (sizeof (struct sockaddr_dl));
+#endif
+      default: return (sizeof (struct sockaddr));
+   }
+}
+
+#define SA_LEN(addr)    (get_sa_len(addr))
+#else /* HAVE_STRUCT_SOCKADDR_STORAGE */
+#define SA_LEN(addr)    (sizeof (struct sockaddr))
+#endif /* HAVE_STRUCT_SOCKADDR_STORAGE */
+#endif /* HAVE_STRUCT_SOCKADDR_SA_LEN */
+#endif /* SA_LEN */
+
+int
+Argus_findall_interfaces(argus_if_t **aif)
+{
+   argus_if_t *taif, *laif = NULL;
    struct ifaddrs *ifa, *ifap;
    char *ptr;
    int retn = 0;
@@ -4307,7 +4349,10 @@ Argus_findall_interfaces(struct Argusifaddrs **aif)
       return (-1);
 
    for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
-      if ((taif = (struct Argusifaddrs *) ArgusCalloc(1, sizeof(*taif))) == NULL)
+      struct sockaddr *addr, *mask, *broadaddr, *dstaddr;
+      size_t addr_size, broadaddr_size, dstaddr_size;
+
+      if ((taif = (struct argus_if *) ArgusCalloc(1, sizeof(*taif))) == NULL)
          ArgusLog (LOG_ERR, "Argus_findall_interfaces: ArgusCalloc %s\n",  strerror(errno));
 
       if (ifa->ifa_name != NULL) {
@@ -4317,7 +4362,51 @@ Argus_findall_interfaces(struct Argusifaddrs **aif)
          taif->name = strdup(ifa->ifa_name);
       }
 
-      taif->flags = ifa->ifa_flags;
+      taif->description = get_if_description(ifa->ifa_name);
+
+#ifdef IFF_LOOPBACK
+      if (ifa->ifa_flags & IFF_LOOPBACK)
+         taif->flags |= PCAP_IF_LOOPBACK;
+#else   
+        /* 
+         * We don't have IFF_LOOPBACK, so look at the device name to
+         * see if it looks like a loopback device.
+         */
+        if (taif->name[0] == 'l' && taif->name[1] == 'o' && (isdigit((unsigned char)(taif->name[2])) || taif->name[2] == '\0')
+           taif->flags |= PCAP_IF_LOOPBACK;
+#endif 
+#ifdef IFF_UP
+        if (ifa->ifa_flags & IFF_UP)
+           taif->flags |= PCAP_IF_UP;
+#endif 
+#ifdef IFF_RUNNING
+        if (ifa->ifa_flags & IFF_RUNNING)
+           taif->flags |= PCAP_IF_RUNNING;
+#endif 
+
+      if (ifa->ifa_addr != NULL) {
+         addr = ifa->ifa_addr;
+         addr_size = SA_LEN(addr);
+         mask = ifa->ifa_netmask;
+      } else {
+         addr = NULL;
+         addr_size = 0;
+         mask = NULL;
+      }
+      if (ifa->ifa_flags & IFF_BROADCAST && ifa->ifa_broadaddr != NULL) {
+         broadaddr = ifa->ifa_broadaddr;
+         broadaddr_size = SA_LEN(broadaddr);
+      } else {
+         broadaddr = NULL;
+         broadaddr_size = 0;
+      }
+      if (ifa->ifa_flags & IFF_POINTOPOINT && ifa->ifa_dstaddr != NULL) {
+         dstaddr = ifa->ifa_dstaddr;
+         dstaddr_size = SA_LEN(ifa->ifa_dstaddr);
+      } else {
+         dstaddr = NULL;
+         dstaddr_size = 0;
+      }
 
       if (laif == NULL) {
          *aif = taif;
@@ -4333,10 +4422,10 @@ Argus_findall_interfaces(struct Argusifaddrs **aif)
 
 
 void
-Argus_free_interfaces(struct Argusifaddrs *aifa)
+Argus_free_interfaces(struct argus_if *aifa)
 {
    while (aifa != NULL) {
-      struct Argusifaddrs *nafa = aifa->nxt;
+      struct argus_if *nafa = aifa->nxt;
       if (aifa->name != NULL)
          free (aifa->name);
 
@@ -4459,8 +4548,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
          struct timespec tsbuf, *ts = &tsbuf;
          int retn = 0, i;
 
-	 /* non-zero when the stask->srcs[] array needs to be
-	  * compacted due to source removal
+    /* non-zero when the stask->srcs[] array needs to be
+     * compacted due to source removal
           */
          int source_closed;
 
@@ -4476,7 +4565,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 //       For laptops that may be the pflog0 device coming and going.
 
             if (strstr(stask->ArgusDeviceStr, "all")) {
-               struct Argusifaddrs *afap, *afa;
+               struct argus_if *afap, *afa;
 
                Argus_findall_interfaces (&afap);
 
@@ -4788,7 +4877,7 @@ ArgusGetPackets (void *arg)
       FD_ZERO(&ArgusWriteMask);
       FD_ZERO(&ArgusExceptMask);
 
-#define ARGUS_INTERFACE_TIMEOUT	500000
+#define ARGUS_INTERFACE_TIMEOUT   500000
       wait.tv_sec = 0; wait.tv_usec = ARGUS_INTERFACE_TIMEOUT;
 
       ArgusGetInterfaceStatus(src);
@@ -5691,4 +5780,141 @@ cpack_uint8(struct cpack_state *cs, u_int8_t *u)
    /* Move pointer past the u_int8_t. */
    cs->c_next++;
    return 0;
+}
+
+
+static char *
+#ifdef SIOCGIFDESCR
+get_if_description(const char *name)
+{
+   char *description = NULL;
+   int s;
+   struct ifreq ifrdesc;
+#ifndef IFDESCRSIZE
+   size_t descrlen = 64;
+#else
+   size_t descrlen = IFDESCRSIZE;
+#endif /* IFDESCRSIZE */
+
+   /*
+    * Get the description for the interface.
+    */
+   memset(&ifrdesc, 0, sizeof ifrdesc);
+   strlcpy(ifrdesc.ifr_name, name, sizeof ifrdesc.ifr_name);
+   s = socket(AF_INET, SOCK_DGRAM, 0);
+   if (s >= 0) {
+#ifdef __FreeBSD__
+      /*
+       * On FreeBSD, if the buffer isn't big enough for the
+       * description, the ioctl succeeds, but the description
+       * isn't copied, ifr_buffer.length is set to the description
+       * length, and ifr_buffer.buffer is set to NULL.
+       */
+      for (;;) {
+         free(description);
+         if ((description = malloc(descrlen)) != NULL) {
+            ifrdesc.ifr_buffer.buffer = description;
+            ifrdesc.ifr_buffer.length = descrlen;
+            if (ioctl(s, SIOCGIFDESCR, &ifrdesc) == 0) {
+               if (ifrdesc.ifr_buffer.buffer ==
+                   description)
+                  break;
+               else
+                  descrlen = ifrdesc.ifr_buffer.length;
+            } else {
+               /*
+                * Failed to get interface description.
+                */
+               free(description);
+               description = NULL;
+               break;
+            }
+         } else
+            break;
+      }
+#else /* __FreeBSD__ */
+      /*
+       * The only other OS that currently supports
+       * SIOCGIFDESCR is OpenBSD, and it has no way
+       * to get the description length - it's clamped
+       * to a maximum of IFDESCRSIZE.
+       */
+      if ((description = malloc(descrlen)) != NULL) {
+         ifrdesc.ifr_data = (caddr_t)description;
+         if (ioctl(s, SIOCGIFDESCR, &ifrdesc) != 0) {
+            /*
+             * Failed to get interface description.
+             */
+            free(description);
+            description = NULL;
+         }
+      }
+#endif /* __FreeBSD__ */
+      close(s);
+      if (description != NULL && strlen(description) == 0) {
+         /*
+          * Description is empty, so discard it.
+          */
+         free(description);
+         description = NULL;
+      }
+   }
+
+#ifdef __FreeBSD__
+   /*
+    * For FreeBSD, if we didn't get a description, and this is
+    * a device with a name of the form usbusN, label it as a USB
+    * bus.
+    */
+   if (description == NULL) {
+      if (strncmp(name, "usbus", 5) == 0) {
+         /*
+          * OK, it begins with "usbus".
+          */
+         long busnum;
+         char *p;
+
+         errno = 0;
+         busnum = strtol(name + 5, &p, 10);
+         if (errno == 0 && p != name + 5 && *p == '\0' &&
+             busnum >= 0 && busnum <= INT_MAX) {
+            /*
+             * OK, it's a valid number that's not
+             * bigger than INT_MAX.  Construct
+             * a description from it.
+             */
+            static const char descr_prefix[] = "USB bus number ";
+            size_t descr_size;
+
+            /*
+             * Allow enough room for a 32-bit bus number.
+             * sizeof (descr_prefix) includes the
+             * terminating NUL.
+             */
+            descr_size = sizeof (descr_prefix) + 10;
+            description = malloc(descr_size);
+            if (description != NULL) {
+               pcap_snprintf(description, descr_size,
+                   "%s%ld", descr_prefix, busnum);
+            }
+         }
+      }
+   }
+#endif
+   return (description);
+}
+#else /* SIOCGIFDESCR */
+get_if_description(const char *name)
+{
+   return (NULL);
+}
+#endif /* SIOCGIFDESCR */
+
+static struct sockaddr *
+Argus_dup_sockaddr(struct sockaddr *sa, size_t sa_length)
+{
+   struct sockaddr *newsa;
+   if ((newsa = malloc(sa_length)) == NULL)
+      return (NULL);
+   return (memcpy(newsa, sa, sa_length));
 }
