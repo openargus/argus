@@ -613,14 +613,15 @@ ArgusInitSource (struct ArgusSourceStruct *src)
          ArgusLog (LOG_ERR, "ArgusInitSource: no interfaces\n");
 #endif
 
-      pcap_freealldevs(src->ArgusPacketDevices);
 
 #if defined(CYGWIN)
+      pcap_freealldevs(src->ArgusPacketDevices);
       exit(1);
 #else
 #if !defined(ARGUS_NEW_INTERFACE_STRATEGY)
       setArgusDevice (src, src->ArgusPacketDevices->name, ARGUS_LIVE_DEVICE, 0);
 #endif
+      pcap_freealldevs(src->ArgusPacketDevices);
 #endif
    }
 
@@ -1246,7 +1247,7 @@ struct ArgusAddressStruct {
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (3, "ArgusGenerateMarInfStruct(%p, %p) returning %p\n", dev, d, retn);
+   ArgusDebug (2, "ArgusGenerateMarInfStruct(%p, %p) returning %p\n", dev, d, retn);
 #endif
    return (retn);
 }
@@ -1383,6 +1384,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                                              dev->name, inf);
                                  }
                               }
+                              dev->inf = ArgusGenerateMarInfStruct(dev, d);
                            }
 
                            switch (status) {
