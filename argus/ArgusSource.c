@@ -1381,7 +1381,6 @@ struct ArgusAddressStruct {
 */
 
         if (sa != NULL) {
-           taddr->type = sa->sa_family;
            switch (sa->sa_family) {
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
               case AF_LINK: {
@@ -1397,6 +1396,7 @@ struct ArgusAddressStruct {
               case AF_PACKET: {
                  struct sockaddr_ll *ll = (struct sockaddr_ll *) sa;
                  char *addr = (char *)&taddr->addr.l2addr;
+                 taddr->type = IANA_AF_802;
                  len = ll->sll_halen;
                  bcopy(&ll->sll_addr, addr, len);
                  break;
@@ -1406,6 +1406,7 @@ struct ArgusAddressStruct {
                  struct sockaddr_in *sin = (struct sockaddr_in *)sa;
                  char *addr = (char *)&taddr->addr.ipv4.addr;
                  char *mask = (char *)&taddr->addr.ipv4.mask;
+                 taddr->type = IANA_AF_IP;
                  len = sizeof(sin->sin_addr.s_addr);
 
                  if (dev_addr->addr) {
@@ -1425,6 +1426,7 @@ struct ArgusAddressStruct {
                  unsigned char n = 0;
                  int i = 0, j = 0;
 
+                 taddr->type = IANA_AF_IP6;
                  len = sizeof(sin6->sin6_addr.s6_addr);
                  bcopy((char *)sin6->sin6_addr.s6_addr, addr, len);
 
