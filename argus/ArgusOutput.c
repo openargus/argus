@@ -505,6 +505,7 @@ ArgusOutputMarInfTime(struct ArgusOutputStruct *output)
    int retn = 0;
 
    if ((dtime = ArgusTimeDiff(&output->ArgusMarInfTime, &output->ArgusGlobalTime)) >= 0) {
+// For now always return 0.
 //    retn = 1;
 
       output->ArgusMarInfTime  = output->ArgusGlobalTime;
