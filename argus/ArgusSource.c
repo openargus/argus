@@ -1474,7 +1474,7 @@ struct ArgusAddressStruct {
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (3, "ArgusGenerateMarInfStruct(%p, %p) returning %p\n", dev, d, retn);
+   ArgusDebug (2, "ArgusGenerateMarInfStruct(%p, %p) returning %p\n", dev, d, retn);
 #endif
    return (retn);
 }
@@ -1619,6 +1619,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                                              dev->name, inf);
                                  }
                               }
+                              dev->inf = ArgusGenerateMarInfStruct(dev, d);
                            }
 
                            switch (status) {
