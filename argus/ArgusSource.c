@@ -45,12 +45,14 @@
 #include <sys/ioctl.h>
 
 #include <stdlib.h>
+
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
 #include <net/bpf.h>
+#include <pcap.h>
 #include <net/if_dl.h>
-
 #else
+#include <pcap.h>
 #include <linux/if_packet.h>
 #endif
 
@@ -82,6 +84,8 @@
 #if !defined(PPP_HDRLEN)
 #define PPP_HDRLEN      4       /* length of PPP header */
 #endif
+
+#include <ArgusSource.h>
 
 #include "ArgusIfnam.h"
 #include "ArgusGetTimeOfDay.h"
@@ -573,9 +577,6 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
    return retn;
 }
 
-#if defined(CYGWIN)
-#include <pcap.h>
-#endif
 
 #define MAX_RECEIVE_PACKETS (2000)
 
@@ -4357,156 +4358,6 @@ extern char *ArgusPidPath;
 #define ARGUS_INITED      0x02
 #define ARGUS_COMPLETE      0x04
 
-struct argus_addr {
-   struct argus_addr *next;
-   struct sockaddr *addr;          /* address */
-   struct sockaddr *netmask;       /* netmask for that address */
-   struct sockaddr *broadaddr;     /* broadcast address for that address */
-   struct sockaddr *dstaddr;       /* P2P destination address for that address */
-};
-
-typedef struct argus_addr argus_addr_t;
-
-struct argus_if {
-   struct argus_if  *nxt;   /* Next item in list */
-   char             *name;  /* Name of interface */
-   char             *description;  /* description of interface */
-   argus_addr_t     *addr;
-   unsigned int      flags; /* Flags from SIOCGIFFLAGS */
-};
-
-typedef struct argus_if argus_if_t;
-
-#ifndef SA_LEN
-#ifdef HAVE_STRUCT_SOCKADDR_SA_LEN
-#define SA_LEN(addr)    ((addr)->sa_len)
-#else /* HAVE_STRUCT_SOCKADDR_SA_LEN */
-#ifdef HAVE_STRUCT_SOCKADDR_STORAGE
-static size_t
-get_sa_len(struct sockaddr *addr)
-{
-   switch (addr->sa_family) {
-#ifdef AF_INET
-      case AF_INET: return (sizeof (struct sockaddr_in));
-#endif
-
-#ifdef AF_INET6
-      case AF_INET6: return (sizeof (struct sockaddr_in6));
-#endif
-
-#if (defined(linux) || defined(__Lynx__)) && defined(AF_PACKET)
-      case AF_PACKET: return (sizeof (struct sockaddr_ll));
-#endif
-#if defined(__APPLE_CC__) || defined(__APPLE__)
-      case AF_LINK: { return (sizeof (struct sockaddr_dl));
-#endif
-      default: return (sizeof (struct sockaddr));
-   }
-}
-
-#define SA_LEN(addr)    (get_sa_len(addr))
-#else /* HAVE_STRUCT_SOCKADDR_STORAGE */
-#define SA_LEN(addr)    (sizeof (struct sockaddr))
-#endif /* HAVE_STRUCT_SOCKADDR_STORAGE */
-#endif /* HAVE_STRUCT_SOCKADDR_SA_LEN */
-#endif /* SA_LEN */
-
-int
-Argus_findall_interfaces(argus_if_t **aif)
-{
-   argus_if_t *taif, *laif = NULL;
-   struct ifaddrs *ifa, *ifap;
-   char *ptr;
-   int retn = 0;
-
-   if ((retn =  getifaddrs(&ifap)) != 0)
-      return (-1);
-
-   for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
-      struct sockaddr *addr, *mask, *broadaddr, *dstaddr;
-      size_t addr_size, broadaddr_size, dstaddr_size;
-
-      if ((taif = (struct argus_if *) ArgusCalloc(1, sizeof(*taif))) == NULL)
-         ArgusLog (LOG_ERR, "Argus_findall_interfaces: ArgusCalloc %s\n",  strerror(errno));
-
-      if (ifa->ifa_name != NULL) {
-         if ((ptr = strchr(ifa->ifa_name, ':')) != NULL) {
-            *ptr = '\0';
-         }
-         taif->name = strdup(ifa->ifa_name);
-      }
-
-      taif->description = get_if_description(ifa->ifa_name);
-
-#ifdef IFF_LOOPBACK
-      if (ifa->ifa_flags & IFF_LOOPBACK)
-         taif->flags |= PCAP_IF_LOOPBACK;
-#else   
-        /* 
-         * We don't have IFF_LOOPBACK, so look at the device name to
-         * see if it looks like a loopback device.
-         */
-        if (taif->name[0] == 'l' && taif->name[1] == 'o' && (isdigit((unsigned char)(taif->name[2])) || taif->name[2] == '\0')
-           taif->flags |= PCAP_IF_LOOPBACK;
-#endif 
-#ifdef IFF_UP
-        if (ifa->ifa_flags & IFF_UP)
-           taif->flags |= PCAP_IF_UP;
-#endif 
-#ifdef IFF_RUNNING
-        if (ifa->ifa_flags & IFF_RUNNING)
-           taif->flags |= PCAP_IF_RUNNING;
-#endif 
-
-      if (ifa->ifa_addr != NULL) {
-         addr = ifa->ifa_addr;
-         addr_size = SA_LEN(addr);
-         mask = ifa->ifa_netmask;
-      } else {
-         addr = NULL;
-         addr_size = 0;
-         mask = NULL;
-      }
-      if (ifa->ifa_flags & IFF_BROADCAST && ifa->ifa_broadaddr != NULL) {
-         broadaddr = ifa->ifa_broadaddr;
-         broadaddr_size = SA_LEN(broadaddr);
-      } else {
-         broadaddr = NULL;
-         broadaddr_size = 0;
-      }
-      if (ifa->ifa_flags & IFF_POINTOPOINT && ifa->ifa_dstaddr != NULL) {
-         dstaddr = ifa->ifa_dstaddr;
-         dstaddr_size = SA_LEN(ifa->ifa_dstaddr);
-      } else {
-         dstaddr = NULL;
-         dstaddr_size = 0;
-      }
-
-      if (laif == NULL) {
-         *aif = taif;
-      } else {
-         laif->nxt = taif;
-      }
-      laif = taif;
-   }
-   freeifaddrs(ifa);
-
-   return (retn);
-}
-
-
-void
-Argus_free_interfaces(struct argus_if *aifa)
-{
-   while (aifa != NULL) {
-      struct argus_if *nafa = aifa->nxt;
-      if (aifa->name != NULL)
-         free (aifa->name);
-
-      ArgusFree(aifa);
-      aifa = nafa;
-   }
-}
 
 void
 ArgusSourceProcess (struct ArgusSourceStruct *stask)
@@ -4639,13 +4490,15 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 //       For laptops that may be the pflog0 device coming and going.
 
             if (strstr(stask->ArgusDeviceStr, "all")) {
-               struct argus_if *afap, *afa;
+               pcap_if_t *ifap = NULL, *ifa = NULL;
+               char errbuf[1024];
 
-               Argus_findall_interfaces (&afap);
+               if ((pcap_findalldevs_nochecks(&ifap, errbuf)) != 0)
+                  ArgusLog(LOG_ERR, "ArgusSourceProcess: pcap_findalldevs_nochecks error: %s\n", errbuf);
 
-               for (afa = afap; afa; afa = afa->nxt) {
-                  if (!(afa->flags & IFF_LOOPBACK)) {
-                     if (get_interface((const u_char *)afa->name, interfacetable) == NULL) {
+               for (ifa = ifap; ifa; ifa = ifa->next) {
+                  if (!(ifa->flags & PCAP_IF_LOOPBACK)) {
+                     if (get_interface((const u_char *)ifa->name, interfacetable) == NULL) {
                         int found = 0;
                         if (stask->ArgusDeviceList->count) {
 #if defined(ARGUS_THREADS)
@@ -4657,13 +4510,13 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                  for (i = 0; i < count && !found; i++) {
                                     struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(stask->ArgusDeviceList, ARGUS_NOLOCK);
                                     if (device != NULL) {
-                                       if (!strcmp(device->name, afa->name)) 
+                                       if (!strcmp(device->name, ifa->name)) 
                                           found = 1;
                                        if (device->list && (per_dev_count = device->list->count)) {
                                           int x;
                                           for (x = 0; x < per_dev_count && !found; x++) {
                                              struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
-                                             if (!strcmp(dev->name, afa->name))
+                                             if (!strcmp(dev->name, ifa->name))
                                                 found = 1;
                                              ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
                                           }
@@ -4689,7 +4542,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                  struct ArgusDeviceStruct *device;
 
                                  device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
-                                 if (!strcmp(device->name, afa->name)) 
+                                 if (!strcmp(device->name, ifa->name)) 
                                     found = 1;
 
                                  if (device->list) {
@@ -4699,7 +4552,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     per_dev_count = device->list->count;
                                     for (x = 0; x < per_dev_count && !found; x++) {
                                        struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_NOLOCK);
-                                       if (!strcmp(dev->name, afa->name)) 
+                                       if (!strcmp(dev->name, ifa->name)) 
                                           found = 1;
                                        ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_NOLOCK);
                                     }
@@ -4716,7 +4569,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                            struct ArgusDeviceStruct *dev = NULL;
                            char *srcid = NULL, *dlt = NULL, *sptr;
 
-                           ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", afa->name);
+                           ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", ifa->name);
 
                            if ((sptr = strchr (stask->ArgusDeviceStr, '/')) != NULL)
                               srcid = sptr;
@@ -4724,7 +4577,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                            if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*dev))) == NULL)
                               ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
 
-                           dev->name = strdup(afa->name);
+                           dev->name = strdup(ifa->name);
                            dev->status = status;
                            dev->type = type;
                            dev->mode = mode;
@@ -4800,14 +4653,14 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                            }
                         }
 
-                        lookup_interface(interfacetable, (const u_char *)afa->name);
+                        lookup_interface(interfacetable, (const u_char *)ifa->name);
 #ifdef ARGUSDEBUG
-                        ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", afa->name);
+                        ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
 #endif
                      }
                   }
                }
-               Argus_free_interfaces(afap);
+               pcap_freealldevs(ifap);
             }
          }
          if ((retn = pthread_mutex_lock(&stask->lock))) {
