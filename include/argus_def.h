@@ -2280,6 +2280,37 @@ extern "C" {
 
 #define ARGUS_V2_AGR_NORMALIZED  		0x0100
 
+#define IANA_AF_IP				1
+#define IANA_AF_IP6				2
+#define IANA_AF_NSAP				3
+#define IANA_AF_HDLC				4
+#define IANA_AF_BBN_1822			5
+#define IANA_AF_802				6
+#define IANA_AF_E163				7
+#define IANA_AF_E164				8
+#define IANA_AF_F69				9
+#define IANA_AF_X121				10
+#define IANA_AF_IPX				11
+#define IANA_AF_APPLETALK			12
+#define IANA_AF_DECNET				13
+#define IANA_AF_BANYANVINES			14
+#define IANA_AF_E164_NSAP			15
+#define IANA_AF_DNS				16
+#define IANA_AF_DISTINQUISHED_NAME		17
+#define IANA_AF_AS_NUM				18
+#define IANA_AF_XTP_IPV4			19
+#define IANA_AF_XTP_IPV6			20
+#define IANA_AF_XTP_NATIVE			21
+#define IANA_AF_FIBERCHANNEL_PORT		22
+#define IANA_AF_FIBERCHANNEL_NODE		23
+#define IANA_AF_GWID				24
+#define IANA_AF_AFI				25
+#define IANA_AF_MPLS_TP_SECTION			26
+#define IANA_AF_MPLS_TP_LSP			27
+#define IANA_AF_MPLS_TP_PWIRE			28
+#define IANA_AF_MT_IP				29
+#define IANA_AF_MT_IP6				30
+
 #define IANA_IFT_OTHER				1
 #define IANA_IFT_REGULAR1822			2
 #define IANA_IFT_HDH1822			3
