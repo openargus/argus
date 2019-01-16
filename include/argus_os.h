@@ -221,6 +221,34 @@ typedef uint64_t u_int64_t;
 #define ICMP_PARAMETERPROB	12	/* Parameter Problem	*/
 #endif
 
+#if !defined(PCAP_IF_LOOPBACK)
+#define PCAP_IF_LOOPBACK                          0x00000001      /* interface is loopback */
+#endif
+#if !defined(PCAP_IF_UP)
+#define PCAP_IF_UP                                0x00000002      /* interface is up */
+#endif
+#if !defined(PCAP_IF_RUNNING)
+#define PCAP_IF_RUNNING                           0x00000004      /* interface is running */
+#endif
+#if !defined(PCAP_IF_WIRELESS)
+#define PCAP_IF_WIRELESS                          0x00000008      /* interface is wireless (*NOT* necessarily Wi-Fi!) */
+#endif
+#if !defined(PCAP_IF_CONNECTION_STATUS)
+#define PCAP_IF_CONNECTION_STATUS                 0x00000030      /* connection status: */
+#endif
+#if !defined(PCAP_IF_CONNECTION_STATUS_UNKNOWN)
+#define PCAP_IF_CONNECTION_STATUS_UNKNOWN         0x00000000      /* unknown */
+#endif
+#if !defined(PCAP_IF_CONNECTION_STATUS_CONNECTED)
+#define PCAP_IF_CONNECTION_STATUS_CONNECTED       0x00000010      /* connected */
+#endif
+#if !defined(PCAP_IF_CONNECTION_STATUS_DISCONNECTED)
+#define PCAP_IF_CONNECTION_STATUS_DISCONNECTED    0x00000020      /* disconnected */
+#endif
+#if !defined(PCAP_IF_CONNECTION_STATUS_NOT_APPLICABLE)
+#define PCAP_IF_CONNECTION_STATUS_NOT_APPLICABLE  0x00000030      /* not applicable */
+#endif
+
 #ifdef __cplusplus
 }
 #endif
