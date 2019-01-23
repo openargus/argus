@@ -4882,6 +4882,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     }
                                  }
                               }
+                           }
 
                               if (!found) {
                                  int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
@@ -4999,6 +5000,80 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 #ifdef ARGUSDEBUG
                         ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
 #endif
+                                 dev->dltname = strdup(dlt);
+                              }
+
+                              if (dev != NULL) {
+                                 struct ArgusSourceStruct *src = NULL;
+                     
+                                 if (srcid != NULL) {
+                                    int type = ArgusSourceTask->type;
+
+                                    ArgusParseSourceID (ArgusSourceTask, dev, srcid);
+                                    dev->trans = ArgusSourceTask->trans;
+                                    dev->idtype  = ArgusSourceTask->type;
+
+                                    ArgusSourceTask->type = type;
+
+                                 } else {
+                                    char inf[5] = {0,};
+                                    dev->trans = ArgusSourceTask->trans;
+                                    dev->idtype  = ArgusSourceTask->type;
+                                    if (dev && (dev->name != NULL)) {
+                                       shortname_ethdev_unique(dev->name, inf,
+                                                               sizeof(inf),
+                                                               ArgusSourceTask->ArgusDeviceList);
+
+                                       bcopy(inf, dev->trans.srcid.inf, 4);
+                                       dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+                                       ArgusLog(LOG_INFO,
+                                               "mapping interface name %s -> %s\n",
+                                               dev->name, inf);
+                                    }
+                                 }
+
+                                 src = ArgusCloneSource(stask);
+                                 clearArgusDevice(src);
+                     
+                                 if (dev->trans.srcid.a_un.value != 0) {
+                                    src->trans = dev->trans;
+                                 } else {
+                                    dev->trans  = stask->trans;
+                                    dev->idtype = stask->type;
+                                    src->trans  = stask->trans;
+                                    src->type   = stask->type;
+                                 }
+                     
+                                 src->type    = dev->type;
+                     
+                                 if (ArgusInitSource (src) > 0) {
+                                    if (new_gid > 0) {
+                                       if (setgid(new_gid) < 0)
+                                          ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
+                                    }
+                                    if (new_uid > 0) {
+                                       if (setuid(new_uid) < 0)
+                                          ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
+                                    }
+                     
+                                    src->status |= ARGUS_LAUNCHED;
+                                    if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
+                                       ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                                    ArgusThreadCount++;
+                                 }
+
+                                 stask->srcs[ArgusSourceCount++] = src;
+                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                              }
+*/
+                           }
+
+                           lookup_interface(interfacetable, (const u_char *)ifa->name);
+#ifdef ARGUSDEBUG
+                           ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
+#endif
+                        } else {
+                        }
                      }
                   }
                   if (ifap != NULL)
@@ -5043,9 +5118,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                if (src->status & ARGUS_SHUTDOWN) {
                   pthread_t thread = 0;
                   if (src->status & ARGUS_LAUNCHED) {
-                     if (src->eNflag == 0)
-                        stask->status |= ARGUS_SHUTDOWN;
-
                      if ((thread = src->thread) != 0) {
                         /* Prevent ArgusCloseModeler from stopping the output
                          * process
