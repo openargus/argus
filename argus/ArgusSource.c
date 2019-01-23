@@ -446,7 +446,7 @@ ArgusOpenDevice(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device,
       } else {
          if (!(device->status & ARGUS_DONT_OPEN)) {
             if ((infs = ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces])) > 0)
-               src->ArgusInterfaces += ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces]);
+               src->ArgusInterfaces += infs;
             else
                device->status |= ARGUS_DONT_OPEN;
          }
@@ -757,7 +757,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
          if (inf->ArgusCallBack == NULL) {
             if (type > 0) {
 #ifdef ARGUSDEBUG
-               ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
+                  ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
 #endif
             }
             device->status |= ARGUS_DONT_OPEN;
