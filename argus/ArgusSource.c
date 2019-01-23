@@ -4756,13 +4756,15 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 #ifdef ARGUSDEBUG
                            ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
 #endif
+                           } else {
+                           }
+
+                           lookup_interface(interfacetable, (const u_char *)ifa->name);
+#ifdef ARGUSDEBUG
+                           ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
+#endif
                         } else {
                         }
-
-                        lookup_interface(interfacetable, (const u_char *)ifa->name);
-#ifdef ARGUSDEBUG
-                        ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
-#endif
                      }
                   }
                   pcap_freealldevs(ifap);
