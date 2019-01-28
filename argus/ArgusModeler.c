@@ -117,6 +117,8 @@ ArgusCloneModeler(struct ArgusModelerStruct *src)
 
    bcopy((char *)src, (char *)retn, sizeof(*src));
 
+   retn->status |= ARGUS_MODELER_CLONE;
+
    retn->ArgusSrc           = NULL;
    retn->ArgusHashTable     = NULL;
    retn->hstruct            = NULL;
@@ -306,6 +308,13 @@ ArgusCloseModeler(struct ArgusModelerStruct *model)
 
       }
 
+/*
+   retn->ArgusSrc           = NULL;
+   retn->ArgusHashTable     = NULL;
+   retn->ArgusThisFlow      = NULL;
+   retn->ArgusOutputList    = NULL;
+*/
+
       if (model->hstruct != NULL) {
          ArgusFree(model->hstruct);
          model->hstruct = NULL;
@@ -325,6 +334,13 @@ ArgusCloseModeler(struct ArgusModelerStruct *model)
       if (model->ArgusThisLLC != NULL) {
          ArgusFree(model->ArgusThisLLC);
          model->ArgusThisLLC = NULL;
+      }
+
+      if (!(model->status & ARGUS_MODELER_CLONE)) {
+         if (model->cps != NULL) {
+            ArgusFree(model->cps);
+            model->cps = NULL;
+         }
       }
    }
 
