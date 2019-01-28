@@ -5118,6 +5118,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                if (src->status & ARGUS_SHUTDOWN) {
                   pthread_t thread = 0;
                   if (src->status & ARGUS_LAUNCHED) {
+                     if (src->eNflag == 0)
+                        stask->status |= ARGUS_SHUTDOWN;
+
                      if ((thread = src->thread) != 0) {
                         /* Prevent ArgusCloseModeler from stopping the output
                          * process
