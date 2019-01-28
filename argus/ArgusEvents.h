@@ -98,12 +98,14 @@ struct ArgusEventsStruct {
 #if defined(ArgusEvents)
 struct ArgusEventsStruct *ArgusEventsTask = NULL;
 void ArgusInitEvents (struct ArgusEventsStruct *);
+void ArgusDeleteEvents (struct ArgusEventsStruct *);
 void ArgusCloseEvents (struct ArgusEventsStruct *);
 int ArgusSortEventList (const void *, const void *);
 struct ArgusEventsStruct *ArgusNewEvents (void);
 #else
 extern struct ArgusEventsStruct *ArgusEventsTask;
 extern void ArgusInitEvents (struct ArgusEventsStruct *);
+extern void ArgusDeleteEvents (struct ArgusEventsStruct *);
 extern void ArgusCloseEvents (struct ArgusEventsStruct *);
 extern int ArgusSortEventList (const void *, const void *);
 extern struct ArgusEventsStruct *ArgusNewEvents (void);

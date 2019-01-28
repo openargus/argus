@@ -762,6 +762,16 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
       src->ArgusInputFilter = NULL;
    }
 
+   if (src->ArgusDeviceStr) {
+      free(src->ArgusDeviceStr);
+      src->ArgusDeviceStr = NULL; 
+   }
+
+   if (src->ArgusMarIncludeInterface) {
+      free(src->ArgusMarIncludeInterface);
+      src->ArgusMarIncludeInterface =  NULL;
+   }
+
    if (src->ArgusDeviceList) {
       ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
       src->ArgusDeviceList = NULL;
@@ -774,6 +784,7 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
 
    if (src->ArgusModel != NULL) {
       ArgusCloseModeler(src->ArgusModel);
+      ArgusFree(src->ArgusModel);
       src->ArgusModel = NULL;
    }
 
@@ -817,6 +828,12 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
       if (err < 0)
          ret = -1;
    }
+
+   if (stask->ArgusModel == ArgusModel)
+      stask->ArgusModel = NULL;
+
+   ArgusCloseOneSource(stask);
+
 #ifdef ARGUSDEBUG
    ArgusDebug (2, "%s(%p) done, returning %d\n", __func__, stask, ret);
 #endif
@@ -842,6 +859,9 @@ ArgusDeleteSource(struct ArgusSourceStruct *src)
             break;
       }
 
+#if defined(ARGUS_THREADS)
+      pthread_mutex_destroy(&src->lock);
+#endif
       ArgusFree (src);
    }
 
@@ -4671,6 +4691,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                if (src->status & ARGUS_SHUTDOWN) {
                   pthread_t thread = 0;
                   if (src->status & ARGUS_LAUNCHED) {
+                     if (src->eNflag == 0)
+                        stask->status |= ARGUS_SHUTDOWN;
+
                      if ((thread = src->thread) != 0) {
                         /* Prevent ArgusCloseModeler from stopping the output
                          * process

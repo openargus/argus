@@ -448,6 +448,7 @@ ArgusCloseOutput(struct ArgusOutputStruct *output)
 
    ArgusDeleteList(output->ArgusInputList, ARGUS_OUTPUT_LIST);
    ArgusDeleteList(output->ArgusOutputList, ARGUS_OUTPUT_LIST);
+   ArgusDeleteList(output->ArgusBindAddrs, ARGUS_BIND_ADDR_LIST);
 
    ArgusDeleteQueue(output->ArgusClients);
 
