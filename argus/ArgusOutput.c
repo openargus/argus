@@ -1111,6 +1111,8 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
                   ArgusLog (LOG_ERR, "ArgusCheckClientStatus: ArgusGenerateInitialMar error %s", strerror(errno));
 
 #ifdef ARGUS_SASL
+               if (ArgusMaxSsf == 0)
+                  goto no_auth;
 #ifdef ARGUSDEBUG
                ArgusDebug (2, "ArgusCheckClientStatus: SASL enabled\n");
 #endif
@@ -1188,6 +1190,7 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
                }
 
                output->ArgusInitMar->argus_mar.status |= htonl(ARGUS_SASL_AUTHENTICATE);
+no_auth:
 #endif
                len = ntohs(output->ArgusInitMar->hdr.len) * 4;
 
@@ -1214,6 +1217,7 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
                   }
 
                } else {
+                  ArgusAddToQueue(output->ArgusClients, &client->qhdr, ARGUS_NOLOCK);
                }
 #else
                ArgusAddToQueue(output->ArgusClients, &client->qhdr, ARGUS_NOLOCK);

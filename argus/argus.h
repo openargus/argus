@@ -109,8 +109,8 @@ void ArgusUsr1Sig (int);
 void ArgusUsr2Sig (int);
 
 #if defined(ARGUS_SASL)
-int ArgusMaxSsf = 128;
-int ArgusMinSsf = 40;
+int ArgusMaxSsf = 0;
+int ArgusMinSsf = 0;
 #endif
 
 char *ArgusProgramName = NULL;
