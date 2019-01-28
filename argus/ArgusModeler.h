@@ -31,6 +31,8 @@
 #ifndef ArgusModeler_h
 #define ArgusModeler_h
 
+#define ARGUS_MODELER_CLONE	0x40000
+
 #define ARGUS_MARSTATUSTIMER	"60"
 #define ARGUS_MARINTERFACETIMER	"60"
 #define ARGUS_FARSTATUSTIMER	"5"
