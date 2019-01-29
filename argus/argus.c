@@ -857,6 +857,7 @@ ArgusComplete ()
    ArgusFree(ArgusOutputTask);
    ArgusFree(ArgusModel);
 
+   ArgusDeleteEvents(ArgusEventsTask);
    ArgusDeleteSource(ArgusSourceTask);
 
 #if defined(ARGUSPERFMETRICS)

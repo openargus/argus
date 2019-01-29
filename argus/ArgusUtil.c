@@ -66,6 +66,7 @@
 #include <argus_parser.h>
 
 #include <ArgusModeler.h>
+#include <ArgusEvents.h>
 #include <argus_dscodepoints.h>
 #include <argus_encapsulations.h>
 #include "ArgusTimeDiff.h"
@@ -138,10 +139,11 @@ ArgusDeleteList (struct ArgusListStruct *list, int type)
                 break;
 
              case ARGUS_EVENT_LIST: {
-                struct ArgusListObjectStruct *lobj = (struct ArgusListObjectStruct *) retn;
-                if (lobj->obj != NULL) {
-                   ArgusFree(lobj);
-                }
+                struct ArgusEventRecordStruct *event = (struct ArgusEventRecordStruct *) retn;
+                if (event->entry != NULL) free(event->entry);
+                if (event->method != NULL) free(event->method);
+                if (event->filename != NULL) free(event->filename);
+
                 ArgusFree(retn);
                 break;
             }
