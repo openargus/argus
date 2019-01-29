@@ -90,7 +90,10 @@ ArgusDeleteEvents (struct ArgusEventsStruct *events)
    struct ArgusEventsStruct *retn = NULL;
 
    pthread_mutex_destroy(&events->lock);
-   ArgusDeleteList (ArgusEventsTask->ArgusEventsList, ARGUS_EVENT_LIST);
+   if (events->ArgusEventsList != NULL) {
+      ArgusDeleteList (events->ArgusEventsList, ARGUS_EVENT_LIST);
+      events->ArgusEventsList =  NULL;
+   }
    ArgusFree (events);
 
 #ifdef ARGUSDEBUG
