@@ -3168,10 +3168,11 @@ nff_dump(struct nff_program *p, char *buf, int buflen, int option)
       return ;
    }
    if (option > 1) {
-      for (i = 0; i < n; ++insn, ++i)
+      for (i = 0; i < n; ++insn, ++i) {
          slen = strlen(buf);
          snprintf(&buf[slen], buflen - slen, "{ 0x%x, %d, %d, 0x%08llx },\n",
                 insn->code, insn->jt, insn->jf, insn->data.k);
+      }
       return;
    }
    for (i = 0; i < n; ++insn, ++i) {
