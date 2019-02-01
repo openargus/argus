@@ -15,7 +15,10 @@ Source: %{name}-%{version}.%{rel}.tar%{srcext}
 URL: http://qosient.com/argus
 Buildroot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: libpcap-devel
+BuildRequires: cyrus-sasl-devel
+BuildRequires: zlib-devel
 Requires: wget
+Requires: cyrus-sasl
 
 %description
 The ARGUS (Audit Record Generation And Utilization System) is an data 
@@ -35,7 +38,7 @@ Copyright: (c) 2000-2015 QoSient, LLC
 %prep
 %setup -n %{name}-%{ver}.%{rel}
 %build
-./configure --prefix=%{argusdir}
+./configure --prefix=%{argusdir} --with-sasl
 make EXTRA_CFLAGS="-ggdb"
 
 %install
