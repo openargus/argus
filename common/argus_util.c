@@ -2046,7 +2046,7 @@ void
 ArgusLog (int priority, char *fmt, ...)
 {
    va_list ap;
-   char buf[1024], *ptr = buf;
+   char buf[1024], *ptr;
    struct timeval now;
 
 #ifdef HAVE_SYSLOG
@@ -2539,7 +2539,7 @@ ArgusFreeEtherarray(struct ArgusParserStruct *parser)
             sp = tp->e_nxt;
             free(tp);
             tp = sp;
-         } while ((tp = sp) != NULL);
+         } while (tp != NULL);
       }
    }
 }
@@ -2695,7 +2695,15 @@ argus_nametoport(char *name, int *port, int *proto)
    ArgusDebug (8, "argus_nametoport (%s, .., ..) starting\n", name);
 #endif
 
-   if ((proto != NULL) && (*proto != -1)) {
+   if (proto == NULL) {
+#ifdef ARGUSDEBUG
+      ArgusDebug (8, "%s (%s, ) proto is null\n", __func__, name);
+#endif
+      return 0;
+   }
+
+   if (*proto != -1) {
+
 #ifdef ARGUSDEBUG
       ArgusDebug (8, "argus_nametoport (%s, .., %d) calling getprotobynumber\n", name, *proto);
 #endif

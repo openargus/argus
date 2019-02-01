@@ -225,10 +225,8 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
 
          if (model->ArgusThisDir) {
             ArgusThisTCPsrc = &tcpExt->src;
-            ArgusThisTCPdst = &tcpExt->dst;
          } else {
             ArgusThisTCPsrc = &tcpExt->dst;
-            ArgusThisTCPdst = &tcpExt->src;
          }
 
          switch (tcpExt->state) {
@@ -527,7 +525,7 @@ ArgusUpdateTCPSequence (struct ArgusModelerStruct *model, struct ArgusFlowStruct
    unsigned int seq = tcp->th_seq;
    unsigned int newseq = seq + len;
    struct ArgusIPAttrStruct *attr = NULL;
-   unsigned short ipid = 0, *tipid;
+   unsigned short ipid = 0, *tipid = NULL;
 
    if (model->ArgusThisDir) {
       ArgusThisTCPsrc = &tcpExt->src;
@@ -622,7 +620,7 @@ ArgusUpdateTCPSequence (struct ArgusModelerStruct *model, struct ArgusFlowStruct
 
                      if (ArgusThisTCPsrc->win) {
                         int dipid;
-                        if (*tipid && ((dipid = (ipid - *tipid)) < 0) && (dipid > -5000)) {
+                        if (tipid && ((dipid = (ipid - *tipid)) < 0) && (dipid > -5000)) {
                            ArgusThisTCPsrc->status |= ARGUS_OUTOFORDER;
                         } else
                         if (ArgusThisTCPsrc->winbytes > ((maxseq - 1) - ArgusThisTCPdst->ack)) {

@@ -164,7 +164,7 @@ dist: distclean
 	mkdir `cat .fname`
 	tar cf - $(DISTFILES) | (cd `cat .fname`; tar xpf -)
 	ls -lR `cat .fname` | fgrep CVS: | sed 's/:$///' > exfile
-	tar -X exfile -chozf `cat .fname`.tar.gz `cat .fname`
+	env COPYFILE_DISABLE=1 tar -X exfile -chozf `cat .fname`.tar.gz `cat .fname`
 	rm -rf `cat .fname` .fname exfile
 
 force:  /tmp

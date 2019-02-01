@@ -184,7 +184,7 @@ char *
 ArgusCreatePIDFile (struct ArgusSourceStruct *src, char *pidpath, char *appname)
 {
    FILE *fd;
-   char pidstrbuf[128], *pidstr = pidstrbuf;
+   char pidstrbuf[128], *pidstr;
    char *retn = NULL, *dev = NULL, *devstr = NULL;
    int i, pid;
    struct stat statbuf;
@@ -1769,7 +1769,7 @@ void
 setArgusEventDataRecord (char *ptr)
 {
    struct ArgusEventRecordStruct *event = NULL;
-   char *sptr, *method = NULL, *file = NULL;
+   char *sptr = NULL, *method = NULL, *file = NULL;
    char *tok = NULL, *pp = NULL, *tptr = NULL;
    int ind = 0, interval, elem = 0;
 
@@ -1781,8 +1781,11 @@ setArgusEventDataRecord (char *ptr)
 
    if (ptr) {
       int i;
-      sptr = strdup(ptr);
-      while ((tok = strtok(sptr, ":")) != NULL) {
+
+      if ((sptr = strdup(ptr)) != NULL)
+         tok = strtok(sptr, ":");
+
+      while (tok != NULL) {
          switch (ind++) {
             case 0:   
                method = tok;
@@ -1821,13 +1824,14 @@ setArgusEventDataRecord (char *ptr)
                ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
                break;
          }
-         sptr = NULL;
+         tok = strtok(NULL, ":");
       }
 
       if (elem < 3)
          ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
 
-      free (sptr);
+      if (sptr)
+         free (sptr);
       
       if ((event = (struct ArgusEventRecordStruct *) ArgusCalloc (1, sizeof (*event))) != NULL) {
          event->entry    = strdup(ptr);
