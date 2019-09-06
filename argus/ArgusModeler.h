@@ -463,6 +463,8 @@ void setArgusFragTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusArpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusOtherTimeout (struct ArgusModelerStruct *model, int value);
 
+int getArgusHashTableSize (struct ArgusModelerStruct *model);
+
 void setArgusSynchronize (struct ArgusModelerStruct *, int);
 
 int getArgusKeystroke(struct ArgusModelerStruct *);
@@ -589,6 +591,7 @@ void setArgusArpTimeout(struct ArgusModelerStruct *, int);
 int getArgusOtherTimeout(struct ArgusModelerStruct *);
 void setArgusOtherTimeout(struct ArgusModelerStruct *, int);
 
+int getArgusHashTableSize (struct ArgusModelerStruct *);
 
 unsigned int getArgusLocalNet(struct ArgusModelerStruct *);
 void setArgusLocalNet(struct ArgusModelerStruct *, unsigned int);
@@ -696,6 +699,8 @@ extern void setArgusIgmpTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusFragTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusArpTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusOtherTimeout (struct ArgusModelerStruct *model, int value);
+
+extern int getArgusHashTableSize (struct ArgusModelerStruct *model);
 
 extern void setArgusSynchronize (struct ArgusModelerStruct *, int);
 
