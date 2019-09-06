@@ -718,7 +718,6 @@ ArgusOutputProcess(void *arg)
                      break;
                   }
                }
-
                count = 0;
 #ifdef ARGUSDEBUG
                ArgusDebug (6, "ArgusOutputProcess() received rec %p totals %lld seq %d\n", rec, output->ArgusTotalRecords, output->ArgusOutputSequence);
@@ -1603,7 +1602,7 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
       }
    }
   
-   retn->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence;
+   retn->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence + 1;
    retn->argus_mar.record_len = -1;
 
 #if defined(_LITTLE_ENDIAN)
