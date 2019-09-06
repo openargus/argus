@@ -231,7 +231,6 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusSeqNum = 1;
    model->ArgusReportAllTime = 1;
 
-
    if (!(model->ArgusFlowType)) {
       if (model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE)
          setArgusFlowType (model, ARGUS_BIDIRECTIONAL);
