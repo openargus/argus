@@ -705,7 +705,15 @@ ArgusOutputProcess(void *arg)
 
             while (!done && ((rec = (struct ArgusRecordStruct *) ArgusPopFrontList(output->ArgusOutputList, ARGUS_LOCK)) != NULL)) {
                output->ArgusTotalRecords++;
-               output->ArgusOutputSequence = rec->canon.trans.seqnum;
+
+               switch (rec->hdr.type & 0xF0) {
+                  case ARGUS_FAR:
+                  case ARGUS_NETFLOW: {
+                     output->ArgusOutputSequence = rec->canon.trans.seqnum;
+                     break;
+                  }
+               }
+
                count = 0;
 #ifdef ARGUSDEBUG
                ArgusDebug (6, "ArgusOutputProcess() received rec %p totals %lld seq %d\n", rec, output->ArgusTotalRecords, output->ArgusOutputSequence);
@@ -1787,7 +1795,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.localnet = output->ArgusSrc->ArgusInterface[0].ArgusLocalNet;
       rec->argus_mar.netmask = output->ArgusSrc->ArgusInterface[0].ArgusNetMask;
     
-      rec->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence;
+      rec->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence + 1;
       rec->argus_mar.record_len = -1;
 
       if (ArgusSourceTask != NULL) {
