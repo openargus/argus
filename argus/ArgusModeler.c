@@ -4097,10 +4097,8 @@ ArgusSendFlowRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
          }
 
          if (flow->canon.metric.src.pkts || flow->canon.metric.dst.pkts) {
-            if (flow->canon.trans.seqnum == 0) {
-               if ((flow->canon.trans.seqnum = model->ArgusSeqNum++) == 0xFFFFFFFF)
-                  flow->canon.trans.seqnum = model->ArgusSeqNum++;
-            }
+            if ((flow->canon.trans.seqnum = model->ArgusSeqNum++) == 0xFFFFFFFF)
+               flow->canon.trans.seqnum = model->ArgusSeqNum++;
 
             if ((argus = ArgusGenerateListRecord (model, flow, state)) != NULL) {
                ArgusPushBackList (model->ArgusOutputList, (struct ArgusListRecord *) argus, ARGUS_LOCK);
