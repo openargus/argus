@@ -89,12 +89,14 @@ ArgusDeleteEvents (struct ArgusEventsStruct *events)
 {
    struct ArgusEventsStruct *retn = NULL;
 
-   pthread_mutex_destroy(&events->lock);
-   if (events->ArgusEventsList != NULL) {
-      ArgusDeleteList (events->ArgusEventsList, ARGUS_EVENT_LIST);
-      events->ArgusEventsList =  NULL;
+   if (events != NULL) {
+      pthread_mutex_destroy(&events->lock);
+      if (events->ArgusEventsList != NULL) {
+         ArgusDeleteList (events->ArgusEventsList, ARGUS_EVENT_LIST);
+         events->ArgusEventsList =  NULL;
+      }
+      ArgusFree (events);
    }
-   ArgusFree (events);
 
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusDeleteEvents() returning retn 0x%x\n", retn);
