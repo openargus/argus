@@ -808,8 +808,12 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
          break;
       }
 
-      case ETHERTYPE_IPV6:
+      case ETHERTYPE_IPV6: {
          model->ArgusThisIpHdr = (void *)p;
+         model->ArgusThisNetworkFlowType = type;
+         retn = 0;
+         break;
+      }
 
       case ETHERTYPE_ARP:
       case ETHERTYPE_REVARP: {
@@ -2721,9 +2725,10 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
 
             retn = ArgusUpdateState (model, flow, state, update);
 
-            if ((model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE) &&
-                (((tfrag = model->ArgusThisIpv6Frag) != NULL) && (((ntohs(tfrag->ip6f_offlg) & IP6F_OFF_MASK) == 0) &&
-                                                                        (tfrag->ip6f_offlg  & IP6F_MORE_FRAG)))) {
+            if (model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE) {
+                if ((tfrag = model->ArgusThisIpv6Frag) != NULL) {
+                   if ((tfrag->ip6f_offlg & IP6F_OFF_MASK) == 0) {
+                      if ( tfrag->ip6f_offlg & IP6F_MORE_FRAG) {
 /*
          This is also a fragment, so we need to setup the expected fragment
          cache, so we can find the fragments that will be coming in.
@@ -2784,6 +2789,9 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
                      attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_SRC_FRAGMENTS;
                   else
                      attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_DST_FRAGMENTS;
+               }
+               }
+               }
                }
 
             }
