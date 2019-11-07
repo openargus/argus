@@ -341,7 +341,7 @@ int
 ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flowstr, struct tcphdr *tcp)
 {
    struct ArgusTCPObjectMetrics *ArgusThisTCPsrc, *ArgusThisTCPdst;
-   unsigned char flags = tcp->th_flags;
+   unsigned char flags = tcp->th_flags & (TH_SYN | TH_ACK | TH_RST | TH_FIN) ;
    struct ArgusTCPObject *tcpExt = (struct ArgusTCPObject *)&flowstr->canon.net.net_union.tcp;
    unsigned int state = tcpExt->state;
    int len = model->ArgusThisLength;
