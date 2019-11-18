@@ -117,6 +117,7 @@ struct ArgusTCPInitStatus {
    unsigned int options;
    unsigned short win; 
    unsigned char flags, winshift;
+   unsigned short maxseg, pad; 
 };
 
 struct ArgusTCPStatus {
@@ -130,6 +131,7 @@ struct ArgusTCPObjectMetrics {
    unsigned int bytes, retrans, ackbytes, winbytes;
    unsigned short win;
    unsigned char flags, winshift;
+   unsigned short maxseg, pad; 
 // unsigned int dup;
 };
  

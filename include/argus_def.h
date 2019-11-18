@@ -1607,6 +1607,9 @@ extern "C" {
 #define ARGUS_NETWORK_SUBTYPE_ARP	0x10
 #define ARGUS_NETWORK_SUBTYPE_FRAG	0x45
 
+/* Argus Transport DSR Qualifier */
+#define ARGUS_TCP_INIT_V2		0x02
+
 /* RTP State Constants and Reporting Values */
 #define ARGUS_RTP_SRCSILENCE		0x01
 #define ARGUS_RTP_DSTSILENCE		0x02

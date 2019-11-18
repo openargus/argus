@@ -728,6 +728,7 @@ ArgusHtoN (struct ArgusRecord *argus)
                            tcp->seqbase      = htonl(tcp->seqbase);
                            tcp->options      = htonl(tcp->options);
                            tcp->win          = htons(tcp->win);
+                           tcp->maxseg       = htons(tcp->maxseg);
                            break;
                         }
                         case ARGUS_TCP_STATUS: {
@@ -755,6 +756,7 @@ ArgusHtoN (struct ArgusRecord *argus)
                            tcp->src.ackbytes = htonl(tcp->src.ackbytes);
                            tcp->src.winbytes = htonl(tcp->src.winbytes);
                            tcp->src.win = htons(tcp->src.win);
+                           tcp->src.maxseg = htons(tcp->src.maxseg);
 
                            if (dsr->argus_dsrvl8.len > (((sizeof(struct ArgusTCPObject) - sizeof(struct ArgusTCPObjectMetrics))+3)/4 + 1)) {
                               tcp->dst.lasttime.tv_sec  = htonl(tcp->dst.lasttime.tv_sec);
@@ -769,6 +771,7 @@ ArgusHtoN (struct ArgusRecord *argus)
                               tcp->dst.ackbytes = htonl(tcp->dst.ackbytes);
                               tcp->dst.winbytes = htonl(tcp->dst.winbytes);
                               tcp->dst.win = htons(tcp->dst.win);
+                              tcp->dst.maxseg = htons(tcp->dst.maxseg);
                            }
                            break;
                         }
@@ -932,6 +935,7 @@ ArgusPrintHex (const u_char *bp, u_int length)
 
 
 char *ArgusProcessStr = NULL;
+void ArgusPrintDirection (char *, struct ArgusRecordStruct *, int);
 
 void
 ArgusPrintDirection (char *buf, struct ArgusRecordStruct *argus, int len)
