@@ -3171,6 +3171,7 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                               tcp->options  = tobj->options;
                               tcp->flags    = tobj->src.flags;
                               tcp->winshift = tobj->src.winshift;
+                              tcp->maxseg   = tobj->src.maxseg;
                               dsrptr       += len;
                               break;
                            }
