@@ -245,6 +245,9 @@
 /* Define to 1 if you have the `pcap_dump_ftell' function. */
 #undef HAVE_PCAP_DUMP_FTELL
 
+/* pcap list datalinks */
+#undef HAVE_PCAP_FINDALLDEVS_NOCHECKS
+
 /* Define to 1 if you have the `pcap_fopen_offline' function. */
 #undef HAVE_PCAP_FOPEN_OFFLINE
 

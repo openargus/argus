@@ -426,8 +426,12 @@ setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
    src->ArgusInterfaces = 0;
    bzero ((char *)&src->ArgusInterface, sizeof(src->ArgusInterface));
 
+#if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
    if (pcap_findalldevs_nochecks(&src->ArgusPacketDevices, errbuf) == -1)
-      ArgusLog (LOG_ERR, "%s: pcap_findalldevs_ex %s\n", __func__, errbuf);
+#else
+   if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
+#endif
+      ArgusLog (LOG_ERR, "%s: pcap_findalldevs %s\n", __func__, errbuf);
 
    for (d = src->ArgusPacketDevices; d != NULL; d = d->next) {
       printf ("%d. %s", ++i, d->name);
@@ -591,7 +595,11 @@ ArgusInitSource (struct ArgusSourceStruct *src)
    if (src->ArgusDeviceList == NULL) {
       pcap_if_t *d;
 
+#if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
       if (pcap_findalldevs_nochecks(&src->ArgusPacketDevices, errbuf) == -1)
+#else
+      if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
+#endif
          ArgusLog (LOG_ERR, "ArgusInitSource: pcap_findalldevs_nochecks %s\n", errbuf);
 
       for (d = src->ArgusPacketDevices; d != NULL; d = d->next) {
@@ -4514,7 +4522,11 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                pcap_if_t *ifap = NULL, *ifa = NULL;
                char errbuf[1024];
 
+#if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
                if ((pcap_findalldevs_nochecks(&ifap, errbuf)) != 0)
+#else
+               if ((pcap_findalldevs(&ifap, errbuf)) != 0)
+#endif
                   ArgusLog(LOG_ERR, "ArgusSourceProcess: pcap_findalldevs_nochecks error: %s\n", errbuf);
 
                   if (ArgusSourceCount > 0) {

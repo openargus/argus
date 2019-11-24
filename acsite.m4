@@ -881,6 +881,9 @@ AC_DEFUN([AC_QOSIENT_LIBPCAP], [
       AC_LIBOBJ(dlnames)
    ])
 
+   AC_CHECK_FUNC(pcap_findalldevs_nochecks,
+   AC_DEFINE([HAVE_PCAP_FINDALLDEVS_NOCHECKS], [], [pcap list datalinks]))
+
    dnl
    dnl Check for vital pcap routines; you can't substitute for them if
    dnl they are absent (it has hooks into the live capture routines),
