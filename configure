@@ -8863,6 +8863,14 @@ esac
 fi
 
 
+   ac_fn_c_check_func "$LINENO" "pcap_findalldevs_nochecks" "ac_cv_func_pcap_findalldevs_nochecks"
+if test "x$ac_cv_func_pcap_findalldevs_nochecks" = xyes; then :
+
+$as_echo "#define HAVE_PCAP_FINDALLDEVS_NOCHECKS /**/" >>confdefs.h
+
+fi
+
+
                   for ac_func in pcap_set_buffer_size
 do :
   ac_fn_c_check_func "$LINENO" "pcap_set_buffer_size" "ac_cv_func_pcap_set_buffer_size"
