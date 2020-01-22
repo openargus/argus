@@ -26,8 +26,8 @@
 
 AC_PREREQ(2.61)
 AC_INIT([Argus Pro (Gargoyle) Server Programs], [5.0], [bug-report@qosient.com], [argus], [http://qosient.com/argus])
-PACKAGE_RELEASE='3.5'
-ARGUSPRO_VERSION='1.3'
+PACKAGE_RELEASE='3.6'
+ARGUSPRO_VERSION='1.4'
 AC_DEFINE([ARGUSPRO_VERSION_STRING], ["1.3"], [Product version number string])
 AC_CONFIG_SRCDIR([argus/argus.c])
 AC_CONFIG_AUX_DIR([config])
