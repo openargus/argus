@@ -790,6 +790,7 @@ char *getArgusManInf (struct ArgusSourceStruct *);
 int ArgusSnoopRead (struct ArgusSourceStruct *);
 
 void ArgusIpPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
+void ArgusPflogPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusTokenPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);

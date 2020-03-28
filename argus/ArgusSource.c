@@ -3846,6 +3846,80 @@ ArgusIpPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #endif
 }
 
+#define PFLOG_RULESET_NAME_SIZE   16
+
+struct pfloghdr {
+   u_int8_t    length;
+   sa_family_t af;
+   u_int8_t    action;
+   u_int8_t    reason;
+   char        ifname[IFNAMSIZ];
+   char        ruleset[PFLOG_RULESET_NAME_SIZE];
+   u_int32_t   rulenr;
+   u_int32_t   subrulenr;
+   uid_t       uid;
+   pid_t       pid;
+   uid_t       rule_uid;
+   pid_t       rule_pid;
+   u_int8_t    dir;
+   u_int8_t    pad[3];
+};
+
+#define PFLOG_HDRLEN      sizeof(struct pfloghdr)
+
+void
+ArgusPflogPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+{
+   struct pcap_pkthdr hbuf;
+   u_int hdrlen = 0;
+   u_int caplen = h->caplen;
+   const struct pfloghdr *hdr;
+   uint8_t af;
+
+   /* check length */
+   if (caplen >= sizeof(uint8_t)) {
+#define MIN_PFLOG_HDRLEN   45
+      hdr = (struct pfloghdr *)p;
+      if (hdr->length >= MIN_PFLOG_HDRLEN) {
+         hdrlen = BPF_WORDALIGN(hdr->length);
+
+         if (caplen >= hdrlen) {
+      /* print what we know */
+            hdr = (struct pfloghdr *)p;
+
+      /* skip to the real packet */
+            af = hdr->af;
+
+            memcpy((char *)&hbuf, (char *)h, sizeof(*h));
+
+            hbuf.len    -= hdrlen;
+            hbuf.caplen -= hdrlen;
+            p           += hdrlen;
+
+            switch (af) {
+               case AF_INET:
+               case AF_INET6:
+                  ArgusIpPacket(user, &hbuf, p);
+                  break;
+
+               default:
+      /* address family not handled, print raw packet
+                  if (!ndo->ndo_eflag)
+                     pflog_print(ndo, hdr);
+                  if (!ndo->ndo_suppress_default_print)
+                     ND_DEFAULTPRINT(p, caplen);
+       */
+                  break;
+            }
+         }
+      }
+   }
+ 
+#ifdef ARGUSDEBUG
+   ArgusDebug (8, "ArgusPflogPacket (%p, %p, %p) returning\n", user, h, p);
+#endif
+}
+
 
 #define ENC_HDRLEN      12
 
