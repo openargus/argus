@@ -28,34 +28,6 @@
 		<data>
 		xkJgn48ObVaryZZN7hKHGjeWppg=
 		</data>
-		<key>Resources/ArgusPreferencePane.app/Contents/Info.plist</key>
-		<data>
-		NOL5iyCtrX3RIDnQzdKaZe3TL18=
-		</data>
-		<key>Resources/ArgusPreferencePane.app/Contents/MacOS/applet</key>
-		<data>
-		lS4lniDlp6uC6mmMasqiG21k7zI=
-		</data>
-		<key>Resources/ArgusPreferencePane.app/Contents/PkgInfo</key>
-		<data>
-		lP2+4+c0ot84/Wi+SDfo/vBm8AU=
-		</data>
-		<key>Resources/ArgusPreferencePane.app/Contents/Resources/Scripts/main.scpt</key>
-		<data>
-		+GpB5HelL3qrlY0ou0C7bwhbid8=
-		</data>
-		<key>Resources/ArgusPreferencePane.app/Contents/Resources/applet.icns</key>
-		<data>
-		sINd6lbiqHD5dL8c6u79cFvVXhw=
-		</data>
-		<key>Resources/ArgusPreferencePane.app/Contents/Resources/applet.rsrc</key>
-		<data>
-		36XFr8QEVE1IreIPaYUBfICuETU=
-		</data>
-		<key>Resources/ArgusPreferencePane.app/Contents/Resources/description.rtfd/TXT.rtf</key>
-		<data>
-		LOKQWbUzEG/DjDaU0xQv2C7x5Q8=
-		</data>
 		<key>Resources/InfoPlist.strings</key>
 		<data>
 		MiLKDDnrUKr4EmuvhS5VQwxHGK8=
@@ -115,55 +87,6 @@
 			<key>hash2</key>
 			<data>
 			7QqMPR1msg2V/VVa+tF0m/sNxAbRVd8WwjFtqb9fTkc=
-			</data>
-		</dict>
-		<key>Resources/ArgusPreferencePane.app/Contents/Info.plist</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			/pKH+waPc9dYyyR2xg+xf+HtE84D/qLrUAf+51qAZB8=
-			</data>
-		</dict>
-		<key>Resources/ArgusPreferencePane.app/Contents/MacOS/applet</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			/vt+NW8MryyjOczfdsICCuIPWZmMWb414kqM1+lcGXU=
-			</data>
-		</dict>
-		<key>Resources/ArgusPreferencePane.app/Contents/PkgInfo</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			QS1wdXxP3s3XM1WsS7O6gMZwURDRXPvJ/pJee0+veWI=
-			</data>
-		</dict>
-		<key>Resources/ArgusPreferencePane.app/Contents/Resources/Scripts/main.scpt</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			YXNqx0H8vyupXuN5TqaG8H9FaJvoPwZMHhtiQps2HKE=
-			</data>
-		</dict>
-		<key>Resources/ArgusPreferencePane.app/Contents/Resources/applet.icns</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			J7weZ6vlnv9r32tS5HFcyuPXl2StdDnfepLxAixlryk=
-			</data>
-		</dict>
-		<key>Resources/ArgusPreferencePane.app/Contents/Resources/applet.rsrc</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			Je+a3uN0yQ2nNmyxLV6jYyRBm/QYAlwo3SwDm+GhkPQ=
-			</data>
-		</dict>
-		<key>Resources/ArgusPreferencePane.app/Contents/Resources/description.rtfd/TXT.rtf</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			v1oXHYzhevAofQCz60utB3T+uBiHjZ449Z0axqCJsYg=
 			</data>
 		</dict>
 		<key>Resources/InfoPlist.strings</key>
