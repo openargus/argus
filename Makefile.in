@@ -112,13 +112,14 @@ installdirs:
 
 osxpackage:
 	( \
-	$(MAKE) install DESTDIR=`pwd`/pkg/osx/BUILDROOT \
-	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
-	( find pkg/osx/BUILDROOT/usr -type f | xargs file \
-	   | awk -F: '/Mach-O.*executable/{print $$1}' \
-	   | xargs strip ) && \
-	cp -f -L -R pkg/osx/osx-pkg/* pkg/osx/BUILDROOT/  && \
-	pkgbuild --root pkg/osx/BUILDROOT \
+        $(MAKE) install DESTDIR=`pwd`/pkg/osx/BUILDROOT/Contents/MacOS \
+                        INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
+        ( find pkg/osx/BUILDROOT/Contents/MacOS/usr -type f | xargs file \
+           | awk -F: '/Mach-O.*executable/{print $$1}' \
+           | xargs strip ) && \
+        cp -f -L -R pkg/osx/osx-pkg/* pkg/osx/BUILDROOT/  && \
+        codesign -vvvv -s "Developer ID Application: Carter Bullard" -r="designated => identifier com.qosient.argus" --timestamp --options runtime pkg/osx/BUILDROOT/Contents/MacOS/usr/local/sbin/argus && \
+        pkgbuild --root pkg/osx/BUILDROOT/Contents/MacOS \
 	         --identifier com.qosient.argus \
 	         --version $(VERSION) \
 	         --ownership recommended \
