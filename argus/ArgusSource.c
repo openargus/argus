@@ -466,11 +466,53 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
    inf->ArgusDevice = device;
    src->timeStampType = ARGUS_TYPE_UTC_MICROSECONDS;
 
-#ifdef HAVE_PCAP_SET_BUFFER_SIZE
    if ((inf->ArgusPd = pcap_create(device->name, errbuf)) != NULL) {
       pcap_set_snaplen(inf->ArgusPd, src->ArgusSnapLen);
-      pcap_set_promisc(inf->ArgusPd, !src->Arguspflag);
+      pcap_set_promisc(inf->ArgusPd, src->Arguspflag);
       pcap_set_timeout(inf->ArgusPd, 100);
+
+#if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
+      {
+         int *tstamp_types = NULL, cnt, i;
+         if ((cnt = pcap_list_tstamp_types(inf->ArgusPd, &tstamp_types)) > 0) {
+            int hiprec = 0, lowprec = 0, adapter = 0, adapterUnsync = 0;
+            int type = 0;
+            for (i = 0; i < cnt; i++) {
+               if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER) {
+                  adapter = 1;
+               } else
+               if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER_UNSYNCED) {
+                  adapterUnsync = 1;
+               } else
+               if (tstamp_types[i] == PCAP_TSTAMP_HOST_HIPREC) {
+                  hiprec = 1;
+               } else
+               if (tstamp_types[i] == PCAP_TSTAMP_HOST_LOWPREC) {
+                  lowprec = 1;
+               }
+            }
+            pcap_free_tstamp_types(tstamp_types);
+            if (adapter) {
+               type = PCAP_TSTAMP_ADAPTER;
+            } else
+            if (adapterUnsync) {
+               type = PCAP_TSTAMP_ADAPTER_UNSYNCED;
+            } else
+            if (hiprec) {
+               type = PCAP_TSTAMP_HOST_HIPREC;
+            } else
+            if (lowprec) {
+               type = PCAP_TSTAMP_HOST_LOWPREC;
+            }
+            if (type != 0) {
+               pcap_set_tstamp_type(inf->ArgusPd, type);
+#ifdef ARGUSDEBUG
+               ArgusDebug(4, "pcap_set_tstamp_type: set to %s\n", pcap_tstamp_type_val_to_name(type));
+#endif
+            }
+         }
+      }
+#endif
 
 #if defined(ARGUS_NANOSECONDS) && defined(HAVE_PCAP_SET_TSTAMP_PRECISION)
       switch (pcap_set_tstamp_precision(inf->ArgusPd, PCAP_TSTAMP_PRECISION_NANO)) {
@@ -486,12 +528,15 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
       }
 #endif
 
+#ifdef HAVE_PCAP_SET_BUFFER_SIZE
       if (src->ArgusPcapBufSize > 0) {
          pcap_set_buffer_size(inf->ArgusPd, src->ArgusPcapBufSize);
 #ifdef ARGUSDEBUG
          ArgusDebug (4, "ArgusOpenInterface() pcap_set_buffer_size(%p, %d)\n", src, src->ArgusPcapBufSize);
 #endif
       }
+#endif
+
       switch (retn = pcap_activate(inf->ArgusPd)) {
          case PCAP_ERROR_ACTIVATED:
          case PCAP_ERROR_NO_SUCH_DEVICE:
@@ -516,9 +561,6 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
          default:
             retn = 1;
       }
-#else
-   if ((inf->ArgusPd = pcap_open_live(device->name, src->ArgusSnapLen, !src->Arguspflag, 100, errbuf)) != NULL) {
-#endif
       if (inf->ArgusPd != NULL) {
             pcap_setnonblock(inf->ArgusPd, 1, errbuf);
 
@@ -571,11 +613,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
             } else
                retn = 1;
       }
-#ifdef HAVE_PCAP_SET_BUFFER_SIZE
    }
-#else
-   }
-#endif
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusOpenInterface(%p, '%s') returning %d\n", src, inf->ArgusDevice->name, retn);
 #endif
