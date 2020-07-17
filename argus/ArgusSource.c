@@ -421,19 +421,25 @@ ArgusOpenDevice(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device,
 int
 setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
 {
-   char errbuf[PCAP_ERRBUF_SIZE];
+   char *errbuf;
    pcap_if_t *d = NULL;
    int i = 0;
 
    src->ArgusInterfaces = 0;
    bzero ((char *)&src->ArgusInterface, sizeof(src->ArgusInterface));
 
+   if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE)) != NULL) {
 #if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
-   if (pcap_findalldevs_nochecks(&src->ArgusPacketDevices, errbuf) == -1)
+      if (pcap_findalldevs_nochecks(&src->ArgusPacketDevices, errbuf) == -1)
+         ArgusLog (LOG_ERR, "%s: pcap_findalldevs_nochecks %s\n", __func__, errbuf);
 #else
-   if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
+      if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
 #endif
-      ArgusLog (LOG_ERR, "%s: pcap_findalldevs %s\n", __func__, errbuf);
+         ArgusLog (LOG_ERR, "%s: pcap_findalldevs %s\n", __func__, errbuf);
+      ArgusFree(errbuf);
+
+   } else 
+      ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
 
    for (d = src->ArgusPacketDevices; d != NULL; d = d->next) {
       printf ("%d. %s", ++i, d->name);
@@ -444,14 +450,17 @@ setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
    }
    pcap_freealldevs(src->ArgusPacketDevices);
    exit(1);
-}   
+}
 
 
 int
 ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device, struct ArgusInterfaceStruct *inf)
 {
-   char errbuf[PCAP_ERRBUF_SIZE];
    int type, retn = 0;
+   char *errbuf;
+
+   if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE)) == NULL)
+      ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
 
    if (ArgusShutDownFlag)
       return retn;
@@ -614,6 +623,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                retn = 1;
       }
    }
+   ArgusFree(errbuf);
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusOpenInterface(%p, '%s') returning %d\n", src, inf->ArgusDevice->name, retn);
 #endif
@@ -626,7 +636,6 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 int
 ArgusInitSource (struct ArgusSourceStruct *src)
 {
-   char errbuf[PCAP_ERRBUF_SIZE];
    char *cmdbuf = NULL;
    int retn = 0, i = 0;
 
@@ -634,14 +643,18 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
    if (src->ArgusDeviceList == NULL) {
       pcap_if_t *d;
+      char *errbuf;
 
+      if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE)) != NULL) {
 #if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
-      if (pcap_findalldevs_nochecks(&src->ArgusPacketDevices, errbuf) == -1)
+         if (pcap_findalldevs_nochecks(&src->ArgusPacketDevices, errbuf) == -1)
+            ArgusLog (LOG_ERR, "ArgusInitSource: pcap_findalldevs_nochecks %s\n", errbuf);
 #else
-      if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
+         if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
+            ArgusLog (LOG_ERR, "ArgusInitSource: pcap_findalldevs %s\n", errbuf);
 #endif
-         ArgusLog (LOG_ERR, "ArgusInitSource: pcap_findalldevs_nochecks %s\n", errbuf);
-
+         ArgusFree(errbuf);
+      }
       for (d = src->ArgusPacketDevices; d != NULL; d = d->next) {
 #if defined(CYGWIN)
          printf ("%d. %s", ++i, d->name);
@@ -1350,26 +1363,28 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
 
    if (cmd) {
       struct ArgusDeviceStruct *device = NULL;
-      char errbuf[PCAP_ERRBUF_SIZE];
       char *params = strdup(cmd);
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
       struct ArgusDeviceStruct *dev = NULL;
       int cnt = 0, status = 0;
-      char *tok, *stok;
+      char *errbuf, *tok, *stok;
 
       if (src->ArgusDeviceStr != NULL)
          free(src->ArgusDeviceStr);
 
-      if (type == ARGUS_LIVE_DEVICE) {
-         src->ArgusDeviceStr = strdup(cmd);
-         if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
-            ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
-      } else {
-         /* forward slashes cause confusion later since they are assumed
-          * to separate srcid and inf.  Remove directory path elements.
-          */
-         src->ArgusDeviceStr = strdup(basename(cmd));
+      if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE)) != NULL) {
+         if (type == ARGUS_LIVE_DEVICE) {
+            src->ArgusDeviceStr = strdup(cmd);
+            if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
+               ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
+         } else {
+            /* forward slashes cause confusion later since they are assumed
+             * to separate srcid and inf.  Remove directory path elements.
+             */
+            src->ArgusDeviceStr = strdup(basename(cmd));
+         }
+         ArgusFree(errbuf);
       }
 
 // we need to parse this bad thing and construct the devices struct
@@ -1707,10 +1722,14 @@ int ArgusMoatTshRead (struct ArgusSourceStruct *);
 int
 ArgusMoatTshRead (struct ArgusSourceStruct *src)
 {
-   struct ArgusMoatTshPktHdr MoatTshBuffer[2], *ArgusMoatPktHdr = &MoatTshBuffer[0];
+   struct ArgusMoatTshPktHdr *MoatTshBuffer, *ArgusMoatPktHdr;
    int retn = 0, length = 0;
    struct ip *iphdr = NULL;
 
+   if ((MoatTshBuffer = (char *) ArgusMalloc (sizeof(struct ArgusMoatTshPktHdr) * 2)) == NULL)
+      ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
+
+   ArgusMoatPktHdr = MoatTshBuffer;
    bzero (ArgusMoatPktHdr, sizeof(MoatTshBuffer));
  
    if ((retn = read(pcap_fileno(src->ArgusInterface[0].ArgusPd), ArgusMoatPktHdr, ARGUSMOATLEN)) == ARGUSMOATLEN) {
@@ -1755,6 +1774,8 @@ ArgusMoatTshRead (struct ArgusSourceStruct *src)
 
    } else
       close(pcap_fileno(src->ArgusInterface[0].ArgusPd));
+
+   ArgusFree(MoatTshBuffer);
 
 #ifdef ARGUSDEBUG
    ArgusDebug (5, "ArgusMoatTshRead() returning %d\n", retn);
@@ -4562,229 +4583,233 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
             if (strstr(stask->ArgusDeviceStr, "all")) {
                pcap_if_t *ifap = NULL, *ifa = NULL;
-               char errbuf[1024];
+               char *errbuf;
 
+               if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE)) != NULL) {
 #if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
-               if ((pcap_findalldevs_nochecks(&ifap, errbuf)) != 0)
+                  if ((pcap_findalldevs_nochecks(&ifap, errbuf)) != 0)
+                     ArgusLog(LOG_ERR, "ArgusSourceProcess: pcap_findalldevs_nochecks error: %s\n", errbuf);
 #else
-               if ((pcap_findalldevs(&ifap, errbuf)) != 0)
+                  if ((pcap_findalldevs(&ifap, errbuf)) != 0)
+                     ArgusLog(LOG_ERR, "ArgusSourceProcess: pcap_findalldevs error: %s\n", errbuf);
 #endif
-                  ArgusLog(LOG_ERR, "ArgusSourceProcess: pcap_findalldevs_nochecks error: %s\n", errbuf);
+                  ArgusFree(errbuf);
+               }
 
-                  if (ArgusSourceCount > 0) {
-                     for (i = 0; i < ArgusSourceCount; i++) {
-                        struct ArgusSourceStruct *src;
-                        int found = 0;
+            if (ArgusSourceCount > 0) {
+                  for (i = 0; i < ArgusSourceCount; i++) {
+                     struct ArgusSourceStruct *src;
+                     int found = 0;
 
-                        if ((src = stask->srcs[i]) != NULL) {
-                           pthread_mutex_lock(&src->ArgusDeviceList->lock);
-                           struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
-                           for (ifa = ifap; ifa; ifa = ifa->next) {
-                              if (!strcmp(device->name, ifa->name))
-                                 found = 1;
-                           }
-                           ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
-                           pthread_mutex_unlock(&src->ArgusDeviceList->lock);
+                     if ((src = stask->srcs[i]) != NULL) {
+                        pthread_mutex_lock(&src->ArgusDeviceList->lock);
+                        struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
+                        for (ifa = ifap; ifa; ifa = ifa->next) {
+                           if (!strcmp(device->name, ifa->name))
+                              found = 1;
+                        }
+                        ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
+                        pthread_mutex_unlock(&src->ArgusDeviceList->lock);
 
-                           if (!found) {
-                              src->status |= ARGUS_SHUTDOWN;
-                           }
+                        if (!found) {
+                           src->status |= ARGUS_SHUTDOWN;
                         }
                      }
                   }
+               }
 
-                  for (ifa = ifap; ifa; ifa = ifa->next) {
-                     if (!(ifa->flags & PCAP_IF_LOOPBACK)) {
-                        if (get_interface((const u_char *)ifa->name, interfacetable) == NULL) {
-                           int found = 0;
-                           if (stask->ArgusDeviceList->count) {
+               for (ifa = ifap; ifa; ifa = ifa->next) {
+                  if (!(ifa->flags & PCAP_IF_LOOPBACK)) {
+                     if (get_interface((const u_char *)ifa->name, interfacetable) == NULL) {
+                        int found = 0;
+                        if (stask->ArgusDeviceList->count) {
 #if defined(ARGUS_THREADS)
-                              if (pthread_mutex_lock(&stask->ArgusDeviceList->lock) == 0) {
-                                 int i, count = stask->ArgusDeviceList->count;
-                                 int per_dev_count;
-                              
-                                 if (count > 0) {
-                                    for (i = 0; i < count && !found; i++) {
-                                       struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(stask->ArgusDeviceList, ARGUS_NOLOCK);
-                                       if (device != NULL) {
-                                          if (!strcmp(device->name, ifa->name)) 
-                                             found = 1;
-                                          if (device->list && (per_dev_count = device->list->count)) {
-                                             int x;
-                                             for (x = 0; x < per_dev_count && !found; x++) {
-                                                struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
-                                                if (!strcmp(dev->name, ifa->name))
-                                                   found = 1;
-                                                ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                                             }
+                           if (pthread_mutex_lock(&stask->ArgusDeviceList->lock) == 0) {
+                              int i, count = stask->ArgusDeviceList->count;
+                              int per_dev_count;
+                           
+                              if (count > 0) {
+                                 for (i = 0; i < count && !found; i++) {
+                                    struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) ArgusPopFrontList(stask->ArgusDeviceList, ARGUS_NOLOCK);
+                                    if (device != NULL) {
+                                       if (!strcmp(device->name, ifa->name)) 
+                                          found = 1;
+                                       if (device->list && (per_dev_count = device->list->count)) {
+                                          int x;
+                                          for (x = 0; x < per_dev_count && !found; x++) {
+                                             struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
+                                             if (!strcmp(dev->name, ifa->name))
+                                                found = 1;
+                                             ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
                                           }
-                                          ArgusPushBackList(stask->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
                                        }
+                                       ArgusPushBackList(stask->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
                                     }
                                  }
-                                 pthread_mutex_unlock(&stask->ArgusDeviceList->lock);
                               }
+                              pthread_mutex_unlock(&stask->ArgusDeviceList->lock);
+                           }
 
-                              if (found)
-                                 break;
+                           if (found)
+                              break;
 #endif
-                           }
+                        }
 
-                           if (!found && (ArgusSourceCount > 0)) {
-                              int i, per_dev_count;
-                              for (i = 0; i < ArgusSourceCount && !found; i++) {
-                                 struct ArgusSourceStruct *src;
-                                 if ((src = stask->srcs[i]) != NULL) {
-                                    pthread_mutex_lock(&src->ArgusDeviceList->lock);
-                                    struct ArgusDeviceStruct *device;
+                        if (!found && (ArgusSourceCount > 0)) {
+                           int i, per_dev_count;
+                           for (i = 0; i < ArgusSourceCount && !found; i++) {
+                              struct ArgusSourceStruct *src;
+                              if ((src = stask->srcs[i]) != NULL) {
+                                 pthread_mutex_lock(&src->ArgusDeviceList->lock);
+                                 struct ArgusDeviceStruct *device;
 
-                                    device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
-                                    if (!strcmp(device->name, ifa->name)) 
-                                       found = 1;
+                                 device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
+                                 if (!strcmp(device->name, ifa->name)) 
+                                    found = 1;
 
-                                    if (device->list) {
-                                       int x;
+                                 if (device->list) {
+                                    int x;
 
-                                       pthread_mutex_lock(&device->list->lock);
-                                       per_dev_count = device->list->count;
-                                       for (x = 0; x < per_dev_count && !found; x++) {
-                                          struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_NOLOCK);
-                                          if (!strcmp(dev->name, ifa->name)) 
-                                             found = 1;
-                                          ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_NOLOCK);
-                                       }
-                                       pthread_mutex_unlock(&device->list->lock);
+                                    pthread_mutex_lock(&device->list->lock);
+                                    per_dev_count = device->list->count;
+                                    for (x = 0; x < per_dev_count && !found; x++) {
+                                       struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_NOLOCK);
+                                       if (!strcmp(dev->name, ifa->name)) 
+                                          found = 1;
+                                       ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_NOLOCK);
                                     }
-                                    ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
-                                    pthread_mutex_unlock(&src->ArgusDeviceList->lock);
+                                    pthread_mutex_unlock(&device->list->lock);
                                  }
+                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
+                                 pthread_mutex_unlock(&src->ArgusDeviceList->lock);
                               }
                            }
+                        }
 
-                           if (!found) {
+                        if (!found) {
 
-                              int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
-                              struct ArgusDeviceStruct *dev = NULL;
-                              char *srcid = NULL, *dlt = NULL, *sptr;
+                           int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
+                           struct ArgusDeviceStruct *dev = NULL;
+                           char *srcid = NULL, *dlt = NULL, *sptr;
+                           struct ArgusSourceStruct *src = NULL;
+
+                           ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", ifa->name);
+                           src = ArgusCloneSource(stask);
+                           clearArgusDevice(src);
+
+                           setArgusDevice (src, ifa->name, ARGUS_LIVE_DEVICE, 0);
+
+                           if (ArgusInitSource (src) > 0) {
+                                 if (new_gid > 0) {
+                                    if (setgid(new_gid) < 0)
+                                       ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
+                                 }
+                                 if (new_uid > 0) {
+                                    if (setuid(new_uid) < 0)
+                                       ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
+                                 }
+
+                                 src->status |= ARGUS_LAUNCHED;
+                                 if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
+                                    ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                                 ArgusThreadCount++;
+                           }
+
+                           stask->srcs[ArgusSourceCount++] = src;
+/*
+                           if ((sptr = strchr (stask->ArgusDeviceStr, '/')) != NULL)
+                              srcid = sptr;
+
+                           if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*dev))) == NULL)
+                              ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
+
+                           dev->name = strdup(ifa->name);
+                           dev->status = status;
+                           dev->type = type;
+                           dev->mode = mode;
+
+                           if (dlt != NULL) {
+#if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
+                              dev->dlt = pcap_datalink_name_to_val(dlt);
+#endif
+                              dev->dltname = strdup(dlt);
+                           }
+
+                           if (dev != NULL) {
                               struct ArgusSourceStruct *src = NULL;
+                  
+                              if (srcid != NULL) {
+                                 int type = ArgusSourceTask->type;
 
-                              ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", ifa->name);
+                                 ArgusParseSourceID (ArgusSourceTask, dev, srcid);
+                                 dev->trans = ArgusSourceTask->trans;
+                                 dev->idtype  = ArgusSourceTask->type;
+
+                                 ArgusSourceTask->type = type;
+
+                              } else {
+                                 char inf[5] = {0,};
+                                 dev->trans = ArgusSourceTask->trans;
+                                 dev->idtype  = ArgusSourceTask->type;
+                                 if (dev && (dev->name != NULL)) {
+                                    shortname_ethdev_unique(dev->name, inf,
+                                                            sizeof(inf),
+                                                            ArgusSourceTask->ArgusDeviceList);
+
+                                    bcopy(inf, dev->trans.srcid.inf, 4);
+                                    dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+                                    ArgusLog(LOG_INFO,
+                                            "mapping interface name %s -> %s\n",
+                                            dev->name, inf);
+                                 }
+                              }
+
                               src = ArgusCloneSource(stask);
                               clearArgusDevice(src);
-
-                              setArgusDevice (src, ifa->name, ARGUS_LIVE_DEVICE, 0);
-
+                  
+                              if (dev->trans.srcid.a_un.value != 0) {
+                                 src->trans = dev->trans;
+                              } else {
+                                 dev->trans  = stask->trans;
+                                 dev->idtype = stask->type;
+                                 src->trans  = stask->trans;
+                                 src->type   = stask->type;
+                              }
+                  
+                              src->type    = dev->type;
+                  
                               if (ArgusInitSource (src) > 0) {
-                                    if (new_gid > 0) {
-                                       if (setgid(new_gid) < 0)
-                                          ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
-                                    }
-                                    if (new_uid > 0) {
-                                       if (setuid(new_uid) < 0)
-                                          ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
-                                    }
-
-                                    src->status |= ARGUS_LAUNCHED;
-                                    if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
-                                       ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
-                                    ArgusThreadCount++;
+                                 if (new_gid > 0) {
+                                    if (setgid(new_gid) < 0)
+                                       ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
+                                 }
+                                 if (new_uid > 0) {
+                                    if (setuid(new_uid) < 0)
+                                       ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
+                                 }
+                  
+                                 src->status |= ARGUS_LAUNCHED;
+                                 if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
+                                    ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                                 ArgusThreadCount++;
                               }
 
                               stask->srcs[ArgusSourceCount++] = src;
-/*
-                              if ((sptr = strchr (stask->ArgusDeviceStr, '/')) != NULL)
-                                 srcid = sptr;
-
-                              if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*dev))) == NULL)
-                                 ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
-
-                              dev->name = strdup(ifa->name);
-                              dev->status = status;
-                              dev->type = type;
-                              dev->mode = mode;
-
-                              if (dlt != NULL) {
-#if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
-                                 dev->dlt = pcap_datalink_name_to_val(dlt);
-#endif
-                                 dev->dltname = strdup(dlt);
-                              }
-
-                              if (dev != NULL) {
-                                 struct ArgusSourceStruct *src = NULL;
-                     
-                                 if (srcid != NULL) {
-                                    int type = ArgusSourceTask->type;
-
-                                    ArgusParseSourceID (ArgusSourceTask, dev, srcid);
-                                    dev->trans = ArgusSourceTask->trans;
-                                    dev->idtype  = ArgusSourceTask->type;
-
-                                    ArgusSourceTask->type = type;
-
-                                 } else {
-                                    char inf[5] = {0,};
-                                    dev->trans = ArgusSourceTask->trans;
-                                    dev->idtype  = ArgusSourceTask->type;
-                                    if (dev && (dev->name != NULL)) {
-                                       shortname_ethdev_unique(dev->name, inf,
-                                                               sizeof(inf),
-                                                               ArgusSourceTask->ArgusDeviceList);
-
-                                       bcopy(inf, dev->trans.srcid.inf, 4);
-                                       dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
-                                       ArgusLog(LOG_INFO,
-                                               "mapping interface name %s -> %s\n",
-                                               dev->name, inf);
-                                    }
-                                 }
-
-                                 src = ArgusCloneSource(stask);
-                                 clearArgusDevice(src);
-                     
-                                 if (dev->trans.srcid.a_un.value != 0) {
-                                    src->trans = dev->trans;
-                                 } else {
-                                    dev->trans  = stask->trans;
-                                    dev->idtype = stask->type;
-                                    src->trans  = stask->trans;
-                                    src->type   = stask->type;
-                                 }
-                     
-                                 src->type    = dev->type;
-                     
-                                 if (ArgusInitSource (src) > 0) {
-                                    if (new_gid > 0) {
-                                       if (setgid(new_gid) < 0)
-                                          ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
-                                    }
-                                    if (new_uid > 0) {
-                                       if (setuid(new_uid) < 0)
-                                          ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
-                                    }
-                     
-                                    src->status |= ARGUS_LAUNCHED;
-                                    if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
-                                       ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
-                                    ArgusThreadCount++;
-                                 }
-
-                                 stask->srcs[ArgusSourceCount++] = src;
-                                 ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                              }
-*/
+                              ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
                            }
-
-                           lookup_interface(interfacetable, (const u_char *)ifa->name);
-#ifdef ARGUSDEBUG
-                           ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
-#endif
-                        } else {
+*/
                         }
+
+                        lookup_interface(interfacetable, (const u_char *)ifa->name);
+#ifdef ARGUSDEBUG
+                        ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
+#endif
+                     } else {
                      }
                   }
-                  pcap_freealldevs(ifap);
                }
+               pcap_freealldevs(ifap);
+            }
          }
          if ((retn = pthread_mutex_lock(&stask->lock))) {
             switch (retn) {
@@ -5265,12 +5290,19 @@ Argusbpf_dump(struct bpf_program *p, int option)
 int
 ArgusOpenInputPacketFile(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device, struct ArgusInterfaceStruct *inf)
 {
-   char readbuf[256], errbuf[256];
    int ch, rlen, type;
    int retn = 0;
 
    if (device != NULL) {
+      char *readbuf, *errbuf;
+
       inf->ArgusDevice = device;
+
+      if ((readbuf = (char *) ArgusMalloc (1024)) == NULL)
+         ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
+
+      if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE)) == NULL)
+         ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
 
       if (strcmp(device->name, "-")) {
          if ((src->ArgusPacketInput = fopen(device->name, "r")) == NULL) {
@@ -5400,10 +5432,12 @@ pcap_open_offline_with_tstamp_precision() takes an  additional  precision  argum
          if (retn == 0)
             ArgusLog (LOG_ALERT, "ArgusOpenInputPacketFile: pcap_open_offline: %s", errbuf);
       }
+      ArgusFree(readbuf);
+      ArgusFree(errbuf);
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (3, "ArgusOpenInputPacketFile(%p) returning %d\n", errbuf, retn);
+   ArgusDebug (3, "ArgusOpenInputPacketFile(%p, %p, %p) returning %d\n", src, device, inf, retn);
 #endif
    return (retn);
 }
@@ -5414,10 +5448,9 @@ void
 ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
 {
    struct ArgusDeviceStruct *device = NULL;
-   char errbuf[PCAP_ERRBUF_SIZE];
+   char *devicename = NULL;
    struct ifreq ifr;
    int fd, i;
-   char *devicename = NULL;
 
    if (ArgusShutDownFlag)
       return;
@@ -5482,17 +5515,23 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
 #endif
          if ((ifr.ifr_flags & IFF_UP) != (src->ArgusInterface[i].ifr.ifr_flags & IFF_UP)) {
             int loglevel = LOG_INFO;
+            char *errbuf;
 
             setArgusInterfaceStatus(src, (src->ArgusInterface[i].ifr.ifr_flags & IFF_UP) ? 1 : 0);
- 
-            if (!((pcap_lookupnet (src->ArgusInterface[i].ArgusDevice->name, 
-                         (u_int *)&src->ArgusInterface[i].ArgusLocalNet,
-                         (u_int *)&src->ArgusInterface[i].ArgusNetMask, errbuf)) < 0)) {
+
+            if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE)) != NULL) {
+               if (!((pcap_lookupnet (src->ArgusInterface[i].ArgusDevice->name, 
+                            (u_int *)&src->ArgusInterface[i].ArgusLocalNet,
+                            (u_int *)&src->ArgusInterface[i].ArgusNetMask, errbuf)) < 0)) {
 #if defined(_LITTLE_ENDIAN)
-               src->ArgusInterface[i].ArgusLocalNet = ntohl(src->ArgusInterface[i].ArgusLocalNet);
-               src->ArgusInterface[i].ArgusNetMask  = ntohl(src->ArgusInterface[i].ArgusNetMask);
+                  src->ArgusInterface[i].ArgusLocalNet = ntohl(src->ArgusInterface[i].ArgusLocalNet);
+                  src->ArgusInterface[i].ArgusNetMask  = ntohl(src->ArgusInterface[i].ArgusNetMask);
 #endif
-            }
+               }
+               ArgusFree(errbuf);
+
+            } else 
+               ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
 
             if (!(src->ArgusInterface[i].ifr.ifr_flags & IFF_UP))
                 loglevel = LOG_ALERT;
