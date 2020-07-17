@@ -52,14 +52,16 @@
 
 #include <stdlib.h>
 
+#include <pcap.h>
+
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
 #include <net/bpf.h>
-#include <pcap.h>
 #include <net/if_dl.h>
 #else
-#include <pcap.h>
-#include <linux/if_packet.h>
+# if !defined(CYGWIN)
+#  include <linux/if_packet.h>
+# endif
 #endif
 
 
@@ -1203,6 +1205,7 @@ struct ArgusAddressStruct {
                  break;
               }
 #else
+# if !defined(CYGWIN)
               case AF_PACKET: {
                  struct sockaddr_ll *ll = (struct sockaddr_ll *) sa;
                  char *addr = (char *)&taddr->addr.l2addr;
@@ -1211,6 +1214,7 @@ struct ArgusAddressStruct {
                  bcopy(&ll->sll_addr, addr, len);
                  break;
               }
+# endif
 #endif
               case AF_INET: {
                  struct sockaddr_in *sin = (struct sockaddr_in *)sa;
