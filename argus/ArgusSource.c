@@ -115,6 +115,12 @@ struct anamemem {
 struct anamemem  interfacetable[HASHNAMESIZE];
 char *get_interface(const u_char *, struct anamemem *);
 struct anamemem *lookup_interface(struct anamemem *, const u_char *);
+unsigned int getnamehash(const u_char *);
+void delete_interface(const u_char *);
+
+void setArgusInterfaceScanInterval (struct ArgusSourceStruct *, int);
+int ArgusCloseOneSource(struct ArgusSourceStruct *);
+struct ArgusMarInterfaceStruct *ArgusGenerateMarInfStruct(struct ArgusDeviceStruct *, pcap_if_t *);
 
 unsigned int
 getnamehash(const u_char *np)
@@ -510,15 +516,16 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
             if (adapter) {
                type = PCAP_TSTAMP_ADAPTER;
             } else
-            if (adapterUnsync) {
-               type = PCAP_TSTAMP_ADAPTER_UNSYNCED;
-            } else
             if (hiprec) {
                type = PCAP_TSTAMP_HOST_HIPREC;
             } else
             if (lowprec) {
                type = PCAP_TSTAMP_HOST_LOWPREC;
+            } else
+            if (adapterUnsync) {
+               type = PCAP_TSTAMP_ADAPTER_UNSYNCED;
             }
+
             if (type != 0) {
                pcap_set_tstamp_type(inf->ArgusPd, type);
 #ifdef ARGUSDEBUG
@@ -1732,11 +1739,11 @@ ArgusMoatTshRead (struct ArgusSourceStruct *src)
    int retn = 0, length = 0;
    struct ip *iphdr = NULL;
 
-   if ((MoatTshBuffer = (char *) ArgusMalloc (sizeof(struct ArgusMoatTshPktHdr) * 2)) == NULL)
+   if ((MoatTshBuffer = (void *) ArgusMalloc (sizeof(struct ArgusMoatTshPktHdr) * 2)) == NULL)
       ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
 
    ArgusMoatPktHdr = MoatTshBuffer;
-   bzero (ArgusMoatPktHdr, sizeof(MoatTshBuffer));
+   bzero (ArgusMoatPktHdr, sizeof(*ArgusMoatPktHdr));
  
    if ((retn = read(pcap_fileno(src->ArgusInterface[0].ArgusPd), ArgusMoatPktHdr, ARGUSMOATLEN)) == ARGUSMOATLEN) {
       ArgusMoatPktHdr->interface = 0;
@@ -1941,7 +1948,7 @@ Arguslookup_pcap_callback (int type)
 void
 ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev, char *optarg)
 {
-   int retn = 0, type = 0, quoted = 0, slen = 0, subsid = 0;
+   int retn = 0, type = 0, slen = 0, subsid = 0;
    char *ptr = NULL, *sptr = NULL, *iptr = NULL;
    unsigned char buf[32];
    char *prefix = NULL;
@@ -2032,7 +2039,6 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
       } else
       if (*optarg == '"') {
          optarg++;
-         quoted = 1;
          if (optarg[strlen(optarg) - 1] == '\n')
             optarg[strlen(optarg) - 1] = '\0';
          if (optarg[strlen(optarg) - 1] == '\"')
@@ -4619,10 +4625,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         }
 
                         if (!found) {
-
-                           int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
-                           struct ArgusDeviceStruct *dev = NULL;
-                           char *srcid = NULL, *dlt = NULL, *sptr;
+//                         int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
+//                         struct ArgusDeviceStruct *dev = NULL;
+//                         char *srcid = NULL, *dlt = NULL, *sptr;
                            struct ArgusSourceStruct *src = NULL;
 
                            ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", ifa->name);
