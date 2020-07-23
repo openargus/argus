@@ -1034,7 +1034,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				60
+#define ARGUS_RCITEMS				61
 
 #define ARGUS_DAEMON				0
 #define ARGUS_MONITOR_ID			1
@@ -1862,6 +1862,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
                         case ARGUS_LOG_DISPLAY_PRIORITY:
                            setArgusLogDisplayPriority(atoi(optarg));
+                           break;
+
+                        case ARGUS_TIMESTAMP_TYPE:
+                           setArgusTimestampType(optarg);
                            break;
                      }
 
