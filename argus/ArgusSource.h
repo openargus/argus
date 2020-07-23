@@ -777,6 +777,7 @@ struct ArgusSourceStruct {
 
 
 int setArgusListInterfaces (struct ArgusSourceStruct *, int);
+int setArgusTimestampType(char *);
 
 void ArgusParseSourceID (struct ArgusSourceStruct *, struct ArgusDeviceStruct *, char *);
 void setArgusManInf (struct ArgusSourceStruct *, char *);
