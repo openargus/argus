@@ -423,6 +423,81 @@ ArgusOpenDevice(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device,
    return retn;
 }
 
+//
+// Set pcap timestamp type ... there are 3 components:
+//    1) precision - high, low
+//    2) sync - synchronized, unsynchronized
+//    3) source - host, adpater
+//    
+// So we want to support a format that allows us to set priorities using tokens ...
+//    hiprec
+//    lowprec
+//    adapter
+//    host
+//    sync
+//    unsync
+//    default
+//    
+// So, lets pass a string with tokens, and take them as a priority list.
+//    ARGUS_TIMESTAMP_TYPE="token[,token[,token]...]"
+//
+//    Allowed are strings like:
+//       "hiprec, adpater, sync".
+//       "host, sync"
+//       "lowprec"
+//
+
+#define ARGUS_TIMESTAMP_LOWPREC	0x01
+#define ARGUS_TIMESTAMP_HIPREC	0x02
+
+#define ARGUS_TIMESTAMP_ADAPTER	0x04
+#define ARGUS_TIMESTAMP_HOST	0x08
+
+#define ARGUS_TIMESTAMP_UNSYNCH	0x10
+#define ARGUS_TIMESTAMP_SYNCH	0x20
+
+int ArgusTimeStampType = 0;
+
+int
+setArgusTimestampType(char *optarg)
+{
+   int retn = 0;
+   char *str, *ptr, *tok;
+
+   if (optarg && strlen(optarg)) {
+      str = strdup(optarg);
+      ptr = str;
+
+#if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
+      while ((tok = strtok(ptr, " ,")) != NULL) {
+         if (!(strcasecmp(tok, "hiprec"))) {
+            ArgusTimeStampType |= ARGUS_TIMESTAMP_HIPREC;
+         } else if (!(strcasecmp(tok, "lowprec"))) {
+            ArgusTimeStampType |= ARGUS_TIMESTAMP_LOWPREC;
+         } else if (!(strcasecmp(tok, "adapter"))) {
+            ArgusTimeStampType |= ARGUS_TIMESTAMP_ADAPTER;
+         } else if (!(strcasecmp(tok, "host"))) {
+            ArgusTimeStampType |= ARGUS_TIMESTAMP_HOST;
+         } else if (!(strcasecmp(tok, "sync"))) {
+            ArgusTimeStampType |= ARGUS_TIMESTAMP_SYNCH;
+         } else if (!(strcasecmp(tok, "unsync"))) {
+            ArgusTimeStampType |= ARGUS_TIMESTAMP_UNSYNCH;
+         } else if (!(strcasecmp(tok, "any"))) {
+            ArgusTimeStampType = ARGUS_TIMESTAMP_HIPREC | ARGUS_TIMESTAMP_LOWPREC | ARGUS_TIMESTAMP_ADAPTER  |
+                                 ARGUS_TIMESTAMP_HOST   | ARGUS_TIMESTAMP_SYNCH   | ARGUS_TIMESTAMP_UNSYNCH;
+         } else if (!(strcasecmp(tok, "default"))) {
+            ArgusTimeStampType = 0;
+         }
+         ptr = NULL;
+      }
+#endif
+      free(str);
+   }
+#ifdef ARGUSDEBUG
+   ArgusDebug(4, "setArgusTimestampType('%s'): called\n", optarg);
+#endif
+   return retn;
+}
 
 int
 setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
@@ -507,16 +582,18 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                }
             }
             pcap_free_tstamp_types(tstamp_types);
-            if (adapter) {
+
+            if (adapter && (ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER)) {
                type = PCAP_TSTAMP_ADAPTER;
             } else
-            if (hiprec) {
+            if (hiprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_HIPREC)) {
                type = PCAP_TSTAMP_HOST_HIPREC;
             } else
-            if (lowprec) {
+            if (lowprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_LOWPREC)) {
                type = PCAP_TSTAMP_HOST_LOWPREC;
             } else
-            if (adapterUnsync) {
+            if (adapterUnsync  && ((ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER) &&
+                                   (ArgusTimeStampType & ARGUS_TIMESTAMP_UNSYNCH))) {
                type = PCAP_TSTAMP_ADAPTER_UNSYNCED;
             }
 
@@ -525,6 +602,10 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 #ifdef ARGUSDEBUG
                ArgusDebug(4, "pcap_set_tstamp_type: set to %s\n", pcap_tstamp_type_val_to_name(type));
 #endif
+            }
+         } else {
+            if (cnt < 0) {
+               ArgusLog (LOG_INFO, "ArgusOpenInterface pcap_list_tstamp_types: %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
             }
          }
       }
