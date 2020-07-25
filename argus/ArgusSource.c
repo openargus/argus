@@ -363,7 +363,7 @@ ArgusNewSource(struct ArgusModelerStruct *model)
 
    retn->ArgusSnapLen = ARGUS_MINSNAPLEN;
    retn->ArgusPcapDispatchNum = 1;
-   retn->ArgusInterfaceScanInterval = 1;
+   retn->ArgusInterfaceScanInterval = 5;
 
 #if defined(ARGUS_THREADS)
    if (pthread_mutex_init(&retn->lock, NULL))
@@ -1263,9 +1263,9 @@ static int
 __pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf, const char *funcname)
 {
    int severity = LOG_INFO;
-   int retrycount = 10;
+   int retrycount = 1;
+   struct timespec t = {0, 100000000};
    int res = -1;
-   struct timespec t = {1, 0};
 
    while (retrycount-- > 0 && res == -1) {
       if ((res = pcap_findalldevs(alldevsp, errbuf)) == -1)
@@ -5119,6 +5119,7 @@ ArgusGetPackets (void *arg)
                            noPkts = 0;
 
                         } else if (cnt == 0) {
+#if !defined(CYGWIN)
                            if (noPkts++ > 50) {
                               struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; // 5 millisec
                               nanosleep(ts, NULL);
@@ -5127,6 +5128,13 @@ ArgusGetPackets (void *arg)
                               ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                               noPkts = 0;
                            }
+#else
+                           struct timespec tsbuf = {0, 100000000}, *ts = &tsbuf; // 100 millisec
+                           nanosleep(ts, NULL);
+
+                           ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
+                           ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
+#endif
 
                         } else {
                            ArgusLog(LOG_INFO, "%s: pcap_dispatch() failed\n", __func__);
