@@ -515,8 +515,8 @@ setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
          ArgusLog (LOG_ERR, "%s: pcap_findalldevs_nochecks %s\n", __func__, errbuf);
 #else
       if (pcap_findalldevs(&src->ArgusPacketDevices, errbuf) == -1)
-#endif
          ArgusLog (LOG_ERR, "%s: pcap_findalldevs %s\n", __func__, errbuf);
+#endif
       ArgusFree(errbuf);
 
    } else 
@@ -1263,8 +1263,8 @@ static int
 __pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf, const char *funcname)
 {
    int severity = LOG_INFO;
-   int retrycount = 1;
-   struct timespec t = {0, 100000000};
+   int retrycount = 2;
+   struct timespec t = {0, 10000000};
    int res = -1;
 
    while (retrycount-- > 0 && res == -1) {
