@@ -1297,7 +1297,9 @@ ArgusGenerateMarInfStruct(struct ArgusDeviceStruct *dev, pcap_if_t *d)
 {
    struct ArgusMarInterfaceStruct *retn = NULL;
    pcap_addr_t *dev_addr;
+#if !defined(CYGWIN)
    struct ifreq ifr;
+#endif
 
    char *tptr;
 
@@ -5136,6 +5138,7 @@ ArgusGetPackets (void *arg)
                            nanosleep(ts, NULL);
                            ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
                            ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
+                           noPkts++;
 #endif
                         } else {
                            ArgusLog(LOG_INFO, "%s: pcap_dispatch() failed\n", __func__);
@@ -5544,9 +5547,10 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
 {
    struct ArgusDeviceStruct *device = NULL;
    char *devicename = NULL;
-   int fd, i;
-#if !defined(CYGWIN)
    struct ifreq ifr;
+   int i;
+#if !defined(CYGWIN)
+   int fd;
 #endif
 
    if (ArgusShutDownFlag)
@@ -5592,7 +5596,9 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
       if ((ArgusGetInterfaceFD = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
          ArgusLog(LOG_ERR, "ArgusGetInterfaceStatus: socket %s", strerror(errno));
 
+#if !defined(CYGWIN)
    fd = ArgusGetInterfaceFD;
+#endif
 
    for (i = 0; i < src->ArgusInterfaces; i++) {
       if (src->ArgusInterface[i].ArgusPd && (pcap_fileno(src->ArgusInterface[i].ArgusPd) > 0)) {
