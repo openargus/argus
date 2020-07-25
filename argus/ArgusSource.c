@@ -1268,19 +1268,23 @@ ArgusCheckPcapDevices(pcap_if_t *alldevs, char *tok)
 static int
 __pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf, const char *funcname)
 {
-   int severity = LOG_INFO;
-   int retrycount = 2;
+   int severity = 0;
+   int retrycount = 3;
    struct timespec t = {0, 10000000};
-   int res = -1;
+   int retn = -1;
 
-   while (retrycount-- > 0 && res == -1) {
-      if ((res = pcap_findalldevs(alldevsp, errbuf)) == -1)
-         ArgusLog (severity, "%s: pcap_findalldevs %s\n", funcname, errbuf);
+   while (retrycount-- > 0 && retn == -1) {
+      if ((retn = pcap_findalldevs(alldevsp, errbuf)) == -1) {
+         if (severity != 0) {
+            ArgusLog (severity, "%s: pcap_findalldevs %s\n", funcname, errbuf);
+         }
+      }
       if (retrycount == 1)
-         severity = LOG_ERR;
-      else if (res == -1)
+         severity = LOG_INFO;
+      else if (retn == -1)
          nanosleep(&t, NULL);
    }
+   return (retn);
 }
 #else
 static inline int
@@ -5049,10 +5053,9 @@ ArgusGetPackets (void *arg)
 
                         if (cnt > 0) {
                            noPkts = 0;
-
                         } else if (cnt == 0) {
 #if !defined(CYGWIN)
-                           if (noPkts++ > 50) {
+                           if (noPkts++ > 5) {
                               struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; // 5 millisec
                               nanosleep(ts, NULL);
 
@@ -5061,13 +5064,11 @@ ArgusGetPackets (void *arg)
                               noPkts = 0;
                            }
 #else
-                           struct timespec tsbuf = {0, 100000000}, *ts = &tsbuf; // 100 millisec
+                           struct timespec tsbuf = {0, 50000000}, *ts = &tsbuf; // 50 millisec
                            nanosleep(ts, NULL);
-
                            ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
                            ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
 #endif
-
                         } else {
                            ArgusLog(LOG_INFO, "%s: pcap_dispatch() failed\n", __func__);
                            noerror = 0;
@@ -5475,8 +5476,10 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
 {
    struct ArgusDeviceStruct *device = NULL;
    char *devicename = NULL;
-   struct ifreq ifr;
    int fd, i;
+#if !defined(CYGWIN)
+   struct ifreq ifr;
+#endif
 
    if (ArgusShutDownFlag)
       return;
