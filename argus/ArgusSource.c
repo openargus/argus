@@ -1264,7 +1264,7 @@ __pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf, const char *funcname)
 {
    int severity = 0;
    int retrycount = 5;
-   struct timespec t = {0, 10000000};
+   struct timespec t = {0, 100000000};
    int retn = -1;
 
    while (retrycount-- > 0 && retn == -1) {
@@ -5136,7 +5136,7 @@ ArgusGetPackets (void *arg)
                               noPkts = 0;
                            }
 #else
-                           struct timespec tsbuf = {0, 50000000}, *ts = &tsbuf; // 50 millisec
+                           struct timespec tsbuf = {0, 100000000}, *ts = &tsbuf; // 50 millisec
                            nanosleep(ts, NULL);
                            ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
                            ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
