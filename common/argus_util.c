@@ -824,6 +824,13 @@ ArgusHtoN (struct ArgusRecord *argus)
                      break;
                   }
 
+                  case ARGUS_VXLAN_DSR: {
+                     struct ArgusVxLanStruct *vlan = (struct ArgusVxLanStruct *) dsr;
+                     vlan->svnid = htons(vlan->svnid);
+                     vlan->dvnid = htons(vlan->dvnid);
+                     break;
+                  }
+
                   case ARGUS_MPLS_DSR: {
                      struct ArgusMplsStruct *mpls = (struct ArgusMplsStruct *) dsr;
                      unsigned int *label = (unsigned int *)(dsr + 1);

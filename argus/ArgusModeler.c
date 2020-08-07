@@ -3834,6 +3834,7 @@ ArgusCopyRecordStruct (struct ArgusRecordStruct *rec)
                            case ARGUS_PSIZE_INDEX:     retn->dsrs[i] = &retn->canon.psize.hdr; break;
                            case ARGUS_MAC_INDEX:       retn->dsrs[i] = &retn->canon.mac.hdr; break;
                            case ARGUS_VLAN_INDEX:      retn->dsrs[i] = &retn->canon.vlan.hdr; break;
+                           case ARGUS_VXLAN_INDEX:     retn->dsrs[i] = &retn->canon.vxlan.hdr; break;
                            case ARGUS_MPLS_INDEX:      retn->dsrs[i] = &retn->canon.mpls.hdr; break;
 
                            case ARGUS_SRCUSERDATA_INDEX:
@@ -3944,6 +3945,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
 
                      case ARGUS_MPLS_INDEX:        retn->dsrs[i] = &retn->canon.mpls.hdr; break;
                      case ARGUS_VLAN_INDEX:        retn->dsrs[i] = &retn->canon.vlan.hdr; break;
+                     case ARGUS_VXLAN_INDEX:       retn->dsrs[i] = &retn->canon.vxlan.hdr; break;
 
                      case ARGUS_JITTER_INDEX: {
                         struct ArgusJitterStruct *jitter  = &retn->canon.jitter;
