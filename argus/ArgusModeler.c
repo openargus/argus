@@ -3092,6 +3092,11 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
                         break;
 
+                     case ARGUS_VXLAN_INDEX:
+                        for (x = 0; x < len; x++)
+                           *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+                        break;
+
                      case ARGUS_FLOW_HASH_INDEX:
                         for (x = 0; x < len; x++)
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
