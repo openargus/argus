@@ -2537,10 +2537,10 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          vxlan = (struct ArgusVxLanStruct *) &flow->canon.vxlan;
          memset(vxlan, 0, sizeof(*vxlan));
          flow->dsrs[ARGUS_VXLAN_INDEX] = (struct ArgusDSRHeader *) vxlan;
-         vlan->hdr.type                = ARGUS_VXLAN_DSR;
-         vlan->hdr.subtype             = 0;
-         vlan->hdr.argus_dsrvl8.qual   = 0;
-         vlan->hdr.argus_dsrvl8.len    = 3;
+         vxlan->hdr.type               = ARGUS_VXLAN_DSR;
+         vxlan->hdr.subtype            = 0;
+         vxlan->hdr.argus_dsrvl8.qual  = 0;
+         vxlan->hdr.argus_dsrvl8.len   = 3;
          flow->dsrindex |= 1 << ARGUS_VXLAN_INDEX;
       }
 
