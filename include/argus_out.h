@@ -666,9 +666,7 @@ struct ArgusMacStruct {
 
 struct ArgusVxLanStruct {
    struct ArgusDSRHeader hdr;
-   unsigned char flgs;
-   unsigned char res[3];
-   unsigned int vni;
+   unsigned int svnid, dvnid;
 };
    
 struct ArgusVlanStruct {
