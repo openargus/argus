@@ -2274,6 +2274,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    struct ArgusNetworkStruct *net;
    struct ArgusMplsStruct *mpls;
    struct ArgusVlanStruct *vlan;
+   struct ArgusVxLanStruct *vxlan;
    struct ArgusTimeObject *time;
    struct ArgusJitterStruct *jitter;
    model->ArgusTotalUpdates++;
@@ -2528,6 +2529,28 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       } else {
          vlan->did = model->ArgusThisPacket8021QEncaps;
          vlan->hdr.argus_dsrvl8.qual |= ARGUS_DST_VLAN;
+      }
+   }
+
+   if (model->ArgusThisEncaps & ARGUS_ENCAPS_VXLAN) {
+      if ((vxlan = (struct ArgusVxLanStruct *) flow->dsrs[ARGUS_VXLAN_INDEX]) == NULL) {
+         vxlan = (struct ArgusVxLanStruct *) &flow->canon.vxlan;
+         memset(vxlan, 0, sizeof(*vxlan));
+         flow->dsrs[ARGUS_VXLAN_INDEX] = (struct ArgusDSRHeader *) vxlan;
+         vlan->hdr.type                = ARGUS_VXLAN_DSR;
+         vlan->hdr.subtype             = 0;
+         vlan->hdr.argus_dsrvl8.qual   = 0;
+         vlan->hdr.argus_dsrvl8.len    = 3;
+         flow->dsrindex |= 1 << ARGUS_VXLAN_INDEX;
+      }
+
+      if (model->ArgusThisDir) {
+         vxlan->svnid = model->ArgusThisVxLanVni;
+         vxlan->hdr.argus_dsrvl8.qual |= ARGUS_SRC_VXLAN;
+
+      } else {
+         vxlan->dvnid = model->ArgusThisVxLanVni;
+         vxlan->hdr.argus_dsrvl8.qual |= ARGUS_DST_VXLAN;
       }
    }
 
