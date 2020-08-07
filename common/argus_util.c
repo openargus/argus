@@ -821,8 +821,8 @@ ArgusHtoN (struct ArgusRecord *argus)
 
                   case ARGUS_VXLAN_DSR: {
                      struct ArgusVxLanStruct *vlan = (struct ArgusVxLanStruct *) dsr;
-                     vlan->svnid = htons(vlan->svnid);
-                     vlan->dvnid = htons(vlan->dvnid);
+                     vlan->svnid = htonl(vlan->svnid);
+                     vlan->dvnid = htonl(vlan->dvnid);
                      break;
                   }
 
