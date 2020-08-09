@@ -46,8 +46,6 @@
 
 #include <stdlib.h>
 
-#include <pcap.h>
-
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
 #include <net/bpf.h>
@@ -58,6 +56,7 @@
 # endif
 #endif
 
+#include <pcap.h>
 
 #if defined(HAVE_NETINET_IN_H)
 #include <netinet/in.h>
