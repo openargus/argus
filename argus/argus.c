@@ -1,6 +1,6 @@
 /*
- * Argus-5.0 Software.  Argus files - Main argus processing
- * Copyright (c) 2000-2024 QoSient, LLC
+ * Argus Software.  Argus files - main argus processing
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,14 +24,8 @@
  *
  */
 
-/* 
- * $Id: //depot/gargoyle/argus/argus/argus.c#18 $
- * $DateTime: 2016/10/27 18:40:41 $
- * $Change: 3232 $
- */
-
 /*
- * argus - Audit Record Generation and Utilization System
+ * argus.c - Audit Record Generation and Utilization System
  *
  * written by Carter Bullard
  * QoSient LLC

@@ -1,6 +1,6 @@
 /*
- * Argus-5.0 Software.  Argus files - Input processing
- * Copyright (c) 2000-2024 QoSient, LLC
+ * Argus Software.  Argus files - Input processing
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,12 +22,6 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- */
-
-/*
- * $Id: //depot/gargoyle/argus/argus/ArgusSource.c#24 $
- * $DateTime: 2016/10/10 23:36:26 $
- * $Change: 3221 $
  */
 
 /*

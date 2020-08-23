@@ -1,6 +1,6 @@
 /*
- * Argus-5.0 Software.  Argus files - Utilities include files
- * Copyright (c) 2000-2024 QoSient, LLC
+ * Argus Software.  Argus files - Utilities include files
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General

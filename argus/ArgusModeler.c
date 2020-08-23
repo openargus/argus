@@ -1,6 +1,6 @@
-/*
- * Argus-5.0 Software.  Argus files - Modeler
- * Copyright (c) 2000-2024 QoSient, LLC
+/* 
+ * Argus Software.  Argus files - Modeler
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,11 +24,6 @@
  *
  */
 
-/* 
- * $Id: //depot/gargoyle/argus/argus/ArgusModeler.c#19 $
- * $DateTime: 2016/10/04 10:36:36 $
- * $Change: 3213 $
- */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

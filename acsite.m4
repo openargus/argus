@@ -1,23 +1,5 @@
 dnl
-dnl Argus-5.0 Software. Argus flow data generation.
-dnl Copyright (c) 2000-2024 QoSient, LLC
-dnl All rights reserved.
-dnl
-dnl This program is free software, released under the GNU General
-dnl Public License; you can redistribute it and/or modify it under the terms
-dnl of the GNU General Public License as published by the Free Software
-dnl Foundation; either version 3, or any later version.
-dnl
-dnl Other licenses are available through QoSient, LLC.
-dnl Inquire at info@qosient.com.
-dnl
-dnl This program is distributed WITHOUT ANY WARRANTY; without even the
-dnl implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-dnl See the * GNU General Public License for more details.
-dnl
-dnl You should have received a copy of the GNU General Public License
-dnl along with this program; if not, write to the Free Software
-dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+dnl Copyright (C) 2000-2020 QoSient, LLC.
 dnl
 dnl Copyright (c) 1995, 1996, 1997, 1998
 dnl   The Regents of the University of California.  All rights reserved.

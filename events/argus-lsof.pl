@@ -1,7 +1,7 @@
 #!@PERLBIN@
 #
-#  Argus-5.0 Software.  Argus Event scripts - argus-lsof
-#  Copyright (c) 2000-2024 QoSient, LLC
+#  Argus Software
+#  Copyright (c) 2006-2020 QoSient, LLC
 #  All rights reserved.
 #
 #  This program is free software, released under the GNU General

@@ -1,6 +1,6 @@
 /*
- * Argus-5.0 Software.  Common library routines - Filter processing
- * Copyright (c) 2000-2024 QoSient, LLC
+ * Argus Software
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -65,11 +65,6 @@
  *
  */
 
-/* 
- * $Id: //depot/gargoyle/argus/common/argus_filter.c#6 $
- * $DateTime: 2016/09/18 16:32:53 $
- * $Change: 3186 $
- */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

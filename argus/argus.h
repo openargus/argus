@@ -1,6 +1,6 @@
 /*
- * Argus-5.0 Software.  Argus files - main argus includes
- * Copyright (c) 2000-2024 QoSient, LLC
+ * Argus Software.  Argus files - main argus includes
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -23,13 +23,6 @@
  * QoSient, LLC
  *
  */
-
-/* 
- * $Id: //depot/gargoyle/argus/argus/argus.h#7 $
- * $DateTime: 2016/10/04 10:36:36 $
- * $Change: 3213 $
- */
-
 
 /*  argus.h */
 

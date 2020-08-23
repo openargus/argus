@@ -1,6 +1,6 @@
 /*
- * Argus-5.0 Software.  Common library routines - Utilities
- * Copyright (c) 2000-2024 QoSient, LLC
+ * Argus Software.  Common library routines - Utilities
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,11 +24,6 @@
  *
  */
 
-/* 
- * $Id: //depot/gargoyle/argus/common/argus_util.c#13 $
- * $DateTime: 2016/10/27 18:40:41 $
- * $Change: 3232 $
- */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

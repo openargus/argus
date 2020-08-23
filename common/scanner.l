@@ -1,6 +1,6 @@
 %{
-/* Argus-5.0 Software
- * Copyright (c) 2000-2024 QoSient, LLC
+/* Argus Software
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,9 +17,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: //depot/gargoyle/argus/common/scanner.l#5 $
- * $DateTime: 2015/06/22 18:22:35 $
- * $Change: 3025 $
  */
 
 /*

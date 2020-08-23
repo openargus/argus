@@ -1,6 +1,6 @@
 %{
-/* Argus-5.0 Software.  Common library routines - Grammar files
- * Copyright (c) 2000-2024 QoSient, LLC
+/* Argus Software
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -19,12 +19,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
- * $Id: //depot/gargoyle/argus/common/grammar.y#6 $
- * $DateTime: 2015/06/22 17:59:06 $
- * $Change: 3024 $
  */
 /*
  * Copyright (c) 1988, 1989, 1990, 1991, 1992, 1993, 1994

@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-#  Argus-5.0 Software.  Argus Event scripts - snmp
-#  Copyright (c) 2000-2024 QoSient, LLC
+#  Argus Software
+#  Copyright (c) 2006-2020 QoSient, LLC
 #  All rights reserved.
 #
 #  This program is free software, released under the GNU General
@@ -28,10 +28,8 @@
 #               so, be sure and change the community string for snmp agent access
 #               and pick the interfaces of interest.
 #
-#
-#  $Id: //depot/gargoyle/argus/events/argus-snmp.sh#5 $
-#  $DateTime: 2015/04/13 00:39:28 $
-#  $Change: 2980 $
+# Carter Bullard
+# QoSient, LLC
 # 
 
 prog="/usr/bin/snmpwalk -Os -c qosient -v 2c 10.0.1.1" 
