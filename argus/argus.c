@@ -31,7 +31,7 @@
  */
 
 /*
- * argus - Audit Record Generation and Utilization System
+ * argus.c - Audit Record Generation and Utilization System
  *
  * written by Carter Bullard
  * QoSient LLC

@@ -24,12 +24,8 @@
  *
  */
 
-/* 
- * $Id: //depot/argus/argus/argus/ArgusNetflow.h#1 $
- * $DateTime: 2011/01/26 17:21:20 $
- * $Change: 2089 $
- */
-
+#ifndef ArgusNetflow_h
+#define ArgusNetflow_h
 
 #define CISCO_VERSION_1         1
 #define CISCO_VERSION_5         5
@@ -60,4 +56,5 @@ extern void ArgusParseCiscoRecordV6 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV7 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV8 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV9 (struct ArgusModelerStruct *, void *);
+#endif
 #endif

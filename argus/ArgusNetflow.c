@@ -24,11 +24,6 @@
  *
  */
 
-/* 
- * $Id: //depot/argus/argus/argus/ArgusNetflow.c#23 $
- * $DateTime: 2011/01/26 17:21:20 $
- * $Change: 2089 $
- */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
