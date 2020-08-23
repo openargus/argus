@@ -416,7 +416,7 @@ ArgusInitSource (struct ArgusSourceStruct *src)
       exit(1);
 #else
 #if !defined(ARGUS_NEW_INTERFACE_STRATEGY)
-      setArgusDevice (src, pcap_lookupdev (errbuf), ARGUS_LIVE_DEVICE, 0);
+      setArgusDevice (src, src->ArgusPacketDevices->name, ARGUS_LIVE_DEVICE, 0);
 #endif
 #endif
    }
@@ -864,7 +864,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                }
 
                if (!(strncmp("any", tok, 3))) {
-                  setArgusDevice (src, pcap_lookupdev (errbuf), ARGUS_LIVE_DEVICE, 0);
+                  setArgusDevice (src, alldevs->name, ARGUS_LIVE_DEVICE, 0);
                   break;
                } else
                if (!(strncmp("all", tok, 3))) {
