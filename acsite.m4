@@ -1,5 +1,5 @@
 dnl
-dnl Copyright (C) 2000-2015 QoSient, LLC.
+dnl Copyright (C) 2000-2020 QoSient, LLC.
 dnl
 dnl Copyright (c) 1995, 1996, 1997, 1998
 dnl   The Regents of the University of California.  All rights reserved.

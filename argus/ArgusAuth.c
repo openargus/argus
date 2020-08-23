@@ -1,6 +1,6 @@
 /*
  * Argus Software.  Argus files - Authentication
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,12 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
-/* 
- * $Id: //depot/argus/argus/argus/ArgusAuth.c#18 $
- * $DateTime: 2015/04/06 10:38:44 $
- * $Change: 2973 $
  */
 
 /*

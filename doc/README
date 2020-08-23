@@ -1,6 +1,6 @@
 /*
  * Argus Software
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
@@ -14,7 +14,7 @@
  */
 
 All documenation for argus-3.0 can be found on the argus home website:
-   http://qosient.com/argus/
+   http://openargus.org/
 
 If you find that any documentation is either not current, or incorrect,
 please don't hesitate to send email to the argus developers mailing list,

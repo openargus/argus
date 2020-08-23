@@ -1,6 +1,6 @@
 /*
  * Argus Software.  Argus files - Modeler
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,12 +20,6 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- */
-
-/* 
- * $Id: //depot/argus/argus/argus/ArgusEvents.c#17 $
- * $DateTime: 2016/06/06 11:06:59 $
- * $Change: 3154 $
  */
 
 #ifdef HAVE_CONFIG_H

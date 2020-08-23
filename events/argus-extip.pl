@@ -1,7 +1,7 @@
 #!@PERLBIN@
 #
 #  Argus Software
-#  Copyright (c) 2006-2015 QoSient, LLC
+#  Copyright (c) 2006-2020 QoSient, LLC
 #  All rights reserved.
 #
 #  argus-lsof - Report open inet sockets and provide application names as

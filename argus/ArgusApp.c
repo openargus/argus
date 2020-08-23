@@ -1,6 +1,6 @@
 /*
  * Argus Software.  Argus files - Application Level
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,11 +19,6 @@
  * 
  */
 
-/* 
- * $Id: //depot/argus/argus/argus/ArgusApp.c#29 $
- * $DateTime: 2015/06/29 16:17:25 $
- * $Change: 3027 $
- */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

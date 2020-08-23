@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 #  Argus Software
-#  Copyright (c) 2006-2015 QoSient, LLC
+#  Copyright (c) 2006-2020 QoSient, LLC
 #  All rights reserved.
 #
 #  argus-snmp - collect snmp stats and report them as XML oriented argus events.
@@ -11,10 +11,6 @@
 #
 # Carter Bullard
 # QoSient, LLC
-#
-#  $Id: //depot/argus/argus/events/argus-snmp.sh#7 $
-#  $DateTime: 2015/04/06 10:38:44 $
-#  $Change: 2973 $
 # 
 
 prog="/usr/bin/snmpwalk -Os -c qosient -v 2c 10.0.1.1" 

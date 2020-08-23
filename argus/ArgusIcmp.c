@@ -1,6 +1,6 @@
 /*
  * Argus Software.  Argus files - ICMP protocol processing
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,11 +19,6 @@
  *
  */
 
-/* 
- * $Id: //depot/argus/argus/argus/ArgusIcmp.c#23 $
- * $DateTime: 2015/08/05 22:33:18 $
- * $Change: 3042 $
- */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

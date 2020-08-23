@@ -1,6 +1,6 @@
 /*
  * Argus Software.  Argus files - Input includes
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,13 +19,6 @@
  *
  */
 
-/*
- * $Id: //depot/argus/argus/argus/ArgusSource.h#48 $
- * $DateTime: 2016/08/22 00:40:08 $
- * $Change: 3176 $
- */
-
-/*  ArgusSource.h */
 
 #ifndef ArgusSource_h
 #define ArgusSource_h

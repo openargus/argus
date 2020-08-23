@@ -1,6 +1,6 @@
 /*
  * Argus Software.  Argus files - Udt protocol processing
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,12 +17,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
-
-/* 
- * $Id: //depot/argus/argus/argus/ArgusUdt.c#10 $
- * $DateTime: 2015/06/29 16:17:25 $
- * $Change: 3027 $
  */
 
 #ifdef HAVE_CONFIG_H

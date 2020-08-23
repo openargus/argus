@@ -1,6 +1,6 @@
 /*
  * Argus Software
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -40,11 +40,6 @@
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/* 
- * $Id: //depot/argus/argus/common/argus_code.c#41 $
- * $DateTime: 2015/04/14 18:22:14 $
- * $Change: 3006 $
- */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

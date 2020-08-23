@@ -1,6 +1,6 @@
 %{
 /* Argus Software
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,10 +17,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *
- * $Id: //depot/argus/argus/common/grammar.y#23 $
- * $DateTime: 2015/04/06 10:38:44 $
- * $Change: 2973 $
  */
 /*
  * Copyright (c) 1988, 1989, 1990, 1991, 1992, 1993, 1994

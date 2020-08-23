@@ -1,6 +1,6 @@
 /*
  * Argus Software.  Common library routines - Authentication
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * QoSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
@@ -12,12 +12,6 @@
  * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
  * THIS SOFTWARE.
  *
- */
-
-/*
- * $Id: //depot/argus/argus/common/argus_auth.c#13 $
- * $DateTime: 2015/04/06 10:38:44 $
- * $Change: 2973 $
  */
 
 /*
