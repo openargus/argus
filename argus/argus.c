@@ -825,14 +825,16 @@ int ArgusShutDownSig = 0;
 void
 ArgusBacktrace (void)
 {
-      void* callstack[128];
-      int i, frames = backtrace(callstack, 128);
-      char** strs = backtrace_symbols(callstack, frames);
+#if defined(HAVE_BACKTRACE)
+   void* callstack[128];
+   int i, frames = backtrace(callstack, 128);
+   char** strs = backtrace_symbols(callstack, frames);
 
-      for (i = 0; i < frames; ++i) {
-         ArgusLog(LOG_WARNING, "%s", strs[i]);
-      }
-      free(strs);
+   for (i = 0; i < frames; ++i) {
+      ArgusLog(LOG_WARNING, "%s", strs[i]);
+   }
+   free(strs);
+#endif
 }
 
 void
@@ -842,12 +844,10 @@ ArgusScheduleShutDown (int sig)
    ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
 #ifdef ARGUSDEBUG
-#if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
       ArgusLog(LOG_WARNING, "ArgusScheduleShutDown(%d)", sig);
       ArgusBacktrace();
    }
-#endif
 
    ArgusShutDownSig = sig;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
@@ -858,12 +858,10 @@ static void
 ArgusShutDown (void)
 {
 #if defined(ARGUSDEBUG)
-#if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
       ArgusLog(LOG_WARNING, "ArgusShutDown(%d)", ArgusShutDownSig);
       ArgusBacktrace();
    }
-#endif
 #endif
 
 
