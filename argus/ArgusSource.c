@@ -1364,6 +1364,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
 
    if (cmd) {
       struct ArgusDeviceStruct *device = NULL;
+//    char errbuf[PCAP_ERRBUF_SIZE];
       char *params = strdup(cmd);
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
