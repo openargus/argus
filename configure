@@ -3600,19 +3600,14 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
           ac_cv_lbl_gcc_vers=0
           { $as_echo "$as_me:${as_lineno-$LINENO}: checking gcc version" >&5
 $as_echo_n "checking gcc version... " >&6; }
-          ac_cv_lbl_gcc_vers=`$CC --version 2>&1 | \
-             sed -e '/^ version /!d' \
-            -e 's/^gcc version //' \
-            -e 's/ .*//' -e 's/^[[^0-9]]*//' \
-            -e 's/\..*//'`
-          if test -z "$ac_cv_lbl_gcc_vers" ; then \
-              ac_cv_lbl_gcc_vers=`$CC --version 2>&1 | \
-                awk 'NR==1{gsub(/\..*$/, "", $3); print $3}'`
-          fi
           if ${ac_cv_lbl_gcc_vers+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  $ac_cv_lbl_gcc_vers
+  ac_cv_lbl_gcc_vers=`$CC --version 2>&1 | \
+             sed -e '/^ version /!d' \
+            -e 's/^gcc version //' \
+            -e 's/ .*//' -e 's/^[^0-9]*//' \
+            -e 's/\..*//'`
 fi
 
           { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lbl_gcc_vers" >&5
