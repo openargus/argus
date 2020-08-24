@@ -138,8 +138,6 @@ AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 
-
-AC_CHECK_FUNCS(backtrace)
 AC_CHECK_FUNCS(openlog syslog)
 AC_CHECK_FUNCS(vfprintf strlcpy)
 AC_CHECK_FUNCS(strftime)
