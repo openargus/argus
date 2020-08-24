@@ -390,6 +390,7 @@ AC_DEFUN([AC_LBL_DEVEL],
              ;;
           esac
        fi
+       AC_CHECK_FUNCS(backtrace)
     fi])
 
 dnl

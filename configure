@@ -607,7 +607,7 @@ PACKAGE_TARNAME='argus'
 PACKAGE_VERSION='5.0.0'
 PACKAGE_STRING='Argus-5.0 Server Programs 5.0.0'
 PACKAGE_BUGREPORT='bug-report@qosient.com'
-PACKAGE_URL='http://qosient.com/argus'
+PACKAGE_URL='http://openargus.org'
 
 ac_unique_file="argus/argus.c"
 ac_default_prefix=/usr/local
@@ -7724,6 +7724,17 @@ rm -f os-proto.h
              ;;
           esac
        fi
+       for ac_func in backtrace
+do :
+  ac_fn_c_check_func "$LINENO" "backtrace" "ac_cv_func_backtrace"
+if test "x$ac_cv_func_backtrace" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_BACKTRACE 1
+_ACEOF
+
+fi
+done
+
     fi
 
     if test -f .debug ; then
