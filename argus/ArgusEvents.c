@@ -278,7 +278,7 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
          if (evt->status & ARGUS_ZLIB_COMPRESS) {
             char buf[ARGUS_MAX_OS_STATUS], *ptr = buf;
 
-            snprintf (buf, ARGUS_MAX_OS_STATUS - 1, "file:%s\n", evt->filename);
+            snprintf (buf, ARGUS_MAX_OS_STATUS - 1, "file=%s\n", evt->filename);
             tcnt = strlen(buf);
             if ((cnt = read(fd, &ptr[tcnt], (ARGUS_MAX_OS_STATUS - tcnt))) > 0) {
                uLong slen = cnt, dlen = (ARGUS_MAX_OS_STATUS - tcnt);
@@ -291,7 +291,7 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
 #endif
             char buf[ARGUS_MAX_OS_STATUS];
 
-            snprintf(buf, ARGUS_MAX_OS_STATUS - 1, "file:%s\n", evt->filename);
+            snprintf(buf, ARGUS_MAX_OS_STATUS - 1, "file=%s\n", evt->filename);
             strcpy(rec->argus_event.data.array, buf);
             tcnt = strlen(rec->argus_event.data.array);
             cnt = read(fd, &rec->argus_event.data.array[tcnt], len - tcnt);
@@ -309,7 +309,7 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
       FILE *fd = NULL;
 
       memset(result, 0, sizeof(result));
-      snprintf(result, ARGUS_MAX_OS_STATUS - 1, "prog:%s\n", evt->filename);
+      snprintf(result, ARGUS_MAX_OS_STATUS - 1, "prog=%s\n", evt->filename);
       tcnt = strlen(result);
 
       if ((fd = popen(evt->filename, "r")) != NULL) {
