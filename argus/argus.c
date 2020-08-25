@@ -2192,6 +2192,7 @@ setArgusEventDataRecord (char *ptr)
                event->status |= ARGUS_ZLIB_COMPRESS;
             if (!(strncmp(pp, "compress2", 9)))
                event->status |= ARGUS_ZLIB_COMPRESS2;
+            free (pp);
          }
   
          ArgusPushFrontList(ArgusEventsTask->ArgusEventsList, (struct ArgusListRecord *) event, ARGUS_LOCK);
