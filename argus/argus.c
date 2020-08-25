@@ -1773,13 +1773,13 @@ setArgusEventDataRecord (char *ptr)
       while (tok != NULL) {
          switch (ind++) {
             case 0:   
-               method = tok;
+               method = strdup(tok);
                if (!((strncmp(method, "file", 4) == 0) || (strncmp(method, "prog", 4) == 0)))
                   ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
                elem++;
                break;
             case 1:
-               file = tok; elem++;
+               file = strdup(tok); elem++;
                break;
             case 2:
                interval = strtol(tok, (char **)&tptr, 10);
@@ -1800,7 +1800,7 @@ setArgusEventDataRecord (char *ptr)
                elem++;
                break;
             case 3:
-               pp = tok;
+               pp = strdup(tok);
                if (!((strncmp(pp, "compress", 8) == 0) || (strncmp(pp, "compress2", 9) == 0)))
                   ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
                elem++;
@@ -1820,14 +1820,15 @@ setArgusEventDataRecord (char *ptr)
       
       if ((event = (struct ArgusEventRecordStruct *) ArgusCalloc (1, sizeof (*event))) != NULL) {
          event->entry    = strdup(ptr);
-         event->method   = strdup(method);
-         event->filename = strdup(file);
+         event->method   = method;
+         event->filename = file;
          event->interval = interval;
          if (pp != NULL) {
             if (!(strncmp(pp, "compress", 8)))
                event->status |= ARGUS_ZLIB_COMPRESS;
             if (!(strncmp(pp, "compress2", 9)))
                event->status |= ARGUS_ZLIB_COMPRESS2;
+            free (pp);
          }
   
          ArgusPushFrontList(ArgusEventsTask->ArgusEventsList, (struct ArgusListRecord *) event, ARGUS_LOCK);
