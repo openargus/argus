@@ -1,0 +1,65 @@
+# xcode noise
+build/*
+*.pbxuser
+*.mode1v3
+
+# old skool
+.svn
+
+# osx noise
+.DS_Store
+profile
+
+argus-clients.xcodeproj/project.xcworkspace/
+argus-clients.xcodeproj/xcuserdata/
+
+.gitattributes
+.gitignore
+.debug
+.devel
+.nfs*
+
+*.o
+*.swp
+Makefile
+lib/argus-clients.pc
+pkg/rhel/systemd/rasqlinsert-setup
+bin/*
+!bin/argusclientbug
+!bin/mkdep
+/config.log
+/config.status
+include/argus_config.h
+/common/grammar.c
+/common/scanner.c
+/common/tokdefs.h
+/common/version.c
+/lib/*.a
+/autom4te.cache
+/argus-clients-*.tar.gz
+/lib/argus-clients.spec
+/pkg/win7/argus-clients.wxs
+/pkg/osx/BUILDROOT
+/examples/radhcp/radhcp-query
+/examples/rahisto/rahisto-delsql
+/examples/rahisto/rahisto-querysql
+/examples/rahisto/rahisto-updatesql
+/man/man5/ramanage.conf.5
+
+# compiled perl library
+/perllib/qosient
+/perllib/swig.stamp
+/perllib/swig_ArgusParseTime_wrap.c
+/perllib/util.so
+/perllib/util.dylib
+
+# rasql_udf_ intermediates
+/examples/rasql_udf_cidr/.libs/
+/examples/rasql_udf_cidr/.deps/
+/examples/rasql_udf_cidr/autom4te.cache
+/examples/rasql_udf_cidr/libtool
+/examples/rasql_udf_cidr/config.log
+/examples/rasql_udf_cidr/config.status
+/examples/rasql_udf_cidr/config.h
+/examples/rasql_udf_cidr/rasql_udf_cidr.la
+/examples/rasql_udf_cidr/rasql_udf_cidr_la-rasql_udf_cidr.lo
