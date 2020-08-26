@@ -49,6 +49,7 @@ COMPATLIB = @COMPATLIB@ @LIB_XDR@
 
 WRAPLIBS = @WRAPLIBS@
 SASLLIBS = @LIB_SASL@
+XDRLIBS  = @LIB_XDR@
 
 #
 # You shouldn't need to edit anything below.
