@@ -49,6 +49,7 @@ COMPATLIB = @COMPATLIB@ @LIB_XDR@
 
 WRAPLIBS = @WRAPLIBS@
 SASLLIBS = @LIB_SASL@
+XDRLIBS  = @LIB_XDR@
 
 #
 # You shouldn't need to edit anything below.
@@ -94,7 +95,7 @@ PROG =	@INSTALL_BIN@/argus
 
 OBJ =	$(SRC:.c=.o)
 
-LIB = ../lib/argus_common.a @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB)
+LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(XDRLIBS) $(COMPATLIB) ../lib/argus_common.a -lm
 
 HDR =	pcap.h pcap-int.h pcap-namedb.h pcap-nit.h pcap-pf.h \
 	ethertype.h gencode.h gnuc.h

@@ -149,24 +149,18 @@ AC_CHECK_FUNCS(timegm)
 
 saved_CPPFLAGS=$CPPFLAGS
 saved_LIBS=$LIBS
-LIB_XDR=""
+LIB_XDR = ""
 
-AC_CHECK_HEADERS([rpc/xdr.h], ,
+AC_CHECK_HEADERS([rcp/xdr.h rcp/types.h], ,
    [CPPFLAGS="${saved_CPPFLAGS} -I/usr/include/tirpc"
-    unset ac_cv_header_rpc_xdr_h
-    AC_CHECK_HEADERS(rpc/xdr.h,
+    AC_CHECK_HEADERS(rpc/xdr.h rcp/types.h, 
       [XDR_INCLS="-I/usr/include/tirpc"
-      LIB_XDR="-ltirpc"])],
-      [#include <rpc/types.h>
-       #include <rpc/xdr.h>])
+      LIB_XDR="-ltirpc"])],)
 
 LIBS="$LIB_XDR $LIBS"
 
 AC_CHECK_FUNCS(xdrmem_create,
-   AC_DEFINE([HAVE_XDR], [], [Using system XDR library]),
-   LIB_XDR=""
-   XDR_INCLS=""
-   )
+   AC_DEFINE([HAVE_XDR], [], [Using system XDR library]),)
 
 CPPFLAGS=${saved_CPPFLAGS}
 LIBS=${saved_LIBS}
@@ -455,6 +449,8 @@ AC_SUBST(V_PERL)
 AC_SUBST(V_THREADS)
 AC_SUBST(WRAPLIBS)
 AC_SUBST(COMPATLIB)
+AC_SUBST(XDR_INCLS)
+AC_SUBST(LIB_XDR)
 AC_SUBST(LIB_SASL)
 AC_SUBST(LIB_XDR)
 AC_SUBST(XDR_INCLS)

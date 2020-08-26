@@ -45,9 +45,7 @@ VPATH = @srcdir@
 
 CC = @CC@
 CCOPT = @V_CCOPT@
-ARCH = @V_ARCH@
-INCLS = -I$(srcdir) @V_INCLS@ @XDR_INCLS@ -I$(srcdir)/../include  -I$(srcdir)/../argus
-
+INCLS = -I$(srcdir) @V_INCLS@ -I$(srcdir)/../include  -I$(srcdir)/../argus @XDR_INCLS@
 DEFS = @DEFS@
 
 # Standard CFLAGS
