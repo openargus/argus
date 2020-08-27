@@ -983,11 +983,12 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
          if (!((sport == 53) || (dport == 53))) {
             char *ptr = (char *) (up + 1);
             struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
-            int isipv6 = 0;
 
             len += sizeof (*up);
 
             if (STRUCTCAPTURED(model, *ipv6)) {
+/*
+               int isipv6 = 0;
                if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
                   retn = ETHERTYPE_IPV6;
                   len = ((char *) ipv6 - (char *)ip);
@@ -1048,6 +1049,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                      }
                   }
                }
+*/
             }
 */
          }
