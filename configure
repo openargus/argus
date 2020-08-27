@@ -7637,26 +7637,24 @@ saved_CPPFLAGS=$CPPFLAGS
 saved_LIBS=$LIBS
 LIB_XDR=""
 
-for ac_header in rpc/xdr.h rpc/types.h
+for ac_header in rcp/xdr.h
 do :
-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-ac_fn_c_check_header_compile "$LINENO" "$ac_header" "$as_ac_Header" "#include <rpc/types.h>
+  ac_fn_c_check_header_compile "$LINENO" "rcp/xdr.h" "ac_cv_header_rcp_xdr_h" "#include <rpc/types.h>
        #include <rpc/xdr.h>
 "
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+if test "x$ac_cv_header_rcp_xdr_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+#define HAVE_RCP_XDR_H 1
 _ACEOF
 
 else
   CPPFLAGS="${saved_CPPFLAGS} -I/usr/include/tirpc"
-    for ac_header in rpc/xdr.h rpc/types.h
+    for ac_header in rpc/xdr.h
 do :
-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "rpc/xdr.h" "ac_cv_header_rpc_xdr_h" "$ac_includes_default"
+if test "x$ac_cv_header_rpc_xdr_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+#define HAVE_RPC_XDR_H 1
 _ACEOF
  XDR_INCLS="-I/usr/include/tirpc"
       LIB_XDR="-ltirpc"

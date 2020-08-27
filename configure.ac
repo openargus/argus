@@ -123,13 +123,13 @@ saved_CPPFLAGS=$CPPFLAGS
 saved_LIBS=$LIBS
 LIB_XDR=""
 
-AC_CHECK_HEADERS([rpc/xdr.h rpc/types.h], ,
+AC_CHECK_HEADERS([rcp/xdr.h], ,
    [CPPFLAGS="${saved_CPPFLAGS} -I/usr/include/tirpc"
-    AC_CHECK_HEADERS(rpc/xdr.h rpc/types.h, 
+    AC_CHECK_HEADERS(rpc/xdr.h, 
       [XDR_INCLS="-I/usr/include/tirpc"
       LIB_XDR="-ltirpc"])],
       [#include <rpc/types.h>
-       #include <rpc/xdr.h> ])
+       #include <rpc/xdr.h>])
 
 LIBS="$LIB_XDR $LIBS"
 
