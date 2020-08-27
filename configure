@@ -9490,7 +9490,6 @@ LIB_XDR=""
        for ac_header in rpc/xdr.h
 do :
   ac_fn_c_check_header_compile "$LINENO" "rpc/xdr.h" "ac_cv_header_rpc_xdr_h" "#include <rpc/types.h>
-       #include <rpc/xdr.h>
 "
 if test "x$ac_cv_header_rpc_xdr_h" = xyes
 then :
