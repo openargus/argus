@@ -7637,18 +7637,19 @@ saved_CPPFLAGS=$CPPFLAGS
 saved_LIBS=$LIBS
 LIB_XDR=""
 
-for ac_header in rcp/xdr.h
+for ac_header in rpc/xdr.h
 do :
-  ac_fn_c_check_header_compile "$LINENO" "rcp/xdr.h" "ac_cv_header_rcp_xdr_h" "#include <rpc/types.h>
+  ac_fn_c_check_header_compile "$LINENO" "rpc/xdr.h" "ac_cv_header_rpc_xdr_h" "#include <rpc/types.h>
        #include <rpc/xdr.h>
 "
-if test "x$ac_cv_header_rcp_xdr_h" = xyes; then :
+if test "x$ac_cv_header_rpc_xdr_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_RCP_XDR_H 1
+#define HAVE_RPC_XDR_H 1
 _ACEOF
 
 else
   CPPFLAGS="${saved_CPPFLAGS} -I/usr/include/tirpc"
+    unset ac_cv_header_rpc_xdr_h
     for ac_header in rpc/xdr.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "rpc/xdr.h" "ac_cv_header_rpc_xdr_h" "$ac_includes_default"
@@ -7678,6 +7679,10 @@ if test "x$ac_cv_func_xdrmem_create" = xyes; then :
 _ACEOF
 
 $as_echo "#define HAVE_XDR /**/" >>confdefs.h
+
+else
+  LIB_XDR=""
+   XDR_INCLS=""
 
 fi
 done
