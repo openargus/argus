@@ -36,7 +36,6 @@
 #include <ArgusModeler.h>
 
 #include <argus/bootp.h>
-struct bootp *bp;
 
 void ArgusUpdateUDPState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 

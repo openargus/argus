@@ -35,7 +35,6 @@
 #include <ArgusModeler.h>
 
 #include <argus/bootp.h>
-struct bootp *bp;
 
 struct ArgusSystemFlow *
 ArgusCreateUDTFlow (struct ArgusModelerStruct *model, struct udt_header *udt)
