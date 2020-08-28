@@ -514,14 +514,14 @@ int
 ArgusCloseSource(struct ArgusSourceStruct *stask)
 {
    int i;
-   struct ArgusSourceStruct *src;
+   struct ArgusSourceStruct *src = NULL;
 
    if (stask == NULL)
        /* nothing to do */
        return 0;
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "ArgusCloseSource(%p) starting\n", src);
+   ArgusDebug (1, "ArgusCloseSource(%p) starting\n", stask);
 #endif
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       int j;
