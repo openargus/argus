@@ -942,7 +942,7 @@ unsigned short
 ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 {
    int retn = 0;
-   int len = 0, hlen = ip->ip_hl << 2;
+   int hlen = ip->ip_hl << 2;
    char *bp = ((char *)ip + hlen);
    struct udphdr *up = (struct udphdr *) bp;
 
@@ -1388,6 +1388,8 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
          hdr_len++;
       } else {
          proto = EXTRACT_16BITS(p);
+         p += 2;                     /* ACFC not used */
+         length -= 2;
          hdr_len += 2;
       }
 
