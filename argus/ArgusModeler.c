@@ -960,6 +960,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
          }
 
       } else {
+/*
          if (!((sport == 53) || (dport == 53))) {
             char *ptr = (char *) (up + 1);
             struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
@@ -1030,6 +1031,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                }
             }
          }
+*/
       }
    }
 
