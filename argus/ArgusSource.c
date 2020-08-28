@@ -999,7 +999,7 @@ ArgusCloseSource(struct ArgusSourceStruct *stask)
    int ret = 0;
    int err;
    int i;
-   struct ArgusSourceStruct *src;
+   struct ArgusSourceStruct *src = NULL;
 
    if (stask == NULL)
        /* nothing to do */
