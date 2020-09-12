@@ -139,7 +139,7 @@ m4_define([AC_LBL_C_INIT],
             -e 's/ .*//' -e 's/^[[[^0-9]]]*//' \
             -e 's/\..*//'`)
           AC_MSG_RESULT($ac_cv_lbl_gcc_vers)
-          if test $ac_cv_lbl_gcc_vers -gt 0 ; then
+          if test $ac_cv_lbl_gcc_vers -gt 1 ; then
              $1="-O3"
           fi
        fi

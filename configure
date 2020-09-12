@@ -3614,7 +3614,7 @@ fi
 
           { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lbl_gcc_vers" >&5
 $as_echo "$ac_cv_lbl_gcc_vers" >&6; }
-          if test $ac_cv_lbl_gcc_vers -gt 0 ; then
+          if test $ac_cv_lbl_gcc_vers -gt 1 ; then
              V_CCOPT="-O3"
           fi
        fi
