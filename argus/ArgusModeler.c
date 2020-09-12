@@ -1,6 +1,6 @@
 /*
  * Gargoyle Software.  Argus files - Modeler
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
@@ -1200,7 +1200,6 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
                ((unsigned char *)&ether_type)[1] = ((unsigned char *)&llc->ethertype)[1];
 
                model->ArgusThisNetworkFlowType = ntohs(ether_type);
-               retn = model->ArgusThisNetworkFlowType;
 
                model->ArgusThisLength -= sizeof(struct llc);
                model->ArgusSnapLength -= sizeof(struct llc);
