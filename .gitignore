@@ -35,3 +35,6 @@ include/argus_config.h
 /pkg/win7/argus.wxs
 /pkg/osx/osx-pkg/Library/PreferencePanes/Argus.prefPane/Contents/Resources/Argus-apps.plist
 /licenses/*.lic.template
+
+# unit tests
+/test
