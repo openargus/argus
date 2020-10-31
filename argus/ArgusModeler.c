@@ -3130,8 +3130,9 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         for (z = 0; z < (tlen / 4); z++)
                            *dsrptr++ = *sptr++;
 
-                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE)
-                           *dsrptr++ = *sptr++;
+                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE) {
+                           bcopy(&trans->srcid.inf, dsrptr++, sizeof(trans->srcid.inf));
+                        }
 
                         if (trans->hdr.subtype & ARGUS_SEQ)
                            *dsrptr++ = trans->seqnum;
