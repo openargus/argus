@@ -507,8 +507,8 @@ setArgusTimestampType(char *optarg)
 int
 setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
 {
+   pcap_if_t *devs = NULL, *d = NULL;
    char *errbuf;
-   pcap_if_t *devs, *d = NULL;
    int i = 0;
 
    src->ArgusInterfaces = 0;
@@ -4592,7 +4592,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
 #if defined(ARGUS_THREADS)
       do {
-         int pretn, retn = 0, i;
+         int pretn = 0, retn = 0, i;
 
     /* non-zero when the stask->srcs[] array needs to be
      * compacted due to source removal
@@ -4608,7 +4608,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                if (strstr(stask->ArgusDeviceStr, "all")) {
                   pcap_if_t *ifap = NULL, *ifa = NULL;
-                  char *errbuf;
+                  char *errbuf = NULL;
 
                   if ((errbuf = (char *) ArgusMalloc (2 * PCAP_ERRBUF_SIZE)) != NULL) {
 #if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
