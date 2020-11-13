@@ -514,7 +514,7 @@ setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
    src->ArgusInterfaces = 0;
    bzero ((char *)&src->ArgusInterface, sizeof(src->ArgusInterface));
 
-   if ((errbuf = (char *) ArgusMalloc (2 * PCAP_ERRBUF_SIZE)) != NULL) {
+   if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
 #if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
       if (pcap_findalldevs_nochecks(&devs, errbuf) == -1)
          ArgusLog (LOG_ERR, "%s: pcap_findalldevs_nochecks %s\n", __func__, errbuf);
@@ -545,9 +545,6 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
    int type, retn = 0;
    char *errbuf;
 
-   if ((errbuf = (char *) ArgusMalloc (2 * PCAP_ERRBUF_SIZE)) == NULL)
-      ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
-
    if (ArgusShutDownFlag)
       return retn;
 
@@ -557,6 +554,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
       else
          return retn;
    }
+
+   if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) == NULL)
+      ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
 
    inf->ArgusDevice = device;
    src->timeStampType = ARGUS_TYPE_UTC_MICROSECONDS;
@@ -738,7 +738,7 @@ ArgusInitSource (struct ArgusSourceStruct *src)
       pcap_if_t *d;
       char *errbuf;
 
-      if ((errbuf = (char *) ArgusMalloc (2 * PCAP_ERRBUF_SIZE)) != NULL) {
+      if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
 #if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
          if (pcap_findalldevs_nochecks(&src->ArgusPacketDevices, errbuf) == -1)
             ArgusLog (LOG_ERR, "ArgusInitSource: pcap_findalldevs_nochecks %s\n", errbuf);
@@ -1472,7 +1472,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
       if (src->ArgusDeviceStr != NULL)
          free(src->ArgusDeviceStr);
 
-      if ((errbuf = (char *) ArgusMalloc (2 * PCAP_ERRBUF_SIZE)) != NULL) {
+      if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
          if (type == ARGUS_LIVE_DEVICE) {
             src->ArgusDeviceStr = strdup(cmd);
             if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
@@ -4610,7 +4610,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                   pcap_if_t *ifap = NULL, *ifa = NULL;
                   char *errbuf = NULL;
 
-                  if ((errbuf = (char *) ArgusMalloc (2 * PCAP_ERRBUF_SIZE)) != NULL) {
+                  if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
 #if defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
                      if ((pretn = pcap_findalldevs_nochecks(&ifap, errbuf)) != 0)
                         ArgusLog(LOG_INFO, "ArgusSourceProcess: pcap_findalldevs_nochecks error: %s\n", errbuf);
@@ -5346,7 +5346,7 @@ ArgusOpenInputPacketFile(struct ArgusSourceStruct *src, struct ArgusDeviceStruct
       if ((readbuf = (char *) ArgusMalloc (1024)) == NULL)
          ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
 
-      if ((errbuf = (char *) ArgusMalloc (2 * PCAP_ERRBUF_SIZE)) == NULL)
+      if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) == NULL)
          ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
 
       if (strcmp(device->name, "-")) {
@@ -5569,7 +5569,7 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
 
             setArgusInterfaceStatus(src, (src->ArgusInterface[i].ifr.ifr_flags & IFF_UP) ? 1 : 0);
 
-            if ((errbuf = (char *) ArgusMalloc (2 * PCAP_ERRBUF_SIZE)) != NULL) {
+            if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
                if (!((pcap_lookupnet (src->ArgusInterface[i].ArgusDevice->name, 
                             (u_int *)&src->ArgusInterface[i].ArgusLocalNet,
                             (u_int *)&src->ArgusInterface[i].ArgusNetMask, errbuf)) < 0)) {
