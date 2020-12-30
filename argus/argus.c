@@ -920,7 +920,6 @@ ArgusBacktrace (void)
 void
 ArgusScheduleShutDown (int sig)
 {
-   ArgusShutDownFlag++;
    ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
 #ifdef ARGUSDEBUG
@@ -932,6 +931,7 @@ ArgusScheduleShutDown (int sig)
 #endif
 
    ArgusShutDownSig = sig;
+   ArgusShutDownFlag++;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
 #endif 
 }
