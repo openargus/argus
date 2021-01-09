@@ -1395,7 +1395,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
 
                         case ARGUS_GO_PROMISCUOUS:
-                           if ((strncasecmp(optarg, "yes", 3)))
+                           if (!(strncasecmp(optarg, "yes", 3)))
                               setArguspflag  (ArgusSourceTask, 1);
                            else
                               setArguspflag  (ArgusSourceTask, 0);
