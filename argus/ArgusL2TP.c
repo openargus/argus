@@ -44,27 +44,25 @@ ArgusParseL2TP (struct ArgusModelerStruct *model, void *vptr)
    struct l2tphdr l2tpbuf, *ltptr = &l2tpbuf;
 
    if (STRUCTCAPTURED(model, *l2tp)) {
-      ltptr->opts = EXTRACT_16BITS(ptr++);
-      len += 2;
+      ltptr->opts = EXTRACT_16BITS(ptr); ptr++; len += 2;
 
       if (((ltptr->opts & L2TP_VERSION_MASK) == L2TP_VERSION_L2F) ||
           ((ltptr->opts & L2TP_VERSION_MASK) != L2TP_VERSION_L2TP))
          return (retn);
 
       if (ltptr->opts & L2TP_FLAG_LENGTH) {
-         ltptr->len  = EXTRACT_16BITS(ptr++);
-         len += 2;
+         ltptr->len  = EXTRACT_16BITS(ptr); ptr++; len += 2;
       }
 
-      ltptr->tunid   = EXTRACT_16BITS(ptr++); len += 2;
-      ltptr->sessid  = EXTRACT_16BITS(ptr++); len += 2;
+      ltptr->tunid   = EXTRACT_16BITS(ptr); ptr++; len += 2;
+      ltptr->sessid  = EXTRACT_16BITS(ptr); ptr++; len += 2;
       
       if (ltptr->opts & L2TP_FLAG_SEQUENCE) {
-         ltptr->ns   = EXTRACT_16BITS(ptr++); len += 2;
-         ltptr->nr   = EXTRACT_16BITS(ptr++); len += 2;
+         ltptr->ns   = EXTRACT_16BITS(ptr); ptr++; len += 2;
+         ltptr->nr   = EXTRACT_16BITS(ptr); ptr++; len += 2;
       }
       if (ltptr->opts & L2TP_FLAG_OFFSET) {
-         ltptr->offP = EXTRACT_16BITS(ptr++); len += 2;
+         ltptr->offP = EXTRACT_16BITS(ptr); ptr++; len += 2;
          ptr += ltptr->offP / sizeof(*ptr);
          len += ltptr->offP;
       }
