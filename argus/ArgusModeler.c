@@ -4259,6 +4259,10 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 #endif 
 
       tflow = model->ArgusThisFlow;
+
+      bcopy(&ip->ip6_src, sp, sizeof(ip->ip6_src));
+      bcopy(&ip->ip6_dst, dp, sizeof(ip->ip6_dst));
+
       rsp = (unsigned int *)&tflow->ipv6_flow.ip_src;
       rdp = (unsigned int *)&tflow->ipv6_flow.ip_dst;
 
