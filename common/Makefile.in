@@ -68,9 +68,14 @@ YACC = @V_YACC@
 # Explicitly define compilation rule since SunOS 4's make doesn't like gcc.
 # Also, gcc does not remove the .o before forking 'as', which can be a
 # problem if you don't own the file but can write to the directory.
-.c.o:
+
+%.arm.o: %.c
 	@rm -f $@
-	$(CC) $(CFLAGS) -c $<
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -target arm64-apple-macos11 $< -o $@
+
+%.x86.o: %.c
+	@rm -f $@
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -target x86_64-apple-macos10.12 $< -o $@
 
 # We would like to say "OBJ = $(SRC:.c=.o)" but Ultrix's make cannot
 # hack the extra indirection
@@ -86,27 +91,37 @@ TAGHDR = bpf/net/bpf.h
 
 TAGFILES = $(SRC) $(HDR) $(TAGHDR)
 
-LIBS = @INSTALL_LIB@/argus_common.a 
+LIBS = ../lib/argus_common.x86.a ../lib/argus_common.arm.a
 
-OBJ =	$(COMMONOBJ) $(PARSEOBJ)
+ARMOBJ := $(patsubst %.c,%.arm.o,$(wildcard *.c))
+X86OBJ := $(patsubst %.c,%.x86.o,$(wildcard *.c))
+OBJ =	$(ARMOBJ) $(X86OBJ)
 CLEANFILES = $(LIBS) $(OBJ) $(GENSRC) $(GENHDR) $(VSRC) lex.yy.c 
 
 COMMONSRC = argus_util.c argus_code.c argus_filter.c $(GENSRC) $(VSRC)
-COMMONOBJ = argus_util.o argus_code.o argus_filter.o grammar.o scanner.o version.o
+COMMONX86OBJ = argus_util.x86.o argus_code.x86.o argus_filter.x86.o grammar.x86.o scanner.x86.o version.x86.o
+COMMONARMOBJ = argus_util.arm.o argus_code.arm.o argus_filter.arm.o grammar.arm.o scanner.arm.o version.arm.o
 
 SRC = $(COMMONSRC)
 
 all: $(LIBS)
 
-@INSTALL_LIB@/argus_common.a: $(COMMONOBJ)
-	rm -f $@; ar qc $@ $(COMMONOBJ)
+../lib/argus_common.x86.a: $(COMMONX86OBJ)
+	rm -f $@; ar qc $@ $(COMMONX86OBJ)
 	-$(RANLIB) $@
+
+../lib/argus_common.arm.a: $(COMMONARMOBJ)
+	rm -f $@; ar qc $@ $(COMMONARMOBJ)
+	-$(RANLIB) $@
+
 
 scanner.c: scanner.l 
 	@rm -f $@
 	$(LEX) -t $< > $$$$.$@; mv $$$$.$@ $@
  
-scanner.o: scanner.c tokdefs.h
+scanner.x86.o: scanner.c tokdefs.h
+scanner.arm.o: scanner.c tokdefs.h
+
 tokdefs.h: grammar.c
 grammar.c: grammar.y
 	@rm -f grammar.c tokdefs.h
@@ -114,10 +129,6 @@ grammar.c: grammar.y
 	mv y.tab.c grammar.c
 	mv y.tab.h tokdefs.h
  
-grammar.o: grammar.c
-	$(CC) $(CFLAGS) -Dyylval=argus_lval -c grammar.c
-
-version.o: version.c
 version.c: $(srcdir)/../VERSION
 	@rm -f $@
 	sed -e 's/.*/char version[] = "&";/' $(srcdir)/../VERSION > $@
