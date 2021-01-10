@@ -2594,7 +2594,7 @@ RaParseCIDRAddr (struct ArgusParserStruct *parser, char *addr)
 
       case AF_INET6: {
          unsigned short *val = (unsigned short *)&retn->addr;
-         int ind = 0, len = sizeof(retn->addr)/sizeof(unsigned short);
+         int ind = 0, len = sizeof(retn->addr)/(sizeof(unsigned short));
          int fsecnum = 8, lsecnum = 0, rsecnum = 0, i, masklen;
          char *sstr = NULL, *ipv4addr = NULL;
 

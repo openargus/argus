@@ -4263,8 +4263,8 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
       int nxt, done = 0, i = 0;
-      unsigned int *sp  = (unsigned int*) &ip->ip6_src;
-      unsigned int *dp  = (unsigned int*) &ip->ip6_dst;
+      unsigned int saddr[4], *sp = saddr;
+      unsigned int daddr[4], *dp = daddr;
       unsigned short alen, sport = 0, dport = 0;
       unsigned int *rsp, *rdp;
 #ifdef _LITTLE_ENDIAN
@@ -4273,6 +4273,10 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 #endif 
 
       tflow = model->ArgusThisFlow;
+
+      bcopy(&ip->ip6_src, sp, sizeof(ip->ip6_src));
+      bcopy(&ip->ip6_dst, dp, sizeof(ip->ip6_dst));
+
       rsp = (unsigned int *)&tflow->ipv6_flow.ip_src;
       rdp = (unsigned int *)&tflow->ipv6_flow.ip_dst;
 
