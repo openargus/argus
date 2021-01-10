@@ -86,30 +86,30 @@ YACC = @V_YACC@
 # Explicitly define compilation rule since SunOS 4's make doesn't like gcc.
 # Also, gcc does not remove the .o before forking 'as', which can be a
 # problem if you don't own the file but can write to the directory.
-.c.o:
+
+%.arm.o: %.c
 	@rm -f $@
-	$(CC) $(CFLAGS) -c $<
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -target arm64-apple-macos11 $< -o $@
+
+%.x86.o: %.c
+	@rm -f $@
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -target x86_64-apple-macos10.12 $< -o $@
 
 SRC =	argus.c ArgusModeler.c ArgusSource.c ArgusUtil.c ArgusOutput.c ArgusUdp.c \
 	ArgusTcp.c ArgusIcmp.c ArgusIgmp.c ArgusEsp.c ArgusArp.c ArgusFrag.c ArgusUdt.c \
 	ArgusLcp.c ArgusIsis.c ArgusAuth.c Argus802.11.c ArgusApp.c ArgusEvents.c \
 	ArgusNetflow.c ArgusSflow.c ArgusVxLan.c ArgusL2TP.c ArgusIfnam.c
-ifneq ($(FLEXLM),)
-SRC += argus_lic.c
-endif
 
-PROG =	@INSTALL_BIN@/argus
+PROG =	../bin/argus argus.arm argus.x86
 
 # We would like to say "OBJ = $(SRC:.c=.o)" but Ultrix's make cannot
 # hack the extra indirection
 
-OBJ =	$(SRC:.c=.o)
+ARMOBJ =	$(SRC:.c=.arm.o)
+X86OBJ =	$(SRC:.c=.x86.o)
 
-ifneq ($(FLEXLM),)
-   OBJ += $(FLEXLM)/$(FLEXLM_ARCH)/lm_new.o
-endif
-
-LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.a -lm $(FLEXLM_LIBS)
+X86LIB =  -L/usr/local/lib  -lpcap  $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.x86.a -lm 
+ARMLIB =  -L/usr/local/lib  -lpcap  $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.arm.a -lm
 
 HDR =	pcap.h pcap-int.h pcap-namedb.h pcap-nit.h pcap-pf.h \
 	ethertype.h gencode.h gnuc.h
@@ -120,15 +120,18 @@ TAGHDR = \
 TAGFILES = \
 	$(SRC) $(HDR) $(TAGHDR)
 
-CLEANFILES = $(OBJ) $(PROG)
+CLEANFILES = $(ARMOBJ) $(X86OBJ) $(PROG)
 
 all: $(PROG)
 
-@INSTALL_BIN@/argus: $(OBJ) ../lib/argus_common.a
-	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LDFLAGS) $(LIB)
+argus.arm: $(ARMOBJ) ../lib/argus_common.arm.a
+	$(CC) $(CFLAGS) -target arm64-apple-macos11 -o $@ $(ARMOBJ) $(LDFLAGS) $(ARMLIB) 
 
-$(FLEXLM)/$(FLEXLM_ARCH)/lm_new.o:
-	$(MAKE) -C $(FLEXLM)/$(FLEXLM_ARCH) lm_new.o
+argus.x86: $(X86OBJ) ../lib/argus_common.x86.a
+	$(CC) $(CFLAGS) -target x86_64-apple-macos10.12 -o $@ $(X86OBJ) $(LDFLAGS) $(X86LIB)
+
+../bin/argus: argus.arm argus.x86
+	lipo -create -output ../bin/argus argus.arm argus.x86
 
 install: force all
 	[ -d $(DESTDIR)$(SBINDIR) ] || \
