@@ -131,7 +131,9 @@ osxpackage:
 	( \
 	$(MAKE) install DESTDIR=`pwd`/pkg/osx/BUILDROOT \
 	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
-	( find pkg/osx/BUILDROOT/usr -type f -name argus | xargs strip ) && \
+	( find pkg/osx/BUILDROOT/usr -type f | xargs file \
+	   | awk -F: '/Mach-O.*executable/{print $$1}' \
+	   | xargs strip ) && \
 	cp -f -L -R pkg/osx/osx-pkg/* pkg/osx/BUILDROOT/  && \
 	pkgbuild --root pkg/osx/BUILDROOT \
 	         --identifier com.qosient.argus \
