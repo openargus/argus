@@ -9844,10 +9844,100 @@ if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
 _ACEOF
 
 fi
-ac_fn_c_check_func "$LINENO" "endpwent" "ac_cv_func_endpwent"
-if test "x$ac_cv_func_endpwent" = xyes
-then :
-  printf "%s\n" "#define HAVE_ENDPWENT 1" >>confdefs.h
+done
+
+for ac_func in gethostuuid
+do :
+  ac_fn_c_check_func "$LINENO" "gethostuuid" "ac_cv_func_gethostuuid"
+if test "x$ac_cv_func_gethostuuid" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GETHOSTUUID 1
+_ACEOF
+
+fi
+done
+
+for ac_func in posix_memalign memalign
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+
+case "$target" in
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        ;;
+   x86*darwin*)
+        ;;
+esac
+
+case "$target_os" in
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        COMPATLIB="-lz"
+        ;;
+   x86*darwin*)
+        COMPATLIB="-lz"
+        ;;
+   *)
+	if test "$ac_cv_header_zlib_h" = yes ; then
+	   COMPATLIB="-lm -lz"
+	else
+	   COMPATLIB="-lm"
+	fi
+        ;;
+esac
+
+
+    if test -f .memory ; then
+
+$as_echo "#define ARGUSMEMDEBUG /**/" >>confdefs.h
+
+    fi
+
+
+# Check whether --with-hashdebug was given.
+if test "${with_hashdebug+set}" = set; then :
+  withval=$with_hashdebug; with_hashdebug="$withval"
+else
+  with_hashdebug="no"
+fi
+
+
+  if test "$with_hashdebug" != no; then
+
+$as_echo "#define ARGUS_HASH_DEBUG /**/" >>confdefs.h
+
+  fi
+
+
+# Check whether --with-nanoseconds was given.
+if test "${with_nanoseconds+set}" = set; then :
+  withval=$with_nanoseconds; with_nanoseconds="$withval"
+else
+  with_nanoseconds="yes"
+fi
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for nanosecond timestamps" >&5
+$as_echo_n "checking for nanosecond timestamps... " >&6; }
+  if test "$with_nanoseconds" != no; then
+
+$as_echo "#define ARGUS_NANOSECONDS /**/" >>confdefs.h
+
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  else
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+  fi
 
 
 # Check whether --with-flexlm was given.
