@@ -9949,6 +9949,14 @@ case "$target" in
         ;;
 esac
 
+case "$target" in
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        ;;
+   x86*darwin*)
+        ;;
+esac
+
 case "$target_os" in
    arm*darwin*)
 	V_ARCH="-arch arm64 -arch x86_64"
