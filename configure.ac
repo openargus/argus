@@ -250,8 +250,20 @@ AC_CHECK_FUNCS([strdup strlcat strncasecmp strpbrk strrchr strstr strtol srandom
 AC_CHECK_FUNCS([gethostuuid])
 AC_CHECK_FUNCS([posix_memalign memalign])
 
+case "$target" in
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        ;;
+   x86*darwin*)
+        ;;
+esac
+
 case "$target_os" in
-   *darwin*)
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        COMPATLIB="-lz"
+        ;;
+   x86*darwin*)
         COMPATLIB="-lz"
         ;;
    *)
@@ -438,6 +450,7 @@ AC_SUBST(PACKAGE_RELEASE)
 AC_SUBST(ARGUSPRO_VERSION)
 AC_SUBST(LIBS)
 AC_SUBST(INCLS)
+AC_SUBST(V_ARCH)
 AC_SUBST(V_CCOPT)
 AC_SUBST(V_INCLS)
 AC_SUBST(V_RANLIB)
