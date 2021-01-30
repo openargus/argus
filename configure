@@ -638,6 +638,7 @@ V_FLEXLM
 V_PERL
 V_INCLS
 V_CCOPT
+V_ARCH
 INCLS
 ARGUSPRO_VERSION
 PACKAGE_RELEASE
@@ -8240,8 +8241,20 @@ fi
 done
 
 
+case "$target" in
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        ;;
+   x86*darwin*)
+        ;;
+esac
+
 case "$target_os" in
-   *darwin*)
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        COMPATLIB="-lz"
+        ;;
+   x86*darwin*)
         COMPATLIB="-lz"
         ;;
    *)
@@ -9239,6 +9252,7 @@ fi
 
 INSTALL_LIB="../lib"
 INSTALL_BIN="../bin"
+
 
 
 
