@@ -890,7 +890,7 @@ struct ArgusMarInterfaceStruct {
 
    unsigned char inf[4];
    int flags, mtu;
-   struct ArgusAddressStruct addr[];
+   struct ArgusAddressStruct *addr;
 };
 
 struct ArgusMarInfStruct {
@@ -898,7 +898,7 @@ struct ArgusMarInfStruct {
    struct ArgusAddrStruct srcid;
    struct ArgusTime startime, now;
 
-   struct ArgusMarInterfaceStruct inf[];
+   struct ArgusMarInterfaceStruct *inf;
 };
 
 struct ArgusFarStruct {
