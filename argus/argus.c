@@ -1034,7 +1034,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				61
+#define ARGUS_RCITEMS				62
 
 #define ARGUS_DAEMON				0
 #define ARGUS_MONITOR_ID			1
@@ -1866,6 +1866,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_TIMESTAMP_TYPE:
                            setArgusTimestampType(optarg);
+                           break;
+
+                        case ARGUS_DEDUP:
+                           setArgusDeDup(optarg);
                            break;
                      }
 

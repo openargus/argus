@@ -299,6 +299,25 @@ ArgusOpenDevice(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device,
 }
 
 
+int ArgusDeDup = 0;
+
+int
+setArgusDeDup(char *optarg)
+{
+   int retn = 0;
+
+   if (optarg && strlen(optarg)) {
+      if (!(strcasecmp(optarg, "yes"))) {
+         ArgusDeDup = 1;
+      }
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug(4, "setArgusDeDup('%s'): called\n", optarg);
+#endif
+   return retn;
+}
+
 int
 setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
 {
