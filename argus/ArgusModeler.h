@@ -544,6 +544,8 @@ struct ArgusFlowStruct *ArgusFindFlow (struct ArgusModelerStruct *, struct Argus
 
 void ArgusICMPMappedFlowRecord (struct ArgusFlowStruct *, struct ArgusRecord *, unsigned char);
 
+int ArgusFlowPacketDuplicate (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
+
 struct ArgusFlowStruct *ArgusUpdateState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 struct ArgusFlowStruct *ArgusUpdateFlow (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 void ArgusUpdateAppState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char);
@@ -772,6 +774,8 @@ extern struct ArgusFlowStruct *ArgusFindFlow (struct ArgusModelerStruct *, struc
 extern int ArgusCreateFlowKey (struct ArgusModelerStruct *, struct ArgusSystemFlow *, struct ArgusHashStruct *);
 
 extern void ArgusICMPMappedFlowRecord (struct ArgusFlowStruct *, struct ArgusRecord *, unsigned char);
+
+extern int ArgusFlowPacketDuplicate (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 
 extern struct ArgusFlowStruct *ArgusUpdateState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 extern struct ArgusFlowStruct *ArgusUpdateFlow (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);

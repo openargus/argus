@@ -59,11 +59,13 @@
 #include "ArgusGetTimeOfDay.h"
 
 extern int ArgusShutDownFlag;
+extern int ArgusDeDup;
 
 extern struct ArgusHashTable *ArgusNewHashTable (size_t, int);
 extern int ArgusUpdateParentFlow (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 extern int ArgusControlPlaneProtocol (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 
+int ArgusProcessPacket (struct ArgusSourceStruct *, char *, int, struct timeval *, int);
 unsigned short ArgusProcessUdpHdr (struct ArgusModelerStruct *, struct ip *, int);
 unsigned short ArgusProcessTtpHdr (struct ArgusModelerStruct *, struct ip *, int);
 int ArgusProcessGreHdr (struct ArgusModelerStruct *, struct ip *, int);
@@ -1648,7 +1650,6 @@ ArgusProcessLcpPacket (struct ArgusSourceStruct *src, struct lcp_hdr *lcp, int l
    return (retn);
 }
 
-int ArgusProcessPacket (struct ArgusSourceStruct *, char *, int, struct timeval *, int);
 
 int
 ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct timeval *tvp, int type)
@@ -1763,6 +1764,11 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
 
          if ((flow = ArgusFindFlow (model, model->hstruct)) != NULL) {
             struct ArgusQueueStruct *queue;
+
+            if (ArgusDeDup != 0) {
+               if (ArgusFlowPacketDuplicate(model, flow))
+                  return (retn);
+            }
 
             if ((queue = flow->qhdr.queue) != NULL) {
                model->ArgusTotalCacheHits++;
@@ -2582,6 +2588,65 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 }
 
 
+int
+ArgusFlowPacketDuplicate (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
+{
+   int retn = 0;
+
+   if (model->ArgusThisIpHdr) {
+      struct ArgusIPAttrStruct *attr;
+
+      if ((attr = (struct ArgusIPAttrStruct *) flow->dsrs[ARGUS_IPATTR_INDEX]) != NULL) {
+         int match = 0;
+         switch (model->ArgusThisNetworkFlowType & 0xFFFF) {
+            case ETHERTYPE_IP: {
+               struct ip *iphdr = (struct ip *) model->ArgusThisIpHdr;
+
+               if (model->ArgusThisDir) {
+                  if ((attr->src.ip_id == iphdr->ip_id) &&
+                      (attr->src.tos == iphdr->ip_tos)  &&
+                      (attr->src.options == model->ArgusOptionIndicator)) 
+                     match = 1;
+               } else {
+                  if ((attr->dst.ip_id == iphdr->ip_id) &&
+                      (attr->dst.tos == iphdr->ip_tos)  &&
+                      (attr->dst.options == model->ArgusOptionIndicator)) 
+                     match = 1;
+               }
+               break;
+            }
+
+            case ETHERTYPE_IPV6: {
+               struct ip6_hdr *iphdr  = (struct ip6_hdr *) model->ArgusThisIpHdr;
+               unsigned int flowid    = iphdr->ip6_flow;
+               unsigned short ftos    = (flowid >> 16);
+               unsigned char tos      = ((ntohs(ftos) >> 4) & 0x00FF);
+               unsigned char ttl      = iphdr->ip6_hlim;
+
+               if (model->ArgusThisDir) {
+                  if ((attr->src.ttl == ttl) &&
+                      (attr->src.tos == tos)  &&
+                      (attr->src.options == model->ArgusOptionIndicator)) 
+                     match = 1;
+               } else {
+                  if ((attr->dst.ttl == ttl) &&
+                      (attr->dst.tos == tos)  &&
+                      (attr->dst.options == model->ArgusOptionIndicator)) 
+                     match = 1;
+               }
+               break;
+            }
+         }
+      }
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (5, "ArgusFlowPacketDuplicate (%p, %p) returning %d\n", model, flow, retn);
+#endif 
+   return (retn);
+}
+
+
 struct ArgusFlowStruct *
 ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow, unsigned char state, unsigned char update)
 {
@@ -2745,9 +2810,9 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
             retn = ArgusUpdateState (model, flow, state, update);
 
             if (model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE) {
-                if ((tfrag = model->ArgusThisIpv6Frag) != NULL) {
-                   if ((tfrag->ip6f_offlg & IP6F_OFF_MASK) == 0) {
-                      if ( tfrag->ip6f_offlg & IP6F_MORE_FRAG) {
+               if ((tfrag = model->ArgusThisIpv6Frag) != NULL) {
+                  if ((tfrag->ip6f_offlg & IP6F_OFF_MASK) == 0) {
+                     if ( tfrag->ip6f_offlg & IP6F_MORE_FRAG) {
 /*
          This is also a fragment, so we need to setup the expected fragment
          cache, so we can find the fragments that will be coming in.
@@ -2759,61 +2824,61 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
          them if we have to deallocate the parent.
 */
 
-               struct ArgusSystemFlow *fflow = NULL;
-               struct ArgusFlowStruct *frag = NULL;
-               int tstate = model->state;
+                        struct ArgusSystemFlow *fflow = NULL;
+                        struct ArgusFlowStruct *frag = NULL;
+                        int tstate = model->state;
 
-               if ((fflow = ArgusCreateFRAGFlow (model, iphdr, ETHERTYPE_IPV6)) != NULL) {
-                  ArgusCreateFlowKey(model, fflow, model->hstruct);
-                     
-                  if ((frag = ArgusFindFlow (model, model->hstruct)) == NULL) {
+                        if ((fflow = ArgusCreateFRAGFlow (model, iphdr, ETHERTYPE_IPV6)) != NULL) {
+                           ArgusCreateFlowKey(model, fflow, model->hstruct);
+                              
+                           if ((frag = ArgusFindFlow (model, model->hstruct)) == NULL) {
 
 /* ok so here things are correct, we're going to schedule the expected frag struct
-   onto the parent flow, and proceed */
+            onto the parent flow, and proceed */
 
-                     if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
-                        ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
-                   
-                     memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
-                     frag->canon.net.hdr.type             = ARGUS_NETWORK_DSR;
-                     frag->canon.net.hdr.subtype          = ARGUS_NETWORK_SUBTYPE_FRAG;
-                     frag->canon.net.hdr.argus_dsrvl8.qual = 0;
-                     frag->canon.net.hdr.argus_dsrvl8.len  = (sizeof(struct ArgusFragObject) + 3)/4 + 1;
-                     frag->dsrs[ARGUS_FRAG_INDEX] = (struct ArgusDSRHeader *) &frag->canon.net.hdr;
+                              if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
+                                 ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
+                            
+                              memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
+                              frag->canon.net.hdr.type             = ARGUS_NETWORK_DSR;
+                              frag->canon.net.hdr.subtype          = ARGUS_NETWORK_SUBTYPE_FRAG;
+                              frag->canon.net.hdr.argus_dsrvl8.qual = 0;
+                              frag->canon.net.hdr.argus_dsrvl8.len  = (sizeof(struct ArgusFragObject) + 3)/4 + 1;
+                              frag->dsrs[ARGUS_FRAG_INDEX] = (struct ArgusDSRHeader *) &frag->canon.net.hdr;
 
-                     frag->canon.net.net_union.frag.parent = flow;
+                              frag->canon.net.net_union.frag.parent = flow;
 
-                     ArgusUpdateBasicFlow (model, frag, state);
+                              ArgusUpdateBasicFlow (model, frag, state);
 
-                  } else {
+                           } else {
 
 /* oops, here we've seen parts of the fragment and are just now seeing the 0 offset
-   fragment, so need to move the frag from the general run queue and put it on this
-   parent frag queue */
+            fragment, so need to move the frag from the general run queue and put it on this
+            parent frag queue */
 
-                     if (frag->dsrs[ARGUS_FRAG_INDEX] != NULL)
-                        frag->dsrs[ARGUS_FRAG_INDEX]->argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
+                              if (frag->dsrs[ARGUS_FRAG_INDEX] != NULL)
+                                 frag->dsrs[ARGUS_FRAG_INDEX]->argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
 
-                     if (frag->qhdr.queue != &flow->frag) {
-                        ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
-                        ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                              if (frag->qhdr.queue != &flow->frag) {
+                                 ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
+                                 ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                              }
+                           }
+
+                           if (ArgusUpdateFRAGState (model, frag, state, ETHERTYPE_IPV6))
+                              ArgusDeleteObject (frag);
+                           model->state = tstate;
+
+                           if (model->ArgusThisDir)
+                              attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_SRC_FRAGMENTS;
+                           else
+                              attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_DST_FRAGMENTS;
+                        }
                      }
                   }
-
-                  if (ArgusUpdateFRAGState (model, frag, state, ETHERTYPE_IPV6))
-                     ArgusDeleteObject (frag);
-                  model->state = tstate;
-
-                  if (model->ArgusThisDir)
-                     attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_SRC_FRAGMENTS;
-                  else
-                     attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_DST_FRAGMENTS;
                }
-               }
-               }
-               }
-
             }
+            break;
          }
       }
 

@@ -1039,7 +1039,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				61
+#define ARGUS_RCITEMS				62
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1102,6 +1102,7 @@ getArguspidflag ()
 #define ARGUS_LOG_DISPLAY_PRIORITY		58
 #define ARGUS_MAR_INTERFACE_INTERVAL		59
 #define ARGUS_TIMESTAMP_TYPE			60
+#define ARGUS_DEDUP				61
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1166,6 +1167,7 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_LOG_DISPLAY_PRIORITY=",
    "ARGUS_MAR_INTERFACE_INTERVAL=",
    "ARGUS_TIMESTAMP_TYPE=",
+   "ARGUS_DEDUDEDUP=",
 };
 
 
@@ -1829,6 +1831,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_TIMESTAMP_TYPE:
                            setArgusTimestampType(optarg);
+                           break;
+
+                        case ARGUS_DEDUP:
+                           setArgusDeDup(optarg);
                            break;
                      }
 
