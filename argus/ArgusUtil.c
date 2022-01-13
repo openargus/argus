@@ -348,7 +348,7 @@ ArgusDeleteQueue (struct ArgusQueueStruct *queue)
       if (queue->count > 0) 
          ArgusDebug (1, "ArgusDeleteQueue (%p) contains %d items\n", queue, queue->count);
 #endif
-      while ((obj = ArgusPopQueue(queue, ARGUS_LOCK)))
+      while ((obj = ArgusPopQueue(queue, ARGUS_NOLOCK)))
          ArgusFree(obj);
 
       if (queue->array != NULL) {
