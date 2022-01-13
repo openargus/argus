@@ -317,7 +317,7 @@ main (int argc, char *argv[])
 
 #if defined(ARGUS_FLEXLM)
    int borrow = 0;
-   struct timeval borrow_expire = {0, };
+   struct timeval borrow_expire = {0, 0};
    sigset_t prev_blocked_signals;
 #endif
 
