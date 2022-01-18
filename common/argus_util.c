@@ -199,7 +199,6 @@ ArgusDebug (int d, char *fmt, ...)
       gettimeofday (&now, 0L);
 
 #if defined(ARGUS_THREADS)
-      pthread_mutex_lock(&ArgusMainLock);
       {
          pthread_t ptid;
          char pbuf[128];
@@ -228,8 +227,6 @@ ArgusDebug (int d, char *fmt, ...)
 #endif
       } else
          fprintf (stderr, "%s", buf);
-
-      pthread_mutex_unlock(&ArgusMainLock);
 #else
       (void) snprintf (buf, MAXSTRLEN, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
       ptr = &buf[strlen(buf)];
