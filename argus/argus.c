@@ -823,8 +823,6 @@ ArgusComplete ()
    if (ArgusSourceTask->ArgusStartTime.tv_sec == 0)
       ArgusSourceTask->ArgusStartTime = ArgusSourceTask->ArgusEndTime;
 
-   bzero(buf, sizeof(buf));
-
    timediff.tv_sec  = ArgusSourceTask->ArgusEndTime.tv_sec  - ArgusSourceTask->ArgusStartTime.tv_sec;
    timediff.tv_usec = ArgusSourceTask->ArgusEndTime.tv_usec - ArgusSourceTask->ArgusStartTime.tv_usec;
  
@@ -842,6 +840,8 @@ ArgusComplete ()
 #else
    totaltime = (double) timediff.tv_sec + (((double) timediff.tv_usec)/1000000.0);
 #endif
+
+   sprintf (buf, "%s\n    Total Pkts %8lld  Rate %f\n", "Total", ArgusTotalPkts, ArgusTotalPkts/totaltime);
 
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       char sbuf[MAXSTRLEN];

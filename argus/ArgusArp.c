@@ -142,7 +142,7 @@ ArgusCreateArpFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
 {
    struct arphdr *ahdr = (struct arphdr *)model->ArgusThisUpHdr;
    struct ArgusSystemFlow *retn = NULL;
-   unsigned int arp_tpa, arp_spa;
+   unsigned int arp_tpa = 0, arp_spa = 0;
 
    if (STRUCTCAPTURED(model, *ahdr)) {
       retn = model->ArgusThisFlow;
