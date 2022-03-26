@@ -943,12 +943,23 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
       sport = ntohs(up->uh_sport);
       dport = ntohs(up->uh_dport);
 
-      if (ArgusTransportParseRoutines[dport] != NULL) {
-         if ((retn = ArgusTransportParseRoutines[dport](model, up + 1)) < 0) {
-#ifdef ARGUSDEBUG
-            ArgusDebug (4, "ArgusTransportParseRoutines(%p, %p, %d) error %d\n", model, ip, length, retn);
-#endif 
-         }
+      if (!((sport == 53) || (dport == 53) || (sport == 5353) || (dport == 5353))) {
+         char *ptr = (char *) (up + 1);
+         struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
+         int isipv6 = 0;
+
+         len += sizeof (*up);
+
+         if (STRUCTCAPTURED(model, *ipv6)) {
+            if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
+               retn = ETHERTYPE_IPV6;
+               len = ((char *) ipv6 - (char *)ip);
+               model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
+               model->ArgusThisUpHdr  = (unsigned char *) ipv6;
+               model->ArgusThisLength -= len;
+               model->ArgusSnapLength -= len;
+            } else {
+               struct teredo *tptr = (struct teredo *) (up + 1);
 
       } else {
          if (!((sport == 53) || (dport == 53))) {
@@ -4318,9 +4329,9 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
    struct ArgusSystemFlow *tflow;
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
-      int nxt = 0, done = 0, i = 0;
-      unsigned int saddr[4], *sp = saddr;
-      unsigned int daddr[4], *dp = daddr;
+      int nxt, done = 0, i = 0;
+      unsigned int *sp  = (unsigned int *) &ip->ip6_src;
+      unsigned int *dp  = (unsigned int *) &ip->ip6_dst;
       unsigned short alen, sport = 0, dport = 0;
       unsigned int *rsp, *rdp;
 
@@ -4583,7 +4594,7 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                         sport = ntohs(up->uh_sport);
                         dport = ntohs(up->uh_dport);
                      }
-                     if ((sport == 53) || (dport == 53)) {
+                     if ((sport == 53) || (dport == 53) || (sport == 5353) || (dport == 5353)) {
                         unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
                         bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
                      }
