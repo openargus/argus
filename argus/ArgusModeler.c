@@ -4597,7 +4597,7 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                         sport = ntohs(up->uh_sport);
                         dport = ntohs(up->uh_dport);
                      }
-                     if ((sport == 53) || (dport == 53)) {
+                     if ((sport == 53) || (dport == 53) || (sport == 5353) || (dport == 5353)) {
                         unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
                         bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
                      }
