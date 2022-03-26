@@ -843,7 +843,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
       sport = ntohs(up->uh_sport);
       dport = ntohs(up->uh_dport);
 
-      if (!((sport == 53) || (dport == 53))) {
+      if (!((sport == 53) || (dport == 53) || (sport == 5353) || (dport == 5353))) {
          char *ptr = (char *) (up + 1);
          struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
          int isipv6 = 0;
@@ -3979,8 +3979,8 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
       int nxt, done = 0, i = 0;
-      unsigned int *sp  = (unsigned int*) &ip->ip6_src;
-      unsigned int *dp  = (unsigned int*) &ip->ip6_dst;
+      unsigned int *sp  = (unsigned int *) &ip->ip6_src;
+      unsigned int *dp  = (unsigned int *) &ip->ip6_dst;
       unsigned short alen, sport = 0, dport = 0;
       unsigned int *rsp, *rdp;
 #ifdef _LITTLE_ENDIAN
@@ -4257,7 +4257,7 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                         sport = ntohs(up->uh_sport);
                         dport = ntohs(up->uh_dport);
                      }
-                     if ((sport == 53) || (dport == 53)) {
+                     if ((sport == 53) || (dport == 53) || (sport == 5353) || (dport == 5353)) {
                         unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
                         bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
                      }
