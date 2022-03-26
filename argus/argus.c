@@ -702,8 +702,7 @@ ArgusComplete ()
 #define ARGUSPERFMETRICS		1
 
 #if defined(ARGUSPERFMETRICS)
-   long long ArgusTotalPkts = 0, ArgusTotalIPPkts = 0;
-   long long ArgusTotalNonIPPkts = 0;
+   long long ArgusTotalPkts = 0;
    struct timeval timediff;
    double totaltime;
    int i, len;
@@ -725,8 +724,6 @@ ArgusComplete ()
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       if (ArgusSourceTask->ArgusInterface[i].ArgusDevice != NULL) {
          ArgusTotalPkts      += ArgusSourceTask->ArgusInterface[i].ArgusTotalPkts;
-         ArgusTotalIPPkts    += ArgusSourceTask->ArgusInterface[i].ArgusTotalIPPkts;
-         ArgusTotalNonIPPkts += ArgusSourceTask->ArgusInterface[i].ArgusTotalNonIPPkts;
       }
    }
    if (ArgusSourceTask->ArgusEndTime.tv_sec == 0)
@@ -734,8 +731,6 @@ ArgusComplete ()
 
    if (ArgusSourceTask->ArgusStartTime.tv_sec == 0)
       ArgusSourceTask->ArgusStartTime = ArgusSourceTask->ArgusEndTime;
-
-   bzero(buf, sizeof(buf));
 
    timediff.tv_sec  = ArgusSourceTask->ArgusEndTime.tv_sec  - ArgusSourceTask->ArgusStartTime.tv_sec;
    timediff.tv_usec = ArgusSourceTask->ArgusEndTime.tv_usec - ArgusSourceTask->ArgusStartTime.tv_usec;
@@ -746,6 +741,8 @@ ArgusComplete ()
    }
  
    totaltime = (double) timediff.tv_sec + (((double) timediff.tv_usec)/1000000.0);
+
+   sprintf (buf, "%s\n    Total Pkts %8lld  Rate %f\n", "Total", ArgusTotalPkts, ArgusTotalPkts/totaltime);
 
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       char sbuf[MAXSTRLEN];
