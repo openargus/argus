@@ -65,10 +65,11 @@ ArgusCreateEtherFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
 #define ETH_ALEN   6
 #endif
       for (i = 0; i < ETH_ALEN; i++) {
-         if (((unsigned char *)&ep->ether_shost)[i] != ((unsigned char *)&ep->ether_dhost)[i])
+         if (((unsigned char *)&ep->ether_shost)[i] != ((unsigned char *)&ep->ether_dhost)[i]) {
             if (((unsigned char *)&ep->ether_shost)[i] > ((unsigned char *)&ep->ether_dhost)[i])
                dstgteq = 0;
             break;
+         }
       }
 
       if (dstgteq) {
