@@ -810,7 +810,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
 
    if (cmd) {
       struct ArgusDeviceStruct *device = NULL;
-//    char errbuf[PCAP_ERRBUF_SIZE];
+      char errbuf[PCAP_ERRBUF_SIZE];
       char *params = strdup(cmd);
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
@@ -822,9 +822,9 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
       char *tok;
 #endif
 
-//    if (type == ARGUS_LIVE_DEVICE)
-//       if (pcap_findalldevs(&alldevs, errbuf) == -1)
-//          ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
+      if (type == ARGUS_LIVE_DEVICE)
+         if (pcap_findalldevs(&alldevs, errbuf) == -1)
+            ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
 
 #if !defined(CYGWIN)
 // we need to parse this bad thing and construct the devices struct
