@@ -1364,7 +1364,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
 
    if (cmd) {
       struct ArgusDeviceStruct *device = NULL;
-//    char errbuf[PCAP_ERRBUF_SIZE];
+      char errbuf[PCAP_ERRBUF_SIZE];
       char *params = strdup(cmd);
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
@@ -1372,22 +1372,9 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
       int status = 0;
       char *errbuf, *tok, *stok;
 
-      if (src->ArgusDeviceStr != NULL)
-         free(src->ArgusDeviceStr);
-
-      if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
-         if (type == ARGUS_LIVE_DEVICE) {
-            src->ArgusDeviceStr = strdup(cmd);
-            if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
-               ArgusLog (LOG_INFO, "setArgusDevice: __pcap_findalldevs %s\n", errbuf);
-         } else {
-            /* forward slashes cause confusion later since they are assumed
-             * to separate srcid and inf.  Remove directory path elements.
-             */
-            src->ArgusDeviceStr = strdup(basename(cmd));
-         }
-         ArgusFree(errbuf);
-      }
+      if (type == ARGUS_LIVE_DEVICE)
+         if (pcap_findalldevs(&alldevs, errbuf) == -1)
+            ArgusLog (LOG_ERR, "setArgusDevice: pcap_findalldevs %s\n", errbuf);
 
 // we need to parse this bad thing and construct the devices struct
 
