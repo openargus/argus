@@ -3307,7 +3307,7 @@ juniper_parse_header (const u_char *p, const struct pcap_pkthdr *h, struct junip
     l2info->header_len = 0;
     l2info->cookie_len = 0;
     l2info->proto = 0;
-
+    l2info->pictype = 0;
 
     l2info->length = h->len;
     l2info->caplen = h->caplen;
