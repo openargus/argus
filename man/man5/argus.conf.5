@@ -698,9 +698,30 @@ this on by default may generate false tunnel matching.
 
 The default is to not turn this feature on.
 
-
 .nf
 \fBARGUS_TUNNEL_DISCOVERY=\fPno
+.fi
+
+
+.SH ARGUS_GRE_PARSING
+
+Argus can be configured to parse through GRE tunnels,
+and report on flows in the tunnel.
+The default is to turn this feature off.
+
+.nf
+\fBARGUS_GRE_PARSING=\fPno
+.fi
+
+
+.SH ARGUS_VXLAN_PARSING
+
+Argus can be configured to parse through VXLan tunnels,
+which uses UDP to encapsulate ethernet frames.
+The default is to turn this feature off.
+
+.nf
+\fBARGUS_VXLAN_PARSING=\fPno
 .fi
 
 
