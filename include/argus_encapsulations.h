@@ -76,6 +76,9 @@ struct ArgusEncapsulationStruct {
 #define ARGUS_ENCAPS_JUNIPER    0x2000000
 #define ARGUS_ENCAPS_ERSPAN_II  0x4000000
 
+#define ARGUS_ENCAPS_AVSP       0x8000000
+#define ARGUS_ENCAPS_VXLAN      0x10000000
+
 
 #if defined(ArgusUtil)
 struct ArgusEncapsulationStruct argus_encapsulations [] = {
@@ -105,6 +108,8 @@ struct ArgusEncapsulationStruct argus_encapsulations [] = {
    { ARGUS_ENCAPS_SPI,   "enc", "IPsec Tunnel"},
    { ARGUS_ENCAPS_JUNIPER, "juniper", "Juniper Ethernet"},
    { ARGUS_ENCAPS_ERSPAN_II, "erspan_ii", "Cisco ERSPAN II"},
+   {ARGUS_ENCAPS_AVSP, "avsp", "Arista Vendor Specific Protocol"},
+   {ARGUS_ENCAPS_VXLAN, "vxlan", "VxLan Encapsulation"},
    { 0, (char *) NULL, (char *) NULL }, 
 };
 

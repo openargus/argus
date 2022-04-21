@@ -224,6 +224,7 @@ struct ArgusModelerStruct {
    unsigned int ArgusThisAppFlowType;
    int ArgusThisMplsLabelIndex;
    unsigned int ArgusThisMplsLabel;
+   unsigned int ArgusThisVxLanVni;
    unsigned int ArgusThisPacket8021QEncaps;
    unsigned char ArgusFlowType, ArgusFlowKey;
    unsigned short ArgusOptionIndicator;
@@ -296,6 +297,9 @@ struct ArgusModelerStruct {
    int ArgusSnapLen;
  
    int ArgusTunnelDiscovery;
+   int ArgusGreParsing;
+   int ArgusVXLanParsing;
+
    int ArgusUserDataLen;
    int ArgusAflag, ArgusTCPflag, Argusmflag;
    int ArgusSelfSynchronize, vflag;
@@ -411,6 +415,10 @@ struct timeval ArgusQueueInterval = {0, 50000};
 struct timeval ArgusListenTime = {0, 0};
 struct timeval ArgusListenInterval = {0, 250000};
 
+typedef unsigned short (*pproc)(struct ArgusModelerStruct *, void *ptr);
+pproc ArgusTransportParseRoutines [0x10000];
+void ArgusInitTunnelPortNumbers (void);
+
 struct ArgusModelerStruct *ArgusNewModeler(void);
 struct ArgusModelerStruct *ArgusCloneModeler(struct ArgusModelerStruct *);
 
@@ -450,6 +458,12 @@ void setArgusKeystrokeVariable(struct ArgusModelerStruct *, char *);
 
 int getArgusTunnelDiscovery (struct ArgusModelerStruct *);
 void setArgusTunnelDiscovery (struct ArgusModelerStruct *, int);
+
+int getArgusGreParsing(struct ArgusModelerStruct *);
+void setArgusGreParsing(struct ArgusModelerStruct *, int);
+
+int getArgusVxLanParsing(struct ArgusModelerStruct *);
+void setArgusVxLanParsing(struct ArgusModelerStruct *, int);
 
 int getArgusTrackDuplicates (struct ArgusModelerStruct *);
 void setArgusTrackDuplicates (struct ArgusModelerStruct *, int);
@@ -581,6 +595,21 @@ extern void ArgusUpdateArpState (struct ArgusModelerStruct *, struct ArgusFlowSt
 extern  int ArgusUpdateFRAGState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned short);
 extern void ArgusUpdateESPState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 
+extern unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
+
+#define MAX_PORT_ALG_TYPES      2
+struct ArgusTransportRoutines {
+   char *field;
+   unsigned short type, port;
+   unsigned short (*parse)(struct ArgusModelerStruct *, void *ptr);
+};
+
+struct ArgusTransportRoutines
+RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
+#define ARGUS_PARSE_VXLAN       0
+   { "vxlan", ARGUS_PARSE_VXLAN, 4789, ArgusParseVxLan},
+   { "vxlan", ARGUS_PARSE_VXLAN, 8472, ArgusParseVxLan},
+};
 
 #else /* #if defined(ArgusModeler) */
 
@@ -634,6 +663,12 @@ extern void setArgusKeystrokeVariable(struct ArgusModelerStruct *, char *);
 
 extern int getArgusTunnelDiscovery(struct ArgusModelerStruct *);
 extern void setArgusTunnelDiscovery(struct ArgusModelerStruct *, int);
+
+extern int getArgusGreParsing(struct ArgusModelerStruct *);
+extern void setArgusGreParsing(struct ArgusModelerStruct *, int);
+
+extern int getArgusVxLanParsing(struct ArgusModelerStruct *);
+extern void setArgusVxLanParsing(struct ArgusModelerStruct *, int);
 
 extern int getArgusTrackDuplicates (struct ArgusModelerStruct *);
 extern void setArgusTrackDuplicates (struct ArgusModelerStruct *, int);

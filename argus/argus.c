@@ -945,7 +945,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				51
+#define ARGUS_RCITEMS				59
 
 #define ARGUS_DAEMON				0
 #define ARGUS_MONITOR_ID			1
@@ -998,6 +998,15 @@ getArguspidflag ()
 #define ARGUS_OTHER_TIMEOUT			48
 #define ARGUS_TRACK_DUPLICATES			49
 #define ARGUS_PCAP_BUF_SIZE			50
+#define ARGUS_GRE_PARSING			51
+#define ARGUS_VXLAN_PARSING			52
+#define ARGUS_GENERATE_FLOWID			53
+#define ARGUS_GENERATE_HASH_METRICS		54
+#define ARGUS_MONITOR_ID_INCLUDE_INF		55
+#define ARGUS_REPORT_STATUS			56
+#define ARGUS_DEDUP				57
+#define ARGUS_DEDUP_TIME			58
+
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1052,6 +1061,14 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_OTHER_TIMEOUT=",
    "ARGUS_TRACK_DUPLICATES=",
    "ARGUS_PCAP_BUF_SIZE=",
+   "ARGUS_GRE_PARSING=",
+   "ARGUS_VXLAN_PARSING=",
+   "ARGUS_GENERATE_FLOWID=",
+   "ARGUS_GENERATE_HASH_METRICS=",
+   "ARGUS_MONITOR_ID_INCLUDE_INF=",
+   "ARGUS_REPORT_STATUS=",
+   "ARGUS_DEDUP=",
+   "ARGUS_DEDUP_TIME=",
 };
 
 
@@ -1512,6 +1529,23 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file)
                               setArgusTunnelDiscovery(model, 0);
                            break;
                         }
+
+                        case ARGUS_GRE_PARSING: {
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              setArgusGreParsing(model, 1);
+                           else
+                              setArgusGreParsing(model, 0);
+                           break;
+                        }
+
+                        case ARGUS_VXLAN_PARSING: {
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              setArgusVxLanParsing(model, 1);
+                           else
+                              setArgusVxLanParsing(model, 0);
+                           break;
+                        }
+
                         case ARGUS_TRACK_DUPLICATES: {
                            if (!(strncasecmp(optarg, "yes", 3)))
                               setArgusTrackDuplicates(model, 1);
