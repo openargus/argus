@@ -312,7 +312,9 @@ struct ArgusModelerStruct {
    int ArgusSnapLen;
  
    int ArgusTunnelDiscovery;
-   int ArgusOSFingerPrinting;
+   int ArgusGreParsing;
+   int ArgusVXLanParsing;
+
    int ArgusUserDataLen;
    int ArgusAflag, ArgusTCPflag, Argusmflag;
    int ArgusHashflag;
@@ -479,6 +481,12 @@ void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 int getArgusTunnelDiscovery (struct ArgusModelerStruct *);
 void setArgusTunnelDiscovery (struct ArgusModelerStruct *, int);
 
+int getArgusGreParsing(struct ArgusModelerStruct *);
+void setArgusGreParsing(struct ArgusModelerStruct *, int);
+
+int getArgusVxLanParsing(struct ArgusModelerStruct *);
+void setArgusVxLanParsing(struct ArgusModelerStruct *, int);
+
 int getArgusTrackDuplicates (struct ArgusModelerStruct *);
 void setArgusTrackDuplicates (struct ArgusModelerStruct *, int);
 
@@ -612,6 +620,21 @@ extern void ArgusUpdateArpState (struct ArgusModelerStruct *, struct ArgusFlowSt
 extern  int ArgusUpdateFRAGState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned short);
 extern void ArgusUpdateESPState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 
+extern unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
+
+#define MAX_PORT_ALG_TYPES      2
+struct ArgusTransportRoutines {
+   char *field;
+   unsigned short type, port;
+   unsigned short (*parse)(struct ArgusModelerStruct *, void *ptr);
+};
+
+struct ArgusTransportRoutines
+RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
+#define ARGUS_PARSE_VXLAN       0
+   { "vxlan", ARGUS_PARSE_VXLAN, 4789, ArgusParseVxLan},
+   { "vxlan", ARGUS_PARSE_VXLAN, 8472, ArgusParseVxLan},
+};
 
 extern unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
 extern unsigned short ArgusParseL2TP  (struct ArgusModelerStruct *, void *);
@@ -696,6 +719,12 @@ extern void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 
 extern int getArgusTunnelDiscovery(struct ArgusModelerStruct *);
 extern void setArgusTunnelDiscovery(struct ArgusModelerStruct *, int);
+
+extern int getArgusGreParsing(struct ArgusModelerStruct *);
+extern void setArgusGreParsing(struct ArgusModelerStruct *, int);
+
+extern int getArgusVxLanParsing(struct ArgusModelerStruct *);
+extern void setArgusVxLanParsing(struct ArgusModelerStruct *, int);
 
 extern int getArgusTrackDuplicates (struct ArgusModelerStruct *);
 extern void setArgusTrackDuplicates (struct ArgusModelerStruct *, int);

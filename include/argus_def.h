@@ -1694,7 +1694,14 @@ extern "C" {
 #define ARGUS_SRC_VLAN                   0x01
 #define ARGUS_DST_VLAN                   0x02
 
+/* VxLan Transport DSR Type */
+#define ARGUS_VXLAN_DSR                  0x43
+#define ARGUS_VXLAN_INDEX                22
 
+#define ARGUS_SRC_VXLAN                  0x01
+#define ARGUS_DST_VXLAN                  0x02
+
+ 
 /* Mpls Transport DSR Type */
 #define ARGUS_MPLS_DSR                   0x44
 #define ARGUS_MPLS_INDEX                 7
@@ -1729,7 +1736,7 @@ extern "C" {
 
 /* Argus Histogram DSR Type */
 #define ARGUS_HISTO_DSR                 0x47
-#define ARGUS_HISTO_INDEX               18
+#define ARGUS_HISTO_INDEX               21
 
 /* Argus Histogram DSR Subtype */
 #define ARGUS_HISTO_EXP                 0x01
