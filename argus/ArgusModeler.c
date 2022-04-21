@@ -808,12 +808,13 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
                      break;
                   }
                   case IPPROTO_UDP: { /* RCP 4380 */
-                     if (getArgusTunnelDiscovery(model))
+                     if (getArgusTunnelDiscovery(model) || getArgusVxLanParsing(model))
                         retn = ArgusProcessUdpHdr(model, ip, length);
                      break;
                   }
                   case IPPROTO_GRE: { /* RFC 2784 */
-                     retn = ArgusProcessGreHdr(model, ip, length);
+                     if (getArgusTunnelDiscovery(model) || getArgusGreParsing(model))
+                        retn = ArgusProcessGreHdr(model, ip, length);
                      break;
                   }
                   default:
@@ -5000,6 +5001,26 @@ void
 setArgusTunnelDiscovery (struct ArgusModelerStruct *model, int value)
 {
    model->ArgusTunnelDiscovery = value;
+}
+
+int getArgusGreParsing(struct ArgusModelerStruct *model)
+{
+   return (model->ArgusGreParsing);
+}
+
+void setArgusGreParsing(struct ArgusModelerStruct *model, int value)
+{
+   model->ArgusGreParsing = value;
+}
+
+int getArgusVxLanParsing(struct ArgusModelerStruct *model)
+{
+   return (model->ArgusVXLanParsing);
+}
+
+void setArgusVxLanParsing(struct ArgusModelerStruct *model, int value)
+{
+   model->ArgusVXLanParsing = value;
 }
 
 int

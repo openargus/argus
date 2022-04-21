@@ -1729,7 +1729,7 @@ extern "C" {
 
 /* Argus Histogram DSR Type */
 #define ARGUS_HISTO_DSR                 0x47
-#define ARGUS_HISTO_INDEX               18
+#define ARGUS_HISTO_INDEX               21
 
 /* Argus Histogram DSR Subtype */
 #define ARGUS_HISTO_EXP                 0x01

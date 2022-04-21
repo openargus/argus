@@ -1830,6 +1830,23 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                               setArgusTunnelDiscovery(model, 0);
                            break;
                         }
+
+                        case ARGUS_GRE_PARSING: {
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              setArgusGreParsing(model, 1);
+                           else
+                              setArgusGreParsing(model, 0);
+                           break;
+                        }
+
+                        case ARGUS_VXLAN_PARSING: {
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              setArgusVxLanParsing(model, 1);
+                           else
+                              setArgusVxLanParsing(model, 0);
+                           break;
+                        }
+
                         case ARGUS_TRACK_DUPLICATES: {
                            if (!(strncasecmp(optarg, "yes", 3)))
                               setArgusTrackDuplicates(model, 1);
