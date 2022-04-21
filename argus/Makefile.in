@@ -76,7 +76,7 @@ YACC = @V_YACC@
 SRC =	argus.c ArgusModeler.c ArgusSource.c ArgusUtil.c ArgusOutput.c ArgusUdp.c \
 	ArgusTcp.c ArgusIcmp.c ArgusIgmp.c ArgusEsp.c ArgusArp.c ArgusFrag.c ArgusUdt.c \
 	ArgusLcp.c ArgusIsis.c ArgusAuth.c Argus802.11.c ArgusApp.c ArgusEvents.c \
-	ArgusNetflow.c ArgusSflow.c
+	ArgusNetflow.c ArgusSflow.c ArgusVxLan.c
 
 PROG =	@INSTALL_BIN@/argus
 
