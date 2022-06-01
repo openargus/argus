@@ -47,9 +47,9 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <rpc/types.h>
 
 #if defined(HAVE_XDR)
+#include <rpc/types.h>
 #include <rpc/xdr.h>
 #endif
 
