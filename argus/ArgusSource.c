@@ -594,21 +594,21 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 #endif
          }
 
-         if ((type = pcap_datalink(inf->ArgusPd)) >= 0) 
-            inf->ArgusCallBack = Arguslookup_pcap_callback(type);
+            if ((type = pcap_datalink(inf->ArgusPd)) > 0)
+               inf->ArgusCallBack = Arguslookup_pcap_callback(type);
 
-         if (inf->ArgusCallBack == NULL) {
-            if (type > 0) {
+            if (inf->ArgusCallBack == NULL) {
+               if (type > 0) {
 #ifdef ARGUSDEBUG
                   ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
 #endif
-            }
-            device->status |= ARGUS_DONT_OPEN;
-            pcap_close(inf->ArgusPd);
-            inf->ArgusPd = NULL;
-            retn = 0;
-         } else
-            retn = 1;
+               }
+               device->status |= ARGUS_DONT_OPEN;
+               pcap_close(inf->ArgusPd);
+               inf->ArgusPd = NULL;
+               retn = 0;
+            } else
+               retn = 1;
       }
    }
    ArgusFree(errbuf);
