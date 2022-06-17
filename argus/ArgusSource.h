@@ -156,6 +156,12 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 #define ARGUS_TYPE_BOND		0x02
 #define ARGUS_TYPE_DUPLEX	0x04
 
+#define ARGUS_LAUNCHED          0x01
+#define ARGUS_INITED            0x02
+#define ARGUS_COMPLETE          0x04
+#define ARGUS_NOSOURCES         0x08
+#define ARGUS_DONT_OPEN         0x10
+
 struct ArgusDeviceStruct {
    struct ArgusListObjectStruct *nxt;
    int status, type, mode, link, idtype, dlt;

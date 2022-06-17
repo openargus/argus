@@ -218,15 +218,27 @@ ArgusOpenDevice(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device,
    int retn = 0, count, i, cnt = src->ArgusInterfaces;
 
    if (device) {
+      int infs = 0;
       if (device->list && (count = device->list->count)) {
          for (i = 0; i < count; i++) {
             struct ArgusDeviceStruct *dev = (struct ArgusDeviceStruct *) ArgusPopFrontList(device->list, ARGUS_LOCK);
-            src->ArgusInterfaces += ArgusOpenInterface(src, dev, &src->ArgusInterface[src->ArgusInterfaces]);
-            ArgusPushBackList(device->list, (struct ArgusListRecord *) device, ARGUS_LOCK);
+            if (!(dev->status & ARGUS_DONT_OPEN)) {
+               if ((infs = ArgusOpenInterface(src, dev, &src->ArgusInterface[src->ArgusInterfaces])) > 0) {
+                  src->ArgusInterfaces += infs;
+               } else {
+                  device->status |= ARGUS_DONT_OPEN;
+               }
+            }
+            ArgusPushBackList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
          }
 
       } else {
-         src->ArgusInterfaces += ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces]);
+         if (!(device->status & ARGUS_DONT_OPEN)) {
+            if ((infs = ArgusOpenInterface(src, device, &src->ArgusInterface[src->ArgusInterfaces])) > 0)
+               src->ArgusInterfaces += infs;
+            else
+               device->status |= ARGUS_DONT_OPEN;
+         }
       }
    }
 
@@ -327,11 +339,21 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 #endif
             }
 
-            type = pcap_datalink(inf->ArgusPd);
+            if ((type = pcap_datalink(inf->ArgusPd)) > 0)
+               inf->ArgusCallBack = Arguslookup_pcap_callback(type);
 
-            if ((inf->ArgusCallBack = Arguslookup_pcap_callback(type)) == NULL)
-               ArgusLog (LOG_ERR, "unsupported device type %d\n", type);
-            retn = 1;
+            if (inf->ArgusCallBack == NULL) {
+               if (type > 0) {
+#ifdef ARGUSDEBUG
+                  ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
+#endif
+               }
+               device->status |= ARGUS_DONT_OPEN;
+               pcap_close(inf->ArgusPd);
+               inf->ArgusPd = NULL;
+               retn = 0;
+            } else
+               retn = 1;
       }
 #ifdef HAVE_PCAP_SET_BUFFER_SIZE
    }
