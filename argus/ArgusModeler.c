@@ -4329,8 +4329,8 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
       int nxt, done = 0, i = 0;
-      unsigned int *sp  = (unsigned int *) &ip->ip6_src;
-      unsigned int *dp  = (unsigned int *) &ip->ip6_dst;
+      unsigned int *sp  = (void *) &ip->ip6_src;
+      unsigned int *dp  = (void *) &ip->ip6_dst;
       unsigned short alen, sport = 0, dport = 0;
       unsigned int *rsp, *rdp;
 
