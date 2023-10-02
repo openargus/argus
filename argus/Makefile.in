@@ -85,7 +85,7 @@ PROG =	@INSTALL_BIN@/argus
 
 OBJ =	$(SRC:.c=.o)
 
-LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(XDRLIBS) $(COMPATLIB) ../lib/argus_common.a -lm
+LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.a -lm $(XDRLIBS)
 
 HDR =	pcap.h pcap-int.h pcap-namedb.h pcap-nit.h pcap-pf.h \
 	ethertype.h gencode.h gnuc.h
