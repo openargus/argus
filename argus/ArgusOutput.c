@@ -520,7 +520,7 @@ ArgusOutputMarInfTime(struct ArgusOutputStruct *output)
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (7, "ArgusOutputStatusTime(%p) done", output);
+   ArgusDebug (7, "ArgusOutputMarInfTime(%p) done", output);
 #endif
    return (retn);
 }
