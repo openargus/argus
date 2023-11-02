@@ -1,3 +1,17 @@
+Fri Jun 26 14:12:39 EDT 2020
+We've modified the process quite a bit for Catalina to be able to get the argus pkg notarized.
+Now were using argus-osx to build an argus app that has the right entitlements in order to
+get a pkg that has the right stuff, so to speak.
+
+So build with Xcode in the argus-osx directory.
+install the binary that is generated to /usr/local/sbin for testing.
+This is found in /Users/carter/Library/Developer/Xcode/DerivedData/argus-*/Build/Products/Debug
+The run from the argus directory:
+   make OSXSIGN='--sign "Developer ID Installer"' osxpackage
+
+And we should end up with a signed pkg, with a properly signed argus app.
+
+
 Mon Jun 22 17:00:03 EDT 2015
 
 To make an argus.pkg installer for Mac OS X 10.10

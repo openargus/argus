@@ -66,6 +66,7 @@
 #include <argus_parser.h>
 
 #include <ArgusModeler.h>
+#include <ArgusEvents.h>
 #include <argus_dscodepoints.h>
 #include <argus_encapsulations.h>
 #include "ArgusTimeDiff.h"
@@ -120,8 +121,15 @@ ArgusDeleteList (struct ArgusListStruct *list, int type)
 
              case ARGUS_DEVICE_LIST: {
                 struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *) retn;
-                if (device->name != NULL)
+                extern void delete_interface(const u_char *);
+
+                if (device->inf != NULL)
+                   ArgusFree(device->inf);
+
+                if (device->name != NULL) {
+                   delete_interface((const u_char *)device->name);
                    free(device->name);
+                }
                 ArgusFree(retn);
                 break;
              }
@@ -131,10 +139,11 @@ ArgusDeleteList (struct ArgusListStruct *list, int type)
                 break;
 
              case ARGUS_EVENT_LIST: {
-                struct ArgusListObjectStruct *lobj = (struct ArgusListObjectStruct *) retn;
-                if (lobj->obj != NULL) {
-                   ArgusFree(lobj);
-                }
+                struct ArgusEventRecordStruct *event = (struct ArgusEventRecordStruct *) retn;
+                if (event->entry != NULL) free(event->entry);
+                if (event->method != NULL) free(event->method);
+                if (event->filename != NULL) free(event->filename);
+
                 ArgusFree(retn);
                 break;
             }
@@ -346,7 +355,7 @@ ArgusDeleteQueue (struct ArgusQueueStruct *queue)
       if (queue->count > 0) 
          ArgusDebug (1, "ArgusDeleteQueue (%p) contains %d items\n", queue, queue->count);
 #endif
-      while ((obj = ArgusPopQueue(queue, ARGUS_LOCK)))
+      while ((obj = ArgusPopQueue(queue, ARGUS_NOLOCK)))
          ArgusFree(obj);
 
       if (queue->array != NULL) {
@@ -696,7 +705,6 @@ ArgusDeleteObject(struct ArgusFlowStruct *obj)
 int
 ArgusUpdateTime (struct ArgusModelerStruct *model)
 {
-   long long ival = model->ival;
    long long diff;
    int retn = 0;
 
@@ -753,44 +761,6 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
                    model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
 #endif
 #endif
-/*
-      if (ArgusSourceTask != NULL) {
-         if (!(ArgusSourceTask->ArgusReadingOffLine)) {
-            if (llabs(diff) > (ival * 2)) {
-
-// something is wrong, so try to reset the ArgusUpdateTimer, and declare
-// that the timer has popped.  Redefine global timer.
-
-#ifdef ARGUSDEBUG
-               ArgusDebug (8, "ArgusUpdateTime (%p) diff %ld exceeds %d\n", model, diff, ival * 2);
-#endif
-               retn = 1;
-
-               gettimeofday (&model->ArgusGlobalTime, 0L);
-               if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
-                  model->ArgusGlobalTime.tv_usec *= 1000;
-               }
-               ArgusModel->ArgusGlobalTime = model->ArgusGlobalTime;
-
-               model->ArgusUpdateTimer = model->ArgusGlobalTime;
-               model->ArgusUpdateTimer.tv_sec  += model->ArgusUpdateInterval.tv_sec;
-               model->ArgusUpdateTimer.tv_usec += model->ArgusUpdateInterval.tv_usec;
-
-#if defined(ARGUS_NANOSECONDS)
-               if (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
-                  model->ArgusUpdateTimer.tv_sec++;
-                  model->ArgusUpdateTimer.tv_usec -= 1000000000;
-               }
-#else
-               if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
-                  model->ArgusUpdateTimer.tv_sec++;
-                  model->ArgusUpdateTimer.tv_usec -= 1000000;
-               }
-#endif
-            }
-         }
-      }
-*/
    }
 
 #ifdef ARGUSDEBUG
@@ -1022,7 +992,6 @@ ArgusAddHashEntry (struct ArgusHashTable *table, struct ArgusFlowStruct *flow, s
    struct ArgusHashTableHeader *retn = NULL, *start = NULL;
 
    if (table != NULL) {
-      unsigned int hash = hstruct->hash;
       unsigned int ind = hstruct->ind;
 
       retn = &flow->htblbuf;
@@ -1067,7 +1036,6 @@ void
 ArgusRemoveHashEntry (struct ArgusHashTableHeader *htblhdr)
 {
    if (htblhdr != NULL) {
-      unsigned int hash = htblhdr->hstruct.hash;
       struct ArgusHashTable *table = htblhdr->htbl;
 
       if (table != NULL) {

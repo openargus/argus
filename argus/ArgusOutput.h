@@ -144,6 +144,9 @@ struct ArgusOutputStruct {
    struct timeval ArgusReportTime;
    struct timeval ArgusLastMarUpdateTime;
    struct timeval ArgusMarReportInterval;
+   struct timeval ArgusMarInfTime;
+   struct timeval ArgusLastMarInfUpdateTime;
+   struct timeval ArgusMarInfReportInterval;
 };
 
 struct ArgusWfileStruct {
@@ -166,7 +169,6 @@ void ArgusInitOutputProcess(void);
 
 void *ArgusOutputProcess(void *);
 
-int ArgusEstablishListen (struct ArgusOutputStruct *, char *);
 int  ArgusTcpWrapper (int, struct sockaddr *);
 
 void ArgusUsr1Sig (int);
@@ -175,6 +177,16 @@ void ArgusChildExit (int);
 
 void ArgusClientError(void);
 void ArgusInitClientProcess(struct ArgusClientData *, struct ArgusWfileStruct *);
+
+struct ArgusRecordStruct *ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *, unsigned char);
+
+int ArgusOutputMarInfTime(struct ArgusOutputStruct *);
+
+struct timeval *getArgusMarReportInterval(struct ArgusOutputStruct *);
+void setArgusMarReportInterval(struct ArgusOutputStruct *, char *);
+
+struct timeval *getArgusMarInfReportInterval(struct ArgusOutputStruct *);
+void setArgusMarInfReportInterval(struct ArgusOutputStruct *, char *);
 
 #if defined(ARGUS_TILERA)
 #else
@@ -221,8 +233,10 @@ extern void setArgusWfile(char *, char *);
 extern struct timeval *getArgusMarReportInterval(struct ArgusOutputStruct *);
 extern void setArgusMarReportInterval(struct ArgusOutputStruct *, char *);
 
+extern struct timeval *getArgusMarInfReportInterval(struct ArgusOutputStruct *);
+extern void setArgusMarInfReportInterval(struct ArgusOutputStruct *, char *);
+
 extern void ArgusCheckClientStatus (struct ArgusOutputStruct *, int);
-extern int ArgusEstablishListen (struct ArgusOutputStruct *, char *);
 extern int  ArgusTcpWrapper (int, struct sockaddr *);
 
 extern void ArgusCloseSocket (int);

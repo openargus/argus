@@ -165,6 +165,10 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 #define ARGUS_TYPE_BOND		0x02
 #define ARGUS_TYPE_DUPLEX	0x04
 
+#define ARGUS_LAUNCHED          0x01
+#define ARGUS_INITED            0x02
+#define ARGUS_COMPLETE          0x04
+#define ARGUS_NOSOURCES         0x08
 #define ARGUS_DONT_OPEN		0x10
 
 struct ArgusDeviceStruct {
@@ -177,6 +181,7 @@ struct ArgusDeviceStruct {
    struct ArgusListStruct *list;
 
    struct ArgusSourceStruct *src;
+   struct ArgusMarInterfaceStruct *inf;
 
 #if defined(ARGUS_TILERA)
    netio_input_config_t config;
@@ -772,6 +777,8 @@ struct ArgusSourceStruct {
 
 
 int setArgusListInterfaces (struct ArgusSourceStruct *, int);
+int setArgusTimestampType(char *);
+int setArgusDeDup(char *);
 
 void ArgusParseSourceID (struct ArgusSourceStruct *, struct ArgusDeviceStruct *, char *);
 void setArgusManInf (struct ArgusSourceStruct *, char *);

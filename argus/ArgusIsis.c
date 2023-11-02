@@ -70,10 +70,11 @@ ArgusCreateEtherFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
 #define ETH_ALEN   6
 #endif
       for (i = 0; i < ETH_ALEN; i++) {
-         if (((unsigned char *)&ep->ether_shost)[i] != ((unsigned char *)&ep->ether_dhost)[i])
+         if (((unsigned char *)&ep->ether_shost)[i] != ((unsigned char *)&ep->ether_dhost)[i]) {
             if (((unsigned char *)&ep->ether_shost)[i] > ((unsigned char *)&ep->ether_dhost)[i])
                dstgteq = 0;
             break;
+         }
       }
 
       if (dstgteq) {
@@ -345,26 +346,6 @@ ArgusUpdateIsisState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 void
 ArgusInitializeIsis (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
 {
-/*
-   unsigned char rev = flow->state.rev, dir = flow->state.dir;
-   flow->ArgusTransactionNum = ArgusTransactionNum++;
-                                                                                                                           
-   bzero ((char *)&flow->state, sizeof(flow->state));
-   flow->state.rev = rev;
-   flow->state.dir = dir;
-                                                                                                                           
-   flow->state.src.active.minval = 0x7FFFFFFF;
-   flow->state.dst.active.minval = 0x7FFFFFFF;
-*/
-                                                                                                                           
-   flow->qhdr.lasttime.tv_sec  = 0;
-   flow->qhdr.lasttime.tv_usec = 0;
-
-   if (model->ArgusSrc->ArgusReadingOffLine)
-      flow->qhdr.qtime = ArgusModel->ArgusGlobalTime;
-   else
-      gettimeofday(&flow->qhdr.qtime, 0L);
-                                                                                                                           
    ArgusUpdateFlow (model, flow, ARGUS_START, 1);
 }
 

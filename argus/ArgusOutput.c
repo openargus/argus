@@ -54,6 +54,8 @@
 #include <pthread.h>
 #endif
 
+#include "ArgusGetTimeOfDay.h"
+
 void *ArgusOutputProcess(void *);
 
 #define ARGUS_SOCKET_PATH  "/tmp/argus.sock"
@@ -62,11 +64,14 @@ void *ArgusOutputProcess(void *);
 extern int ArgusFirstTile;
 #endif
 
+static int ArgusEstablishListen(struct ArgusOutputStruct *output, char *errbuf,
+                                size_t errbuflen);
+
 struct timeval *getArgusMarReportInterval(struct ArgusOutputStruct *);
 void setArgusMarReportInterval(struct ArgusOutputStruct *, char *);
 
 struct ArgusRecord *ArgusGenerateInitialMar (struct ArgusOutputStruct *);
-struct ArgusRecordStruct *ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *, unsigned char);
+struct ArgusRecordStruct *ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *, unsigned char);
 struct ArgusRecordStruct *ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *, unsigned char);
 
 int RaDiffTime (struct timeval *, struct timeval *, struct timeval *);
@@ -79,10 +84,7 @@ ArgusNewOutput (struct ArgusSourceStruct *src, struct ArgusModelerStruct *model)
    if ((retn = (struct ArgusOutputStruct *) ArgusCalloc (1, sizeof (struct ArgusOutputStruct))) == NULL)
      ArgusLog (LOG_ERR, "ArgusNewOutput() ArgusCalloc error %s\n", strerror(errno));
 
-   gettimeofday (&retn->ArgusGlobalTime, 0L);
-   if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-      retn->ArgusGlobalTime.tv_usec *= 1000;
-
+   ArgusGetTimeOfDay(src, &retn->ArgusGlobalTime);
    retn->ArgusStartTime = retn->ArgusGlobalTime;
 
    retn->ArgusReportTime.tv_sec   = retn->ArgusGlobalTime.tv_sec + retn->ArgusMarReportInterval.tv_sec;
@@ -213,7 +215,7 @@ ArgusInitOutput (struct ArgusOutputStruct *output)
 
    if (output->ArgusPortNum != 0) {
       char errbuf[256];
-      if (ArgusEstablishListen (output, errbuf) < 0)
+      if (ArgusEstablishListen (output, errbuf, sizeof(errbuf)) < 0)
          ArgusLog (LOG_ERR, "%s", errbuf);
    }
 
@@ -446,6 +448,7 @@ ArgusCloseOutput(struct ArgusOutputStruct *output)
 
    ArgusDeleteList(output->ArgusInputList, ARGUS_OUTPUT_LIST);
    ArgusDeleteList(output->ArgusOutputList, ARGUS_OUTPUT_LIST);
+   ArgusDeleteList(output->ArgusBindAddrs, ARGUS_BIND_ADDR_LIST);
 
    ArgusDeleteQueue(output->ArgusClients);
 
@@ -491,6 +494,33 @@ ArgusOutputStatusTime(struct ArgusOutputStruct *output)
 
 #ifdef ARGUSDEBUG
    ArgusDebug (7, "ArgusOutputStatusTime(%p) done", output);
+#endif
+   return (retn);
+}
+
+
+int
+ArgusOutputMarInfTime(struct ArgusOutputStruct *output)
+{
+   long long dtime;
+   int retn = 0;
+
+   if ((dtime = ArgusTimeDiff(&output->ArgusMarInfTime, &output->ArgusGlobalTime)) >= 0) {
+// For now always return 0.
+//    retn = 1;
+
+      output->ArgusMarInfTime  = output->ArgusGlobalTime;
+      output->ArgusMarInfTime.tv_sec  += getArgusMarInfReportInterval(output)->tv_sec;
+      output->ArgusMarInfTime.tv_usec += getArgusMarInfReportInterval(output)->tv_usec;
+
+      if (output->ArgusMarInfTime.tv_usec > ARGUS_FRACTION_TIME) {
+         output->ArgusMarInfTime.tv_sec++;
+         output->ArgusReportTime.tv_usec -= ARGUS_FRACTION_TIME;
+      }
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (7, "ArgusOutputMarInfTime(%p) done", output);
 #endif
    return (retn);
 }
@@ -702,13 +732,46 @@ ArgusOutputProcess(void *arg)
             }
          }
 
+         if (ArgusOutputMarInfTime(output)) {
+            if ((rec = ArgusGenerateMarInterfaceRecord(output, ARGUS_STATUS)) != NULL) {
+               if (output->ArgusClients) {
+#if defined(ARGUS_THREADS)
+                  pthread_mutex_lock(&output->ArgusClients->lock);
+#endif
+                  if (output->ArgusClients->count) {
+                     struct ArgusClientData *client = (void *)output->ArgusClients->start;
+                     do {
+                        if ((client->fd != -1) && (client->sock != NULL) && client->ArgusClientStart) {
+                           if (ArgusWriteSocket (output, client, rec) < 0) {
+                              ArgusDeleteSocket(output, client);
+                           }
+                        }
+                        client = (void *) client->qhdr.nxt;
+                     } while (client != (void *)output->ArgusClients->start);
+                  }
+#if defined(ARGUS_THREADS)
+                  pthread_mutex_unlock(&output->ArgusClients->lock);
+#endif
+               }
+               ArgusFreeListRecord (rec);
+            }
+         }
+
+
          if (output->ArgusOutputList && !(ArgusListEmpty(list))) {
             int done = 0;
             ArgusLoadList(list, output->ArgusOutputList);
 
             while (!done && ((rec = (struct ArgusRecordStruct *) ArgusPopFrontList(output->ArgusOutputList, ARGUS_LOCK)) != NULL)) {
                output->ArgusTotalRecords++;
-               output->ArgusOutputSequence = rec->canon.trans.seqnum;
+
+               switch (rec->hdr.type & 0xF0) {
+                  case ARGUS_FAR:
+                  case ARGUS_NETFLOW: {
+                     output->ArgusOutputSequence = rec->canon.trans.seqnum;
+                     break;
+                  }
+               }
                count = 0;
 #ifdef ARGUSDEBUG
                ArgusDebug (6, "ArgusOutputProcess() received rec %p totals %lld seq %d\n", rec, output->ArgusTotalRecords, output->ArgusOutputSequence);
@@ -881,8 +944,9 @@ ArgusOutputProcess(void *arg)
 #include <netdb.h>
 #include <sys/un.h>
 
-int
-ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
+static int
+ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
+                      size_t errbuflen)
 {
    int port = output->ArgusPortNum;
    struct ArgusBindAddrStruct *ArgusBindAddrs = NULL;
@@ -973,7 +1037,9 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                               if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
                                  output->ArgusLfd[output->ArgusListens++] = s;
                               } else {
-                                 snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() failure", ArgusProgramName);
+                                 snprintf(errbuf, errbuflen,
+                                          "%s: ArgusEstablishListen: listen() failure",
+                                          ArgusProgramName);
                               }
                               break;
 
@@ -982,10 +1048,14 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                               break;
                         }
                      } else {
-                        snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() error", ArgusProgramName);
+                        snprintf(errbuf, errbuflen,
+                                 "%s: ArgusEstablishListen: bind() error",
+                                 ArgusProgramName);
                      }
                   } else
-                     snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() error", ArgusProgramName);
+                     snprintf(errbuf, errbuflen,
+                              "%s: ArgusEstablishListen: fcntl() error",
+                              ArgusProgramName);
 
                   if (retn == -1) {
                      close (s);
@@ -993,7 +1063,9 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                   }
 
                } else
-                  snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
+                  snprintf(errbuf, errbuflen,
+                           "%s: ArgusEstablishListen: socket() error",
+                           ArgusProgramName);
 
                hp = hp->ai_next;
 
@@ -1039,17 +1111,25 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                   } else {
                      close (s);
                      s = -1;
-                     snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() failure", ArgusProgramName);
+                     snprintf(errbuf, errbuflen,
+                              "%s: ArgusEstablishListen: listen() failure",
+                              ArgusProgramName);
                   }
                } else {
                   close (s);
                   s = -1;
-                  snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() error", ArgusProgramName);
+                  snprintf(errbuf, errbuflen,
+                           "%s: ArgusEstablishListen: bind() error",
+                           ArgusProgramName);
                }
             } else
-               snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() error", ArgusProgramName);
+               snprintf(errbuf, errbuflen,
+                        "%s: ArgusEstablishListen: fcntl() error",
+                        ArgusProgramName);
          } else
-            snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
+            snprintf(errbuf, errbuflen,
+                     "%s: ArgusEstablishListen: socket() error",
+                     ArgusProgramName);
 #endif
          if (ArgusBindAddrs) {
             if ((ArgusBindAddrs = (struct ArgusBindAddrStruct *)ArgusBindAddrs->nxt) != NULL) {
@@ -1070,7 +1150,9 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
       switch (stat(ARGUS_SOCKET_PATH, &statbuf)) {
          case 0:
             if (unlink(ARGUS_SOCKET_PATH))
-               snprintf(errbuf, 1024, "%s: ArgusEstablishListen: unlink() %s", ArgusProgramName, strerror(errno));
+               snprintf(errbuf, errbuflen,
+                        "%s: ArgusEstablishListen: unlink() %s",
+                        ArgusProgramName, strerror(errno));
             break;
 
          case ENOENT:  break;
@@ -1086,13 +1168,18 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
                if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
                   output->ArgusLfd[output->ArgusListens++] = s;
                } else {
-                  snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() %s", ArgusProgramName, strerror(errno));
+                  snprintf(errbuf, errbuflen,
+                           "%s: ArgusEstablishListen: listen() %s",
+                           ArgusProgramName, strerror(errno));
                }
             } else {
-               snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() %s", ArgusProgramName, strerror(errno));
+               snprintf(errbuf, errbuflen,
+                        "%s: ArgusEstablishListen: bind() %s",
+                        ArgusProgramName, strerror(errno));
             }
          } else
-            snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() %s", ArgusProgramName, strerror(errno));
+            snprintf(errbuf, errbuflen, "%s: ArgusEstablishListen: fcntl() %s",
+                     ArgusProgramName, strerror(errno));
 
          if (retn == -1) {
             close (s);
@@ -1100,7 +1187,8 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf)
          }
 
       } else
-         snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
+         snprintf(errbuf, errbuflen, "%s: ArgusEstablishListen: socket() error",
+                  ArgusProgramName);
    }
      
 #ifdef ARGUSDEBUG
@@ -1568,7 +1656,7 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
       }
    }
   
-   retn->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence;
+   retn->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence + 1;
    retn->argus_mar.record_len = -1;
 
 #if defined(_LITTLE_ENDIAN)
@@ -1582,18 +1670,78 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
    return (retn);
 }
 
-// The supplemental mar record is designed to extend the descriptions of the sensors, their inputs,
-// providing interfaces, names, interface types, extended argus identifiers (> 4 bytes), 
-// and stats, if appropriate,
+
+// The supplemental mar record is designed to provide extended management information,
+// such as extending the descriptions of the sensors, their inputs, providing interfaces, 
+// names, interface types, extended argus identifiers (> 4 bytes), and stats, if appropriate,
 //
-// This will be the way we provide long argus id's, IPv6, ethernet, and long strings.
-// 
 // Minimally it should provide the argusid, used in all records, and the list of input descriptions,
 // as well as the extended argus id itself.
 
 
 struct ArgusRecordStruct *
 ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *output, unsigned char status)
+{
+   struct ArgusRecordStruct *retn = NULL;
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (4, "ArgusGenerateSupplementalMarRecord(%p, %d) returning 0x%x", output, status, retn);
+#endif
+
+   return (retn);
+}
+
+
+// The mar interface record is designed to provide the hardware and internet addresses assigned
+// to the monitored interfaces on this node.  
+//
+// Minimally it should provide the argusid, the inf, the interface type, hardware address and
+// the configured internet addresses.
+//
+// such as extending the descriptions of the sensors, their inputs, providing interfaces, 
+// names, interface types, extended argus identifiers (> 4 bytes), and stats, if appropriate,
+//
+/*
+struct ArgusIPv4Addr {
+   unsigned int addr, mask;
+};
+
+struct ArgusIPv6Addr {
+   unsigned int addr[4];
+   unsigned int prefixlen;
+};
+
+struct ArgusAddressStruct {
+   unsigned char type, length;
+   unsigned short status;
+
+   union {
+      struct ArgusHAddr    l2addr;
+      struct ArgusIPv4Addr ipv4;
+      struct ArgusIPv6Addr ipv6;
+   } addr;
+};
+
+
+struct ArgusMarInterfaceStruct {
+   unsigned char type, length;
+   unsigned short status;
+
+   unsigned char inf[4];
+   short mtu;
+   struct ArgusAddressStruct addr[];
+};
+
+struct ArgusMarInfStruct {
+   unsigned int status;
+   struct ArgusAddrStruct srcid;
+
+   struct ArgusMarInterfaceStruct inf[];
+};
+*/
+
+struct ArgusRecordStruct *
+ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char status)
 {
    struct ArgusRecordStruct *retn = NULL;
    struct ArgusRecord *rec = NULL;
@@ -1609,74 +1757,40 @@ ArgusGenerateSupplementalMarRecord (struct ArgusOutputStruct *output, unsigned c
    }
 
    if (retn) {
-      struct ArgusSourceStruct *ArgusSrc = NULL, *aSrc = NULL;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
       struct timeval now;
 
       memset(retn, 0, sizeof(*retn));
       
       retn->hdr.type    = ARGUS_MAR | ARGUS_VERSION;
-      retn->hdr.cause   = ARGUS_SUPPLEMENTAL;
-      retn->hdr.len     = (sizeof(struct ArgusMarSupStruct)/4) + 1;  // have size for one interface, and add as you go
+      retn->hdr.cause   = ARGUS_MAR_INTERFACE;
+      retn->hdr.len     = (sizeof(struct ArgusMarInfStruct)/4) + 1;  // have size for one interface, and add as you go
 
       rec = (struct ArgusRecord *) &retn->canon;
       rec->hdr = retn->hdr;
 
       if (getArgusID(ArgusSourceTask, asptr))
-        bcopy (&asptr->a_un.value, &rec->argus_sup.argusid, sizeof(rec->argus_sup.argusid));
+        bcopy (&asptr->a_un.value, &rec->argus_inf.srcid, sizeof(rec->argus_inf.srcid));
 
       switch (getArgusIDType(ArgusSourceTask)) {
-         case ARGUS_TYPE_STRING: rec->argus_sup.status |= ARGUS_IDIS_STRING; break;
-         case ARGUS_TYPE_INT:    rec->argus_sup.status |= ARGUS_IDIS_INT; break;
-         case ARGUS_TYPE_IPV4:   rec->argus_sup.status |= ARGUS_IDIS_IPV4; break;
-         case ARGUS_TYPE_IPV6:   rec->argus_sup.status |= ARGUS_IDIS_IPV6; break;
-         case ARGUS_TYPE_UUID:   rec->argus_sup.status |= ARGUS_IDIS_UUID; break;
+         case ARGUS_TYPE_STRING: rec->argus_inf.status |= ARGUS_IDIS_STRING; break;
+         case ARGUS_TYPE_INT:    rec->argus_inf.status |= ARGUS_IDIS_INT; break;
+         case ARGUS_TYPE_IPV4:   rec->argus_inf.status |= ARGUS_IDIS_IPV4; break;
+         case ARGUS_TYPE_IPV6:   rec->argus_inf.status |= ARGUS_IDIS_IPV6; break;
+         case ARGUS_TYPE_UUID:   rec->argus_inf.status |= ARGUS_IDIS_UUID; break;
       }
-
-      if (getArgusManInf(ArgusSourceTask) != NULL)
-        rec->argus_sup.status |=  ARGUS_ID_INC_INF;
 
       gettimeofday (&now, 0L);
 
-      rec->argus_sup.startime.tv_sec  = output->ArgusLastMarUpdateTime.tv_sec;
-      rec->argus_sup.startime.tv_usec = output->ArgusLastMarUpdateTime.tv_usec;
+      rec->argus_inf.startime.tv_sec  = output->ArgusLastMarUpdateTime.tv_sec;
+      rec->argus_inf.startime.tv_usec = output->ArgusLastMarUpdateTime.tv_usec;
 
-      rec->argus_sup.now.tv_sec  = now.tv_sec;
-      rec->argus_sup.now.tv_usec = now.tv_usec;
-
-      if ((ArgusSrc = output->ArgusSrc) != NULL) {
-         int x;
-         for (x = 0; x < ARGUS_MAXINTERFACE; x++) {
-            if ((aSrc = ArgusSrc->srcs[x]) != NULL) {
-               if (aSrc->ArgusInterface[0].ArgusPd != NULL) {
-                  int i;
-                  rec->argus_mar.interfaceType = pcap_datalink(aSrc->ArgusInterface[0].ArgusPd);
-                  rec->argus_mar.interfaceStatus = getArgusInterfaceStatus(aSrc);
-
-                  rec->argus_mar.pktsRcvd  = 0;
-                  rec->argus_mar.bytesRcvd = 0;
-                  rec->argus_mar.dropped   = 0;
-
-                  for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
-                     rec->argus_mar.pktsRcvd  += aSrc->ArgusInterface[i].ArgusTotalPkts - 
-                                                 aSrc->ArgusInterface[i].ArgusLastPkts;
-                     rec->argus_mar.bytesRcvd += aSrc->ArgusInterface[i].ArgusTotalBytes -
-                                                 aSrc->ArgusInterface[i].ArgusLastBytes;
-                     rec->argus_mar.dropped   += aSrc->ArgusInterface[i].ArgusStat.ps_drop - 
-                                                 aSrc->ArgusInterface[i].ArgusLastDrop;
-
-                     aSrc->ArgusInterface[i].ArgusLastPkts  = aSrc->ArgusInterface[i].ArgusTotalPkts;
-                     aSrc->ArgusInterface[i].ArgusLastDrop  = aSrc->ArgusInterface[i].ArgusStat.ps_drop;
-                     aSrc->ArgusInterface[i].ArgusLastBytes = aSrc->ArgusInterface[i].ArgusTotalBytes;
-                  }
-               }
-            }
-         }
-      }
+      rec->argus_inf.now.tv_sec  = now.tv_sec;
+      rec->argus_inf.now.tv_usec = now.tv_usec;
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (4, "ArgusGenerateSupplementalMarRecord(%p, %d) returning 0x%x", output, status, retn);
+   ArgusDebug (4, "ArgusGenerateMarInterfaceRecord(%p, %d) returning 0x%x", output, status, retn);
 #endif
 
    return (retn);
@@ -1765,7 +1879,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.localnet = output->ArgusSrc->ArgusInterface[0].ArgusLocalNet;
       rec->argus_mar.netmask = output->ArgusSrc->ArgusInterface[0].ArgusNetMask;
     
-      rec->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence;
+      rec->argus_mar.nextMrSequenceNum = output->ArgusOutputSequence + 1;
       rec->argus_mar.record_len = -1;
 
       if (ArgusSourceTask != NULL) {
@@ -1842,6 +1956,10 @@ getArgusMarReportInterval(struct ArgusOutputStruct *output) {
    return (&output->ArgusMarReportInterval);
 }
 
+struct timeval *
+getArgusMarInfReportInterval(struct ArgusOutputStruct *output) {
+   return (&output->ArgusMarInfReportInterval);
+}
 
 #include <ctype.h>
 #include <math.h>
@@ -1854,7 +1972,7 @@ setArgusMarReportInterval(struct ArgusOutputStruct *output, char *value)
    struct timeval ovalue, now;
    double thisvalue = 0.0, iptr, fptr;
    int ivalue = 0;
-   char *ptr = NULL;;
+   char *ptr = NULL;
 
    if (tvp != NULL) {
       ovalue = *tvp;
@@ -1892,6 +2010,56 @@ setArgusMarReportInterval(struct ArgusOutputStruct *output, char *value)
 
 #ifdef ARGUSDEBUG
    ArgusDebug (4, "setArgusMarReportInterval(%s) returning\n", value);
+#endif
+}
+
+
+void
+setArgusMarInfReportInterval(struct ArgusOutputStruct *output, char *value)
+{
+   struct timeval *tvp = getArgusMarInfReportInterval(output);
+
+   struct timeval ovalue, now;
+   double thisvalue = 0.0, iptr, fptr;
+   int ivalue = 0;
+   char *ptr = NULL;
+
+   if (tvp != NULL) {
+      ovalue = *tvp;
+      tvp->tv_sec  = 0;
+      tvp->tv_usec = 0;
+   } else {
+      ovalue.tv_sec  = 0;
+      ovalue.tv_usec = 0;
+   }
+
+   if (((ptr = strchr (value, '.')) != NULL) || isdigit((int)*value)) {
+      if (ptr != NULL) {
+         thisvalue = atof(value);
+      } else {
+         if (isdigit((int)*value)) {
+            ivalue = atoi(value);
+            thisvalue = ivalue * 1.0;
+         }
+      }
+
+      fptr =  modf(thisvalue, &iptr);
+
+      tvp->tv_sec = iptr;
+      tvp->tv_usec =  fptr * ARGUS_FRACTION_TIME;
+
+      gettimeofday(&now, 0L);
+      if (output->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
+         now.tv_usec *= 1000;
+
+      output->ArgusMarInfTime.tv_sec  = now.tv_sec + tvp->tv_sec;
+      output->ArgusMarInfTime.tv_usec = tvp->tv_usec;
+
+   } else
+      *tvp = ovalue;
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (4, "setArgusMarInfReportInterval(%s) returning\n", value);
 #endif
 }
 

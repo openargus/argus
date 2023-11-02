@@ -204,7 +204,6 @@ ArgusDebug (int d, char *fmt, ...)
       gettimeofday (&now, 0L);
 
 #if defined(ARGUS_THREADS)
-      pthread_mutex_lock(&ArgusMainLock);
       {
          pthread_t ptid;
          char pbuf[128];
@@ -233,8 +232,6 @@ ArgusDebug (int d, char *fmt, ...)
 #endif
       } else
          fprintf (stderr, "%s", buf);
-
-      pthread_mutex_unlock(&ArgusMainLock);
 #else
       (void) snprintf (buf, MAXSTRLEN, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
       ptr = &buf[strlen(buf)];
@@ -728,6 +725,7 @@ ArgusHtoN (struct ArgusRecord *argus)
                            tcp->seqbase      = htonl(tcp->seqbase);
                            tcp->options      = htonl(tcp->options);
                            tcp->win          = htons(tcp->win);
+                           tcp->maxseg       = htons(tcp->maxseg);
                            break;
                         }
                         case ARGUS_TCP_STATUS: {
@@ -755,6 +753,7 @@ ArgusHtoN (struct ArgusRecord *argus)
                            tcp->src.ackbytes = htonl(tcp->src.ackbytes);
                            tcp->src.winbytes = htonl(tcp->src.winbytes);
                            tcp->src.win = htons(tcp->src.win);
+                           tcp->src.maxseg = htons(tcp->src.maxseg);
 
                            if (dsr->argus_dsrvl8.len > (((sizeof(struct ArgusTCPObject) - sizeof(struct ArgusTCPObjectMetrics))+3)/4 + 1)) {
                               tcp->dst.lasttime.tv_sec  = htonl(tcp->dst.lasttime.tv_sec);
@@ -769,6 +768,7 @@ ArgusHtoN (struct ArgusRecord *argus)
                               tcp->dst.ackbytes = htonl(tcp->dst.ackbytes);
                               tcp->dst.winbytes = htonl(tcp->dst.winbytes);
                               tcp->dst.win = htons(tcp->dst.win);
+                              tcp->dst.maxseg = htons(tcp->dst.maxseg);
                            }
                            break;
                         }
@@ -818,6 +818,13 @@ ArgusHtoN (struct ArgusRecord *argus)
                      struct ArgusVlanStruct *vlan = (struct ArgusVlanStruct *) dsr;
                      vlan->sid = htons(vlan->sid);
                      vlan->did = htons(vlan->did);
+                     break;
+                  }
+
+                  case ARGUS_VXLAN_DSR: {
+                     struct ArgusVxLanStruct *vlan = (struct ArgusVxLanStruct *) dsr;
+                     vlan->svnid = htonl(vlan->svnid);
+                     vlan->dvnid = htonl(vlan->dvnid);
                      break;
                   }
 
@@ -932,6 +939,7 @@ ArgusPrintHex (const u_char *bp, u_int length)
 
 
 char *ArgusProcessStr = NULL;
+void ArgusPrintDirection (char *, struct ArgusRecordStruct *, int);
 
 void
 ArgusPrintDirection (char *buf, struct ArgusRecordStruct *argus, int len)
@@ -1526,22 +1534,15 @@ ArgusLog (int priority, char *fmt, ...)
    char buf[1024], *ptr;
    struct timeval now;
 
-#ifdef HAVE_SYSLOG
    gettimeofday (&now, 0L);
-
-   (void) snprintf (buf, 1024, "%s ", print_time(&now));
-   ptr = &buf[strlen(buf)];
-#else
-   int i;
-   char *label;
+   buf[0] = 0;
+   ptr = &buf[0];
 
    if (priority == LOG_NOTICE)
       return;
 
-   gettimeofday (&now, 0L);
-
+   if (!daemonflag) {
 #if defined(ARGUS_THREADS)
-   {
       pthread_t ptid;
       char pbuf[128];
       int i;
@@ -1552,13 +1553,11 @@ ArgusLog (int priority, char *fmt, ...)
          snprintf (&pbuf[i*2], 3, "%02hhx", ((char *)&ptid)[i]);
       }
       (void) snprintf (buf, 1024, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
-   }
 #else
-   (void) snprintf (buf, 1024, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
+      (void) snprintf (buf, 1024, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
 #endif
-
-   ptr = &buf[strlen(buf)];
-#endif
+      ptr = &buf[strlen(buf)];
+   }
 
    va_start (ap, fmt);
    (void) vsnprintf (ptr, 1024, fmt, ap);
@@ -1567,7 +1566,7 @@ ArgusLog (int priority, char *fmt, ...)
 
    if (daemonflag) {
 #ifdef HAVE_SYSLOG
-      syslog (LOG_ALERT, "%s", buf);
+      syslog (priority, "%s", buf);
 #endif
    } else if (priority <= ArgusLogDisplayPriority) {
       char *label = NULL;
@@ -2592,7 +2591,7 @@ RaParseCIDRAddr (struct ArgusParserStruct *parser, char *addr)
 
       case AF_INET6: {
          unsigned short *val = (unsigned short *)&retn->addr;
-         int ind = 0, len = sizeof(retn->addr)/sizeof(unsigned short);
+         int ind = 0, len = sizeof(retn->addr)/(sizeof(unsigned short));
          int fsecnum = 8, lsecnum = 0, rsecnum = 0, i, masklen;
          char *sstr = NULL, *ipv4addr = NULL;
 

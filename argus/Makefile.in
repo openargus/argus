@@ -115,7 +115,7 @@ HDR =	pcap.h pcap-int.h pcap-namedb.h pcap-nit.h pcap-pf.h \
 	ethertype.h gencode.h gnuc.h
 
 TAGHDR = \
-	bpf/net/bpf.h
+	pcap/bpf.h
 
 TAGFILES = \
 	$(SRC) $(HDR) $(TAGHDR)

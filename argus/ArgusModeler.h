@@ -31,7 +31,10 @@
 #ifndef ArgusModeler_h
 #define ArgusModeler_h
 
+#define ARGUS_MODELER_CLONE	0x40000
+
 #define ARGUS_MARSTATUSTIMER	"60"
+#define ARGUS_MARINTERFACETIMER	"60"
 #define ARGUS_FARSTATUSTIMER	"5"
 
 #define ARGUS_INITIMEOUT	5
@@ -232,7 +235,7 @@ struct ArgusModelerStruct {
    unsigned int ArgusThisInterface;
    unsigned int ArgusThisEncaps;
    unsigned int ArgusThisNetworkFlowType;
-   struct llc *ArgusThisLLC;
+   struct argus_llc *ArgusThisLLC;
    unsigned int ArgusThisAppFlowType;
    int ArgusThisMplsLabelIndex;
    unsigned int ArgusThisMplsLabel;
@@ -415,7 +418,7 @@ unsigned char ArgusAlignBuffer[ARGUS_MAXALIGNBUF], *ArgusAlignBuf = ArgusAlignBu
 
 struct ArgusModelerStruct *ArgusModel = NULL;
 
-struct llc ArgusThisLLCBuffer;
+struct argus_llc ArgusThisLLCBuffer;
 
 unsigned char argusDSRTypes [ARGUSMAXDSRTYPE] = {
    ARGUS_TRANSPORT_DSR, ARGUS_FLOW_DSR, ARGUS_TIME_DSR,
@@ -463,6 +466,8 @@ void setArgusIgmpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusFragTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusArpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusOtherTimeout (struct ArgusModelerStruct *model, int value);
+
+int getArgusHashTableSize (struct ArgusModelerStruct *model);
 
 void setArgusSynchronize (struct ArgusModelerStruct *, int);
 
@@ -539,6 +544,8 @@ struct ArgusFlowStruct *ArgusFindFlow (struct ArgusModelerStruct *, struct Argus
 
 void ArgusICMPMappedFlowRecord (struct ArgusFlowStruct *, struct ArgusRecord *, unsigned char);
 
+int ArgusFlowPacketDuplicate (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
+
 struct ArgusFlowStruct *ArgusUpdateState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 struct ArgusFlowStruct *ArgusUpdateFlow (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 void ArgusUpdateAppState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char);
@@ -584,6 +591,7 @@ void setArgusArpTimeout(struct ArgusModelerStruct *, int);
 int getArgusOtherTimeout(struct ArgusModelerStruct *);
 void setArgusOtherTimeout(struct ArgusModelerStruct *, int);
 
+int getArgusHashTableSize (struct ArgusModelerStruct *);
 
 unsigned int getArgusLocalNet(struct ArgusModelerStruct *);
 void setArgusLocalNet(struct ArgusModelerStruct *, unsigned int);
@@ -633,7 +641,7 @@ RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
 #else /* #if defined(ArgusModeler) */
 
 extern struct ArgusModelerStruct *ArgusModel;
-extern struct llc ArgusThisLLCBuffer;
+extern struct argus_llc ArgusThisLLCBuffer;
 
 #if defined(LBL_ALIGN)
 extern unsigned char *ArgusAlignBuf;
@@ -676,6 +684,8 @@ extern void setArgusIgmpTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusFragTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusArpTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusOtherTimeout (struct ArgusModelerStruct *model, int value);
+
+extern int getArgusHashTableSize (struct ArgusModelerStruct *model);
 
 extern void setArgusSynchronize (struct ArgusModelerStruct *, int);
 
@@ -764,6 +774,8 @@ extern struct ArgusFlowStruct *ArgusFindFlow (struct ArgusModelerStruct *, struc
 extern int ArgusCreateFlowKey (struct ArgusModelerStruct *, struct ArgusSystemFlow *, struct ArgusHashStruct *);
 
 extern void ArgusICMPMappedFlowRecord (struct ArgusFlowStruct *, struct ArgusRecord *, unsigned char);
+
+extern int ArgusFlowPacketDuplicate (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 
 extern struct ArgusFlowStruct *ArgusUpdateState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 extern struct ArgusFlowStruct *ArgusUpdateFlow (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);

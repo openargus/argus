@@ -26,9 +26,9 @@
 
 AC_PREREQ(2.61)
 AC_INIT([Argus Pro (Gargoyle) Server Programs], [5.0], [bug-report@qosient.com], [argus], [http://qosient.com/argus])
-PACKAGE_RELEASE='3.3'
-ARGUSPRO_VERSION='1.1'
-AC_DEFINE([ARGUSPRO_VERSION_STRING], ["1.1"], [Product version number string])
+PACKAGE_RELEASE='3.6'
+ARGUSPRO_VERSION='1.4'
+AC_DEFINE([ARGUSPRO_VERSION_STRING], ["1.3"], [Product version number string])
 AC_CONFIG_SRCDIR([argus/argus.c])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_HEADER([include/argus_config.h])
@@ -126,15 +126,27 @@ AC_CHECK_FUNCS(strerror strtof)
 AC_CHECK_FUNCS(floorf remainderf)
 AC_CHECK_FUNCS(timegm)
 
-AC_CHECK_FUNCS(xdrmem_create)
-if test "$ac_cv_func_xdrmem_create" = yes ; then
-   AC_DEFINE([HAVE_XDR], [], [Using system XDR library])
-else
-   case "$target_cpu" in
-      cygwin*)
-      ;;
-   esac
-fi
+saved_CPPFLAGS=$CPPFLAGS
+saved_LIBS=$LIBS
+LIB_XDR=""
+
+AC_CHECK_HEADERS([rpc/xdr.h], ,
+   [CPPFLAGS="${saved_CPPFLAGS} -I/usr/include/tirpc"
+    AC_CHECK_HEADERS(rpc/xdr.h,
+      [XDR_INCLS="-I/usr/include/tirpc"
+      LIB_XDR="-ltirpc"])],
+      [#include <rpc/types.h>])
+
+LIBS="$LIB_XDR $LIBS"
+
+AC_CHECK_FUNCS(xdrmem_create,
+   AC_DEFINE([HAVE_XDR], [], [Using system XDR library]),
+   LIB_XDR=""
+   XDR_INCLS=""
+   )
+
+CPPFLAGS=${saved_CPPFLAGS}
+LIBS=${saved_LIBS}
 
 needsnprintf=no
 AC_CHECK_FUNCS(vsnprintf snprintf,, [needsnprintf=yes])
@@ -241,8 +253,20 @@ AC_CHECK_FUNCS([strdup strlcat strncasecmp strpbrk strrchr strstr strtol srandom
 AC_CHECK_FUNCS([gethostuuid])
 AC_CHECK_FUNCS([posix_memalign memalign])
 
+case "$target" in
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        ;;
+   x86*darwin*)
+        ;;
+esac
+
 case "$target_os" in
-   *darwin*)
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        COMPATLIB="-lz"
+        ;;
+   x86*darwin*)
         COMPATLIB="-lz"
         ;;
    *)
@@ -429,6 +453,7 @@ AC_SUBST(PACKAGE_RELEASE)
 AC_SUBST(ARGUSPRO_VERSION)
 AC_SUBST(LIBS)
 AC_SUBST(INCLS)
+AC_SUBST(V_ARCH)
 AC_SUBST(V_CCOPT)
 AC_SUBST(V_INCLS)
 AC_SUBST(V_RANLIB)
@@ -441,6 +466,8 @@ AC_SUBST(V_THREADS)
 AC_SUBST(WRAPLIBS)
 AC_SUBST(COMPATLIB)
 AC_SUBST(LIB_SASL)
+AC_SUBST(LIB_XDR)
+AC_SUBST(XDR_INCLS)
 AC_SUBST(INSTALL_LIB)
 AC_SUBST(INSTALL_BIN)
 

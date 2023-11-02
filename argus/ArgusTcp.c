@@ -100,9 +100,11 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
          net->hdr.type             = ARGUS_NETWORK_DSR;
          net->hdr.subtype          = ARGUS_TCP_INIT;
          net->hdr.argus_dsrvl8.len = ((sizeof(struct ArgusTCPInitStatus)+3))/4 + 1;
-         net->hdr.argus_dsrvl8.qual = 0;
+         net->hdr.argus_dsrvl8.qual = ARGUS_TCP_INIT_V2;
+
          flowstr->dsrs[ARGUS_NETWORK_INDEX] = (struct ArgusDSRHeader *) net;
-         tcpExt                    = &net->net_union.tcp;
+
+         tcpExt = &net->net_union.tcp;
          bzero ((char *)tcpExt, sizeof(*tcpExt));
 
          model->ArgusSnapLength -= tcphlen;
@@ -341,7 +343,7 @@ int
 ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flowstr, struct tcphdr *tcp)
 {
    struct ArgusTCPObjectMetrics *ArgusThisTCPsrc, *ArgusThisTCPdst;
-   unsigned char flags = tcp->th_flags;
+   unsigned char flags = tcp->th_flags & (TH_SYN | TH_ACK | TH_RST | TH_FIN) ;
    struct ArgusTCPObject *tcpExt = (struct ArgusTCPObject *)&flowstr->canon.net.net_union.tcp;
    unsigned int state = tcpExt->state;
    int len = model->ArgusThisLength;
@@ -954,7 +956,7 @@ ArgusTCPFlowRecord (struct ArgusNetworkStruct *net, unsigned char state)
 {
    struct ArgusTCPObject *tcp = (struct ArgusTCPObject *)&net->net_union.tcp;
 
-   net->hdr.argus_dsrvl8.qual = 0;
+   net->hdr.argus_dsrvl8.qual = ARGUS_TCP_INIT_V2;
 
    tcp->status &= ~(ARGUS_RESET | ARGUS_PKTS_RETRANS | ARGUS_WINDOW_SHUT | ARGUS_OUTOFORDER | ARGUS_DUPLICATES);
    if (tcp->src.status & ARGUS_RESET)
@@ -1023,6 +1025,7 @@ ArgusParseTCPOptions(struct ArgusModelerStruct *model, struct tcphdr *tcp, int l
                *options |= ARGUS_TCP_MAXSEG;
                datalen = 2;
                LENCHECK(model, datalen);
+               ArgusThisTCPsrc->maxseg = ntohs(*(u_short *)cp);
                break;
 
             case TCPOPT_EOL:

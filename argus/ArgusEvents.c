@@ -81,6 +81,25 @@ ArgusNewEvents ()
    return (retn);
 }
 
+void
+ArgusDeleteEvents (struct ArgusEventsStruct *events)
+{
+   struct ArgusEventsStruct *retn = NULL;
+
+   if (events != NULL) {
+      pthread_mutex_destroy(&events->lock);
+      if (events->ArgusEventsList != NULL) {
+         ArgusDeleteList (events->ArgusEventsList, ARGUS_EVENT_LIST);
+         events->ArgusEventsList =  NULL;
+      }
+      ArgusFree (events);
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (1, "ArgusDeleteEvents() returning retn 0x%x\n", retn);
+#endif
+}
+
 
 
 void
@@ -111,8 +130,11 @@ ArgusCloseEvents (struct ArgusEventsStruct *events)
       events->status |= ARGUS_SHUTDOWN;
 
 #if defined(ARGUS_THREADS)
-      if (events->thread)
+      if (events->thread) {
          pthread_cancel(events->thread);
+         pthread_join(events->thread, NULL);
+         events->thread = 0;
+      }
 #endif
    }
 

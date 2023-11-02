@@ -207,7 +207,9 @@ extern "C" {
 #define ARGUS_CLOSED				0x70   /* Argus Initiates Shutdown */
 
 #define ARGUS_ERROR				0x80   /* Error - Major Problem */
-#define ARGUS_SUPPLEMENTAL			0x90   /* Argus Supplemental Record */
+
+#define ARGUS_MAR_SUPPLEMENTAL			0x90   /* Argus Supplemental Record */
+#define ARGUS_MAR_INTERFACE   			0xA0   /* Argus Interface Record */
 
 /*
    Argus  Record Header Option Field
@@ -314,7 +316,7 @@ extern "C" {
  
 /* Argus Record Data Specific Record (DSR) Types */
 
-#define ARGUSMAXDSRTYPE				22
+#define ARGUSMAXDSRTYPE				23
 
 /* Argus Data Specific Record (DSR) Formats
       There are two types of DSR, 1) a Type Value (TV) record
@@ -461,6 +463,7 @@ extern "C" {
 #define ARGUS_TYPE_IB_LOCAL                     0x0B
 #define ARGUS_TYPE_IB_GLOBAL                    0x0C
 #define ARGUS_TYPE_UDT                          0x0D
+#define ARGUS_TYPE_VXLAN                        0x0E
  
 #define ARGUS_TYPE_INTERFACE                    0x10
 
@@ -1605,6 +1608,9 @@ extern "C" {
 #define ARGUS_NETWORK_SUBTYPE_ARP	0x10
 #define ARGUS_NETWORK_SUBTYPE_FRAG	0x45
 
+/* Argus Transport DSR Qualifier */
+#define ARGUS_TCP_INIT_V2		0x02
+
 /* RTP State Constants and Reporting Values */
 #define ARGUS_RTP_SRCSILENCE		0x01
 #define ARGUS_RTP_DSTSILENCE		0x02
@@ -1685,7 +1691,7 @@ extern "C" {
 #define ARGUS_SRC_VLAN                   0x01
 #define ARGUS_DST_VLAN                   0x02
 
- 
+
 /* Mpls Transport DSR Type */
 #define ARGUS_MPLS_DSR                   0x44
 #define ARGUS_MPLS_INDEX                 7
@@ -1801,11 +1807,16 @@ extern "C" {
 
 #define ARGUS_ADDR_MASK         	0x07
 
-
 /* Argus Flow Hash DSR */
 #define ARGUS_FLOW_HASH_DSR		0x07
 #define ARGUS_FLOW_HASH_INDEX           21
 
+/* VxLan Transport DSR Type */
+#define ARGUS_VXLAN_DSR                  0x43
+#define ARGUS_VXLAN_INDEX                22
+
+#define ARGUS_SRC_VXLAN                  0x01
+#define ARGUS_DST_VXLAN                  0x02
 
 /*
     0                   1                   2                   3
@@ -1967,8 +1978,8 @@ extern "C" {
 #define ARGUS_V2_RMON		0x40    /* New RMON style FAR Record Format */
 
 #define ARGUS_V2_FAR 		0x01    /* Normal Argus Data Record */
-#define ARGUS_V2_DATASUP		0x02    /* New Supplemental Argus Data Record */
-#define ARGUS_V2_ARCHIVE		0x03    /* New Archival Argus Data Record */
+#define ARGUS_V2_DATASUP	0x02    /* New Supplemental Argus Data Record */
+#define ARGUS_V2_ARCHIVE	0x03    /* New Archival Argus Data Record */
 
 
 /* Argus Record Cause */
@@ -2270,6 +2281,37 @@ extern "C" {
 #define ARGUS_V2_AGR_MSECIDLETIME		0x0080
 
 #define ARGUS_V2_AGR_NORMALIZED  		0x0100
+
+#define IANA_AF_IP				1
+#define IANA_AF_IP6				2
+#define IANA_AF_NSAP				3
+#define IANA_AF_HDLC				4
+#define IANA_AF_BBN_1822			5
+#define IANA_AF_802				6
+#define IANA_AF_E163				7
+#define IANA_AF_E164				8
+#define IANA_AF_F69				9
+#define IANA_AF_X121				10
+#define IANA_AF_IPX				11
+#define IANA_AF_APPLETALK			12
+#define IANA_AF_DECNET				13
+#define IANA_AF_BANYANVINES			14
+#define IANA_AF_E164_NSAP			15
+#define IANA_AF_DNS				16
+#define IANA_AF_DISTINQUISHED_NAME		17
+#define IANA_AF_AS_NUM				18
+#define IANA_AF_XTP_IPV4			19
+#define IANA_AF_XTP_IPV6			20
+#define IANA_AF_XTP_NATIVE			21
+#define IANA_AF_FIBERCHANNEL_PORT		22
+#define IANA_AF_FIBERCHANNEL_NODE		23
+#define IANA_AF_GWID				24
+#define IANA_AF_AFI				25
+#define IANA_AF_MPLS_TP_SECTION			26
+#define IANA_AF_MPLS_TP_LSP			27
+#define IANA_AF_MPLS_TP_PWIRE			28
+#define IANA_AF_MT_IP				29
+#define IANA_AF_MT_IP6				30
 
 #define IANA_IFT_OTHER				1
 #define IANA_IFT_REGULAR1822			2

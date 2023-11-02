@@ -317,7 +317,8 @@ main (int argc, char *argv[])
 
 #if defined(ARGUS_FLEXLM)
    int borrow = 0;
-   struct timeval borrow_expire = {0, };
+   struct timeval borrow_expire = {0, 0};
+   sigset_t prev_blocked_signals;
 #endif
 
    ArgusUid = getuid();
@@ -406,15 +407,6 @@ main (int argc, char *argv[])
       }
    }
 
-#if defined(ARGUS_FLEXLM)
-   if (borrow > 0) {
-      gettimeofday(&borrow_expire, NULL);
-      borrow_expire.tv_sec += (86400 * borrow);
-   }
-   license = ArgusLicenseInit((borrow > 0) ? &borrow_expire : NULL);
-   ArgusLicenseCheckout(license); /* exits process on failure */
-#endif
-
    if ((ArgusModel = ArgusNewModeler()) == NULL)
       ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
 
@@ -428,6 +420,7 @@ main (int argc, char *argv[])
 
    setArgusFarReportInterval (ArgusModel, ARGUS_FARSTATUSTIMER);
    setArgusMarReportInterval (ArgusOutputTask,ARGUS_MARSTATUSTIMER);
+   setArgusMarInfReportInterval (ArgusOutputTask,ARGUS_MARINTERFACETIMER);
 
    if (!doconf) {
       snprintf (path, MAXPATHNAMELEN - 1, "/etc/argus.conf");
@@ -660,8 +653,6 @@ main (int argc, char *argv[])
          } else {
             ArgusSessionId = setsid();
 
-            ArgusLog(LOG_WARNING, "started");
-
             if ((freopen ("/dev/null", "w", stdout)) == NULL)
                ArgusLog (LOG_ERR, "Cannot map stdout to /dev/null");
 
@@ -675,6 +666,25 @@ main (int argc, char *argv[])
          }
       }
    }
+
+#if defined(ARGUS_FLEXLM)
+   if (borrow > 0) {
+      gettimeofday(&borrow_expire, NULL);
+      borrow_expire.tv_sec += (86400 * borrow);
+   }
+
+   sigfillset(&blocked_signals);
+   if (pthread_sigmask(SIG_BLOCK, &blocked_signals, &prev_blocked_signals) != 0)
+       ArgusLog(LOG_ERR, "unable to block all signals\n");
+
+   license = ArgusLicenseInit((borrow > 0) ? &borrow_expire : NULL);
+   ArgusLicenseCheckout(license); /* exits process on failure */
+   sigemptyset(&blocked_signals);
+   if (pthread_sigmask(SIG_SETMASK, &prev_blocked_signals, NULL) != 0)
+       ArgusLog(LOG_ERR, "unable to unblock all signals\n");
+#endif
+
+   ArgusLog(LOG_INFO, "started");
 
 #if defined(ARGUS_THREADS)
    pthread_mutex_init(&ArgusMainLock, NULL);
@@ -847,6 +857,7 @@ ArgusComplete ()
    ArgusFree(ArgusOutputTask);
    ArgusFree(ArgusModel);
 
+   ArgusDeleteEvents(ArgusEventsTask);
    ArgusDeleteSource(ArgusSourceTask);
 
 #if defined(ARGUSPERFMETRICS)
@@ -909,7 +920,6 @@ ArgusBacktrace (void)
 void
 ArgusScheduleShutDown (int sig)
 {
-   ArgusShutDownFlag++;
    ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
 #ifdef ARGUSDEBUG
@@ -921,6 +931,7 @@ ArgusScheduleShutDown (int sig)
 #endif
 
    ArgusShutDownSig = sig;
+   ArgusShutDownFlag++;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
 #endif 
 }
@@ -956,7 +967,7 @@ ArgusShutDown (void)
    ArgusDeleteMallocList();
 
    if (daemonflag)
-      ArgusLog(LOG_WARNING, "stopped");
+      ArgusLog(LOG_INFO, "stopped");
 
 #if defined(ARGUS_FLEXLM)
    ArgusLicenseCheckin(license);
@@ -1028,7 +1039,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				59
+#define ARGUS_RCITEMS				62
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1089,8 +1100,10 @@ getArguspidflag ()
 #define ARGUS_GENERATE_HASH_METRICS		56
 #define ARGUS_INTERFACE_SCAN_INTERVAL		57
 #define ARGUS_LOG_DISPLAY_PRIORITY		58
+#define ARGUS_MAR_INTERFACE_INTERVAL		59
+#define ARGUS_TIMESTAMP_TYPE			60
+#define ARGUS_DEDUP				61
 
-#define ARGUS_INTERFACE_SCAN_INTERVAL_MAX	60
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MONITOR_ID=",
@@ -1152,8 +1165,13 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_GENERATE_HASH_METRICS=",
    "ARGUS_INTERFACE_SCAN_INTERVAL=",
    "ARGUS_LOG_DISPLAY_PRIORITY=",
+   "ARGUS_MAR_INTERFACE_INTERVAL=",
+   "ARGUS_TIMESTAMP_TYPE=",
+   "ARGUS_DEDUDEDUP=",
 };
 
+
+#define ARGUS_INTERFACE_SCAN_INTERVAL_MAX	60
 
 extern pcap_dumper_t *ArgusPcapOutFile;
 extern char *ArgusWriteOutPacketFile;
@@ -1392,7 +1410,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
 
                         case ARGUS_GO_PROMISCUOUS:
-                           if ((strncasecmp(optarg, "yes", 3)))
+                           if (!(strncasecmp(optarg, "yes", 3)))
                               setArguspflag  (ArgusSourceTask, 1);
                            else
                               setArguspflag  (ArgusSourceTask, 0);
@@ -1404,6 +1422,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_MAR_STATUS_INTERVAL:
                            setArgusMarReportInterval (ArgusOutputTask, optarg);
+                           break;
+
+                        case ARGUS_MAR_INTERFACE_INTERVAL:
+                           setArgusMarInfReportInterval (ArgusOutputTask, optarg);
                            break;
 
                         case ARGUS_CAPTURE_DATA_LEN:
@@ -1805,6 +1827,14 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
                         case ARGUS_LOG_DISPLAY_PRIORITY:
                            setArgusLogDisplayPriority(atoi(optarg));
+                           break;
+
+                        case ARGUS_TIMESTAMP_TYPE:
+                           setArgusTimestampType(optarg);
+                           break;
+
+                        case ARGUS_DEDUP:
+                           setArgusDeDup(optarg);
                            break;
                      }
 
