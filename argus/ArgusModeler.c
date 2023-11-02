@@ -970,7 +970,6 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
             len += sizeof (*up);
 
             if (STRUCTCAPTURED(model, *ipv6)) {
-/*
                int isipv6 = 0;
                if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
                   retn = ETHERTYPE_IPV6;
@@ -1032,7 +1031,6 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                      }
                   }
                }
-*/
             }
          }
 */
