@@ -117,6 +117,7 @@ struct ArgusTCPInitStatus {
    unsigned int options;
    unsigned short win; 
    unsigned char flags, winshift;
+   unsigned short maxseg, pad; 
 };
 
 struct ArgusTCPStatus {
@@ -130,6 +131,7 @@ struct ArgusTCPObjectMetrics {
    unsigned int bytes, retrans, ackbytes, winbytes;
    unsigned short win;
    unsigned char flags, winshift;
+   unsigned short maxseg, pad; 
 // unsigned int dup;
 };
  
@@ -664,9 +666,8 @@ struct ArgusMacStruct {
 
 struct ArgusVxLanStruct {
    struct ArgusDSRHeader hdr;
-   unsigned char flgs;
-   unsigned char res[3];
-   unsigned int vni;
+   unsigned int svnid, dvnid;
+   struct ArgusFlow tflow;
 };
    
 struct ArgusVlanStruct {
@@ -889,15 +890,14 @@ struct ArgusMarInterfaceStruct {
 
    unsigned char inf[4];
    int flags, mtu;
-   struct ArgusAddressStruct addr[];
+   struct ArgusAddressStruct *addr;
 };
 
 struct ArgusMarInfStruct {
    unsigned int status;
    struct ArgusAddrStruct srcid;
    struct ArgusTime startime, now;
-
-   struct ArgusMarInterfaceStruct inf[];
+   struct ArgusMarInterfaceStruct *inf;
 };
 
 struct ArgusFarStruct {

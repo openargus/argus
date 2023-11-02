@@ -42,11 +42,12 @@ VPATH = @srcdir@
 
 CC = @CC@
 CCOPT = @V_CCOPT@
+ARCH = @V_ARCH@
 INCLS = -I$(srcdir) @V_INCLS@ -I$(srcdir)/../include  -I$(srcdir)/../argus
 DEFS = @DEFS@
 
 # Standard CFLAGS
-CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS)
+CFLAGS = $(ARCH) $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS)
 LDFLAGS = @LDFLAGS@
 
 INSTALL = @INSTALL@

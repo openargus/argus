@@ -1,6 +1,6 @@
 /*
  * Gargoyle Software.  Argus files - Modeler
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
  * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
@@ -59,11 +59,13 @@
 #include "ArgusGetTimeOfDay.h"
 
 extern int ArgusShutDownFlag;
+extern int ArgusDeDup;
 
 extern struct ArgusHashTable *ArgusNewHashTable (size_t, int);
 extern int ArgusUpdateParentFlow (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 extern int ArgusControlPlaneProtocol (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 
+int ArgusProcessPacket (struct ArgusSourceStruct *, char *, int, struct timeval *, int);
 unsigned short ArgusProcessUdpHdr (struct ArgusModelerStruct *, struct ip *, int);
 unsigned short ArgusProcessTtpHdr (struct ArgusModelerStruct *, struct ip *, int);
 int ArgusProcessGreHdr (struct ArgusModelerStruct *, struct ip *, int);
@@ -225,7 +227,7 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    model->ArgusOutputList = ArgusOutputTask->ArgusInputList;
 
-   if ((model->ArgusThisLLC = (struct llc  *) ArgusCalloc (1, sizeof (struct llc ) + 32)) == NULL)
+   if ((model->ArgusThisLLC = (struct argus_llc  *) ArgusCalloc (1, sizeof (struct argus_llc ) + 32)) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
 
    model->ArgusSeqNum = 1;
@@ -622,9 +624,9 @@ ArgusProcessIsoclnsHdr (struct ArgusModelerStruct *model, struct ether_header *e
    }
 
 /*
-   model->ArgusThisLength -= sizeof(struct llc);
-   model->ArgusSnapLength -= sizeof(struct llc);
-   model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+   model->ArgusThisLength -= sizeof(struct argus_llc);
+   model->ArgusSnapLength -= sizeof(struct argus_llc);
+   model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
 */
    model->ArgusThisLength -= 3;
    model->ArgusSnapLength -= 3;
@@ -963,11 +965,12 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
          if (!((sport == 53) || (dport == 53))) {
             char *ptr = (char *) (up + 1);
             struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
-            int isipv6 = 0;
 
             len += sizeof (*up);
 
             if (STRUCTCAPTURED(model, *ipv6)) {
+/*
+               int isipv6 = 0;
                if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
                   retn = ETHERTYPE_IPV6;
                   len = ((char *) ipv6 - (char *)ip);
@@ -1028,6 +1031,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                      }
                   }
                }
+*/
             }
          }
       }
@@ -1162,7 +1166,7 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
    retn = ntohs(ep->ether_type);
 
    if (retn <= ETHERMTU) {  /* 802.3 Encapsulation */
-      struct llc *llc = NULL;
+      struct argus_llc *llc = NULL;
       unsigned short ether_type = 0;
 
       ptr = (unsigned char *) ep;
@@ -1172,12 +1176,12 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
       }
 
       ptr = (unsigned char *) model->ArgusThisUpHdr;
-      llc = (struct llc *) ptr;
+      llc = (struct argus_llc *) ptr;
 
       if (BYTESCAPTURED(model,*llc, 3) && ((llc = model->ArgusThisLLC) != NULL)) {
          model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
-         bcopy((char *) ptr, (char *) llc, sizeof (struct llc));
+         bcopy((char *) ptr, (char *) llc, sizeof (struct argus_llc));
 
 #define ARGUS_IPX_TAG         100
 
@@ -1198,11 +1202,10 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
                ((unsigned char *)&ether_type)[1] = ((unsigned char *)&llc->ethertype)[1];
 
                model->ArgusThisNetworkFlowType = ntohs(ether_type);
-               retn = model->ArgusThisNetworkFlowType;
 
-               model->ArgusThisLength -= sizeof(struct llc);
-               model->ArgusSnapLength -= sizeof(struct llc);
-               model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+               model->ArgusThisLength -= sizeof(struct argus_llc);
+               model->ArgusSnapLength -= sizeof(struct argus_llc);
+               model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
             }
 
          } else {
@@ -1281,19 +1284,19 @@ int
 ArgusProcessLLCHdr (struct ArgusModelerStruct *model, char *p, int length)
 {
    int retn = 0;
-   struct llc *llc = NULL;
+   struct argus_llc *llc = NULL;
    unsigned short ether_type = 0;
    unsigned char *ptr = (unsigned char *) p;
 /*
    ptr = (unsigned char *) model->ArgusThisUpHdr;
 */
-   llc = (struct llc *) ptr;
+   llc = (struct argus_llc *) ptr;
 
    if (BYTESCAPTURED(model,*llc,3)) {
       model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
       llc = model->ArgusThisLLC;
-      bcopy((char *) ptr, (char *) llc, sizeof (struct llc));
+      bcopy((char *) ptr, (char *) llc, sizeof (struct argus_llc));
 
 #define ARGUS_IPX_TAG         100
 
@@ -1315,9 +1318,9 @@ ArgusProcessLLCHdr (struct ArgusModelerStruct *model, char *p, int length)
 
             retn = ntohs(ether_type);
 
-            model->ArgusThisLength -= sizeof(struct llc);
-            model->ArgusSnapLength -= sizeof(struct llc);
-            model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+            model->ArgusThisLength -= sizeof(struct argus_llc);
+            model->ArgusSnapLength -= sizeof(struct argus_llc);
+            model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
          }
 
       } else {
@@ -1647,7 +1650,6 @@ ArgusProcessLcpPacket (struct ArgusSourceStruct *src, struct lcp_hdr *lcp, int l
    return (retn);
 }
 
-int ArgusProcessPacket (struct ArgusSourceStruct *, char *, int, struct timeval *, int);
 
 int
 ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct timeval *tvp, int type)
@@ -1762,6 +1764,11 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
 
          if ((flow = ArgusFindFlow (model, model->hstruct)) != NULL) {
             struct ArgusQueueStruct *queue;
+
+            if (ArgusDeDup != 0) {
+               if (ArgusFlowPacketDuplicate(model, flow))
+                  return (retn);
+            }
 
             if ((queue = flow->qhdr.queue) != NULL) {
                model->ArgusTotalCacheHits++;
@@ -2274,6 +2281,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    struct ArgusNetworkStruct *net;
    struct ArgusMplsStruct *mpls;
    struct ArgusVlanStruct *vlan;
+   struct ArgusVxLanStruct *vxlan;
    struct ArgusTimeObject *time;
    struct ArgusJitterStruct *jitter;
    model->ArgusTotalUpdates++;
@@ -2531,6 +2539,28 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       }
    }
 
+   if (model->ArgusThisEncaps & ARGUS_ENCAPS_VXLAN) {
+      if ((vxlan = (struct ArgusVxLanStruct *) flow->dsrs[ARGUS_VXLAN_INDEX]) == NULL) {
+         vxlan = (struct ArgusVxLanStruct *) &flow->canon.vxlan;
+         memset(vxlan, 0, sizeof(*vxlan));
+         flow->dsrs[ARGUS_VXLAN_INDEX] = (struct ArgusDSRHeader *) vxlan;
+         vxlan->hdr.type               = ARGUS_VXLAN_DSR;
+         vxlan->hdr.subtype            = 0;
+         vxlan->hdr.argus_dsrvl8.qual  = 0;
+         vxlan->hdr.argus_dsrvl8.len   = 3;
+         flow->dsrindex |= 1 << ARGUS_VXLAN_INDEX;
+      }
+
+      if (model->ArgusThisDir) {
+         vxlan->svnid = model->ArgusThisVxLanVni;
+         vxlan->hdr.argus_dsrvl8.qual |= ARGUS_SRC_VXLAN;
+
+      } else {
+         vxlan->dvnid = model->ArgusThisVxLanVni;
+         vxlan->hdr.argus_dsrvl8.qual |= ARGUS_DST_VXLAN;
+      }
+   }
+
    if (model->ArgusGenerateTime) {
       if ((jitter = (struct ArgusJitterStruct *) flow->dsrs[ARGUS_JITTER_INDEX]) == NULL) {
          jitter = (struct ArgusJitterStruct *) &flow->canon.jitter;
@@ -2555,6 +2585,65 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          flow->dtime.idle.minval = 0xffffffff;
       }
    }
+}
+
+
+int
+ArgusFlowPacketDuplicate (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
+{
+   int retn = 0;
+
+   if (model->ArgusThisIpHdr) {
+      struct ArgusIPAttrStruct *attr;
+
+      if ((attr = (struct ArgusIPAttrStruct *) flow->dsrs[ARGUS_IPATTR_INDEX]) != NULL) {
+         int match = 0;
+         switch (model->ArgusThisNetworkFlowType & 0xFFFF) {
+            case ETHERTYPE_IP: {
+               struct ip *iphdr = (struct ip *) model->ArgusThisIpHdr;
+
+               if (model->ArgusThisDir) {
+                  if ((attr->src.ip_id == iphdr->ip_id) &&
+                      (attr->src.tos == iphdr->ip_tos)  &&
+                      (attr->src.options == model->ArgusOptionIndicator)) 
+                     match = 1;
+               } else {
+                  if ((attr->dst.ip_id == iphdr->ip_id) &&
+                      (attr->dst.tos == iphdr->ip_tos)  &&
+                      (attr->dst.options == model->ArgusOptionIndicator)) 
+                     match = 1;
+               }
+               break;
+            }
+
+            case ETHERTYPE_IPV6: {
+               struct ip6_hdr *iphdr  = (struct ip6_hdr *) model->ArgusThisIpHdr;
+               unsigned int flowid    = iphdr->ip6_flow;
+               unsigned short ftos    = (flowid >> 16);
+               unsigned char tos      = ((ntohs(ftos) >> 4) & 0x00FF);
+               unsigned char ttl      = iphdr->ip6_hlim;
+
+               if (model->ArgusThisDir) {
+                  if ((attr->src.ttl == ttl) &&
+                      (attr->src.tos == tos)  &&
+                      (attr->src.options == model->ArgusOptionIndicator)) 
+                     match = 1;
+               } else {
+                  if ((attr->dst.ttl == ttl) &&
+                      (attr->dst.tos == tos)  &&
+                      (attr->dst.options == model->ArgusOptionIndicator)) 
+                     match = 1;
+               }
+               break;
+            }
+         }
+      }
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (5, "ArgusFlowPacketDuplicate (%p, %p) returning %d\n", model, flow, retn);
+#endif 
+   return (retn);
 }
 
 
@@ -2721,9 +2810,9 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
             retn = ArgusUpdateState (model, flow, state, update);
 
             if (model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE) {
-                if ((tfrag = model->ArgusThisIpv6Frag) != NULL) {
-                   if ((tfrag->ip6f_offlg & IP6F_OFF_MASK) == 0) {
-                      if ( tfrag->ip6f_offlg & IP6F_MORE_FRAG) {
+               if ((tfrag = model->ArgusThisIpv6Frag) != NULL) {
+                  if ((tfrag->ip6f_offlg & IP6F_OFF_MASK) == 0) {
+                     if ( tfrag->ip6f_offlg & IP6F_MORE_FRAG) {
 /*
          This is also a fragment, so we need to setup the expected fragment
          cache, so we can find the fragments that will be coming in.
@@ -2735,61 +2824,61 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
          them if we have to deallocate the parent.
 */
 
-               struct ArgusSystemFlow *fflow = NULL;
-               struct ArgusFlowStruct *frag = NULL;
-               int tstate = model->state;
+                        struct ArgusSystemFlow *fflow = NULL;
+                        struct ArgusFlowStruct *frag = NULL;
+                        int tstate = model->state;
 
-               if ((fflow = ArgusCreateFRAGFlow (model, iphdr, ETHERTYPE_IPV6)) != NULL) {
-                  ArgusCreateFlowKey(model, fflow, model->hstruct);
-                     
-                  if ((frag = ArgusFindFlow (model, model->hstruct)) == NULL) {
+                        if ((fflow = ArgusCreateFRAGFlow (model, iphdr, ETHERTYPE_IPV6)) != NULL) {
+                           ArgusCreateFlowKey(model, fflow, model->hstruct);
+                              
+                           if ((frag = ArgusFindFlow (model, model->hstruct)) == NULL) {
 
 /* ok so here things are correct, we're going to schedule the expected frag struct
-   onto the parent flow, and proceed */
+            onto the parent flow, and proceed */
 
-                     if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
-                        ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
-                   
-                     memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
-                     frag->canon.net.hdr.type             = ARGUS_NETWORK_DSR;
-                     frag->canon.net.hdr.subtype          = ARGUS_NETWORK_SUBTYPE_FRAG;
-                     frag->canon.net.hdr.argus_dsrvl8.qual = 0;
-                     frag->canon.net.hdr.argus_dsrvl8.len  = (sizeof(struct ArgusFragObject) + 3)/4 + 1;
-                     frag->dsrs[ARGUS_FRAG_INDEX] = (struct ArgusDSRHeader *) &frag->canon.net.hdr;
+                              if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
+                                 ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
+                            
+                              memset (&frag->canon.net, 0, sizeof(struct ArgusFragObject) + 4);
+                              frag->canon.net.hdr.type             = ARGUS_NETWORK_DSR;
+                              frag->canon.net.hdr.subtype          = ARGUS_NETWORK_SUBTYPE_FRAG;
+                              frag->canon.net.hdr.argus_dsrvl8.qual = 0;
+                              frag->canon.net.hdr.argus_dsrvl8.len  = (sizeof(struct ArgusFragObject) + 3)/4 + 1;
+                              frag->dsrs[ARGUS_FRAG_INDEX] = (struct ArgusDSRHeader *) &frag->canon.net.hdr;
 
-                     frag->canon.net.net_union.frag.parent = flow;
+                              frag->canon.net.net_union.frag.parent = flow;
 
-                     ArgusUpdateBasicFlow (model, frag, state);
+                              ArgusUpdateBasicFlow (model, frag, state);
 
-                  } else {
+                           } else {
 
 /* oops, here we've seen parts of the fragment and are just now seeing the 0 offset
-   fragment, so need to move the frag from the general run queue and put it on this
-   parent frag queue */
+            fragment, so need to move the frag from the general run queue and put it on this
+            parent frag queue */
 
-                     if (frag->dsrs[ARGUS_FRAG_INDEX] != NULL)
-                        frag->dsrs[ARGUS_FRAG_INDEX]->argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
+                              if (frag->dsrs[ARGUS_FRAG_INDEX] != NULL)
+                                 frag->dsrs[ARGUS_FRAG_INDEX]->argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
 
-                     if (frag->qhdr.queue != &flow->frag) {
-                        ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
-                        ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                              if (frag->qhdr.queue != &flow->frag) {
+                                 ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
+                                 ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                              }
+                           }
+
+                           if (ArgusUpdateFRAGState (model, frag, state, ETHERTYPE_IPV6))
+                              ArgusDeleteObject (frag);
+                           model->state = tstate;
+
+                           if (model->ArgusThisDir)
+                              attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_SRC_FRAGMENTS;
+                           else
+                              attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_DST_FRAGMENTS;
+                        }
                      }
                   }
-
-                  if (ArgusUpdateFRAGState (model, frag, state, ETHERTYPE_IPV6))
-                     ArgusDeleteObject (frag);
-                  model->state = tstate;
-
-                  if (model->ArgusThisDir)
-                     attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_SRC_FRAGMENTS;
-                  else
-                     attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_DST_FRAGMENTS;
                }
-               }
-               }
-               }
-
             }
+            break;
          }
       }
 
@@ -3069,6 +3158,11 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
                         break;
 
+                     case ARGUS_VXLAN_INDEX:
+                        for (x = 0; x < len; x++)
+                           *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+                        break;
+
                      case ARGUS_FLOW_HASH_INDEX:
                         for (x = 0; x < len; x++)
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
@@ -3101,8 +3195,9 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         for (z = 0; z < (tlen / 4); z++)
                            *dsrptr++ = *sptr++;
 
-                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE)
-                           *dsrptr++ = *sptr++;
+                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE) {
+                           bcopy(&trans->srcid.inf, dsrptr++, sizeof(trans->srcid.inf));
+                        }
 
                         if (trans->hdr.subtype & ARGUS_SEQ)
                            *dsrptr++ = trans->seqnum;
@@ -3166,6 +3261,7 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                               tcp->options  = tobj->options;
                               tcp->flags    = tobj->src.flags;
                               tcp->winshift = tobj->src.winshift;
+                              tcp->maxseg   = tobj->src.maxseg;
                               dsrptr       += len;
                               break;
                            }
@@ -3805,6 +3901,7 @@ ArgusCopyRecordStruct (struct ArgusRecordStruct *rec)
                            case ARGUS_PSIZE_INDEX:     retn->dsrs[i] = &retn->canon.psize.hdr; break;
                            case ARGUS_MAC_INDEX:       retn->dsrs[i] = &retn->canon.mac.hdr; break;
                            case ARGUS_VLAN_INDEX:      retn->dsrs[i] = &retn->canon.vlan.hdr; break;
+                           case ARGUS_VXLAN_INDEX:     retn->dsrs[i] = &retn->canon.vxlan.hdr; break;
                            case ARGUS_MPLS_INDEX:      retn->dsrs[i] = &retn->canon.mpls.hdr; break;
 
                            case ARGUS_SRCUSERDATA_INDEX:
@@ -3915,6 +4012,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
 
                      case ARGUS_MPLS_INDEX:        retn->dsrs[i] = &retn->canon.mpls.hdr; break;
                      case ARGUS_VLAN_INDEX:        retn->dsrs[i] = &retn->canon.vlan.hdr; break;
+                     case ARGUS_VXLAN_INDEX:       retn->dsrs[i] = &retn->canon.vxlan.hdr; break;
 
                      case ARGUS_JITTER_INDEX: {
                         struct ArgusJitterStruct *jitter  = &retn->canon.jitter;
@@ -4230,8 +4328,8 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
       int nxt, done = 0, i = 0;
-      unsigned int *sp  = (unsigned int*) &ip->ip6_src;
-      unsigned int *dp  = (unsigned int*) &ip->ip6_dst;
+      unsigned int saddr[4], *sp = saddr;
+      unsigned int daddr[4], *dp = daddr;
       unsigned short alen, sport = 0, dport = 0;
       unsigned int *rsp, *rdp;
 #ifdef _LITTLE_ENDIAN
@@ -4240,6 +4338,10 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 #endif 
 
       tflow = model->ArgusThisFlow;
+
+      bcopy(&ip->ip6_src, sp, sizeof(ip->ip6_src));
+      bcopy(&ip->ip6_dst, dp, sizeof(ip->ip6_dst));
+
       rsp = (unsigned int *)&tflow->ipv6_flow.ip_src;
       rdp = (unsigned int *)&tflow->ipv6_flow.ip_dst;
 
