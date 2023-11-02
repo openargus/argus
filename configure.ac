@@ -126,15 +126,27 @@ AC_CHECK_FUNCS(strerror strtof)
 AC_CHECK_FUNCS(floorf remainderf)
 AC_CHECK_FUNCS(timegm)
 
-AC_CHECK_FUNCS(xdrmem_create)
-if test "$ac_cv_func_xdrmem_create" = yes ; then
-   AC_DEFINE([HAVE_XDR], [], [Using system XDR library])
-else
-   case "$target_cpu" in
-      cygwin*)
-      ;;
-   esac
-fi
+saved_CPPFLAGS=$CPPFLAGS
+saved_LIBS=$LIBS
+LIB_XDR=""
+
+AC_CHECK_HEADERS([rpc/xdr.h], ,
+   [CPPFLAGS="${saved_CPPFLAGS} -I/usr/include/tirpc"
+    AC_CHECK_HEADERS(rpc/xdr.h,
+      [XDR_INCLS="-I/usr/include/tirpc"
+      LIB_XDR="-ltirpc"])],
+      [#include <rpc/types.h>])
+
+LIBS="$LIB_XDR $LIBS"
+
+AC_CHECK_FUNCS(xdrmem_create,
+   AC_DEFINE([HAVE_XDR], [], [Using system XDR library]),
+   LIB_XDR=""
+   XDR_INCLS=""
+   )
+
+CPPFLAGS=${saved_CPPFLAGS}
+LIBS=${saved_LIBS}
 
 needsnprintf=no
 AC_CHECK_FUNCS(vsnprintf snprintf,, [needsnprintf=yes])
@@ -441,6 +453,8 @@ AC_SUBST(V_THREADS)
 AC_SUBST(WRAPLIBS)
 AC_SUBST(COMPATLIB)
 AC_SUBST(LIB_SASL)
+AC_SUBST(LIB_XDR)
+AC_SUBST(XDR_INCLS)
 AC_SUBST(INSTALL_LIB)
 AC_SUBST(INSTALL_BIN)
 

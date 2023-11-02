@@ -628,6 +628,8 @@ ac_func_list=
 ac_subst_vars='LTLIBOBJS
 INSTALL_BIN
 INSTALL_LIB
+XDR_INCLS
+LIB_XDR
 COMPATLIB
 WRAPLIBS
 V_THREADS
@@ -7707,6 +7709,41 @@ fi
 done
 
 
+saved_CPPFLAGS=$CPPFLAGS
+saved_LIBS=$LIBS
+LIB_XDR=""
+
+for ac_header in rpc/xdr.h
+do :
+  ac_fn_c_check_header_compile "$LINENO" "rpc/xdr.h" "ac_cv_header_rpc_xdr_h" "#include <rpc/types.h>
+"
+if test "x$ac_cv_header_rpc_xdr_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_RPC_XDR_H 1
+_ACEOF
+
+else
+  CPPFLAGS="${saved_CPPFLAGS} -I/usr/include/tirpc"
+    for ac_header in rpc/xdr.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "rpc/xdr.h" "ac_cv_header_rpc_xdr_h" "$ac_includes_default"
+if test "x$ac_cv_header_rpc_xdr_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_RPC_XDR_H 1
+_ACEOF
+ XDR_INCLS="-I/usr/include/tirpc"
+      LIB_XDR="-ltirpc"
+fi
+
+done
+
+fi
+
+done
+
+
+LIBS="$LIB_XDR $LIBS"
+
 for ac_func in xdrmem_create
 do :
   ac_fn_c_check_func "$LINENO" "xdrmem_create" "ac_cv_func_xdrmem_create"
@@ -7715,19 +7752,18 @@ if test "x$ac_cv_func_xdrmem_create" = xyes; then :
 #define HAVE_XDRMEM_CREATE 1
 _ACEOF
 
-fi
-done
-
-if test "$ac_cv_func_xdrmem_create" = yes ; then
-
 $as_echo "#define HAVE_XDR /**/" >>confdefs.h
 
 else
-   case "$target_cpu" in
-      cygwin*)
-      ;;
-   esac
+  LIB_XDR=""
+   XDR_INCLS=""
+
 fi
+done
+
+
+CPPFLAGS=${saved_CPPFLAGS}
+LIBS=${saved_LIBS}
 
 needsnprintf=no
 for ac_func in vsnprintf snprintf
@@ -8959,6 +8995,17 @@ _ACEOF
 fi
 done
 
+   for ac_func in pcap_set_tstamp_type
+do :
+  ac_fn_c_check_func "$LINENO" "pcap_set_tstamp_type" "ac_cv_func_pcap_set_tstamp_type"
+if test "x$ac_cv_func_pcap_set_tstamp_type" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PCAP_SET_TSTAMP_TYPE 1
+_ACEOF
+
+fi
+done
+
    for ac_func in pcap_set_tstamp_precision
 do :
   ac_fn_c_check_func "$LINENO" "pcap_set_tstamp_precision" "ac_cv_func_pcap_set_tstamp_precision"
@@ -9197,6 +9244,8 @@ fi
 
 INSTALL_LIB="../lib"
 INSTALL_BIN="../bin"
+
+
 
 
 
