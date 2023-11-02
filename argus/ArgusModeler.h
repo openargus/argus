@@ -235,7 +235,7 @@ struct ArgusModelerStruct {
    unsigned int ArgusThisInterface;
    unsigned int ArgusThisEncaps;
    unsigned int ArgusThisNetworkFlowType;
-   struct llc *ArgusThisLLC;
+   struct argus_llc *ArgusThisLLC;
    unsigned int ArgusThisAppFlowType;
    int ArgusThisMplsLabelIndex;
    unsigned int ArgusThisMplsLabel;
@@ -418,7 +418,7 @@ unsigned char ArgusAlignBuffer[ARGUS_MAXALIGNBUF], *ArgusAlignBuf = ArgusAlignBu
 
 struct ArgusModelerStruct *ArgusModel = NULL;
 
-struct llc ArgusThisLLCBuffer;
+struct argus_llc ArgusThisLLCBuffer;
 
 unsigned char argusDSRTypes [ARGUSMAXDSRTYPE] = {
    ARGUS_TRANSPORT_DSR, ARGUS_FLOW_DSR, ARGUS_TIME_DSR,
@@ -544,6 +544,8 @@ struct ArgusFlowStruct *ArgusFindFlow (struct ArgusModelerStruct *, struct Argus
 
 void ArgusICMPMappedFlowRecord (struct ArgusFlowStruct *, struct ArgusRecord *, unsigned char);
 
+int ArgusFlowPacketDuplicate (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
+
 struct ArgusFlowStruct *ArgusUpdateState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 struct ArgusFlowStruct *ArgusUpdateFlow (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 void ArgusUpdateAppState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char);
@@ -639,7 +641,7 @@ RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
 #else /* #if defined(ArgusModeler) */
 
 extern struct ArgusModelerStruct *ArgusModel;
-extern struct llc ArgusThisLLCBuffer;
+extern struct argus_llc ArgusThisLLCBuffer;
 
 #if defined(LBL_ALIGN)
 extern unsigned char *ArgusAlignBuf;
@@ -772,6 +774,8 @@ extern struct ArgusFlowStruct *ArgusFindFlow (struct ArgusModelerStruct *, struc
 extern int ArgusCreateFlowKey (struct ArgusModelerStruct *, struct ArgusSystemFlow *, struct ArgusHashStruct *);
 
 extern void ArgusICMPMappedFlowRecord (struct ArgusFlowStruct *, struct ArgusRecord *, unsigned char);
+
+extern int ArgusFlowPacketDuplicate (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 
 extern struct ArgusFlowStruct *ArgusUpdateState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);
 extern struct ArgusFlowStruct *ArgusUpdateFlow (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned char);

@@ -149,13 +149,13 @@ m4_define([AC_LBL_C_INIT],
           ac_cv_lbl_gcc_vers=0
           AC_MSG_CHECKING(gcc version)
           AC_CACHE_VAL(ac_cv_lbl_gcc_vers,
-          ac_cv_lbl_gcc_vers=`$CC --version 2>&1 | \
-             sed -e '/^ version /!d' \
+          ac_cv_lbl_gcc_vers=`$CC -v 2>&1 | \
+             sed -e '/^gcc version /!d' \
             -e 's/^gcc version //' \
             -e 's/ .*//' -e 's/^[[[^0-9]]]*//' \
             -e 's/\..*//'`)
           AC_MSG_RESULT($ac_cv_lbl_gcc_vers)
-          if test $ac_cv_lbl_gcc_vers -gt 0 ; then
+          if test $ac_cv_lbl_gcc_vers -gt 1 ; then
              $1="-O3"
           fi
        fi

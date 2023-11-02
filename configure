@@ -628,6 +628,8 @@ ac_func_list=
 ac_subst_vars='LTLIBOBJS
 INSTALL_BIN
 INSTALL_LIB
+XDR_INCLS
+LIB_XDR
 COMPATLIB
 WRAPLIBS
 V_THREADS
@@ -636,6 +638,7 @@ V_FLEXLM
 V_PERL
 V_INCLS
 V_CCOPT
+V_ARCH
 INCLS
 ARGUSPRO_VERSION
 PACKAGE_RELEASE
@@ -3603,8 +3606,8 @@ $as_echo_n "checking gcc version... " >&6; }
           if ${ac_cv_lbl_gcc_vers+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_cv_lbl_gcc_vers=`$CC --version 2>&1 | \
-             sed -e '/^ version /!d' \
+  ac_cv_lbl_gcc_vers=`$CC -v 2>&1 | \
+             sed -e '/^gcc version /!d' \
             -e 's/^gcc version //' \
             -e 's/ .*//' -e 's/^[^0-9]*//' \
             -e 's/\..*//'`
@@ -3612,7 +3615,7 @@ fi
 
           { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lbl_gcc_vers" >&5
 $as_echo "$ac_cv_lbl_gcc_vers" >&6; }
-          if test $ac_cv_lbl_gcc_vers -gt 0 ; then
+          if test $ac_cv_lbl_gcc_vers -gt 1 ; then
              V_CCOPT="-O3"
           fi
        fi
@@ -7702,6 +7705,41 @@ fi
 done
 
 
+saved_CPPFLAGS=$CPPFLAGS
+saved_LIBS=$LIBS
+LIB_XDR=""
+
+for ac_header in rpc/xdr.h
+do :
+  ac_fn_c_check_header_compile "$LINENO" "rpc/xdr.h" "ac_cv_header_rpc_xdr_h" "#include <rpc/types.h>
+"
+if test "x$ac_cv_header_rpc_xdr_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_RPC_XDR_H 1
+_ACEOF
+
+else
+  CPPFLAGS="${saved_CPPFLAGS} -I/usr/include/tirpc"
+    for ac_header in rpc/xdr.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "rpc/xdr.h" "ac_cv_header_rpc_xdr_h" "$ac_includes_default"
+if test "x$ac_cv_header_rpc_xdr_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_RPC_XDR_H 1
+_ACEOF
+ XDR_INCLS="-I/usr/include/tirpc"
+      LIB_XDR="-ltirpc"
+fi
+
+done
+
+fi
+
+done
+
+
+LIBS="$LIB_XDR $LIBS"
+
 for ac_func in xdrmem_create
 do :
   ac_fn_c_check_func "$LINENO" "xdrmem_create" "ac_cv_func_xdrmem_create"
@@ -7710,19 +7748,18 @@ if test "x$ac_cv_func_xdrmem_create" = xyes; then :
 #define HAVE_XDRMEM_CREATE 1
 _ACEOF
 
-fi
-done
-
-if test "$ac_cv_func_xdrmem_create" = yes ; then
-
 $as_echo "#define HAVE_XDR /**/" >>confdefs.h
 
 else
-   case "$target_cpu" in
-      cygwin*)
-      ;;
-   esac
+  LIB_XDR=""
+   XDR_INCLS=""
+
 fi
+done
+
+
+CPPFLAGS=${saved_CPPFLAGS}
+LIBS=${saved_LIBS}
 
 needsnprintf=no
 for ac_func in vsnprintf snprintf
@@ -8204,8 +8241,20 @@ fi
 done
 
 
+case "$target" in
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        ;;
+   x86*darwin*)
+        ;;
+esac
+
 case "$target_os" in
-   *darwin*)
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        COMPATLIB="-lz"
+        ;;
+   x86*darwin*)
         COMPATLIB="-lz"
         ;;
    *)
@@ -9203,6 +9252,9 @@ fi
 
 INSTALL_LIB="../lib"
 INSTALL_BIN="../bin"
+
+
+
 
 
 
