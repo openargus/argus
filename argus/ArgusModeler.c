@@ -227,7 +227,7 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    model->ArgusOutputList = ArgusOutputTask->ArgusInputList;
 
-   if ((model->ArgusThisLLC = (struct llc  *) ArgusCalloc (1, sizeof (struct llc ) + 32)) == NULL)
+   if ((model->ArgusThisLLC = (struct argus_llc  *) ArgusCalloc (1, sizeof (struct argus_llc ) + 32)) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
 
    model->ArgusSeqNum = 1;
@@ -624,9 +624,9 @@ ArgusProcessIsoclnsHdr (struct ArgusModelerStruct *model, struct ether_header *e
    }
 
 /*
-   model->ArgusThisLength -= sizeof(struct llc);
-   model->ArgusSnapLength -= sizeof(struct llc);
-   model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+   model->ArgusThisLength -= sizeof(struct argus_llc);
+   model->ArgusSnapLength -= sizeof(struct argus_llc);
+   model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
 */
    model->ArgusThisLength -= 3;
    model->ArgusSnapLength -= 3;
@@ -1166,7 +1166,7 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
    retn = ntohs(ep->ether_type);
 
    if (retn <= ETHERMTU) {  /* 802.3 Encapsulation */
-      struct llc *llc = NULL;
+      struct argus_llc *llc = NULL;
       unsigned short ether_type = 0;
 
       ptr = (unsigned char *) ep;
@@ -1176,12 +1176,12 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
       }
 
       ptr = (unsigned char *) model->ArgusThisUpHdr;
-      llc = (struct llc *) ptr;
+      llc = (struct argus_llc *) ptr;
 
       if (BYTESCAPTURED(model,*llc, 3) && ((llc = model->ArgusThisLLC) != NULL)) {
          model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
-         bcopy((char *) ptr, (char *) llc, sizeof (struct llc));
+         bcopy((char *) ptr, (char *) llc, sizeof (struct argus_llc));
 
 #define ARGUS_IPX_TAG         100
 
@@ -1203,9 +1203,9 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
 
                model->ArgusThisNetworkFlowType = ntohs(ether_type);
 
-               model->ArgusThisLength -= sizeof(struct llc);
-               model->ArgusSnapLength -= sizeof(struct llc);
-               model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+               model->ArgusThisLength -= sizeof(struct argus_llc);
+               model->ArgusSnapLength -= sizeof(struct argus_llc);
+               model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
             }
 
          } else {
@@ -1284,19 +1284,19 @@ int
 ArgusProcessLLCHdr (struct ArgusModelerStruct *model, char *p, int length)
 {
    int retn = 0;
-   struct llc *llc = NULL;
+   struct argus_llc *llc = NULL;
    unsigned short ether_type = 0;
    unsigned char *ptr = (unsigned char *) p;
 /*
    ptr = (unsigned char *) model->ArgusThisUpHdr;
 */
-   llc = (struct llc *) ptr;
+   llc = (struct argus_llc *) ptr;
 
    if (BYTESCAPTURED(model,*llc,3)) {
       model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
       llc = model->ArgusThisLLC;
-      bcopy((char *) ptr, (char *) llc, sizeof (struct llc));
+      bcopy((char *) ptr, (char *) llc, sizeof (struct argus_llc));
 
 #define ARGUS_IPX_TAG         100
 
@@ -1318,9 +1318,9 @@ ArgusProcessLLCHdr (struct ArgusModelerStruct *model, char *p, int length)
 
             retn = ntohs(ether_type);
 
-            model->ArgusThisLength -= sizeof(struct llc);
-            model->ArgusSnapLength -= sizeof(struct llc);
-            model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+            model->ArgusThisLength -= sizeof(struct argus_llc);
+            model->ArgusSnapLength -= sizeof(struct argus_llc);
+            model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
          }
 
       } else {

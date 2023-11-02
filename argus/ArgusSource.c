@@ -3936,17 +3936,17 @@ ArgusCreatePktFromFddi(const struct fddi_header *fp, struct ether_header *ep, in
 {
    unsigned char *ptr;
    unsigned int retn = 0;
-   struct llc *llc;
+   struct argus_llc *llc;
  
    if ((fp->fddi_fc & FDDIFC_CLFF) == FDDIFC_LLC_ASYNC) {
       Argusextract_fddi_addrs (fp, ep);
 
-      llc = (struct llc *)(fp + 1);
+      llc = (struct argus_llc *)(fp + 1);
  
       if (llc->ssap == LLCSAP_SNAP && llc->dsap == LLCSAP_SNAP && llc->llcui == LLC_UI) {
          ((struct ether_header *) ep)->ether_type = EXTRACT_16BITS(&llc->ethertype[0]);
          ptr = (unsigned char *)(llc + 1);
-         length -= (sizeof(struct fddi_header) + sizeof(struct llc));
+         length -= (sizeof(struct fddi_header) + sizeof(struct argus_llc));
          bcopy ((char *)ptr, (char *)(ep + 1), length);
          retn = length + sizeof(struct ether_header);
       }
