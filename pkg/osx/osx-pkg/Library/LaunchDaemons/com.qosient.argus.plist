@@ -10,15 +10,20 @@
 	<array>
 		<string>Argus</string>
 	</array>
-	<key>Requires</key>
-	<array>
-		<string>Network</string>
-	</array>
 	<key>Uses</key>
 	<array>
 		<string>SystemLog</string>
 		<string>mDNSResponder</string>
 	</array>
+ 	<key>Listeners</key>
+		<dict>
+		<key>SockServiceName</key>
+			<string>562</string>
+		<key>SockType</key>
+			<string>stream</string>
+		<key>SockFamily</key>
+			<string>IPv4</string>
+		</dict>
 	<key>KeepAlive</key>
 		<true/>
 	<key>Program</key>

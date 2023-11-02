@@ -638,6 +638,7 @@ V_FLEXLM
 V_PERL
 V_INCLS
 V_CCOPT
+V_ARCH
 INCLS
 ARGUSPRO_VERSION
 PACKAGE_RELEASE
@@ -3602,24 +3603,19 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
           ac_cv_lbl_gcc_vers=0
           { $as_echo "$as_me:${as_lineno-$LINENO}: checking gcc version" >&5
 $as_echo_n "checking gcc version... " >&6; }
-          ac_cv_lbl_gcc_vers=`$CC --version 2>&1 | \
-             sed -e '/^ version /!d' \
-            -e 's/^gcc version //' \
-            -e 's/ .*//' -e 's/^[[^0-9]]*//' \
-            -e 's/\..*//'`
-          if test -z "$ac_cv_lbl_gcc_vers" ; then \
-              ac_cv_lbl_gcc_vers=`$CC --version 2>&1 | \
-                awk 'NR==1{gsub(/\..*$/, "", $3); print $3}'`
-          fi
           if ${ac_cv_lbl_gcc_vers+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  $ac_cv_lbl_gcc_vers
+  ac_cv_lbl_gcc_vers=`$CC -v 2>&1 | \
+             sed -e '/^gcc version /!d' \
+            -e 's/^gcc version //' \
+            -e 's/ .*//' -e 's/^[^0-9]*//' \
+            -e 's/\..*//'`
 fi
 
           { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lbl_gcc_vers" >&5
 $as_echo "$ac_cv_lbl_gcc_vers" >&6; }
-          if test $ac_cv_lbl_gcc_vers -gt 0 ; then
+          if test $ac_cv_lbl_gcc_vers -gt 1 ; then
              V_CCOPT="-O3"
           fi
        fi
@@ -8245,8 +8241,20 @@ fi
 done
 
 
+case "$target" in
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        ;;
+   x86*darwin*)
+        ;;
+esac
+
 case "$target_os" in
-   *darwin*)
+   arm*darwin*)
+	V_ARCH="-arch arm64 -arch x86_64"
+        COMPATLIB="-lz"
+        ;;
+   x86*darwin*)
         COMPATLIB="-lz"
         ;;
    *)
@@ -9244,6 +9252,7 @@ fi
 
 INSTALL_LIB="../lib"
 INSTALL_BIN="../bin"
+
 
 
 

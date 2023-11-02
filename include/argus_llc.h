@@ -61,7 +61,7 @@
  * A somewhat abstracted view of the LLC header
  */
 
-struct llc {
+struct argus_llc {
    u_char dsap;
    u_char ssap;
    union {
