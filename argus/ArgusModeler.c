@@ -944,7 +944,7 @@ unsigned short
 ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 {
    int retn = 0;
-   int len = 0, hlen = ip->ip_hl << 2;
+   int hlen = ip->ip_hl << 2;
    char *bp = ((char *)ip + hlen);
    struct udphdr *up = (struct udphdr *) bp;
 
@@ -962,6 +962,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
          }
 
       } else {
+/*
          if (!((sport == 53) || (dport == 53))) {
             char *ptr = (char *) (up + 1);
             struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
@@ -1034,6 +1035,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 */
             }
          }
+*/
       }
    }
 
@@ -1389,6 +1391,8 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
          hdr_len++;
       } else {
          proto = EXTRACT_16BITS(p);
+         p += 2;                     /* ACFC not used */
+         length -= 2;
          hdr_len += 2;
       }
 
