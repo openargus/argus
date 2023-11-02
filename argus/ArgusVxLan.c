@@ -47,7 +47,7 @@ ArgusParseVxLan (struct ArgusModelerStruct *model, void *ptr)
 
    if (STRUCTCAPTURED(model, *vxl)) {
       if (vxl->flgs == 0x08) {
-         unsigned int vni = vxl->vni >> 8;
+         unsigned int vni = ntohl(vxl->vni) >> 8;
          int len = ((unsigned char *) (vxl + 1)) - model->ArgusThisUpHdr;
 
          retn = ARGUS_ETHER_HDR;

@@ -328,8 +328,9 @@ ArgusUpdateFRAGState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          case ETHERTYPE_IPV6: {
             struct ip6_frag *tfrag = model->ArgusThisIpv6Frag;
             struct ip6_hdr  *iphdr = (struct ip6_hdr *)model->ArgusThisIpHdr;
-            if (!(tfrag->ip6f_offlg & IP6F_MORE_FRAG))
-               frag->totlen = (ntohs(tfrag->ip6f_offlg & IP6F_OFF_MASK) + (ntohs(iphdr->ip6_plen) - 8));
+            if (!(tfrag->ip6f_offlg & IP6F_MORE_FRAG)) {
+               frag->totlen = (ntohs(tfrag->ip6f_offlg & IP6F_OFF_MASK) + (ntohs(iphdr->ip6_plen) - 16));
+            }
             break;
          }
       }
@@ -456,20 +457,39 @@ ArgusUpdateParentFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct 
                   struct ArgusIPAttrStruct *attr = (struct ArgusIPAttrStruct *) parent->dsrs[ARGUS_IPATTR_INDEX];
 
                   if ((parent->state & ARGUS_DIRECTION) != (flowstr->state & ARGUS_DIRECTION)) {
-                     metrics->dst.pkts  += flowstr->canon.metric.src.pkts;
-                     metrics->dst.bytes += flowstr->canon.metric.src.bytes;
+                     if (flowstr->canon.metric.src.pkts) {
+                        metrics->dst.pkts     += flowstr->canon.metric.src.pkts;
+                        metrics->dst.bytes    += flowstr->canon.metric.src.bytes;
+                        metrics->dst.appbytes += flowstr->canon.metric.src.bytes;
                      
-                     flowstr->canon.metric.src.pkts = 0;
-                     flowstr->canon.metric.src.bytes = 0;
+                        flowstr->canon.metric.src.pkts = 0;
+                        flowstr->canon.metric.src.bytes = 0;
+                     } else {
+                        metrics->src.pkts     += flowstr->canon.metric.dst.pkts;
+                        metrics->src.bytes    += flowstr->canon.metric.dst.bytes;
+                        metrics->src.appbytes += flowstr->canon.metric.dst.bytes;
+                     
+                        flowstr->canon.metric.dst.pkts = 0;
+                        flowstr->canon.metric.dst.bytes = 0;
+                     }
 
                      if (attr != NULL)
                         attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_DST_FRAGMENTS;
 
                   } else {
-                     metrics->src.pkts  += flowstr->canon.metric.src.pkts;
-                     metrics->src.bytes += flowstr->canon.metric.src.bytes;
-                     flowstr->canon.metric.src.pkts = 0;
-                     flowstr->canon.metric.src.bytes = 0;
+                     if (flowstr->canon.metric.src.pkts) {
+                        metrics->src.pkts     += flowstr->canon.metric.src.pkts;
+                        metrics->src.bytes    += flowstr->canon.metric.src.bytes;
+                        metrics->src.appbytes += flowstr->canon.metric.src.bytes;
+                        flowstr->canon.metric.src.pkts = 0;
+                        flowstr->canon.metric.src.bytes = 0;
+                     } else {
+                        metrics->dst.pkts     += flowstr->canon.metric.dst.pkts;
+                        metrics->dst.bytes    += flowstr->canon.metric.dst.bytes;
+                        metrics->dst.appbytes += flowstr->canon.metric.dst.bytes;
+                        flowstr->canon.metric.dst.pkts = 0;
+                        flowstr->canon.metric.dst.bytes = 0;
+                     }
 
                      if (attr != NULL)
                         attr->hdr.argus_dsrvl8.qual |= ARGUS_IPATTR_SRC_FRAGMENTS;
