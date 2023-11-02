@@ -317,7 +317,7 @@ main (int argc, char *argv[])
 
 #if defined(ARGUS_FLEXLM)
    int borrow = 0;
-   struct timeval borrow_expire = {0, };
+   struct timeval borrow_expire = {0, 0};
    sigset_t prev_blocked_signals;
 #endif
 
@@ -920,7 +920,6 @@ ArgusBacktrace (void)
 void
 ArgusScheduleShutDown (int sig)
 {
-   ArgusShutDownFlag++;
    ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
 #ifdef ARGUSDEBUG
@@ -932,6 +931,7 @@ ArgusScheduleShutDown (int sig)
 #endif
 
    ArgusShutDownSig = sig;
+   ArgusShutDownFlag++;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
 #endif 
 }
@@ -1039,7 +1039,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				60
+#define ARGUS_RCITEMS				62
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1101,6 +1101,8 @@ getArguspidflag ()
 #define ARGUS_INTERFACE_SCAN_INTERVAL		57
 #define ARGUS_LOG_DISPLAY_PRIORITY		58
 #define ARGUS_MAR_INTERFACE_INTERVAL		59
+#define ARGUS_TIMESTAMP_TYPE			60
+#define ARGUS_DEDUP				61
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1164,6 +1166,8 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_INTERFACE_SCAN_INTERVAL=",
    "ARGUS_LOG_DISPLAY_PRIORITY=",
    "ARGUS_MAR_INTERFACE_INTERVAL=",
+   "ARGUS_TIMESTAMP_TYPE=",
+   "ARGUS_DEDUDEDUP=",
 };
 
 
@@ -1406,7 +1410,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
 
                         case ARGUS_GO_PROMISCUOUS:
-                           if ((strncasecmp(optarg, "yes", 3)))
+                           if (!(strncasecmp(optarg, "yes", 3)))
                               setArguspflag  (ArgusSourceTask, 1);
                            else
                               setArguspflag  (ArgusSourceTask, 0);
@@ -1823,6 +1827,14 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
                         case ARGUS_LOG_DISPLAY_PRIORITY:
                            setArgusLogDisplayPriority(atoi(optarg));
+                           break;
+
+                        case ARGUS_TIMESTAMP_TYPE:
+                           setArgusTimestampType(optarg);
+                           break;
+
+                        case ARGUS_DEDUP:
+                           setArgusDeDup(optarg);
                            break;
                      }
 

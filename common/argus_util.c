@@ -204,7 +204,6 @@ ArgusDebug (int d, char *fmt, ...)
       gettimeofday (&now, 0L);
 
 #if defined(ARGUS_THREADS)
-      pthread_mutex_lock(&ArgusMainLock);
       {
          pthread_t ptid;
          char pbuf[128];
@@ -233,8 +232,6 @@ ArgusDebug (int d, char *fmt, ...)
 #endif
       } else
          fprintf (stderr, "%s", buf);
-
-      pthread_mutex_unlock(&ArgusMainLock);
 #else
       (void) snprintf (buf, MAXSTRLEN, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
       ptr = &buf[strlen(buf)];
@@ -821,6 +818,13 @@ ArgusHtoN (struct ArgusRecord *argus)
                      struct ArgusVlanStruct *vlan = (struct ArgusVlanStruct *) dsr;
                      vlan->sid = htons(vlan->sid);
                      vlan->did = htons(vlan->did);
+                     break;
+                  }
+
+                  case ARGUS_VXLAN_DSR: {
+                     struct ArgusVxLanStruct *vlan = (struct ArgusVxLanStruct *) dsr;
+                     vlan->svnid = htonl(vlan->svnid);
+                     vlan->dvnid = htonl(vlan->dvnid);
                      break;
                   }
 
@@ -2587,7 +2591,7 @@ RaParseCIDRAddr (struct ArgusParserStruct *parser, char *addr)
 
       case AF_INET6: {
          unsigned short *val = (unsigned short *)&retn->addr;
-         int ind = 0, len = sizeof(retn->addr)/sizeof(unsigned short);
+         int ind = 0, len = sizeof(retn->addr)/(sizeof(unsigned short));
          int fsecnum = 8, lsecnum = 0, rsecnum = 0, i, masklen;
          char *sstr = NULL, *ipv4addr = NULL;
 

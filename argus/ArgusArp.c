@@ -207,6 +207,8 @@ ArgusCreateArpFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
             retn->hdr.argus_dsrvl8.len  = sizeof(struct ArgusRarpFlow)/4 + 1;
             retn->hdr.argus_dsrvl8.qual = ARGUS_TYPE_RARP;
 
+            bcopy (TPA(ahdr), &arp_tpa, sizeof(arp_tpa));
+
 #ifdef _LITTLE_ENDIAN
             arp_tpa = ntohl(arp_tpa);
 #endif

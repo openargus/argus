@@ -666,9 +666,8 @@ struct ArgusMacStruct {
 
 struct ArgusVxLanStruct {
    struct ArgusDSRHeader hdr;
-   unsigned char flgs;
-   unsigned char res[3];
-   unsigned int vni;
+   unsigned int svnid, dvnid;
+   struct ArgusFlow tflow;
 };
    
 struct ArgusVlanStruct {
@@ -891,7 +890,7 @@ struct ArgusMarInterfaceStruct {
 
    unsigned char inf[4];
    int flags, mtu;
-   struct ArgusAddressStruct addr[];
+   struct ArgusAddressStruct *addr;
 };
 
 struct ArgusMarInfStruct {
@@ -899,7 +898,7 @@ struct ArgusMarInfStruct {
    struct ArgusAddrStruct srcid;
    struct ArgusTime startime, now;
 
-   struct ArgusMarInterfaceStruct inf[];
+   struct ArgusMarInterfaceStruct *inf;
 };
 
 struct ArgusFarStruct {

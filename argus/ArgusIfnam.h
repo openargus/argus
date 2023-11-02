@@ -13,4 +13,6 @@ int
 shortname_ethdev_unique(char *in, char *out, size_t outlen,
                         struct ArgusListStruct *ArgusDeviceList);
 
+#else
+extern int shortname_ethdev_unique(char *, char *, size_t, struct ArgusListStruct *);
 #endif
