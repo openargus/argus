@@ -4858,7 +4858,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                gettimeofday (&stv, 0L);
                stv.tv_sec += stask->ArgusInterfaceScanInterval;
             }
-
          }
          if ((retn = pthread_mutex_lock(&stask->lock))) {
             switch (retn) {
