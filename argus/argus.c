@@ -226,7 +226,7 @@ ArgusCreatePIDFile (struct ArgusSourceStruct *src, char *pidpath, char *appname)
          if ((stat (retn, &statbuf)) == 0) {
             if ((fd = fopen (ArgusPidFileName, "r")) != NULL) {
                if ((pidstr = fgets (pidstrbuf, 128, fd)) != NULL) {
-                  if ((pid = strtol(pidstr, (char **)NULL, 10)) > 0) {
+                  if ((pid = (int) strtol(pidstr, (char **)NULL, 10)) > 0) {
                      if (pid < 100000000) {
                         if ((kill (pid, 0)) == 0) {
 #ifdef ARGUSDEBUG
@@ -423,7 +423,7 @@ main (int argc, char *argv[])
       }
    }
 
-   optind = 1, opterr = 0;
+    optind = 1; opterr = 0;
 
    while ((op = getopt (argc, argv, "AbB:c:CdD:e:E:fF:g:H:i:Jk:lmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
       switch (op) {
@@ -508,16 +508,16 @@ main (int argc, char *argv[])
 
             if ((ptr = strchr (optarg, '-')) != NULL) {
                char *eptr = ptr + 1;
-               ArgusSourceTask->sNflag = strtol(optarg, (char **)&ptr, 10);
+               ArgusSourceTask->sNflag = (int) strtol(optarg, (char **)&ptr, 10);
                if (ptr == optarg)
                   usage ();
-               ArgusSourceTask->eNflag = strtol(eptr, (char **)&ptr, 10);
+               ArgusSourceTask->eNflag = (int) strtol(eptr, (char **)&ptr, 10);
                if (ptr == eptr)
                   usage ();
 
             } else {
                ArgusSourceTask->sNflag = 0;
-               ArgusSourceTask->eNflag = strtol(optarg, (char **)&ptr, 10);
+               ArgusSourceTask->eNflag = (int) strtol(optarg, (char **)&ptr, 10);
                if (ptr == optarg)
                   usage ();
             }
@@ -852,7 +852,7 @@ ArgusComplete ()
    ArgusDeleteSource(ArgusSourceTask);
 
 #if defined(ARGUSPERFMETRICS)
-   len = strlen(ArgusProgramName);
+   len = (int) strlen(ArgusProgramName);
    for (i = 0; i < len; i++)
       buf[i] = ' ';
 
@@ -1219,7 +1219,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
             if (*str && (*str != '#') && (*str != '\n') && (*str != '!')) {
 
                for (i = 0; i < ARGUS_RCITEMS && !done; i++) {
-                  len = strlen(ArgusResourceFileStr[i]);
+                  len = (int) strlen(ArgusResourceFileStr[i]);
                   if (!(strncmp (str, ArgusResourceFileStr[i], len))) {
                      int quoted = 0;
                      optarg = &str[len];
@@ -1247,7 +1247,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_MONITOR_ID: 
                            if (optarg && quoted) {   // Argus ID is a string.  Limit to date is 4 characters.
-                              int slen = strlen(optarg);
+                              int slen = (int) strlen(optarg);
                               if (slen > 4) {
                                  optarg[4] = '\0';
                                  slen = 4;
@@ -1824,7 +1824,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                        ARGUS_INTERFACE_SCAN_INTERVAL_MAX);
                               num = ARGUS_INTERFACE_SCAN_INTERVAL_MAX;
                            }
-                           setArgusInterfaceScanInterval(ArgusSourceTask, num);
+                           setArgusInterfaceScanInterval(ArgusSourceTask, (int) num);
                            break;
                         }
                         case ARGUS_LOG_DISPLAY_PRIORITY:
@@ -2034,7 +2034,7 @@ setArgusEventDataRecord (char *ptr)
    struct ArgusEventRecordStruct *event = NULL;
    char *sptr = NULL, *method = NULL, *file = NULL;
    char *tok = NULL, *pp = NULL, *tptr = NULL;
-   int ind = 0, interval, elem = 0;
+   int ind = 0, interval = 0, elem = 0;
 
    if (ArgusEventsTask == NULL)
       ArgusEventsTask = ArgusNewEvents();
@@ -2060,7 +2060,7 @@ setArgusEventDataRecord (char *ptr)
                file = strdup(tok); elem++;
                break;
             case 2:
-               interval = strtol(tok, (char **)&tptr, 10);
+               interval = (int) strtol(tok, (char **)&tptr, 10);
                if (tptr == tok)
                   ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
                i = *tptr;

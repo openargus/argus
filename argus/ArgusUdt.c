@@ -208,7 +208,7 @@ ArgusUpdateUDToEState (struct ArgusModelerStruct *model, struct ArgusFlowStruct 
                      struct udt_control_nak *nak = (void *) (udtc + 1);
                      int num = 0, len = model->ArgusThisLength/4;
                      unsigned int *sptr = &nak->seqnum;
-                     int i, fitem, sseq, eseq, range;
+                     int i, fitem, sseq = 0, eseq = 0, range = 0;
 #ifdef ARGUSDEBUG
                      char buf[256];
                      *buf = '\0';
@@ -456,7 +456,7 @@ ArgusUpdateUDTState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                      struct udt_control_nak *nak = (void *) (udtc + 1);
                      int num = 0, len = model->ArgusThisLength/4;
                      unsigned int *sptr = &nak->seqnum, value;
-                     int i, fitem, sseq, eseq, range;
+                     int i, fitem, sseq = 0, eseq = 0, range = 0;
 #ifdef ARGUSDEBUG
                      char buf[256];
                      *buf = '\0';
