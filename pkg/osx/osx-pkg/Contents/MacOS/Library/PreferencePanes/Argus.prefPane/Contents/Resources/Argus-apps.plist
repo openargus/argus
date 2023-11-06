@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>argus</key>
+	<string>/usr/local/sbin/argus</string>
+	<key>radium</key>
+	<string>/usr/local/sbin/radium</string>
+	<key>rastream</key>
+	<string>/usr/local/bin/rastream</string>
+	<key>rasqlinsert</key>
+	<string>/usr/local/bin/rasqlinsert</string>
+</dict>
+</plist>

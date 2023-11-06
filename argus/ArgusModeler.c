@@ -227,7 +227,7 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    model->ArgusOutputList = ArgusOutputTask->ArgusInputList;
 
-   if ((model->ArgusThisLLC = (struct llc  *) ArgusCalloc (1, sizeof (struct llc ) + 32)) == NULL)
+   if ((model->ArgusThisLLC = (struct argus_llc  *) ArgusCalloc (1, sizeof (struct argus_llc ) + 32)) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
 
    model->ArgusSeqNum = 1;
@@ -624,9 +624,9 @@ ArgusProcessIsoclnsHdr (struct ArgusModelerStruct *model, struct ether_header *e
    }
 
 /*
-   model->ArgusThisLength -= sizeof(struct llc);
-   model->ArgusSnapLength -= sizeof(struct llc);
-   model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+   model->ArgusThisLength -= sizeof(struct argus_llc);
+   model->ArgusSnapLength -= sizeof(struct argus_llc);
+   model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
 */
    model->ArgusThisLength -= 3;
    model->ArgusSnapLength -= 3;
@@ -944,7 +944,7 @@ unsigned short
 ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 {
    int retn = 0;
-   int len = 0, hlen = ip->ip_hl << 2;
+   int hlen = ip->ip_hl << 2;
    char *bp = ((char *)ip + hlen);
    struct udphdr *up = (struct udphdr *) bp;
 
@@ -962,6 +962,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
          }
 
       } else {
+/*
          if (!((sport == 53) || (dport == 53))) {
             char *ptr = (char *) (up + 1);
             struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
@@ -969,7 +970,6 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
             len += sizeof (*up);
 
             if (STRUCTCAPTURED(model, *ipv6)) {
-/*
                int isipv6 = 0;
                if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
                   retn = ETHERTYPE_IPV6;
@@ -1031,9 +1031,9 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                      }
                   }
                }
-*/
             }
          }
+*/
       }
    }
 
@@ -1166,7 +1166,7 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
    retn = ntohs(ep->ether_type);
 
    if (retn <= ETHERMTU) {  /* 802.3 Encapsulation */
-      struct llc *llc = NULL;
+      struct argus_llc *llc = NULL;
       unsigned short ether_type = 0;
 
       ptr = (unsigned char *) ep;
@@ -1176,12 +1176,12 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
       }
 
       ptr = (unsigned char *) model->ArgusThisUpHdr;
-      llc = (struct llc *) ptr;
+      llc = (struct argus_llc *) ptr;
 
       if (BYTESCAPTURED(model,*llc, 3) && ((llc = model->ArgusThisLLC) != NULL)) {
          model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
-         bcopy((char *) ptr, (char *) llc, sizeof (struct llc));
+         bcopy((char *) ptr, (char *) llc, sizeof (struct argus_llc));
 
 #define ARGUS_IPX_TAG         100
 
@@ -1203,9 +1203,9 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
 
                model->ArgusThisNetworkFlowType = ntohs(ether_type);
 
-               model->ArgusThisLength -= sizeof(struct llc);
-               model->ArgusSnapLength -= sizeof(struct llc);
-               model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+               model->ArgusThisLength -= sizeof(struct argus_llc);
+               model->ArgusSnapLength -= sizeof(struct argus_llc);
+               model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
             }
 
          } else {
@@ -1284,19 +1284,19 @@ int
 ArgusProcessLLCHdr (struct ArgusModelerStruct *model, char *p, int length)
 {
    int retn = 0;
-   struct llc *llc = NULL;
+   struct argus_llc *llc = NULL;
    unsigned short ether_type = 0;
    unsigned char *ptr = (unsigned char *) p;
 /*
    ptr = (unsigned char *) model->ArgusThisUpHdr;
 */
-   llc = (struct llc *) ptr;
+   llc = (struct argus_llc *) ptr;
 
    if (BYTESCAPTURED(model,*llc,3)) {
       model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
       llc = model->ArgusThisLLC;
-      bcopy((char *) ptr, (char *) llc, sizeof (struct llc));
+      bcopy((char *) ptr, (char *) llc, sizeof (struct argus_llc));
 
 #define ARGUS_IPX_TAG         100
 
@@ -1318,9 +1318,9 @@ ArgusProcessLLCHdr (struct ArgusModelerStruct *model, char *p, int length)
 
             retn = ntohs(ether_type);
 
-            model->ArgusThisLength -= sizeof(struct llc);
-            model->ArgusSnapLength -= sizeof(struct llc);
-            model->ArgusThisUpHdr = (ptr + sizeof(struct llc));
+            model->ArgusThisLength -= sizeof(struct argus_llc);
+            model->ArgusSnapLength -= sizeof(struct argus_llc);
+            model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
          }
 
       } else {
@@ -1389,6 +1389,8 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
          hdr_len++;
       } else {
          proto = EXTRACT_16BITS(p);
+         p += 2;                     /* ACFC not used */
+         length -= 2;
          hdr_len += 2;
       }
 

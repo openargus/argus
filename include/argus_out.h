@@ -897,7 +897,6 @@ struct ArgusMarInfStruct {
    unsigned int status;
    struct ArgusAddrStruct srcid;
    struct ArgusTime startime, now;
-
    struct ArgusMarInterfaceStruct *inf;
 };
 

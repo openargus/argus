@@ -12,7 +12,7 @@
 
     <!-- List all component packages -->
     <pkg-ref id="com.qosient.argus"
-             version="0"
+             version="5.0"
              auth="root">output.pkg</pkg-ref>
     <!-- List them again here. They can now be organized
          as a hierarchy if you want. -->
