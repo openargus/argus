@@ -1203,9 +1203,8 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
       struct ArgusDeviceStruct *dev = NULL;
-      int cnt = 0, status = 0;
-      char *tok;
-#endif
+      int status = 0;
+      char *errbuf, *tok, *stok;
 
       if (type == ARGUS_LIVE_DEVICE)
          if (pcap_findalldevs(&alldevs, errbuf) == -1)
@@ -1879,7 +1878,6 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
          }
       } else
       if (strchr(optarg, '.')) {
-         int done = 0;
 
 #if defined(HAVE_INET_ATON)
          struct in_addr pin;
@@ -1887,7 +1885,6 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
          if (inet_aton(optarg, &pin)) {
             bcopy(&pin.s_addr, (char *)buf, 4);
             slen = 4;
-            done++;
          }
 #else 
 #if defined(HAVE_GETADDRINFO)
@@ -1906,7 +1903,6 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
                      bcopy ((char *)&sa->sin_addr, (char *)buf, 4);
                      slen = 4;
                      type = ARGUS_TYPE_IPV4;
-                     done++;
                      break;
                   }
                }
