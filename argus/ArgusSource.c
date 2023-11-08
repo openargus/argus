@@ -54,7 +54,7 @@
 
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
-#include <net/bpf.h>
+#include <pcap/bpf.h>
 #include <net/if_dl.h>
 #else
 # if !defined(CYGWIN)
@@ -704,7 +704,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
             }
 
 #if defined(__APPLE_CC__) || defined(__APPLE__)
+#if !defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
             {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
+#endif
 #endif
             src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
             inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
