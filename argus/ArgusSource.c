@@ -437,16 +437,14 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #if !defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
-#if defined(BIOCIMMEDIATE)
-         {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
+            {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
 #endif
 #endif
-#endif
-         src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
-         inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
-         memset((char *)&inf->ifr, 0, sizeof(inf->ifr));
-         strncpy(inf->ifr.ifr_name, device->name, sizeof(inf->ifr.ifr_name));
-         if (!((pcap_lookupnet (device->name, (u_int *)&inf->ArgusLocalNet,
+            src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
+            inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
+            memset((char *)&inf->ifr, 0, sizeof(inf->ifr));
+            strncpy(inf->ifr.ifr_name, device->name, sizeof(inf->ifr.ifr_name));
+            if (!((pcap_lookupnet (device->name, (u_int *)&inf->ArgusLocalNet,
                                                  (u_int *)&inf->ArgusNetMask, errbuf)) < 0)) {
 #if defined(_LITTLE_ENDIAN)
             inf->ArgusLocalNet = ntohl(inf->ArgusLocalNet);
