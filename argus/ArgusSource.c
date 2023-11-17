@@ -155,6 +155,9 @@ get_interface(const u_char *inf, struct anamemem *table)
             ap = ap->n_nxt;
       }
    }
+#ifdef ARGUSDEBUG
+   ArgusDebug (2, "get_interface(%s)\n", inf);
+#endif
 
    return (retn);
 }
@@ -191,6 +194,9 @@ delete_interface(const u_char *inf)
          bzero(fap, sizeof(*fap));
       }
    }
+#ifdef ARGUSDEBUG
+   ArgusDebug (2, "delete_interface(%s)\n", inf);
+#endif
 }
 
 struct anamemem *
@@ -216,6 +222,9 @@ lookup_interface(struct anamemem *table, const u_char *inf)
       ap->hashval = hash;
       ap->n_nxt = (struct anamemem *)calloc(1, sizeof(*ap));
    }
+#ifdef ARGUSDEBUG
+   ArgusDebug (2, "lookup_interface(%s) return %p\n", inf, ap);
+#endif
 
    return (ap);
 }
@@ -4611,9 +4620,10 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
       do {
          int pretn = 0, retn = 0, i;
 
-    /* non-zero when the stask->srcs[] array needs to be
+    /* 
+     * non-zero when the stask->srcs[] array needs to be
      * compacted due to source removal
-          */
+     */
          int source_closed;
 
          if (stask->ArgusDeviceStr != NULL && !stask->ArgusReadingOffLine) {
@@ -4638,7 +4648,11 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                      ArgusFree(errbuf);
                   }
 
-                  if ((pretn != 0) && (ArgusSourceCount > 0)) {
+//
+// First check that the interfaces we have open are there.
+// If not, mark for shutdown.
+//
+                  if ((pretn == 0) && (ArgusSourceCount > 0)) {
                      for (i = 0; i < ArgusSourceCount; i++) {
                         struct ArgusSourceStruct *src;
                         int found = 0;
@@ -4646,25 +4660,28 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                         if ((src = stask->srcs[i]) != NULL) {
                            pthread_mutex_lock(&src->ArgusDeviceList->lock);
                            struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
+
                            for (ifa = ifap; ifa; ifa = ifa->next) {
                               if (!strcmp(device->name, ifa->name))
                                  found = 1;
                            }
-                           ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
-                           pthread_mutex_unlock(&src->ArgusDeviceList->lock);
-
                            if (!found) {
                               src->status |= ARGUS_SHUTDOWN;
                            }
+                           ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
+                           pthread_mutex_unlock(&src->ArgusDeviceList->lock);
                         }
                      }
                   }
-
-                  if (pretn != 0) {
+//
+// Next check to see if there are any interfaces we don't have ...
+//
+                  if (pretn == 0) {
                      for (ifa = ifap; ifa; ifa = ifa->next) {
                         if (!(ifa->flags & PCAP_IF_LOOPBACK)) {
                            if (get_interface((const u_char *)ifa->name, interfacetable) == NULL) {
                               int found = 0;
+
                               if (stask->ArgusDeviceList->count) {
 #if defined(ARGUS_THREADS)
                                  if (pthread_mutex_lock(&stask->ArgusDeviceList->lock) == 0) {
@@ -4730,9 +4747,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                               }
 
                               if (!found) {
-//                         int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
-//                         struct ArgusDeviceStruct *dev = NULL;
-//                         char *srcid = NULL, *dlt = NULL, *sptr;
+                                 int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
+                                 struct ArgusDeviceStruct *dev = NULL;
+                                 char *srcid = NULL, *dlt = NULL, *sptr;
                                  struct ArgusSourceStruct *src = NULL;
 
                                  ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", ifa->name);
@@ -4758,7 +4775,7 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                  }
 
                                  stask->srcs[ArgusSourceCount++] = src;
-/*
+
                                  if ((sptr = strchr (stask->ArgusDeviceStr, '/')) != NULL)
                                     srcid = sptr;
 
@@ -4839,7 +4856,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     stask->srcs[ArgusSourceCount++] = src;
                                     ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
                                  }
-*/
                               }
 
                               lookup_interface(interfacetable, (const u_char *)ifa->name);
@@ -4906,12 +4922,19 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
                      }
                   }
+
+                  pthread_mutex_lock(&src->ArgusDeviceList->lock);
+                  struct ArgusDeviceStruct *device = (struct ArgusDeviceStruct *)ArgusPopFrontList(src->ArgusDeviceList, ARGUS_NOLOCK);
+                  delete_interface((const u_char *) device->name);
+                  ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_NOLOCK);
+                  pthread_mutex_unlock(&src->ArgusDeviceList->lock);
+
                   ArgusCloseOneSource(src);
                   stask->srcs[i] = NULL;
                   if (thread != 0) {
                      ArgusThreadCount--;
 #ifdef ARGUSDEBUG
-                     ArgusDebug (2, "ArgusSourceProcess: ArgusGetPackets[%d] done\n", i);
+                     ArgusDebug (2, "ArgusSourceProcess: ArgusGetPackets[%d] done ... thread count %d\n", i, ArgusThreadCount);
 #endif
                   }
                   source_closed++;
