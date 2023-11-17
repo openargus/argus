@@ -2294,9 +2294,10 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
       else
          retn = 1;
 
-      free (sptr);
       if (retn > 0)
          ArgusLog (LOG_ERR, "Srcid format error: %s\n", sptr);
+
+      free (sptr);
    }
 }
 
