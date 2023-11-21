@@ -1,8 +1,7 @@
 .. image:: logo/argus_logo_medium-6aac34a9.png
    :alt: Argus
 
-Argus is the first netflow technology, started in 1984 at Georgia Tech, and adapted for cyber security operations in 1991 at Carengie Mellon University's Software Engineering Institute.  While it has a long history, we still think of argus as innovative and leading edge.  Comprehensive network transaction auditing is an extremely powerful network management tool, and a large number of sites do benefit from the prototype work that has been done through the Argus Project.
-
+Argus is the first netflow technology, started in 1984 at Georgia Tech, and adapted for cyber security operations in 1990 at the Computer Emergency Response Team (CERT) at Carnegie Mellon University's Software Engineering Institute.  While argus has a long history, we still think of argus as innovative and leading edge technology.  Comprehensive network transaction auditing is an extremely powerful network tool, supporting network operational awareness, performance analytics, cyber security and most recently AI/ML cyber autonomy. 
 
 This package contains the argus network audit sensor, that takes in raw packet data, from either a file or from the network, and generates
 network flow activity status records.  The status records can be available for near real-time analytic processing, as you would want for operational fault analysis or intrusion detection, or can be stored and used to generate a network activity audit information system.  Argus is a comprehensive network flow system, in that it classifies and accounts for any and all network activity, not just IP traffic, or just DNS or HTTP traffic.
