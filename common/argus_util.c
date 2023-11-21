@@ -1817,7 +1817,7 @@ ArgusFreeServarray(struct ArgusParserStruct *parser)
             case 1: table = parser->uporttable; break;
          }
 
-         if ((struct hnamemem *)&table[i].name != NULL) {
+         if (table[i].name != NULL) {
             struct hnamemem *tp, *sp;
             free(table[i].name);
             if ((tp = (struct hnamemem *)table[i].nxt) != NULL) {
