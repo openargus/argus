@@ -1,5 +1,4 @@
 .. image:: logo/argus_logo_medium-6aac34a9.png
-   :width: 432
    :alt: Argus
 
 **What is the problem space we are addressing?** 
