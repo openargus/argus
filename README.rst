@@ -1,14 +1,6 @@
 .. image:: logo/argus_logo_medium-6aac34a9.png
    :alt: Argus
 
-**What is the problem space we are addressing?** 
-
-**What is the solution?**  
-
-**What are the technologies used in the reference architecture?** 
-
-- Libpcap
-
 
 This directory contains source code for Argus, an IP network transaction auditing tool, that generates a network activity audit
 of all network transactions, their state, and their performance.  The data that Argus generates can be used for a wide range of tasks
@@ -28,6 +20,14 @@ We encourage you to  use the './bin/argusbug' script when posting bug reports ab
 
 Email that reports that 'Argus does not work.  Why?' will be completely ignored.
 
+
+**What is the problem space we are addressing?** 
+ 
+**What is the solution?**  
+ 
+**What are the technologies used in the reference architecture?** 
+ 
+- Libpcap
 
 **History** Argus is the first netflow technology, started in 1984 at Georgia Tech, and adapted for cyber security operations in 1991 at Carengie Mellon University's Software Engineering Institute.  While it has a long history, we still think of argus as innovative and leading edge.  Comprehensive network transaction auditing is an extremely powerful network management tool, and a large number of sites do benefit from the prototype work that has been done through the Argus Project.
 
