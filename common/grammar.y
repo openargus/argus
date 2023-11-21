@@ -129,10 +129,9 @@ static struct qual qerr = { Q_UNDEF, Q_UNDEF, Q_UNDEF};
 %token  DUR AVGDUR DELTADUR DELTASTART DELTALAST
 %token  DELTASPKTS DELTADPKTS
 %token  SEQ NSTROKE
-%token  NUM FLOAT INBOUND OUTBOUND
+%token  INBOUND OUTBOUND
 %token  LINK AUTH RECURS REQ RSP
 %token	GEQ LEQ NEQ
-%token	ID EID HIDV4 HIDV6 STRING
 %token	LSH RSH
 %token  LEN
 
@@ -141,13 +140,13 @@ static struct qual qerr = { Q_UNDEF, Q_UNDEF, Q_UNDEF};
 %token  UNREACH REDIRECT ECN TIMEXED ESTABLISHED CONNECTED CORRELATED
 %token  RTR MBR LVG COCODE ASN
 
-%type	<s>  ID
-%type	<e>  EID
-%type	<s>  HIDV4
-%type	<s>  HIDV6
-%type	<s>  STRING
-%type	<i>  NUM
-%type	<f>  FLOAT
+%token	<s>  ID
+%token	<e>  EID
+%token	<s>  HIDV4
+%token	<s>  HIDV6
+%token	<s>  STRING
+%token	<i>  NUM
+%token	<f>  FLOAT
 
 %left OR AND
 %nonassoc  '!'
