@@ -159,7 +159,7 @@ get_interface(const u_char *inf, struct anamemem *table)
       }
    }
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "get_interface(%s)\n", inf);
+   ArgusDebug (6, "get_interface(%s)\n", inf);
 #endif
 
    return (retn);
@@ -226,7 +226,7 @@ lookup_interface(struct anamemem *table, const u_char *inf)
       ap->n_nxt = (struct anamemem *)calloc(1, sizeof(*ap));
    }
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "lookup_interface(%s) return %p\n", inf, ap);
+   ArgusDebug (2, "lookup_interface(%s) return %p, %s\n", inf, ap, ap->name);
 #endif
 
    return (ap);
