@@ -156,7 +156,7 @@ get_interface(const u_char *inf, struct anamemem *table)
       }
    }
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "get_interface(%s)\n", inf);
+   ArgusDebug (6, "get_interface(%s)\n", inf);
 #endif
 
    return (retn);
@@ -223,7 +223,7 @@ lookup_interface(struct anamemem *table, const u_char *inf)
       ap->n_nxt = (struct anamemem *)calloc(1, sizeof(*ap));
    }
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "lookup_interface(%s) return %p\n", inf, ap);
+   ArgusDebug (2, "lookup_interface(%s) return %p, %s\n", inf, ap, ap->name);
 #endif
 
    return (ap);
@@ -729,7 +729,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 #endif
             }
 
-            if ((type = pcap_datalink(inf->ArgusPd)) > 0) 
+            if ((type = pcap_datalink(inf->ArgusPd)) >= 0) 
                inf->ArgusCallBack = Arguslookup_pcap_callback(type);
 
             if (inf->ArgusCallBack == NULL) {
