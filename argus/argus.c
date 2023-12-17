@@ -794,6 +794,7 @@ ArgusComplete ()
 #if defined(ARGUSPERFMETRICS)
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       if (ArgusSourceTask->ArgusInterface[i].ArgusDevice != NULL) {
+/*
          ArgusTotalPkts      += ArgusSourceTask->ArgusInterface[i].ArgusTotalPkts;
       }
    }

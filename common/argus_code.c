@@ -180,8 +180,7 @@ extern void ArgusLog (int, char *, ...);
 extern float RaDeltaFloatTime (struct timeval *, struct timeval *);
 
 static void *
-newchunk(n)
-u_int n;
+newchunk(u_int n)
 {
    struct chunk *cp;
    int k, size;
@@ -226,8 +225,7 @@ freechunks()
  */
 
 char *
-Argussdup(s)
-char *s;
+Argussdup(char *s)
 {
    int n = strlen(s) + 1;
    char *cp = newchunk(n);
@@ -239,8 +237,7 @@ char *s;
 }
 
 static struct ablock *
-new_block(code)
-int code;
+new_block(int code)
 {
    struct ablock *p;
 
@@ -255,8 +252,7 @@ int code;
 }
 
 static struct slist *
-new_stmt(code)
-int code;
+new_stmt(int code)
 {
    struct slist *p;
 
@@ -564,8 +560,7 @@ ArgusFilterCompile(struct nff_program *program, char *buf, int optimize)
  */
 
 static void
-backpatch(list, target)
-struct ablock *list, *target;
+backpatch(struct ablock *list, struct ablock *target)
 {
    struct ablock *next;
 
@@ -623,8 +618,7 @@ Argusfinish_parse(struct ablock *p)
 }
 
 void
-Argusgen_and(b0, b1)
-struct ablock *b0, *b1;
+Argusgen_and(struct ablock *b0, struct ablock *b1)
 {
    if (b0 != b1) {
       backpatch(b0, b1->head);
@@ -641,8 +635,7 @@ struct ablock *b0, *b1;
 }
 
 void
-Argusgen_or(b0, b1)
-struct ablock *b0, *b1;
+Argusgen_or( struct ablock *b0, struct ablock *b1)
 {
    if (b0 != b1) {
       b0->sense = !b0->sense;
@@ -658,8 +651,7 @@ struct ablock *b0, *b1;
 }
 
 void
-Argusgen_not(b)
-struct ablock *b;
+Argusgen_not(struct ablock *b)
 {
    b->sense = !b->sense;
 
@@ -1503,8 +1495,7 @@ Argusgen_gateway( u_char *eaddr, u_int *alist, int type, int proto, int dir)
 #include <netinet/igmp.h>
 
 struct ablock *
-Argusgen_proto_abbrev(proto)
-int proto;
+Argusgen_proto_abbrev(int proto)
 {
    struct ablock *b0, *b1 = NULL;
 
@@ -3862,8 +3853,7 @@ Argusgen_nstroke(int v, int dir, u_int op)
 
 
 static u_int
-net_mask(addr)
-u_int *addr;
+net_mask(u_int *addr)
 {
    register u_int m = 0xffffffff;
 
@@ -5007,8 +4997,7 @@ Argusgen_ecode( u_char *eaddr, struct qual q)
 }
 
 void
-Argussappend(s0, s1)
-struct slist *s0, *s1;
+Argussappend(struct slist *s0, struct slist *s1)
 {
    /*
     * This is definitely not the best way to do this, but the
@@ -5024,8 +5013,7 @@ struct slist *s0, *s1;
 }
 
 static struct slist *
-xfer_to_x(a)
-struct arth *a;
+xfer_to_x(struct arth *a)
 {
    struct slist *s;
 
@@ -5040,8 +5028,7 @@ struct arth *a;
 }
 
 static struct slist *
-xfer_to_a(a)
-struct arth *a;
+xfer_to_a(struct arth *a)
 {
    struct slist *s;
 
@@ -5056,10 +5043,7 @@ struct arth *a;
 }
 
 struct arth *
-ArgusLoad(proto, index, size)
-int proto;
-struct arth *index;
-int size;
+ArgusLoad( int proto, struct arth *index, int size)
 {
    struct slist *s, *tmp;
    struct ablock *b;
@@ -5152,10 +5136,7 @@ int size;
 }
 
 struct ablock *
-Argusgen_relation(code, a0, a1, reversed)
-int code;
-struct arth *a0, *a1;
-int reversed;
+Argusgen_relation( int code, struct arth *a0, struct arth *a1, int reversed)
 {
    struct slist *s0, *s1, *s2;
    struct ablock *b, *tmp;
@@ -5218,8 +5199,7 @@ ArgusLoadLen()
 }
 
 struct arth *
-ArgusLoadI(val)
-int val;
+ArgusLoadI(int val)
 {
    struct arth *a;
    struct slist *s;
@@ -5244,8 +5224,7 @@ int val;
 }
 
 struct arth *
-ArgusNeg(a)
-struct arth *a;
+ArgusNeg(struct arth *a)
 {
    struct slist *s;
 
@@ -5334,8 +5313,7 @@ alloc_reg()
  */
 
 static void
-free_reg(n)
-int n;
+free_reg(int n)
 {
    regused[n] = 0;
 
@@ -5345,8 +5323,7 @@ int n;
 }
 
 static struct ablock *
-Argusgen_len(jmp, n)
-int jmp, n;
+Argusgen_len(int jmp, int n)
 {
    struct slist *s;
    struct ablock *b;
@@ -5365,8 +5342,7 @@ int jmp, n;
 }
 
 struct ablock *
-Argusgen_greater(n)
-int n;
+Argusgen_greater(int n)
 {
    struct ablock *b;
 
@@ -5380,8 +5356,7 @@ int n;
 }
 
 struct ablock *
-Argusgen_less(n)
-int n;
+Argusgen_less(int n)
 {
    struct ablock *b;
 
@@ -5396,8 +5371,7 @@ int n;
 }
 
 struct ablock *
-Argusgen_byteop(op, idx, val)
-int op, idx, val;
+Argusgen_byteop(int op, int idx, int val)
 {
    struct ablock *b;
    struct slist *s;
@@ -5441,8 +5415,7 @@ int op, idx, val;
 }
 
 struct ablock *
-Argusgen_broadcast(proto)
-int proto;
+Argusgen_broadcast(int proto)
 {
    struct ablock *b0 = NULL, *b1 = NULL;
    static u_char ebroadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
@@ -5493,8 +5466,7 @@ int proto;
 }
 
 struct ablock *
-Argusgen_multicast(proto)
-int proto;
+Argusgen_multicast(int proto)
 {
    register struct ablock *b0 = NULL, *b1 = NULL;
    register struct slist *s;
@@ -5549,8 +5521,7 @@ int proto;
  */
 
 struct ablock *
-Argusgen_inbound(dir)
-int dir;
+Argusgen_inbound(int dir)
 {
    register struct ablock *b0;
 

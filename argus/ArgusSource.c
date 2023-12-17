@@ -724,7 +724,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #if !defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
+#if defined(BIOCIMMEDIATE)
             {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
+#endif
 #endif
 #endif
             src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
