@@ -779,8 +779,10 @@ ArgusComplete ()
 #define ARGUSPERFMETRICS		1
 
 #if defined(ARGUSPERFMETRICS)
+/*
    long long ArgusTotalPkts = 0, ArgusTotalIPPkts = 0;
    long long ArgusTotalNonIPPkts = 0;
+*/
    struct timeval timediff;
    double totaltime;
    int i, len;
@@ -801,9 +803,11 @@ ArgusComplete ()
 #if defined(ARGUSPERFMETRICS)
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       if (ArgusSourceTask->ArgusInterface[i].ArgusDevice != NULL) {
+/*
          ArgusTotalPkts      += ArgusSourceTask->ArgusInterface[i].ArgusTotalPkts;
          ArgusTotalIPPkts    += ArgusSourceTask->ArgusInterface[i].ArgusTotalIPPkts;
          ArgusTotalNonIPPkts += ArgusSourceTask->ArgusInterface[i].ArgusTotalNonIPPkts;
+*/
       }
    }
    if (ArgusSourceTask->ArgusEndTime.tv_sec == 0)

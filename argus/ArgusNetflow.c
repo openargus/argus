@@ -915,7 +915,7 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
 
                case CISCO_VERSION_9: {
                   CiscoFlowEntryV9_t *ArgusNetFlow = (CiscoFlowEntryV9_t *) ptr;
-                  int done = 0, flowset_id, flowset_len;
+                  int flowset_id, flowset_len;
 
                   flowset_id  = ntohs(ArgusNetFlow->flowset_id);
                   if ((flowset_len = ntohs(ArgusNetFlow->length)) > 0) {
@@ -942,8 +942,7 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      ptr += flowset_len;
                      break;
 
-                  } else
-                     done++;
+                  }
                }
             }
             break;

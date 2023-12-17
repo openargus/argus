@@ -109,7 +109,7 @@ ifneq ($(FLEXLM),)
    OBJ += $(FLEXLM)/$(FLEXLM_ARCH)/lm_new.o
 endif
 
-LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.a -lm $(FLEXLM_LIBS)
+LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.a $(FLEXLM_LIBS)
 
 HDR =	pcap.h pcap-int.h pcap-namedb.h pcap-nit.h pcap-pf.h \
 	ethertype.h gencode.h gnuc.h

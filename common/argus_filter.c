@@ -745,8 +745,7 @@ static inline int skip_space(FILE *);
 static inline int skip_line(FILE *);
 
 static inline int
-skip_space(f)
-FILE *f;
+skip_space(FILE *f)
 {
    int c;
 
@@ -758,8 +757,7 @@ FILE *f;
 }
 
 static inline int
-skip_line(f)
-   FILE *f;
+skip_line(FILE *f)
 {
    int c;
 
@@ -899,8 +897,7 @@ argus_next_etherent(FILE *fp)
  * lowest unit number is preferred; loopback is ignored.
  */
 char *
-ArgusLookupDev(ebuf)
-char *ebuf;
+ArgusLookupDev(char *ebuf)
 {
    int fd, minunit, n;
    char *cp;
@@ -1494,8 +1491,7 @@ compute_local_ud(struct ablock *b)
  * Assume graph is already leveled.
  */
 static void
-find_ud(root)
-   struct ablock *root;
+find_ud(struct ablock *root)
 {
    int i, maxlevel;
    struct ablock *p;
