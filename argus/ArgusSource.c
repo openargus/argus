@@ -238,8 +238,15 @@ ArgusGetPcapPkthdrTime(const struct ArgusSourceStruct * const src,
                        const struct pcap_pkthdr * const hdr,
                        struct timeval *tvp)
 {
+#if defined(CYGWIN)
+   struct timeval32 *tvp32 = (struct timeval32 *)&hdr->ts;
+   tvp->tv_sec = tvp32->tv_sec;
+   tvp->tv_usec = tvp32->tv_usec;
+
+#else
    tvp->tv_sec  = hdr->ts.tv_sec;
    tvp->tv_usec = hdr->ts.tv_usec;
+#endif
 #if defined(ARGUS_NANOSECONDS)
    /* If we have nanosecond support compiled in, times are stored
     * with nanosecond precision.  However, if libpcap doesn't support
@@ -2179,6 +2186,16 @@ ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    unsigned int length;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
+
+#if defined(CYGWIN)
+   struct pcap_pkthdr_32 *h32 = (struct pcap_pkthdr_32 *)h;
+   caplen = h32->caplen;
+   length = h32->len;
+#else
+   caplen = h->caplen;
+   length = h->len;
+#endif
+
 
    if (p != NULL) {
       unsigned int ind = src->ArgusThisIndex;
