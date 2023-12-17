@@ -284,6 +284,7 @@ ArgusCreatePIDFile (struct ArgusSourceStruct *src, char *pidpath, char *appname)
 }
 
 
+
 int
 main (int argc, char *argv[])
 {
@@ -323,6 +324,9 @@ main (int argc, char *argv[])
    uflag = 0;
    pflag = 6;
 
+
+#ifdef CYGWIN
+#endif
    
    if (strchr (argv[0], '/')) {
 #if defined(HAVE_STRLCPY)
