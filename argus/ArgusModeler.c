@@ -979,8 +979,8 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                struct teredo *tptr = (struct teredo *) (up + 1);
 
       } else {
-/*
          if (!((sport == 53) || (dport == 53))) {
+/*
             char *ptr = (char *) (up + 1);
             struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
 
@@ -1053,7 +1053,6 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
             }
 */
          }
-*/
       }
    }
 
@@ -2514,8 +2513,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          mpls->hdr.argus_dsrvl8.qual   = 0;
          mpls->hdr.argus_dsrvl8.len    = 1;
          flow->dsrindex |= 1 << ARGUS_MPLS_INDEX;
-      } else 
-         test++;
+      }
 
       if (model->ArgusThisDir) {
          value = mpls->hdr.argus_dsrvl8.qual & 0x0F;
@@ -2605,10 +2603,10 @@ ArgusFlowPacketDuplicate (struct ArgusModelerStruct *model, struct ArgusFlowStru
    int retn = 0;
 
    if (model->ArgusThisIpHdr) {
+/*
       struct ArgusIPAttrStruct *attr;
 
       if ((attr = (struct ArgusIPAttrStruct *) flow->dsrs[ARGUS_IPATTR_INDEX]) != NULL) {
-         int match = 0;
          switch (model->ArgusThisNetworkFlowType & 0xFFFF) {
             case ETHERTYPE_IP: {
                struct ip *iphdr = (struct ip *) model->ArgusThisIpHdr;
@@ -2649,6 +2647,7 @@ ArgusFlowPacketDuplicate (struct ArgusModelerStruct *model, struct ArgusFlowStru
             }
          }
       }
+*/
    }
 
 #ifdef ARGUSDEBUG
