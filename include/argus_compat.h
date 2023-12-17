@@ -49,6 +49,10 @@ extern "C" {
 
 #define argtimeval timeval
 
+struct timeval32 {
+   uint32_t tv_sec, tv_usec;
+};
+
 #include <string.h>
 
 #if defined(HAVE_SOLARIS)

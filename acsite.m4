@@ -798,6 +798,10 @@ AC_DEFUN([AC_QOSIENT_LIBPCAP], [
                if test -r $dir/Lib/libwpcap.a; then
                   libpcap="$dir/Lib/libwpcap.a"
                   $1="$libpcap"
+               elif test -r ../npcap/Lib/x64/wpcap.lib; then
+                  dir="../npcap"
+                  libpcap="../npcap/Lib/x64/wpcap.lib"
+                  $1="$libpcap"
                else
                   AC_MSG_RESULT(no)
                   AC_MSG_ERROR(see the INSTALL doc for more info)

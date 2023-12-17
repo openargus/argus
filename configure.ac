@@ -24,14 +24,14 @@
 #
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.61)
-AC_INIT([Argus Pro (Gargoyle) Server Programs], [5.0], [bug-report@qosient.com], [argus], [http://qosient.com/argus])
+AC_PREREQ([2.71])
+AC_INIT([Argus Pro (Gargoyle) Server Programs],[5.0],[bug-report@qosient.com],[argus],[http://qosient.com/argus])
 PACKAGE_RELEASE='3.6'
 ARGUSPRO_VERSION='1.4'
 AC_DEFINE([ARGUSPRO_VERSION_STRING], ["1.3"], [Product version number string])
 AC_CONFIG_SRCDIR([argus/argus.c])
 AC_CONFIG_AUX_DIR([config])
-AC_CONFIG_HEADER([include/argus_config.h])
+AC_CONFIG_HEADERS([include/argus_config.h])
 AC_CANONICAL_TARGET
 
 AC_PREFIX_DEFAULT( /usr/local )
@@ -60,10 +60,18 @@ AC_QOSIENT_PCRE(V_PCRE, V_INCLS)
 
 # Checks for header files.
 AC_HEADER_DIRENT
-AC_HEADER_STDC
+m4_warn([obsolete],
+[The preprocessor macro `STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  ISO C90 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_HEADER_SYS_WAIT
 
-AC_HAVE_HEADERS(sys/sockio.h string.h fcntl.h sys/file.h syslog.h zlib.h)
+AC_CHECK_HEADERS([sys/sockio.h string.h fcntl.h sys/file.h syslog.h zlib.h])
 
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h libintl.h malloc.h memory.h netdb.h])
 AC_CHECK_HEADERS([net/if.h netinet/in.h netinet/if_ether.h netinet/ether.h netinet/in_systm.h])
@@ -94,7 +102,20 @@ AC_TYPE_UID_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 
-AC_HEADER_TIME
+m4_warn([obsolete],
+[Update your code to rely only on HAVE_SYS_TIME_H,
+then remove this warning and the obsolete code below it.
+All current systems provide time.h; it need not be checked for.
+Not all systems provide sys/time.h, but those that do, all allow
+you to include it and time.h simultaneously.])dnl
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 AC_STRUCT_TM
 AC_STRUCT_TIMEZONE
 
@@ -110,7 +131,19 @@ AC_FUNC_MEMCMP
 AC_FUNC_MKTIME
 AC_FUNC_REALLOC
 AC_FUNC_SELECT_ARGTYPES
-AC_TYPE_SIGNAL
+m4_warn([obsolete],
+[your code may safely assume C89 semantics that RETSIGTYPE is void.
+Remove this warning and the `AC_CACHE_CHECK' when you adjust the code.])dnl
+AC_CACHE_CHECK([return type of signal handlers],[ac_cv_type_signal],[AC_COMPILE_IFELSE(
+[AC_LANG_PROGRAM([#include <sys/types.h>
+#include <signal.h>
+],
+		 [return *(signal (0, 0)) (0) == 1;])],
+		   [ac_cv_type_signal=int],
+		   [ac_cv_type_signal=void])])
+AC_DEFINE_UNQUOTED([RETSIGTYPE],[$ac_cv_type_signal],[Define as the return type of signal handlers
+		    (`int' or `void').])
+
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
@@ -375,11 +408,7 @@ hpux*)
 sinix*)
 	AC_MSG_CHECKING(if SINIX compiler defines sinix)
 	AC_CACHE_VAL(ac_cv_cc_sinix_defined,
-		AC_TRY_COMPILE(
-		    [],
-		    [int i = sinix;],
-		    ac_cv_cc_sinix_defined=yes,
-		    ac_cv_cc_sinix_defined=no))
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[int i = sinix;]])],[ac_cv_cc_sinix_defined=yes],[ac_cv_cc_sinix_defined=no]))
 	    AC_MSG_RESULT($ac_cv_cc_sinix_defined)
 	    if test "$ac_cv_cc_sinix_defined" = "no" ; then
                AC_DEFINE([sinix], [], [Description])
@@ -430,15 +459,13 @@ if test "$with_pluribus" = yes ; then
 fi
 
 AC_CACHE_CHECK([tm_gmtoff in struct tm], tcl_cv_member_tm_gmtoff, [
-   AC_TRY_COMPILE([#include <time.h>], [struct tm tm; tm.tm_gmtoff;],
-            tcl_cv_member_tm_gmtoff=yes, tcl_cv_member_tm_gmtoff=no)])
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <time.h>]], [[struct tm tm; tm.tm_gmtoff;]])],[tcl_cv_member_tm_gmtoff=yes],[tcl_cv_member_tm_gmtoff=no])])
 if test $tcl_cv_member_tm_gmtoff = yes ; then
    AC_DEFINE([HAVE_TM_GMTOFF], [], [tm_gmtoff in struct tm])
 fi
 
 AC_CACHE_CHECK([sys_errlist in stdio.h], arg_cv_sys_errlist, [
-   AC_TRY_COMPILE([#include <stdio.h>], [char *ptr = sys_errlist[0];],
-            arg_cv_sys_errlist=yes, arg_cv_sys_errlist=no)])
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdio.h>]], [[char *ptr = sys_errlist[0];]])],[arg_cv_sys_errlist=yes],[arg_cv_sys_errlist=no])])
 if test $arg_cv_sys_errlist = yes ; then
    AC_DEFINE([HAVE_SYS_ERRLIST], [], [sys_errlist in stdio.h])
 fi
