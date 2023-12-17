@@ -317,6 +317,14 @@ as_fn_exit ()
   as_fn_set_status $1
   exit $1
 } # as_fn_exit
+# as_fn_nop
+# ---------
+# Do nothing but, unlike ":", preserve the value of $?.
+as_fn_nop ()
+{
+  return $?
+}
+as_nop=as_fn_nop
 
 # as_fn_mkdir_p
 # -------------
@@ -412,6 +420,14 @@ else case e in #(
 esac
 fi # as_fn_arith
 
+# as_fn_nop
+# ---------
+# Do nothing but, unlike ":", preserve the value of $?.
+as_fn_nop ()
+{
+  return $?
+}
+as_nop=as_fn_nop
 
 # as_fn_error STATUS ERROR [LINENO LOG_FD]
 # ----------------------------------------
@@ -7332,8 +7348,6 @@ _ACEOF
 
 fi
 
-done
-
 
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -10024,11 +10038,12 @@ printf "%s\n" "no" >&6; }
 
 
 # Check whether --with-flexlm was given.
-if test "${with_flexlm+set}" = set; then :
+if test ${with_flexlm+y}
+then :
   withval=$with_flexlm;
       with_flexlm="$withval"
 
-$as_echo "#define ARGUS_FLEXLM /**/" >>confdefs.h
+printf "%s\n" "#define ARGUS_FLEXLM /**/" >>confdefs.h
 
       V_FLEXLM="$withval"
 
@@ -10727,6 +10742,7 @@ as_fn_error ()
   printf "%s\n" "$as_me: error: $2" >&2
   as_fn_exit $as_status
 } # as_fn_error
+
 
 
 # as_fn_set_status STATUS
