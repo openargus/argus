@@ -1196,10 +1196,14 @@ __wmic_get_uuid(char *uuidstr, size_t len)
       /* need 37 bytes, including terminating null, to hold uuid string */
       return -1;
 
-   fp = popen("/cygdrive/c/Windows/System32/Wbem/wmic"
+   fp = popen("/cygdrive/c/Windows/System32/Wbem/wmic.exe"
               " path win32_computersystemproduct get uuid", "r");
-   if (fp == NULL)
+   if (fp == NULL) {
+      fp = popen("c:/Windows/System32/Wbem/wmic.exe"
+                 " path win32_computersystemproduct get uuid", "r");
+
       return -1;
+   }
 
    if (fgets(str, sizeof(str), fp) == NULL)
       goto close_out;

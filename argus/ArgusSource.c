@@ -490,7 +490,7 @@ setArgusTimestampType(char *optarg)
       ptr = str;
 
 #if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
-      while ((tok = strtok(ptr, " ,")) != NULL) {
+      while ((tok = strtok(ptr, " ,\r\n")) != NULL) {
          if (!(strcasecmp(tok, "hiprec"))) {
             ArgusTimeStampType |= ARGUS_TIMESTAMP_HIPREC;
          } else if (!(strcasecmp(tok, "lowprec"))) {
