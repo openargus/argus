@@ -1228,10 +1228,12 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
 
       if ((fcntl (fd, F_SETFL, flags | O_NONBLOCK)) >= 0) {
          if (output->type != ARGUS_DOMAIN_SOURCE) {
+/*
             if ((retn = ArgusTcpWrapper (fd, &from)) < 0) {
                ArgusLog (LOG_WARNING, "ArgusCheckClientStatus: ArgusTcpWrapper rejects");
                close (fd);
             }
+*/
          } else
             retn = 0;
 
