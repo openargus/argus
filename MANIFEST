@@ -247,6 +247,22 @@ total 24
 -rw-r--r--  1 carter  staff  2182 Aug 23 10:24 tcp_fsm.h
 
 ./lib:
+total 32
+-rw-r--r--  1 carter  staff  4608 Dec 17 15:55 argus.spec
+-rw-r--r--  1 carter  staff  4636 Nov  2 12:33 argus.spec.in
+
+./licenses:
+total 64
+-rw-r--r--@ 1 carter  staff  577 Sep  6  2020 README
+-rw-r--r--  1 carter  staff  111 Dec 17 15:55 arguspro_sensor_appliance.lic.template
+-rw-r--r--  1 carter  staff  126 Nov  2 12:33 arguspro_sensor_appliance.lic.template.in
+-rw-r--r--  1 carter  staff  137 Dec 17 15:55 arguspro_sensor_floating.lic.template
+-rw-r--r--  1 carter  staff  152 Sep  6  2020 arguspro_sensor_floating.lic.template.in
+-rw-r--r--  1 carter  staff  104 Nov  2 12:33 arguspro_sensor_vm.lic.template.in
+-rw-r--r--  1 carter  staff   89 Dec 17 15:55 arguspro_sensor_workstation.lic.template
+-rw-r--r--  1 carter  staff  104 Sep  6  2020 arguspro_sensor_workstation.lic.template.in
+
+./logo:
 total 8
 -rw-r--r--  1 carter  staff  2187 Aug 23 10:24 argus.spec
 
