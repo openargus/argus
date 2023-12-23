@@ -150,14 +150,14 @@ osxpackage:
 	rm -f pkg/osx/output.pkg \
 	)
 
-win7package:
+winpackage:
 	( \
-	$(MAKE) install DESTDIR=`pwd`/pkg/win7/BUILDROOT \
+	$(MAKE) install DESTDIR=`pwd`/pkg/win/BUILDROOT \
 	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
-	( find pkg/win7/BUILDROOT -type f | xargs file \
+	( find pkg/win/BUILDROOT -type f | xargs file \
 	   | awk -F: '/PE32 executable/{print $$1}' \
 	   | xargs strip ) && \
-	$(MAKE) -C pkg/win7 \
+	$(MAKE) -C pkg/win \
 	)
 
 Makefile: Makefile.in config.status
@@ -196,8 +196,8 @@ distclean: force
 	rm -f include/argus_config.h
 	rm -rf pkg/osx/BUILDROOT/
 	rm -f pkg/osx/argus-5.0.3.pkg
-	rm -f pkg/win7/Makefile
-	rm -f pkg/win7/argus.wxs
+	rm -f pkg/win/Makefile
+	rm -f pkg/win/argus.wxs
 
 clobber realclean: distclean
 	rm -f ./Makefile
