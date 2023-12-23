@@ -138,8 +138,7 @@ winpackage:
 	$(MAKE) install DESTDIR=`pwd`/pkg/win/BUILDROOT \
 	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
 	( find pkg/win/BUILDROOT -type f | xargs file \
-	   | awk -F: '/PE32 executable/{print $$1}' \
-	   | xargs strip ) && \
+	   | awk -F: '/PE32 executable/{print $$1}' ) && \
 	$(MAKE) -C pkg/win \
 	)
 

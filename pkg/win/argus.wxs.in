@@ -22,7 +22,7 @@
       <Component Id="REG_MACHINE"
       Guid="*">
         <RegistryKey Id="srvc1" Root="HKLM"
-        Key="SYSTEM\CurrentControlSet\Services\QoSient:Argus\Parameters"
+        Key="SYSTEM\CurrentControlSet\Services\argus\Parameters"
         Action="create">
           <RegistryValue Type="expandable" Name="AppPath"
           Value="/bin/argus.exe" />
@@ -48,28 +48,28 @@
           <Directory Id='INSTALLDIR' Name='bin'>
             <Component Id='MainExecutable' Guid="*">
               <File Id='argus.exe' Name='argus.exe' DiskId='1'
-              Source="BUILDROOT/usr/sbin/argus.exe" KeyPath='yes'>
+              Source="BUILDROOT/usr/local/sbin/argus.exe" KeyPath='yes'>
               </File>
             </Component>
             <Component Id='dash.exe' Guid="*">
               <File Id='dash.exe' Name='sh.exe' DiskId='1'
-              Source="c:\cygwin\bin\dash.exe" KeyPath='yes'>
+              Source="c:\cygwin64\bin\dash.exe" KeyPath='yes'>
               </File>
             </Component>
             <Component Id="cygrunsrv.exe" Guid="*">
               <File Id="cygrunsrv.exe"
-              Source="c:\cygwin\bin\cygrunsrv.exe"
+              Source="c:\cygwin64\bin\cygrunsrv.exe"
               Name="cygrunsrv.exe" KeyPath="yes" Checksum="yes" />
               <ServiceInstall Id="cygrunsrv.exe" Type="ownProcess"
-              Vital="yes" Name="QoSient:Argus"
-              DisplayName="QoSient:Argus"
+              Vital="yes" Name="argus"
+              DisplayName="argus"
               Description="QoSient Argus Version @PACKAGE_VERSION@"
               Start="auto" Account="LocalSystem"
               ErrorControl="ignore" Interactive="no">
                 <ServiceDependency Id="npcap"/>
               </ServiceInstall>
               <ServiceControl Id="cygrunsrv.exe" Start="install"
-              Stop="both" Remove="uninstall" Name="QoSient:Argus"
+              Stop="both" Remove="uninstall" Name="argus"
               Wait="no" />
               <util:ServiceConfig
                FirstFailureActionType="restart"
@@ -77,25 +77,29 @@
                ThirdFailureActionType="restart"
                ResetPeriodInDays="1"
                RestartServiceDelayInSeconds="5"
-               ServiceName="QoSient:Argus"/>
+               ServiceName="argus"/>
             </Component>
             <Component Id='LibGCC' Guid="*">
-              <File Id='LibGCC' Name='cyggcc_s-1.dll' DiskId='1'
-              Source='C:\Cygwin\bin\cyggcc_s-1.dll' KeyPath='yes'>
+              <File Id='LibGCC' Name='cyggcc_s-seh-1.dll' DiskId='1'
+              Source='C:\cygwin64\bin\cyggcc_s-seh-1.dll' KeyPath='yes'>
               </File>
             </Component>
             <Component Id='LibCygwin1' Guid="*">
               <File Id='LibCygwin1' Name='cygwin1.dll' DiskId='1'
-              Source='C:\Cygwin\bin\cygwin1.dll' KeyPath='yes'>
+              Source='C:\cygwin64\bin\cygwin1.dll' KeyPath='yes'>
               </File>
+            </Component>
+            <Component Id='LibCygWrap' Guid="*">
+              <File Id='LibCygWrap' Name='cygwrap-0.dll' DiskId='1'
+              Source='C:\cygwin64\bin\cygwrap-0.dll' KeyPath='yes'></File>
             </Component>
             <Component Id='LibCygz' Guid="*">
               <File Id='LibCygz' Name='cygz.dll' DiskId='1'
-              Source='C:\Cygwin\bin\cygz.dll' KeyPath='yes'></File>
+              Source='C:\cygwin64\bin\cygz.dll' KeyPath='yes'></File>
             </Component>
             <Component Id='LibSasl2' Guid="*">
               <File Id='LibSasl2' Name='cygsasl2-3.dll' DiskId='1'
-              Source='C:\Cygwin\bin\cygsasl2-3.dll' KeyPath='yes'></File>
+              Source='C:\cygwin64\bin\cygsasl2-3.dll' KeyPath='yes'></File>
             </Component>
           </Directory>
         </Directory>
@@ -160,6 +164,7 @@
       <ComponentRef Id='LibGCC' />
       <ComponentRef Id='LibCygwin1' />
       <ComponentRef Id='LibCygz' />
+      <ComponentRef Id='LibCygWrap' />
       <ComponentRef Id='LibSasl2' />
       <ComponentRef Id='ProgramMenuDir' />
       <ComponentRef Id='Config' />
