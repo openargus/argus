@@ -503,8 +503,8 @@ AC_CONFIG_FILES([
    ./common/Makefile 
    ./argus/Makefile
    ./events/Makefile 
-   ./pkg/win7/Makefile
-   ./pkg/win7/argus.wxs
+   ./pkg/win/Makefile
+   ./pkg/win/argus.wxs
    ./lib/argus.spec
    ./licenses/arguspro_sensor_appliance.lic.template
    ./licenses/arguspro_sensor_floating.lic.template
