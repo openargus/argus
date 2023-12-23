@@ -3052,10 +3052,10 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-PACKAGE_RELEASE='3.6'
+PACKAGE_RELEASE='3.8'
 ARGUSPRO_VERSION='1.4'
 
-printf "%s\n" "#define ARGUSPRO_VERSION_STRING \"1.3\"" >>confdefs.h
+printf "%s\n" "#define ARGUSPRO_VERSION_STRING \"1.4\"" >>confdefs.h
 
 
 
