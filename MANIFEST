@@ -1,6 +1,6 @@
 /*
  * Argus Pro (Gargoyle) Software. Argus flow data generation.
- * Copyright (c) 2000-2016 QoSient, LLC
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
@@ -19,317 +19,521 @@
  */
 
 Argus Pro (Gargoyle) 5.0.3 distribution
-total 832
--r--r--r--   1 carter  staff     534 Apr 13  2015 AUTHORS
--r--r--r--   1 carter  staff    6688 Apr 13  2015 CREDITS
--r--r--r--   1 carter  staff    8972 Oct  3 10:25 ChangeLog
--r--r--r--   1 carter  staff   12583 Apr 13  2015 INSTALL
--rw-r--r--   1 carter  staff   13898 Oct  3 10:49 MANIFEST
--r--r--r--   1 carter  staff    5111 Sep 15 13:26 Makefile.in
--r--r--r--   1 carter  staff    3481 Apr 13  2015 README
--r--r--r--   1 carter  staff       6 Sep 11 17:11 VERSION
--r--r--r--   1 carter  staff     609 May  1  2012 aclocal.m4
--r--r--r--   1 carter  staff   52641 Apr 13  2015 acsite.m4
-drwxr-xr-x  37 carter  staff    1258 Oct  3 10:49 argus
-drwxr-xr-x   4 carter  staff     136 Oct  3 10:49 bin
-drwxr-xr-x   9 carter  staff     306 Oct  3 10:49 common
-drwxr-xr-x   6 carter  staff     204 Sep 15 15:38 config
--rwxr-xr-x   1 carter  staff  282496 Sep 10 10:34 configure
--r--r--r--   1 carter  staff   11027 Dec  9  2015 configure.ac
-drwxr-xr-x  15 carter  staff     510 Sep 15 15:38 debian
-drwxr-xr-x   3 carter  staff     102 Sep 15 15:38 doc
-drwxr-xr-x  12 carter  staff     408 Oct  3 10:49 events
-drwxr-xr-x  34 carter  staff    1156 Oct  3 10:49 include
-drwxr-xr-x   3 carter  staff     102 Oct  3 10:49 lib
-drwxr-xr-x   4 carter  staff     136 Sep 15 13:47 man
-drwxr-xr-x   5 carter  staff     170 Sep 15 15:38 pkg
-drwxr-xr-x   8 carter  staff     272 Sep 15 15:38 support
+total 1000
+-rw-r--r--@  1 carter  staff     534 Aug 23  2020 AUTHORS
+-rw-r--r--@  1 carter  staff   32477 Jan  2  2017 COPYING
+-rw-r--r--   1 carter  staff    6688 Aug 23  2020 CREDITS
+-rw-r--r--@  1 carter  staff    8972 Aug 23  2020 ChangeLog
+-rw-r--r--@  1 carter  staff   12583 Dec 23 08:57 INSTALL
+-rw-r--r--   1 carter  staff  22148 Dec 23 10:28 MANIFEST
+-rw-r--r--   1 carter  staff    6756 Dec 23 10:27 Makefile.in
+-rw-r--r--   1 carter  staff    2511 Nov 21 17:36 README.rst
+-rw-r--r--   1 carter  staff    4979 Dec 23 10:28 README.win
+-rw-r--r--   1 carter  staff       8 Nov  2 14:04 VERSION
+-rw-r--r--   1 carter  staff     609 Dec 31  2016 aclocal.m4
+-rw-r--r--   1 carter  staff   54926 Dec 17 15:53 acsite.m4
+drwxr-xr-x  43 carter  staff    1376 Dec 23 08:55 argus
+-rw-r--r--   1 carter  staff     295 Nov  7 17:34 argus.entitlements
+drwxr-xr-x   7 carter  staff     224 Dec 23 08:56 autom4te.cache
+drwxr-xr-x   4 carter  staff     128 Dec 23 08:55 bin
+drwxr-xr-x   9 carter  staff     288 Dec 23 08:55 common
+drwxr-xr-x   6 carter  staff     192 Oct  9  2017 config
+-rwxr-xr-x   1 carter  staff  313619 Dec 23 08:56 configure
+-rw-r--r--   1 carter  staff   13667 Dec 23 08:55 configure.ac
+drwxr-xr-x  15 carter  staff     480 Aug 23  2020 debian
+drwxr-xr-x   3 carter  staff      96 Aug 23  2020 doc
+drwxr-xr-x  15 carter  staff     480 Dec 23 08:55 events
+drwxr-xr-x  34 carter  staff    1088 Dec 23 08:55 include
+drwxr-xr-x   4 carter  staff     128 Dec 23 08:55 lib
+drwxr-xr-x  10 carter  staff     320 Dec 17 15:55 licenses
+drwxr-xr-x   3 carter  staff      96 Nov 21 17:19 logo
+drwxr-xr-x   4 carter  staff     128 Oct  9  2017 man
+drwxr-xr-x   7 carter  staff     224 Dec 23 08:53 pkg
+drwxr-xr-x   8 carter  staff     256 Aug 23  2020 support
 
 ./argus:
-total 2168
--r--r--r--  1 carter  staff    9829 Apr 13  2015 Argus802.11.c
--r--r--r--  1 carter  staff   21920 Mar 17  2016 ArgusApp.c
--r--r--r--  1 carter  staff    9243 Apr 13  2015 ArgusArp.c
--r--r--r--  1 carter  staff    9467 Sep 20 14:50 ArgusAuth.c
--r--r--r--  1 carter  staff    5220 Jun 22  2015 ArgusEsp.c
--r--r--r--  1 carter  staff   15477 Oct  3 10:25 ArgusEvents.c
--r--r--r--  1 carter  staff    2745 Apr 13  2015 ArgusEvents.h
--r--r--r--  1 carter  staff   19511 Apr 13  2015 ArgusFrag.c
--r--r--r--  1 carter  staff   14854 May 19 12:29 ArgusIcmp.c
--r--r--r--  1 carter  staff    4222 Apr 13  2015 ArgusIgmp.c
--r--r--r--  1 carter  staff   31611 Apr 13  2015 ArgusIsis.c
--r--r--r--  1 carter  staff    2544 Jun 22  2015 ArgusL2TP.c
--r--r--r--  1 carter  staff    6342 Apr 13  2015 ArgusL2TP.h
--r--r--r--  1 carter  staff    3305 Apr 13  2015 ArgusLcp.c
--r--r--r--  1 carter  staff    1590 Apr 13  2015 ArgusMac.c
--r--r--r--  1 carter  staff  179616 Sep 20 14:39 ArgusModeler.c
--r--r--r--  1 carter  staff   29411 Feb 23  2016 ArgusModeler.h
--r--r--r--  1 carter  staff   86269 Jun  7 14:24 ArgusNetflow.c
--r--r--r--  1 carter  staff    2243 Apr 13  2015 ArgusNetflow.h
--r--r--r--  1 carter  staff   72031 Oct  3 10:25 ArgusOutput.c
--r--r--r--  1 carter  staff    6107 Apr 21  2015 ArgusOutput.h
--r--r--r--  1 carter  staff   47117 Feb 22  2016 ArgusSflow.c
--r--r--r--  1 carter  staff    1174 Apr 13  2015 ArgusSflow.h
--r--r--r--  1 carter  staff  171241 Oct  3 10:48 ArgusSource.c
--r--r--r--  1 carter  staff   35581 Oct  3 10:25 ArgusSource.h
--r--r--r--  1 carter  staff   41513 Sep 20 14:39 ArgusTcp.c
--r--r--r--  1 carter  staff    2216 Jun 22  2015 ArgusUdp.c
--r--r--r--  1 carter  staff   29313 Sep  2  2015 ArgusUdt.c
--r--r--r--  1 carter  staff   81062 Jun  7 14:24 ArgusUtil.c
--r--r--r--  1 carter  staff   12362 Apr 13  2015 ArgusUtil.h
--r--r--r--  1 carter  staff    1967 Apr 13  2015 ArgusVxLan.c
--r--r--r--  1 carter  staff    1215 Jun 22  2015 ArgusVxLan.h
--r-xr-xr-x  1 carter  staff    4105 Apr 13  2015 Makefile.in
--r--r--r--  1 carter  staff   67292 Oct  3 10:25 argus.c
--r--r--r--  1 carter  staff    3993 Oct  3 10:48 argus.h
+total 2336
+-rw-r--r--  1 carter  staff    9829 Aug 23  2020 Argus802.11.c
+-rw-r--r--  1 carter  staff   21920 Aug 23  2020 ArgusApp.c
+-rw-r--r--  1 carter  staff    9372 Nov  2 12:45 ArgusArp.c
+-rw-r--r--  1 carter  staff    9467 Aug 23  2020 ArgusAuth.c
+-rw-r--r--  1 carter  staff    5220 Aug 23  2020 ArgusEsp.c
+-rw-r--r--  1 carter  staff   16028 Nov  2 12:33 ArgusEvents.c
+-rw-r--r--  1 carter  staff    2858 Nov  2 12:33 ArgusEvents.h
+-rw-r--r--  1 carter  staff   20826 Nov  2 12:33 ArgusFrag.c
+-rw-r--r--  1 carter  staff     612 Nov  2 12:33 ArgusGetTimeOfDay.h
+-rw-r--r--  1 carter  staff   15101 Nov  2 12:33 ArgusIcmp.c
+-rw-r--r--  1 carter  staff    2750 Nov  2 12:33 ArgusIfnam.c
+-rw-r--r--  1 carter  staff     420 Nov  2 12:33 ArgusIfnam.h
+-rw-r--r--  1 carter  staff    4222 Aug 23  2020 ArgusIgmp.c
+-rw-r--r--  1 carter  staff   30582 Nov  2 12:33 ArgusIsis.c
+-rw-r--r--  1 carter  staff    2564 Nov  2 12:45 ArgusL2TP.c
+-rw-r--r--  1 carter  staff    6342 Aug 23  2020 ArgusL2TP.h
+-rw-r--r--  1 carter  staff    3305 Aug 23  2020 ArgusLcp.c
+-rw-r--r--  1 carter  staff    1590 Aug 23  2020 ArgusMac.c
+-rw-r--r--  1 carter  staff  192601 Dec 17 16:13 ArgusModeler.c
+-rw-r--r--  1 carter  staff   30236 Nov  2 12:45 ArgusModeler.h
+-rw-r--r--  1 carter  staff   86225 Dec 17 16:09 ArgusNetflow.c
+-rw-r--r--  1 carter  staff    2243 Aug 23  2020 ArgusNetflow.h
+-rw-r--r--  1 carter  staff   76015 Dec 23 08:51 ArgusOutput.c
+-rw-r--r--  1 carter  staff    6708 Nov  2 12:33 ArgusOutput.h
+-rw-r--r--  1 carter  staff   47117 Aug 23  2020 ArgusSflow.c
+-rw-r--r--  1 carter  staff    1174 Aug 23  2020 ArgusSflow.h
+-rw-r--r--  1 carter  staff  193467 Dec 23 08:51 ArgusSource.c
+-rw-r--r--  1 carter  staff   35900 Nov  2 12:45 ArgusSource.h
+-rw-r--r--  1 carter  staff   41943 Nov  2 12:33 ArgusTcp.c
+-rw-r--r--  1 carter  staff    1341 Sep  6  2020 ArgusTimeDiff.h
+-rw-r--r--  1 carter  staff    2216 Aug 23  2020 ArgusUdp.c
+-rw-r--r--  1 carter  staff   29337 Nov  7 17:34 ArgusUdt.c
+-rw-r--r--  1 carter  staff   82223 Nov  2 12:45 ArgusUtil.c
+-rw-r--r--  1 carter  staff   11890 Sep  6  2020 ArgusUtil.h
+-rw-r--r--  1 carter  staff    1974 Nov  2 12:33 ArgusVxLan.c
+-rw-r--r--  1 carter  staff    1215 Aug 23  2020 ArgusVxLan.h
+-rwxr-xr-x  1 carter  staff    4849 Dec 17 16:15 Makefile.in
+-rw-r--r--  1 carter  staff   76394 Dec 23 08:51 argus.c
+-rw-r--r--  1 carter  staff    3899 Aug 23  2020 argus.h
+-rw-r--r--  1 carter  staff    5579 Sep  6  2020 argus_lic.c
+-rw-r--r--  1 carter  staff    1047 Sep  6  2020 argus_lic.h
+
+./autom4te.cache:
+total 2744
+-rw-r--r--  1 carter  staff  315919 Dec 23 08:56 output.0
+-rw-r--r--  1 carter  staff       0 Dec 17 15:54 output.1
+-rw-r--r--  1 carter  staff    7694 Dec 23 08:56 requests
+-rw-r--r--  1 carter  staff   97807 Dec 23 08:56 traces.0
+-rw-r--r--  1 carter  staff  976373 Dec 17 15:54 traces.1
 
 ./bin:
 total 32
--r-xr-xr-x  1 carter  staff  9928 Apr 13  2015 argusbug
--r-xr-xr-x  1 carter  staff  2395 Oct  7  2014 mkdep
+-rwxr-xr-x  1 carter  staff  9928 Aug 23  2020 argusbug
+-rwxr-xr-x  1 carter  staff  2395 Dec 31  2016 mkdep
 
 ./common:
-total 792
--r-xr-xr-x  1 carter  staff    3907 Apr 13  2015 Makefile.in
--r--r--r--  1 carter  staff   14426 Apr 13  2015 argus_auth.c
--r--r--r--  1 carter  staff  147332 Jul 20  2015 argus_code.c
--r--r--r--  1 carter  staff   87291 Sep 20 14:39 argus_filter.c
--r--r--r--  1 carter  staff  115988 Sep 20 14:39 argus_util.c
--r-xr-xr-x  1 carter  staff   14775 Jun 22  2015 grammar.y
--r-xr-xr-x  1 carter  staff   11785 Jul 20  2015 scanner.l
+total 736
+-rwxr-xr-x  1 carter  staff    3947 Nov  2 12:45 Makefile.in
+-rw-r--r--  1 carter  staff   14426 Aug 23  2020 argus_auth.c
+-rw-r--r--  1 carter  staff  147234 Dec 17 16:07 argus_code.c
+-rw-r--r--  1 carter  staff   87267 Dec 17 16:17 argus_filter.c
+-rw-r--r--  1 carter  staff   87299 Nov  2 12:45 argus_util.c
+-rwxr-xr-x  1 carter  staff   14739 Nov 21 17:14 grammar.y
+-rwxr-xr-x  1 carter  staff   11787 Nov  2 12:33 scanner.l
 
 ./config:
 total 184
--r-xr-xr-x  1 carter  staff  42856 Oct  7  2014 config.guess
--r-xr-xr-x  1 carter  staff  35740 Oct  7  2014 config.sub
--r-xr-xr-x  1 carter  staff   5585 May  1  2012 install-sh
--r-xr-xr-x  1 carter  staff    616 May  1  2012 mkinstalldirs
+-rwxr-xr-x  1 carter  staff  42856 Dec 31  2016 config.guess
+-rwxr-xr-x  1 carter  staff  35740 Dec 31  2016 config.sub
+-rwxr-xr-x  1 carter  staff   5585 Dec 31  2016 install-sh
+-rwxr-xr-x  1 carter  staff    616 Dec 31  2016 mkinstalldirs
 
 ./debian:
 total 96
--r-xr-xr-x  1 carter  staff  1058 Apr 13  2015 argus.postinst
--r-xr-xr-x  1 carter  staff   181 Apr 13  2015 argus.postrm
--r-xr-xr-x  1 carter  staff   719 Apr 13  2015 argus.preinst
--r-xr-xr-x  1 carter  staff   151 Apr 13  2015 argus.prerm
--r--r--r--  1 carter  staff   153 Oct  7  2014 changelog
--r--r--r--  1 carter  staff     2 Apr 13  2015 compat
--r--r--r--  1 carter  staff   611 Apr 13  2015 control
--r--r--r--  1 carter  staff  1786 Oct  7  2014 copyright
--r--r--r--  1 carter  staff     7 Oct  7  2014 docs
--r--r--r--  1 carter  staff   180 Apr 13  2015 install
--rw-r--r--  1 carter  staff    64 Apr 14  2015 manpages
--r-xr-xr-x  1 carter  staff   538 Apr 13  2015 rules
-drwxr-xr-x  3 carter  staff   102 Sep 15 15:38 source
+-rwxr-xr-x  1 carter  staff  1058 Dec 31  2016 argus.postinst
+-rwxr-xr-x  1 carter  staff   181 Dec 31  2016 argus.postrm
+-rwxr-xr-x  1 carter  staff   719 Dec 31  2016 argus.preinst
+-rwxr-xr-x  1 carter  staff   151 Dec 31  2016 argus.prerm
+-rw-r--r--  1 carter  staff   153 Dec 31  2016 changelog
+-rw-r--r--  1 carter  staff     2 Dec 31  2016 compat
+-rw-r--r--  1 carter  staff   611 Dec 31  2016 control
+-rw-r--r--  1 carter  staff  1786 Aug 23  2020 copyright
+-rw-r--r--  1 carter  staff     7 Dec 31  2016 docs
+-rw-r--r--  1 carter  staff   180 Dec 31  2016 install
+-rw-r--r--  1 carter  staff    64 Dec 31  2016 manpages
+-rwxr-xr-x  1 carter  staff   538 Dec 31  2016 rules
+drwxr-xr-x  3 carter  staff    96 Oct  9  2017 source
 
 ./debian/source:
 total 8
--r--r--r--  1 carter  staff  12 Oct  7  2014 format
+-rw-r--r--  1 carter  staff  12 Dec 31  2016 format
 
 ./doc:
 total 8
--r--r--r--  1 carter  staff  1595 Apr 13  2015 README
+-rw-r--r--@ 1 carter  staff  1595 Aug 23  2020 README
 
 ./events:
-total 88
--r-xr-xr-x  1 carter  staff  4429 Aug 22 00:30 Makefile.in
--r--r--r--  1 carter  staff  3243 Apr 13  2015 README
--r-xr-xr-x  1 carter  staff  1374 Mar  7  2016 argus-airport.sh
--r-xr-xr-x  1 carter  staff   674 Feb 22  2016 argus-extip.pl
--r-xr-xr-x  1 carter  staff  1292 Feb 22  2016 argus-lsof.pl
--r-xr-xr-x  1 carter  staff  4033 Jun  6 12:23 argus-netstat.pl
--r-xr-xr-x  1 carter  staff  2293 Apr 13  2015 argus-snmp.sh
--r-xr-xr-x  1 carter  staff  1287 Sep 23  2015 argus-stumble.pl
--rwxr-xr-x  1 carter  staff  3064 Jun 27 07:26 argus-stumbler.pl
--r-xr-xr-x  1 carter  staff  1536 Apr 13  2015 argus-vmstat.sh
+total 112
+-rwxr-xr-x  1 carter  staff  5243 Sep  6  2020 Makefile.in
+-rw-r--r--@ 1 carter  staff  3243 Aug 23  2020 README
+-rwxr-xr-x  1 carter  staff  1374 Aug 23  2020 argus-airport.sh
+-rwxr-xr-x  1 carter  staff   672 Sep  6  2020 argus-extip.pl
+-rwxr-xr-x  1 carter  staff  1300 Sep  6  2020 argus-ipaddr.pl
+-rwxr-xr-x  1 carter  staff  1330 Sep  6  2020 argus-ipmitool.pl
+-rwxr-xr-x  1 carter  staff  1292 Aug 23  2020 argus-lsof.pl
+-rwxr-xr-x  1 carter  staff  4033 Aug 23  2020 argus-netstat.pl
+-rwxr-xr-x  1 carter  staff  2293 Aug 23  2020 argus-snmp.sh
+-rwxr-xr-x  1 carter  staff  1287 Aug 23  2020 argus-stumble.pl
+-rwxr-xr-x  1 carter  staff  3064 Aug 23  2020 argus-stumbler.pl
+-rwxr-xr-x  1 carter  staff  1320 Sep  6  2020 argus-top.pl
+-rwxr-xr-x  1 carter  staff  1536 Aug 23  2020 argus-vmstat.sh
 
 ./include:
-total 832
--r--r--r--   1 carter  staff   17920 May  1  2012 CflowdFlowPdu.h
-drwxr-xr-x  16 carter  staff     544 Sep 15 15:38 argus
--r--r--r--   1 carter  staff    3991 Apr 13  2015 argus-namedb.h
--r--r--r--   1 carter  staff   12185 Apr 13  2015 argus_client.h
--r--r--r--   1 carter  staff    6447 Sep 20 14:39 argus_compat.h
--r--r--r--   1 carter  staff   16580 Dec  9  2015 argus_config.h.in
--r--r--r--   1 carter  staff    2385 Apr 13  2015 argus_dag.h
--r--r--r--   1 carter  staff    2223 Apr 13  2015 argus_debug.h
--r--r--r--   1 carter  staff  101636 Oct  3 10:25 argus_def.h
--r--r--r--   1 carter  staff     964 Apr 13  2015 argus_def_v2.h
--r--r--r--   1 carter  staff    3043 Apr 13  2015 argus_dscodepoints.h
--r--r--r--   1 carter  staff    3985 Apr 13  2015 argus_encapsulations.h
--r--r--r--   1 carter  staff   11881 Apr 13  2015 argus_ethernames.h
--r--r--r--   1 carter  staff    4391 Apr 13  2015 argus_ethertype.h
--r--r--r--   1 carter  staff    8976 Apr 13  2015 argus_filter.h
--r--r--r--   1 carter  staff    1042 May  1  2012 argus_gmpls.h
--r--r--r--   1 carter  staff    1888 Apr 13  2015 argus_gre.h
--r--r--r--   1 carter  staff    2726 Apr 13  2015 argus_int.h
--r--r--r--   1 carter  staff   18637 Apr 13  2015 argus_isis.h
--r--r--r--   1 carter  staff    5138 Apr 13  2015 argus_llc.h
--r--r--r--   1 carter  staff    4026 Apr 13  2015 argus_namedb.h
--r--r--r--   1 carter  staff    4619 Apr 13  2015 argus_os.h
--r--r--r--   1 carter  staff   30852 Sep 20 14:39 argus_out.h
--r--r--r--   1 carter  staff   52804 Apr 13  2015 argus_parse.h
--r--r--r--   1 carter  staff    4640 Apr 13  2015 argus_parser.h
--r--r--r--   1 carter  staff    3255 Apr 13  2015 argus_udt.h
--r--r--r--   1 carter  staff    5224 Apr 21  2015 argus_util.h
--r--r--r--   1 carter  staff   43337 Apr 13  2015 argus_v3_def.h
-drwxr-xr-x   7 carter  staff     238 Sep 15 13:47 cygwin-include
-drwxr-xr-x   8 carter  staff     272 Sep 15 15:38 net
-drwxr-xr-x   3 carter  staff     102 Sep 15 13:47 netbsd-include
-drwxr-xr-x   4 carter  staff     136 Sep 15 15:38 netinet
+total 840
+-rw-r--r--   1 carter  staff   17920 Aug 23  2020 CflowdFlowPdu.h
+drwxr-xr-x  16 carter  staff     512 Oct  5  2021 argus
+-rw-r--r--   1 carter  staff    3991 Aug 23  2020 argus-namedb.h
+-rw-r--r--   1 carter  staff   12185 Aug 23  2020 argus_client.h
+-rw-r--r--   1 carter  staff    6565 Dec 17 15:58 argus_compat.h
+-rw-r--r--   1 carter  staff   17775 Dec 17 15:53 argus_config.h.in
+-rw-r--r--   1 carter  staff    2385 Aug 23  2020 argus_dag.h
+-rw-r--r--   1 carter  staff    2223 Aug 23  2020 argus_debug.h
+-rw-r--r--   1 carter  staff  103071 Nov  2 12:33 argus_def.h
+-rw-r--r--   1 carter  staff     964 Aug 23  2020 argus_def_v2.h
+-rw-r--r--   1 carter  staff    3043 Aug 23  2020 argus_dscodepoints.h
+-rw-r--r--   1 carter  staff    3985 Aug 23  2020 argus_encapsulations.h
+-rw-r--r--   1 carter  staff   11881 Aug 23  2020 argus_ethernames.h
+-rw-r--r--   1 carter  staff    4391 Aug 23  2020 argus_ethertype.h
+-rw-r--r--   1 carter  staff    8976 Aug 23  2020 argus_filter.h
+-rw-r--r--   1 carter  staff    1042 Aug 23  2020 argus_gmpls.h
+-rw-r--r--   1 carter  staff    1888 Aug 23  2020 argus_gre.h
+-rw-r--r--   1 carter  staff    2726 Aug 23  2020 argus_int.h
+-rw-r--r--   1 carter  staff   18637 Aug 23  2020 argus_isis.h
+-rw-r--r--   1 carter  staff    5144 Nov  2 12:45 argus_llc.h
+-rw-r--r--   1 carter  staff    4026 Aug 23  2020 argus_namedb.h
+-rw-r--r--   1 carter  staff    5867 Nov  2 12:33 argus_os.h
+-rw-r--r--   1 carter  staff   31900 Nov  2 12:45 argus_out.h
+-rw-r--r--   1 carter  staff   52709 Sep  6  2020 argus_parse.h
+-rw-r--r--   1 carter  staff    4640 Aug 23  2020 argus_parser.h
+-rw-r--r--   1 carter  staff    3255 Aug 23  2020 argus_udt.h
+-rw-r--r--   1 carter  staff    5386 Sep  6  2020 argus_util.h
+-rw-r--r--   1 carter  staff   43337 Aug 23  2020 argus_v3_def.h
+drwxr-xr-x   7 carter  staff     224 Oct  9  2017 cygwin-include
+drwxr-xr-x   8 carter  staff     256 Aug 23  2020 net
+drwxr-xr-x   3 carter  staff      96 Oct  9  2017 netbsd-include
+drwxr-xr-x   4 carter  staff     128 Aug 23  2020 netinet
 
 ./include/argus:
 total 248
--r--r--r--  1 carter  staff  23591 Apr 13  2015 CflowdFlowPdu.h
--r--r--r--  1 carter  staff   3789 May  1  2012 bootp.h
--r--r--r--  1 carter  staff   3262 May  1  2012 cflowd.h
--r--r--r--  1 carter  staff   4605 Apr 13  2015 cons_def.h
--r--r--r--  1 carter  staff   4386 Apr 13  2015 cons_out.h
--r--r--r--  1 carter  staff   8657 Apr 13  2015 extract.h
--r--r--r--  1 carter  staff   3799 Apr 13  2015 fddi.h
--r--r--r--  1 carter  staff   9969 Apr 13  2015 gencode.h
--r--r--r--  1 carter  staff    956 May  1  2012 global.h
--r--r--r--  1 carter  staff  18685 May  1  2012 ieee802_11.h
--r--r--r--  1 carter  staff   1470 May  1  2012 md5.h
--r--r--r--  1 carter  staff   2424 May  1  2012 ppp.h
--r--r--r--  1 carter  staff   4830 May  1  2012 saslint.h
--r--r--r--  1 carter  staff   5670 May  1  2012 sll.h
+-rw-r--r--  1 carter  staff  23591 Aug 23  2020 CflowdFlowPdu.h
+-rw-r--r--  1 carter  staff   3789 Aug 23  2020 bootp.h
+-rw-r--r--  1 carter  staff   3262 Dec 31  2016 cflowd.h
+-rw-r--r--  1 carter  staff   4605 Aug 23  2020 cons_def.h
+-rw-r--r--  1 carter  staff   4386 Aug 23  2020 cons_out.h
+-rw-r--r--  1 carter  staff   8657 Aug 23  2020 extract.h
+-rw-r--r--  1 carter  staff   3799 Aug 23  2020 fddi.h
+-rw-r--r--  1 carter  staff   9969 Aug 23  2020 gencode.h
+-rw-r--r--  1 carter  staff    956 Dec 31  2016 global.h
+-rw-r--r--  1 carter  staff  18685 Dec 31  2016 ieee802_11.h
+-rw-r--r--  1 carter  staff   1470 Dec 31  2016 md5.h
+-rw-r--r--  1 carter  staff   2424 Dec 31  2016 ppp.h
+-rw-r--r--  1 carter  staff   4830 Aug 23  2020 saslint.h
+-rw-r--r--  1 carter  staff   5670 Aug 23  2020 sll.h
 
 ./include/cygwin-include:
 total 0
-drwxr-xr-x   4 carter  staff  136 Sep 15 15:38 linux
-drwxr-xr-x   3 carter  staff  102 Sep 15 15:38 net
-drwxr-xr-x  11 carter  staff  374 Sep 15 15:38 netinet
-drwxr-xr-x   3 carter  staff  102 Sep 15 15:38 protocols
-drwxr-xr-x   3 carter  staff  102 Sep 15 15:38 sys
+drwxr-xr-x   4 carter  staff  128 Oct  9  2017 linux
+drwxr-xr-x   3 carter  staff   96 Oct  9  2017 net
+drwxr-xr-x  11 carter  staff  352 Oct  9  2017 netinet
+drwxr-xr-x   3 carter  staff   96 Oct  9  2017 protocols
+drwxr-xr-x   3 carter  staff   96 Oct  9  2017 sys
 
 ./include/cygwin-include/linux:
 total 16
--r--r--r--  1 carter  staff  1728 May  1  2012 if_arp.h
--r--r--r--  1 carter  staff  3092 May  1  2012 igmp.h
+-rw-r--r--  1 carter  staff  1728 Dec 31  2016 if_arp.h
+-rw-r--r--  1 carter  staff  3092 Dec 31  2016 igmp.h
 
 ./include/cygwin-include/net:
 total 8
--r--r--r--  1 carter  staff  1734 May  1  2012 if_arp.h
+-rw-r--r--  1 carter  staff  1734 Dec 31  2016 if_arp.h
 
 ./include/cygwin-include/netinet:
 total 104
--r--r--r--  1 carter  staff  8866 May  1  2012 icmp6.h
--r--r--r--  1 carter  staff  1984 May  1  2012 if_ether.h
--r--r--r--  1 carter  staff  3480 May  1  2012 igmp.h
--r--r--r--  1 carter  staff  3729 May  1  2012 ip6.h
--r--r--r--  1 carter  staff  5013 May  1  2012 ip_icmp.h
--r--r--r--  1 carter  staff  3198 May  1  2012 ip_var.h
--r--r--r--  1 carter  staff  6380 May  1  2012 tcp_var.h
--r--r--r--  1 carter  staff  1033 May  1  2012 tcpip.h
--r--r--r--  1 carter  staff  1086 May  1  2012 udp_var.h
+-rw-r--r--  1 carter  staff  8866 Dec 31  2016 icmp6.h
+-rw-r--r--  1 carter  staff  1984 Dec 31  2016 if_ether.h
+-rw-r--r--  1 carter  staff  3480 Dec 31  2016 igmp.h
+-rw-r--r--  1 carter  staff  3729 Dec 31  2016 ip6.h
+-rw-r--r--  1 carter  staff  5013 Dec 31  2016 ip_icmp.h
+-rw-r--r--  1 carter  staff  3198 Dec 31  2016 ip_var.h
+-rw-r--r--  1 carter  staff  6380 Dec 31  2016 tcp_var.h
+-rw-r--r--  1 carter  staff  1033 Dec 31  2016 tcpip.h
+-rw-r--r--  1 carter  staff  1086 Dec 31  2016 udp_var.h
 
 ./include/cygwin-include/protocols:
 total 8
--r--r--r--  1 carter  staff  2340 May  1  2012 routed.h
+-rw-r--r--  1 carter  staff  2340 Dec 31  2016 routed.h
 
 ./include/cygwin-include/sys:
 total 8
--r--r--r--  1 carter  staff  49 May  1  2012 mbuf.h
+-rw-r--r--  1 carter  staff  49 Dec 31  2016 mbuf.h
 
 ./include/net:
 total 72
--r--r--r--  1 carter  staff   3225 May  1  2012 arcnet.h
--r--r--r--  1 carter  staff   2175 Apr 13  2015 etherdefs.h
--r--r--r--  1 carter  staff  12674 Oct  7  2014 nff.h
--r--r--r--  1 carter  staff   3566 May  1  2012 ppp.h
--r--r--r--  1 carter  staff   3876 May  1  2012 slcompress.h
--r--r--r--  1 carter  staff   1106 Apr 13  2015 slip.h
+-rw-r--r--  1 carter  staff   3225 Aug 23  2020 arcnet.h
+-rw-r--r--  1 carter  staff   2175 Aug 23  2020 etherdefs.h
+-rw-r--r--  1 carter  staff  12674 Dec 31  2016 nff.h
+-rw-r--r--  1 carter  staff   3566 Aug 23  2020 ppp.h
+-rw-r--r--  1 carter  staff   3876 Aug 23  2020 slcompress.h
+-rw-r--r--  1 carter  staff   1106 Aug 23  2020 slip.h
 
 ./include/netbsd-include:
 total 0
-drwxr-xr-x  3 carter  staff  102 Sep 15 15:38 netinet
+drwxr-xr-x  3 carter  staff  96 Oct  9  2017 netinet
 
 ./include/netbsd-include/netinet:
 total 8
--r--r--r--  1 carter  staff  1570 May  1  2012 rtp.h
+-rw-r--r--  1 carter  staff  1570 Dec 31  2016 rtp.h
 
 ./include/netinet:
 total 24
--r--r--r--  1 carter  staff  4895 Apr 13  2015 rtp.h
--r--r--r--  1 carter  staff  2185 May  1  2012 tcp_fsm.h
+-rw-r--r--  1 carter  staff  4895 Aug 23  2020 rtp.h
+-rw-r--r--  1 carter  staff  2185 Aug 23  2020 tcp_fsm.h
 
 ./lib:
+total 32
+-rw-r--r--  1 carter  staff  4608 Dec 17 15:55 argus.spec
+-rw-r--r--  1 carter  staff  4636 Nov  2 12:33 argus.spec.in
+
+./licenses:
+total 64
+-rw-r--r--@ 1 carter  staff  577 Sep  6  2020 README
+-rw-r--r--  1 carter  staff  111 Dec 17 15:55 arguspro_sensor_appliance.lic.template
+-rw-r--r--  1 carter  staff  126 Nov  2 12:33 arguspro_sensor_appliance.lic.template.in
+-rw-r--r--  1 carter  staff  137 Dec 17 15:55 arguspro_sensor_floating.lic.template
+-rw-r--r--  1 carter  staff  152 Sep  6  2020 arguspro_sensor_floating.lic.template.in
+-rw-r--r--  1 carter  staff  104 Nov  2 12:33 arguspro_sensor_vm.lic.template.in
+-rw-r--r--  1 carter  staff   89 Dec 17 15:55 arguspro_sensor_workstation.lic.template
+-rw-r--r--  1 carter  staff  104 Sep  6  2020 arguspro_sensor_workstation.lic.template.in
+
+./logo:
 total 8
--rw-r--r--  1 carter  staff  2637 Sep 15 16:51 argus.spec
+-rw-r--r--@ 1 carter  staff  2491 Nov 21 17:18 argus_logo_medium-6aac34a9.png
 
 ./man:
 total 0
-drwxr-xr-x  3 carter  staff  102 Sep 15 15:38 man5
-drwxr-xr-x  3 carter  staff  102 Sep 15 15:38 man8
+drwxr-xr-x  3 carter  staff  96 Sep  8  2021 man5
+drwxr-xr-x  3 carter  staff  96 Sep  6  2020 man8
 
 ./man/man5:
-total 48
--r-xr-xr-x  1 carter  staff  21159 Jan  8  2016 argus.conf.5
+total 56
+-rwxr-xr-x  1 carter  staff  24746 Sep  6  2020 argus.conf.5
 
 ./man/man8:
 total 24
--r-xr-xr-x  1 carter  staff  11252 Apr 13  2015 argus.8
+-rwxr-xr-x  1 carter  staff  11795 Sep  6  2020 argus.8
 
 ./pkg:
 total 64
--r--r--r--  1 carter  staff   4201 Apr 13  2015 README
--r--r--r--  1 carter  staff  21769 Apr 13  2015 argus.conf
-drwxr-xr-x  6 carter  staff    204 Sep 15 15:38 rhel
+-rw-r--r--@ 1 carter  staff   4201 Dec 31  2016 README
+-rw-r--r--  1 carter  staff  21779 Nov  2 12:33 argus.conf
+drwxr-xr-x  7 carter  staff    224 Nov  7 17:34 osx
+drwxr-xr-x  6 carter  staff    192 Aug 23  2020 rhel
+drwxr-xr-x  7 carter  staff    224 Dec 23 10:27 win
+
+./pkg/osx:
+total 16
+-rw-r--r--  1 carter  staff  1009 Nov  2 12:45 NOTES
+-rw-r--r--  1 carter  staff  1201 Nov  2 12:45 distribution.xml
+drwxr-xr-x  4 carter  staff   128 Nov  2 12:45 osx-pkg
+drwxr-xr-x  3 carter  staff    96 Aug 23  2020 resources
+drwxr-xr-x  4 carter  staff   128 Aug 23  2020 scripts
+
+./pkg/osx/osx-pkg:
+total 0
+drwxr-xr-x  6 carter  staff  192 Nov  2 12:45 Contents
+drwxr-xr-x  3 carter  staff   96 Nov  2 12:45 Library
+
+./pkg/osx/osx-pkg/Contents:
+total 16
+-rw-r--r--  1 carter  staff  1221 Nov  2 12:45 Info.plist
+drwxr-xr-x  5 carter  staff   160 Nov  2 12:45 MacOS
+-rw-r--r--  1 carter  staff     8 Nov  2 12:45 PkgInfo
+drwxr-xr-x  3 carter  staff    96 Nov  2 12:45 _CodeSignature
+
+./pkg/osx/osx-pkg/Contents/MacOS:
+total 0
+drwxr-xr-x  4 carter  staff  128 Nov  2 12:45 Library
+drwxr-xr-x  3 carter  staff   96 Nov  2 12:45 etc
+drwxr-xr-x  3 carter  staff   96 Nov  2 12:45 usr
+
+./pkg/osx/osx-pkg/Contents/MacOS/Library:
+total 0
+drwxr-xr-x  3 carter  staff  96 Nov  2 12:45 LaunchDaemons
+drwxr-xr-x  3 carter  staff  96 Nov  2 12:45 PreferencePanes
+
+./pkg/osx/osx-pkg/Contents/MacOS/Library/LaunchDaemons:
+total 8
+-rw-r--r--  1 carter  staff  849 Nov  2 12:45 com.qosient.argus.plist
+
+./pkg/osx/osx-pkg/Contents/MacOS/Library/PreferencePanes:
+total 0
+drwxr-xr-x  3 carter  staff  96 Nov  2 12:45 Argus.prefPane
+
+./pkg/osx/osx-pkg/Contents/MacOS/Library/PreferencePanes/Argus.prefPane:
+total 0
+drwxr-xr-x  6 carter  staff  192 Nov  2 12:45 Contents
+
+./pkg/osx/osx-pkg/Contents/MacOS/Library/PreferencePanes/Argus.prefPane/Contents:
+total 8
+-rw-r--r--   1 carter  staff  1748 Nov  2 12:45 Info.plist
+drwxr-xr-x   3 carter  staff    96 Nov  2 12:45 MacOS
+drwxr-xr-x  12 carter  staff   384 Nov  2 12:45 Resources
+drwxr-xr-x   3 carter  staff    96 Nov  2 12:45 _CodeSignature
+
+./pkg/osx/osx-pkg/Contents/MacOS/Library/PreferencePanes/Argus.prefPane/Contents/MacOS:
+total 216
+-rwxr-xr-x  1 carter  staff  110512 Nov  2 12:45 Argus
+
+./pkg/osx/osx-pkg/Contents/MacOS/Library/PreferencePanes/Argus.prefPane/Contents/Resources:
+total 616
+-rw-r--r--  1 carter  staff    1278 Nov  2 12:45 Argus-Info.plist
+-rw-r--r--  1 carter  staff     438 Nov  2 12:45 Argus-apps.plist
+-rw-r--r--  1 carter  staff     581 Nov  2 12:45 Argus-services.plist
+-rw-r--r--  1 carter  staff   41607 Nov  2 12:45 Argus.nib
+-rw-r--r--  1 carter  staff    8271 Nov  2 12:45 ArgusBlueButton.png
+-rw-r--r--  1 carter  staff    6475 Nov  2 12:45 ArgusOptimizationCycle.gif
+-rw-r--r--  1 carter  staff      92 Nov  2 12:45 InfoPlist.strings
+-rwxr-xr-x  1 carter  staff  222412 Nov  2 12:45 OpenSans-Light.ttf
+-rw-r--r--  1 carter  staff    2957 Nov  2 12:45 QoSient_New_Logo.png
+-rw-r--r--  1 carter  staff    3069 Nov  2 12:45 argus_logo.png
+
+./pkg/osx/osx-pkg/Contents/MacOS/Library/PreferencePanes/Argus.prefPane/Contents/_CodeSignature:
+total 16
+-rw-r--r--  1 carter  staff  4626 Nov  2 12:45 CodeResources
+
+./pkg/osx/osx-pkg/Contents/MacOS/etc:
+total 56
+-rwxr-xr-x  1 carter  staff  26498 Nov  2 12:45 argus.conf
+
+./pkg/osx/osx-pkg/Contents/MacOS/usr:
+total 0
+drwxr-xr-x  4 carter  staff  128 Nov  2 12:45 local
+
+./pkg/osx/osx-pkg/Contents/MacOS/usr/local:
+total 0
+drwxr-xr-x  13 carter  staff  416 Nov  2 12:45 bin
+drwxr-xr-x   3 carter  staff   96 Nov  2 12:45 share
+
+./pkg/osx/osx-pkg/Contents/MacOS/usr/local/bin:
+total 104
+-rwxr-xr-x  1 carter  staff  1374 Nov  2 12:45 argus-airport
+-rwxr-xr-x  1 carter  staff   676 Nov  2 12:45 argus-extip
+-rwxr-xr-x  1 carter  staff  1304 Nov  2 12:45 argus-ipaddr
+-rwxr-xr-x  1 carter  staff  1330 Nov  2 12:45 argus-ipmitool
+-rwxr-xr-x  1 carter  staff  1296 Nov  2 12:45 argus-lsof
+-rwxr-xr-x  1 carter  staff  4037 Nov  2 12:45 argus-netstat
+-rwxr-xr-x  1 carter  staff  2293 Nov  2 12:45 argus-snmp
+-rwxr-xr-x  1 carter  staff  3068 Nov  2 12:45 argus-stumbler
+-rwxr-xr-x  1 carter  staff  1324 Nov  2 12:45 argus-top
+-rwxr-xr-x  1 carter  staff  1536 Nov  2 12:45 argus-vmstat
+-rwxr-xr-x  1 carter  staff  9928 Nov  2 12:45 argusbug
+
+./pkg/osx/osx-pkg/Contents/MacOS/usr/local/share:
+total 0
+drwxr-xr-x  4 carter  staff  128 Nov  2 12:45 man
+
+./pkg/osx/osx-pkg/Contents/MacOS/usr/local/share/man:
+total 0
+drwxr-xr-x  3 carter  staff  96 Nov  2 12:45 man5
+drwxr-xr-x  3 carter  staff  96 Nov  2 12:45 man8
+
+./pkg/osx/osx-pkg/Contents/MacOS/usr/local/share/man/man5:
+total 48
+-rwxr-xr-x  1 carter  staff  23804 Nov  2 12:45 argus.conf.5
+
+./pkg/osx/osx-pkg/Contents/MacOS/usr/local/share/man/man8:
+total 24
+-rwxr-xr-x  1 carter  staff  11253 Nov  2 12:45 argus.8
+
+./pkg/osx/osx-pkg/Contents/_CodeSignature:
+total 8
+-rw-r--r--  1 carter  staff  2200 Nov  2 12:45 CodeResources
+
+./pkg/osx/osx-pkg/Library:
+total 0
+drwxr-xr-x  3 carter  staff  96 Oct  9  2017 PreferencePanes
+
+./pkg/osx/osx-pkg/Library/PreferencePanes:
+total 0
+drwxr-xr-x  3 carter  staff  96 Oct  9  2017 Argus.prefPane
+
+./pkg/osx/osx-pkg/Library/PreferencePanes/Argus.prefPane:
+total 0
+drwxr-xr-x  3 carter  staff  96 Nov  2 12:45 Contents
+
+./pkg/osx/osx-pkg/Library/PreferencePanes/Argus.prefPane/Contents:
+total 0
+drwxr-xr-x  3 carter  staff  96 Nov  2 12:45 Resources
+
+./pkg/osx/osx-pkg/Library/PreferencePanes/Argus.prefPane/Contents/Resources:
+total 8
+-rw-r--r--  1 carter  staff  499 Jul 10  2017 Argus-apps.plist
+
+./pkg/osx/resources:
+total 184
+-rw-r--r--  1 carter  staff  92962 Aug 23  2020 Gargoyle.png
+
+./pkg/osx/scripts:
+total 16
+-rwxr-xr-x  1 carter  staff   86 Aug 23  2020 postinstall
+-rwxr-xr-x  1 carter  staff  159 Aug 23  2020 preinstall
 
 ./pkg/rhel:
 total 0
-drwxr-xr-x  3 carter  staff  102 Sep 15 15:38 init.d
-drwxr-xr-x  3 carter  staff  102 Sep 15 16:49 sasl2
-drwxr-xr-x  3 carter  staff  102 Sep 15 15:38 sysconfig
-drwxr-xr-x  4 carter  staff  136 Sep 15 16:50 systemd
+drwxr-xr-x  3 carter  staff   96 Aug 23  2020 init.d
+drwxr-xr-x  3 carter  staff   96 Aug 23  2020 sasl2
+drwxr-xr-x  3 carter  staff   96 Sep  6  2020 sysconfig
+drwxr-xr-x  7 carter  staff  224 Nov  2 12:33 systemd
 
 ./pkg/rhel/init.d:
 total 8
--r-xr-xr-x  1 carter  staff  2798 Aug 31  2015 argus
+-rwxr-xr-x  1 carter  staff  2798 Aug 23  2020 argus
 
 ./pkg/rhel/sasl2:
 total 8
--rw-r--r--  1 carter  staff  26 Sep 15 16:49 argus.conf
+-rw-r--r--  1 carter  staff  26 Aug 23  2020 argus.conf
 
 ./pkg/rhel/sysconfig:
 total 8
--r--r--r--  1 carter  staff  551 Oct  7  2014 argus
+-rw-r--r--  1 carter  staff  271 Sep  6  2020 argus
 
 ./pkg/rhel/systemd:
-total 24
--rw-r--r--  1 carter  staff  6244 Sep 15 16:49 argus-setup
--rw-r--r--  1 carter  staff   322 Sep 15 16:50 argus.service
+total 56
+-rw-r--r--  1 carter  staff  7558 Sep  6  2020 argus-setup
+-rw-r--r--  1 carter  staff  7970 Sep  6  2020 argus-setup-numa
+-rw-r--r--  1 carter  staff   427 Nov  2 12:33 argus.server.service
+-rw-r--r--  1 carter  staff   264 Sep  6  2020 argus.workstation.service
+-rw-r--r--  1 carter  staff   540 Nov  2 12:33 argus@.service
+
+./pkg/win:
+total 48
+-rw-r--r--  1 carter  staff   200 Dec 17 15:55 Makefile
+-rw-r--r--  1 carter  staff   254 Dec 23 10:27 Makefile.in
+-rw-r--r--  1 carter  staff  7279 Dec 17 15:55 argus.wxs
+-rw-r--r--  1 carter  staff  7605 Dec 23 10:27 argus.wxs.in
+drwxr-xr-x  3 carter  staff    96 Dec 23 08:51 etc
+
+./pkg/win/etc:
+total 8
+-rw-r--r--  1 carter  staff  764 Dec 23 08:51 argus.conf
 
 ./support:
 total 8
-drwxr-xr-x  4 carter  staff   136 Sep 15 15:38 Archive
-drwxr-xr-x  3 carter  staff   102 Sep 26 17:28 Config
-drwxr-xr-x  3 carter  staff   102 Sep 15 15:38 Deployment
--r--r--r--  1 carter  staff  2271 Apr 13  2015 README
-drwxr-xr-x  6 carter  staff   204 Sep 15 15:38 Startup
-drwxr-xr-x  4 carter  staff   136 Sep 15 15:38 System
+drwxr-xr-x  4 carter  staff   128 Aug 23  2020 Archive
+drwxr-xr-x  3 carter  staff    96 Nov  2 12:33 Config
+drwxr-xr-x  3 carter  staff    96 Aug 23  2020 Deployment
+-rw-r--r--@ 1 carter  staff  2271 Aug 23  2020 README
+drwxr-xr-x  6 carter  staff   192 Aug 23  2020 Startup
+drwxr-xr-x  4 carter  staff   128 Aug 23  2020 System
 
 ./support/Archive:
 total 48
--r--r--r--  1 carter  staff   5181 May  1  2012 README.argusarchive
--r-xr-xr-x  1 carter  staff  14881 Apr 13  2015 argusarchive
+-rw-r--r--  1 carter  staff   5181 Dec 31  2016 README.argusarchive
+-rwxr-xr-x  1 carter  staff  14881 Aug 23  2020 argusarchive
 
 ./support/Config:
 total 56
--rwxr-xr-x  1 carter  staff  25093 Sep 26 15:12 argus.conf
+-rwxr-xr-x  1 carter  staff  27076 Nov  2 12:33 argus.conf
 
 ./support/Deployment:
 total 16
--r-xr-xr-x  1 carter  staff  7402 Apr 13  2015 sample
+-rwxr-xr-x  1 carter  staff  7402 Aug 23  2020 sample
 
 ./support/Startup:
 total 32
--r--r--r--  1 carter  staff  3458 Apr 13  2015 README
--r--r--r--  1 carter  staff  2904 Aug 31  2015 argus
--rw-r--r--  1 carter  staff   559 Sep 15 15:36 argus.service
--r--r--r--  1 carter  staff   723 May  1  2012 com.qosient.argus.plist
+-rw-r--r--@ 1 carter  staff  3458 Aug 23  2020 README
+-rw-r--r--  1 carter  staff  2904 Aug 23  2020 argus
+-rw-r--r--  1 carter  staff   559 Dec 31  2016 argus.service
+-rw-r--r--  1 carter  staff   723 Dec 31  2016 com.qosient.argus.plist
 
 ./support/System:
 total 16
--r-xr-xr-x  1 carter  staff   947 Apr 13  2015 crontab
--r-xr-xr-x  1 carter  staff  1350 Apr 13  2015 magic
+-rwxr-xr-x  1 carter  staff   947 Aug 23  2020 crontab
+-rwxr-xr-x  1 carter  staff  1350 Aug 23  2020 magic

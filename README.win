@@ -66,7 +66,70 @@ To build for Windows 7 using WinPcap:
   % make winpackage
 
 
+CUSTOMIZATION
+
+The argus.conf file that is installed makes some assumptions as to how argus should run.
+You will want to review the file to turn on, or off features for your installation.
+Argus is configure to offer a remote access on port 562, with assumption that you will
+be running a client radium on port 561.  To limit access to argus from within the 
+machine, there is an ARGUS_BIND setting to limit it to IPv6 and IPv4 localhost.
+You will want to modify that if you want to access argus from other systems.
+
+
+
 NOTES
+
+Installing Npcap so that the standard Argus source distro compiles cleanly involves a bit.
+The installation provides wpcap.dll and we'd like a libpcap.a so that we can find all the routines.
+This is well described described in https://redmine.openinfosecfoundation.org/issues/931 ...
+
+/*
+   To compile:
+   
+   1 Install cygwin64 (https://cygwin.com/install.html) - setup-x86_64.exe - (regular "next/next/ok" install). Make sure you install the lynx and wget packages!
+   
+   2 Npcap (https://nmap.org/npcap/)
+   
+   2.1 - Download and install Npcap (Npcap 0.82 installer for windows). Double click on the npcap-0.82 and accept all settings including winpcap compatibility mode.
+   2.2 - Download Npcap SDK (ZIP).
+   Copy all from npcap-sdk-0\npcap-sdk\lib to cygwin64\lib\
+   Copy all from npcap-sdk-0\npcap-sdk\Include to C:\cygwin64\usr\include\
+   
+   3. Open up cygwin64 and install some dependencies.
+   
+   3.1 First - an apt-get like tool for cygwin
+   
+   lynx -source rawgit.com/transcode-open/apt-cyg/master/apt-cyg > apt-cyg
+   install apt-cyg /bin
+   
+   3.2 Install the deps
+   
+   apt-cyg install libmpfr4 libmpfr-devel libiconv-devel mpfr mingw64-x86_64-winpthreads gcc-core make automake automake1.9 zlib zlib-devel zlib0 autoconf autoconf2.5 libtool libglib2.0-devel libglib2.0_0 pkg-config libyaml-devel libyaml0_2 libpcre1 libpcre-devel file-devel gcc-g++ wget luajit luajit-devel libGeoIP-devel libGeoIP1 libnss-devel libnss3 libnspr-devel libnspr4 git
+   
+   3.3 For our DLLs file hacking
+   
+   apt-cyg install gendef
+   
+   4. Find the 64bit versions of the wpcap.dll and Packet.dll
+   
+   Take the x64 version of your wpcap.dll (usually Windows\System32 or Windows\System32\Npcap).
+   Copy that over to some temp/work folder in cygwin64 and from within cygwin64 shell:
+   
+   gendef wpcap.dll
+   dlltool --as-flags=--64 -m i386:x86-64 -k --output-lib libpcap.a --input-def wpcap.def
+   
+   Same for Packet.dll
+   Take the x64 version of your Packet.dll, do (usually Windows\System32 or Windows\System32\Npcap).
+   
+   In the cygwin64 shell again:
+   
+   gendef wpcap.dll
+   dlltool --as-flags=--64 -m i386:x86-64 -k --output-lib libpacket.a --input-def Packet.def
+   
+   You will end up with 64 bit usable libpacket.a and libpcap.a.
+   Copy those to C:\cygwin64\lib
+*/
+
 
 Time drift between the system clock and the Npcap layer can be horrible, especially in
 sleeping VM's and mobile devices.  With modern versions of Npcap, the solution is to
