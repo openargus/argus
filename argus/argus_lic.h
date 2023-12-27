@@ -1,6 +1,6 @@
 /*
  * Gargoyle Software.  Argus files - Main argus processing
- * Copyright (c) 2017 QoSient, LLC
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
