@@ -1,6 +1,6 @@
 #!@PERLBIN@
 #
-#  Argus-5.0 Software.  Argus Event scripts - ip addr
+#  Gargoyle Software.  Argus Event scripts - ip addr
 #  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 #

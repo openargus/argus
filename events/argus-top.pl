@@ -1,6 +1,6 @@
-#!/bin/bash
+#!@PERLBIN@
 #
-#  Gargoyle Software.  Argus Event scripts - vmstat
+#  Gargoyle Software.  Argus Event scripts - top
 #  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 #
@@ -20,19 +20,29 @@
 #  Written by Carter Bullard
 #  QoSient, LLC
 #
-#  airport - report apple airport wireless interface stats.
-# 
-#  $Id$
-#  $DateTime$
-#  $Change$
+#  argus-top - Report process/thread based statistics for health and status
+#              Linux specific
 #
 
-output=`/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | sed -e 's/^[ \t]*//' -e 's/:/,/' -e 's/op mode/opMode/' -e 's/link auth/linkAuth/' -e 's/802.11 auth/802.11.auth/' | awk 'BEGIN{FS=","}{print "      < "$1" ="$2"\" />"}' | sed -e 's/= /= "/'`
+use POSIX;
+use strict;
 
-#
-# 
-echo "<ArgusEvent>"
-echo "   <ArgusEventData Type = \"Program: com.apple.airport\" >"
-echo "$output"
-echo "   </ArgusEventData>"
-echo "</ArgusEvent>"
+local $ENV{PATH} = "$ENV{PATH}:/usr/bin:/bin:/usr/sbin:/sbin";
+
+my $top = `which top`;
+chomp($top);
+my @args = "$top -b -n1";
+my $data;
+
+print "<ArgusEvent>\n";
+print "  <ArgusEventData Type = \"Program: @args\">\n";
+
+open(SESAME, "@args |");
+
+while ($data = <SESAME>) {
+   print "    $data";
+}
+close(SESAME);
+
+print "  </ArgusEventData>\n";
+print "</ArgusEvent>\n";
