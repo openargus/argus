@@ -1,7 +1,7 @@
 #!@PERLBIN@
 #
 #  Gargoyle Software.  Argus Event scripts - lsof
-#  Copyright (c) 2000-2015 QoSient, LLC
+#  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 #
 #  THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,

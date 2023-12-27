@@ -1,7 +1,7 @@
 #!@PERLBIN@
 #
 #  Argus Software
-#  Copyright (c) 2006-2015 QoSient, LLC
+#  Copyright (c) 2006-2024 QoSient, LLC
 #  All rights reserved.
 #
 #  argus-extip - get external IP address for this node.
