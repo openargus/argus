@@ -1,6 +1,6 @@
 # 
 #  Gargoyle Software. Argus flow data generation.
-#  Copyright (c) 2000-2015 QoSient, LLC
+#  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 # 
 #  THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
@@ -17,7 +17,7 @@
 #  THIS SOFTWARE.
 # 
 # Makefile for Gargoyle
-# Copyright (C) 1996-2015 QoSient, LLC
+# Copyright (C) 1996-2024 QoSient, LLC
 # All rights reserved
 #
 #### Start of system configuration section. ####

@@ -623,11 +623,11 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
             }
             pcap_free_tstamp_types(tstamp_types);
 
-            if (adapter && (ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER)) {
-               type = PCAP_TSTAMP_ADAPTER;
-            } else
             if (hiprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_HIPREC)) {
                type = PCAP_TSTAMP_HOST_HIPREC;
+            } else
+            if (adapter && (ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER)) {
+               type = PCAP_TSTAMP_ADAPTER;
             } else
             if (lowprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_LOWPREC)) {
                type = PCAP_TSTAMP_HOST_LOWPREC;
@@ -698,61 +698,61 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
          default:
             retn = 1;
       }
+
       if (inf->ArgusPd != NULL) {
-            pcap_setnonblock(inf->ArgusPd, 1, errbuf);
+         pcap_setnonblock(inf->ArgusPd, 1, errbuf);
 
-            if (device->dltname != NULL) {
+         if (device->dltname != NULL) {
 #ifdef HAVE_PCAP_SET_DATALINK
-               if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
-                  ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
+            if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
+               ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
 #else
-               /*
-                * We don't actually support changing the
-                * data link type, so we only let them
-                * set it to what it already is.
-                */
+            /*
+             * We don't actually support changing the
+             * data link type, so we only let them
+             * set it to what it already is.
+             */
 
-               if (device->dlt != pcap_datalink(inf->ArgusPd))
-                  ArgusLog(LOG_ERR,
-                           "%s: %s is not one of the DLTs supported by this device\n",
+            if (device->dlt != pcap_datalink(inf->ArgusPd))
+               ArgusLog(LOG_ERR, "%s: %s is not one of the DLTs supported by this device\n",
                            __func__, device->dltname);
 #endif
-            }
+         }
 
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #if !defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
 #if defined(BIOCIMMEDIATE)
-            {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
+         {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
 #endif
 #endif
 #endif
-            src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
-            inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
-            memset((char *)&inf->ifr, 0, sizeof(inf->ifr));
-            strncpy(inf->ifr.ifr_name, device->name, sizeof(inf->ifr.ifr_name));
-            if (!((pcap_lookupnet (device->name, (u_int *)&inf->ArgusLocalNet,
+         src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
+         inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
+         memset((char *)&inf->ifr, 0, sizeof(inf->ifr));
+         strncpy(inf->ifr.ifr_name, device->name, sizeof(inf->ifr.ifr_name));
+         if (!((pcap_lookupnet (device->name, (u_int *)&inf->ArgusLocalNet,
                                                  (u_int *)&inf->ArgusNetMask, errbuf)) < 0)) {
 #if defined(_LITTLE_ENDIAN)
-               inf->ArgusLocalNet = ntohl(inf->ArgusLocalNet);
-               inf->ArgusNetMask  = ntohl(inf->ArgusNetMask);
+            inf->ArgusLocalNet = ntohl(inf->ArgusLocalNet);
+            inf->ArgusNetMask  = ntohl(inf->ArgusNetMask);
 #endif
-            }
+         }
 
-            if ((type = pcap_datalink(inf->ArgusPd)) >= 0) 
-               inf->ArgusCallBack = Arguslookup_pcap_callback(type);
+         if ((type = pcap_datalink(inf->ArgusPd)) >= 0) 
+            inf->ArgusCallBack = Arguslookup_pcap_callback(type);
 
-            if (inf->ArgusCallBack == NULL) {
-               if (type > 0) {
+         if (inf->ArgusCallBack == NULL) {
+            if (type > 0) {
 #ifdef ARGUSDEBUG
                   ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
 #endif
-               }
-               device->status |= ARGUS_DONT_OPEN;
-               pcap_close(inf->ArgusPd);
-               inf->ArgusPd = NULL;
-               retn = 0;
-            } else
-               retn = 1;
+            }
+            device->status |= ARGUS_DONT_OPEN;
+            pcap_close(inf->ArgusPd);
+            inf->ArgusPd = NULL;
+            retn = 0;
+         } else
+            retn = 1;
       }
    }
    ArgusFree(errbuf);

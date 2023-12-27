@@ -1,6 +1,6 @@
 dnl
 dnl Gargoyle Software. Argus flow data generation.
-dnl Copyright (c) 2000-2015 QoSient, LLC
+dnl Copyright (c) 2000-2024 QoSient, LLC
 dnl All rights reserved.
 dnl
 dnl THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,

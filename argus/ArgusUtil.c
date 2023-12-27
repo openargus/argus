@@ -1476,6 +1476,8 @@ ArgusWriteSocket (struct ArgusOutputStruct *output, struct ArgusClientData *clie
                         if (asock->filename != NULL) {
                            close(asock->fd);
                            asock->fd = -1;
+                           if (asock->rec != NULL)
+                              ArgusFreeListRecord(asock->rec);
                            asock->rec = NULL;
                            asock->writen = 0;
                            asock->length = 0;
