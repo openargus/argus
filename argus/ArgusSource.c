@@ -595,7 +595,57 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
       pcap_set_promisc(inf->ArgusPd, src->Arguspflag);
       pcap_set_timeout(inf->ArgusPd, 100);
 
-#if defined(ARGUS_NANOSECONDS)
+#if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
+      {
+         int *tstamp_types = NULL, cnt, i;
+         if ((cnt = pcap_list_tstamp_types(inf->ArgusPd, &tstamp_types)) > 0) {
+            int hiprec = 0, lowprec = 0, adapter = 0, adapterUnsync = 0;
+            int type = 0;
+            for (i = 0; i < cnt; i++) {
+               if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER) {
+                  adapter = 1;
+               } else
+               if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER_UNSYNCED) {
+                  adapterUnsync = 1;
+               } else
+               if (tstamp_types[i] == PCAP_TSTAMP_HOST_HIPREC) {
+                  hiprec = 1;
+               } else
+               if (tstamp_types[i] == PCAP_TSTAMP_HOST_LOWPREC) {
+                  lowprec = 1;
+               }
+            }
+            pcap_free_tstamp_types(tstamp_types);
+
+            if (hiprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_HIPREC)) {
+               type = PCAP_TSTAMP_HOST_HIPREC;
+            } else
+            if (adapter && (ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER)) {
+               type = PCAP_TSTAMP_ADAPTER;
+            } else
+            if (lowprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_LOWPREC)) {
+               type = PCAP_TSTAMP_HOST_LOWPREC;
+            } else
+            if (adapterUnsync  && ((ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER) &&
+                                   (ArgusTimeStampType & ARGUS_TIMESTAMP_UNSYNCH))) {
+               type = PCAP_TSTAMP_ADAPTER_UNSYNCED;
+            }
+
+            if (type != 0) {
+               pcap_set_tstamp_type(inf->ArgusPd, type);
+#ifdef ARGUSDEBUG
+               ArgusDebug(4, "pcap_set_tstamp_type: set to %s\n", pcap_tstamp_type_val_to_name(type));
+#endif
+            }
+         } else {
+            if (cnt < 0) {
+               ArgusLog (LOG_INFO, "ArgusOpenInterface pcap_list_tstamp_types: %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
+            }
+         }
+      }
+#endif
+
+#if defined(ARGUS_NANOSECONDS) && defined(HAVE_PCAP_SET_TSTAMP_PRECISION)
       switch (pcap_set_tstamp_precision(inf->ArgusPd, PCAP_TSTAMP_PRECISION_NANO)) {
          case PCAP_ERROR_TSTAMP_PRECISION_NOTSUP:
          case PCAP_ERROR_ACTIVATED:
@@ -644,8 +694,8 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 
          if (device->dltname != NULL) {
 #ifdef HAVE_PCAP_SET_DATALINK
-               if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
-                  ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
+            if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
+               ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
 #else
             /*
              * We don't actually support changing the
@@ -653,9 +703,8 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
              * set it to what it already is.
              */
 
-               if (device->dlt != pcap_datalink(inf->ArgusPd))
-                  ArgusLog(LOG_ERR,
-                           "%s: %s is not one of the DLTs supported by this device\n",
+            if (device->dlt != pcap_datalink(inf->ArgusPd))
+               ArgusLog(LOG_ERR, "%s: %s is not one of the DLTs supported by this device\n",
                            __func__, device->dltname);
 #endif
          }
@@ -663,15 +712,15 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #if !defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
 #if defined(BIOCIMMEDIATE)
-            {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
+         {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
 #endif
 #endif
 #endif
-            src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
-            inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
-            memset((char *)&inf->ifr, 0, sizeof(inf->ifr));
-            strncpy(inf->ifr.ifr_name, device->name, sizeof(inf->ifr.ifr_name));
-            if (!((pcap_lookupnet (device->name, (u_int *)&inf->ArgusLocalNet,
+         src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
+         inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
+         memset((char *)&inf->ifr, 0, sizeof(inf->ifr));
+         strncpy(inf->ifr.ifr_name, device->name, sizeof(inf->ifr.ifr_name));
+         if (!((pcap_lookupnet (device->name, (u_int *)&inf->ArgusLocalNet,
                                                  (u_int *)&inf->ArgusNetMask, errbuf)) < 0)) {
 #if defined(_LITTLE_ENDIAN)
             inf->ArgusLocalNet = ntohl(inf->ArgusLocalNet);
@@ -682,18 +731,18 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
             if ((type = pcap_datalink(inf->ArgusPd)) > 0)
                inf->ArgusCallBack = Arguslookup_pcap_callback(type);
 
-            if (inf->ArgusCallBack == NULL) {
-               if (type > 0) {
+         if (inf->ArgusCallBack == NULL) {
+            if (type > 0) {
 #ifdef ARGUSDEBUG
                   ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
 #endif
-               }
-               device->status |= ARGUS_DONT_OPEN;
-               pcap_close(inf->ArgusPd);
-               inf->ArgusPd = NULL;
-               retn = 0;
-            } else
-               retn = 1;
+            }
+            device->status |= ARGUS_DONT_OPEN;
+            pcap_close(inf->ArgusPd);
+            inf->ArgusPd = NULL;
+            retn = 0;
+         } else
+            retn = 1;
       }
    }
    ArgusFree(errbuf);
