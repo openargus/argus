@@ -51,10 +51,12 @@ extern "C" {
 
 #define argtimeval timeval
 
+#if !defined(__APPLE__)
 #if !defined(_STRUCT_TIMEVAL32)
 struct timeval32 {
    uint32_t tv_sec, tv_usec;
 };
+#endif
 #endif
 
 #include <string.h>
