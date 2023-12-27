@@ -1,6 +1,6 @@
 /*
  * Gargoyle Software.  Common include files. L2 encapsulations
- * Copyright (c) 2000-2015 QoSient, LLC
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
