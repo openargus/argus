@@ -1609,6 +1609,68 @@ fi
 
 } # ac_fn_c_try_link
 
+# ac_fn_c_check_func LINENO FUNC VAR
+# ----------------------------------
+# Tests whether FUNC exists, setting the cache variable VAR accordingly
+ac_fn_c_check_func ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+printf %s "checking for $2... " >&6; }
+if eval test \${$3+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+/* Define $2 to an innocuous variant, in case <limits.h> declares $2.
+   For example, HP-UX 11i <limits.h> declares gettimeofday.  */
+#define $2 innocuous_$2
+
+/* System header to define __stub macros and hopefully few prototypes,
+   which can conflict with char $2 (); below.  */
+
+#include <limits.h>
+#undef $2
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char $2 ();
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined __stub_$2 || defined __stub___$2
+choke me
+#endif
+
+int
+main (void)
+{
+return $2 ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  eval "$3=yes"
+else $as_nop
+  eval "$3=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+eval ac_res=\$$3
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_c_check_func
+
 # ac_fn_c_check_header_compile LINENO HEADER VAR INCLUDES
 # -------------------------------------------------------
 # Tests whether HEADER exists and can be compiled using the include files in
@@ -2808,11 +2870,11 @@ as_fn_append ac_header_c_list " strings.h strings_h HAVE_STRINGS_H"
 as_fn_append ac_header_c_list " sys/stat.h sys_stat_h HAVE_SYS_STAT_H"
 as_fn_append ac_header_c_list " sys/types.h sys_types_h HAVE_SYS_TYPES_H"
 as_fn_append ac_header_c_list " unistd.h unistd_h HAVE_UNISTD_H"
-as_fn_append ac_header_c_list " sys/time.h sys_time_h HAVE_SYS_TIME_H"
 as_fn_append ac_func_c_list " vprintf HAVE_VPRINTF"
 as_fn_append ac_header_c_list " vfork.h vfork_h HAVE_VFORK_H"
 as_fn_append ac_func_c_list " fork HAVE_FORK"
 as_fn_append ac_func_c_list " vfork HAVE_VFORK"
+as_fn_append ac_header_c_list " sys/time.h sys_time_h HAVE_SYS_TIME_H"
 as_fn_append ac_func_c_list " alarm HAVE_ALARM"
 as_fn_append ac_header_c_list " sys/select.h sys_select_h HAVE_SYS_SELECT_H"
 as_fn_append ac_header_c_list " sys/socket.h sys_socket_h HAVE_SYS_SOCKET_H"
@@ -4386,7 +4448,7 @@ fi
              { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lbl_cc_hpux_cc_aa" >&5
 printf "%s\n" "$ac_cv_lbl_cc_hpux_cc_aa" >&6; }
              if test $ac_cv_lbl_cc_hpux_cc_aa = no ; then
-                as_fn_error $? "see the INSTALL doc for more info" "$LINENO" 5
+                as_fn_error $? "\"see the INSTALL doc for more info\"" "$LINENO" 5
              fi
              CFLAGS="$savedcflags"
              V_CCOPT="-Aa $V_CCOPT"
@@ -4427,7 +4489,7 @@ int
 main (void)
 {
 struct a { int b; };
-             void c(const struct a *)
+                                              void c(const struct a *)
   ;
   return 0;
 }
@@ -4716,8 +4778,23 @@ else $as_nop
   LEXLIB=$ac_cv_lib_lex
 fi
   ac_save_LIBS="$LIBS"
-      LIBS=
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing yywrap" >&5
+      if test -n "$LEXLIB"
+then :
+  LIBS="$LEXLIB"
+        ac_fn_c_check_func "$LINENO" "yywrap" "ac_cv_func_yywrap"
+if test "x$ac_cv_func_yywrap" = xyes
+then :
+  :
+else $as_nop
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: $LEXLIB does not contain yywrap; giving up on $LEX" >&5
+printf "%s\n" "$as_me: WARNING: $LEXLIB does not contain yywrap; giving up on $LEX" >&2;}
+          LEX=: LEXLIB=
+fi
+
+
+else $as_nop
+  LIBS=
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing yywrap" >&5
 printf %s "checking for library containing yywrap... " >&6; }
 if test ${ac_cv_search_yywrap+y}
 then :
@@ -4776,6 +4853,13 @@ then :
   LEXLIB="$LIBS"
 fi
 
+        if test x"$ac_cv_search_yywrap" = xno
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: yywrap not found; giving up on $LEX" >&5
+printf "%s\n" "$as_me: WARNING: yywrap not found; giving up on $LEX" >&2;}
+          LEX=: LEXLIB=
+fi
+fi
       LIBS="$ac_save_LIBS"
 fi
 
@@ -5920,8 +6004,6 @@ fi
 
 fi
 
-# Autoupdate added the next two lines to ensure that your configure
-# script's behavior did not change.  They are probably safe to remove.
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for grep that handles long lines and -e" >&5
 printf %s "checking for grep that handles long lines and -e... " >&6; }
@@ -6945,16 +7027,6 @@ printf "%s\n" "#define size_t unsigned int" >>confdefs.h
 fi
 
 
-
-
-# Obsolete code to be removed.
-if test $ac_cv_header_sys_time_h = yes; then
-
-printf "%s\n" "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
-
-fi
-# End of obsolete code.
-
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether struct tm is in sys/time.h or time.h" >&5
 printf %s "checking whether struct tm is in sys/time.h or time.h... " >&6; }
 if test ${ac_cv_struct_tm+y}
@@ -7782,6 +7854,7 @@ esac
 
 
 
+
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for working mktime" >&5
 printf %s "checking for working mktime... " >&6; }
 if test ${ac_cv_func_working_mktime+y}
@@ -8127,35 +8200,6 @@ printf "%s\n" "#define SELECT_TYPE_ARG5 ($3)" >>confdefs.h
 
 rm -rf conftest*
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking return type of signal handlers" >&5
-printf %s "checking return type of signal handlers... " >&6; }
-if test ${ac_cv_type_signal+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/types.h>
-#include <signal.h>
-
-int
-main (void)
-{
-return *(signal (0, 0)) (0) == 1;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"
-then :
-  ac_cv_type_signal=int
-else $as_nop
-  ac_cv_type_signal=void
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_type_signal" >&5
-printf "%s\n" "$ac_cv_type_signal" >&6; }
 
 printf "%s\n" "#define RETSIGTYPE $ac_cv_type_signal" >>confdefs.h
 
@@ -10095,7 +10139,7 @@ hpux10.1*)
 	;;
 
 hpux*)
-		have_hpux_ten=yes;
+	have_hpux_ten=yes;
 	;;
 
 sinix*)

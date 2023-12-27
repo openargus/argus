@@ -40,7 +40,7 @@ AC_LBL_C_INIT(V_CCOPT, V_INCLS)
 AC_C_INLINE
 AC_PROG_MAKE_SET
 AC_PROG_LN_S
-AC_PROG_LEX
+AC_PROG_LEX(yywrap)
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_YACC
@@ -57,12 +57,6 @@ AC_QOSIENT_PCRE(V_PCRE, V_INCLS)
 
 # Checks for header files.
 AC_HEADER_DIRENT
-m4_warn([obsolete],
-[The preprocessor macro `STDC_HEADERS' is obsolete.
-  Except in unusual embedded environments, you can safely include all
-  ISO C90 headers unconditionally.])dnl
-# Autoupdate added the next two lines to ensure that your configure
-# script's behavior did not change.  They are probably safe to remove.
 AC_CHECK_INCLUDES_DEFAULT
 AC_PROG_EGREP
 
@@ -99,20 +93,6 @@ AC_TYPE_UID_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 
-m4_warn([obsolete],
-[Update your code to rely only on HAVE_SYS_TIME_H,
-then remove this warning and the obsolete code below it.
-All current systems provide time.h; it need not be checked for.
-Not all systems provide sys/time.h, but those that do, all allow
-you to include it and time.h simultaneously.])dnl
-AC_CHECK_HEADERS_ONCE([sys/time.h])
-# Obsolete code to be removed.
-if test $ac_cv_header_sys_time_h = yes; then
-  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
-	     and <time.h>.  This macro is obsolete.])
-fi
-# End of obsolete code.
-
 AC_STRUCT_TM
 AC_STRUCT_TIMEZONE
 
@@ -128,16 +108,6 @@ AC_FUNC_MEMCMP
 AC_FUNC_MKTIME
 AC_FUNC_REALLOC
 AC_FUNC_SELECT_ARGTYPES
-m4_warn([obsolete],
-[your code may safely assume C89 semantics that RETSIGTYPE is void.
-Remove this warning and the `AC_CACHE_CHECK' when you adjust the code.])dnl
-AC_CACHE_CHECK([return type of signal handlers],[ac_cv_type_signal],[AC_COMPILE_IFELSE(
-[AC_LANG_PROGRAM([#include <sys/types.h>
-#include <signal.h>
-],
-		 [return *(signal (0, 0)) (0) == 1;])],
-		   [ac_cv_type_signal=int],
-		   [ac_cv_type_signal=void])])
 AC_DEFINE_UNQUOTED([RETSIGTYPE],[$ac_cv_type_signal],[Define as the return type of signal handlers
 		    (`int' or `void').])
 
@@ -398,7 +368,6 @@ hpux10.1*)
 	;;
 
 hpux*)
-	dnl HPUX 10.20 and above is similar to HPUX 9...
 	have_hpux_ten=yes;
 	;;
 
