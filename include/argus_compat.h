@@ -35,6 +35,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
 #endif
@@ -49,12 +51,10 @@ extern "C" {
 
 #define argtimeval timeval
 
-#if defined(CYGWIN)
 #if !defined(_STRUCT_TIMEVAL32)
 struct timeval32 {
    uint32_t tv_sec, tv_usec;
 };
-#endif
 #endif
 
 #include <string.h>
