@@ -24,7 +24,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.71])
+AC_PREREQ([2.69])
 AC_INIT([Argus Pro (Gargoyle) Server Programs],[5.0],[bug-report@qosient.com],[argus],[http://qosient.com/argus])
 PACKAGE_RELEASE='3.8'
 ARGUSPRO_VERSION='1.4'
@@ -60,7 +60,6 @@ AC_QOSIENT_PCRE(V_PCRE, V_INCLS)
 
 # Checks for header files.
 AC_HEADER_DIRENT
-AC_CHECK_INCLUDES_DEFAULT
 AC_PROG_EGREP
 
 AC_HEADER_SYS_WAIT
