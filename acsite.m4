@@ -1583,6 +1583,18 @@ AC_DEFUN([SASL_SET_GSSAPI_LIBS],
 ])
 
 
+# AC_QOSIENT_MACHINE_ID
+# --------------------
+AC_DEFUN([AC_QOSIENT_MACHINE_ID],[
+   AC_MSG_CHECKING([whether machine-id is found]);
+   AC_CHECK_FILE("/var/lib/dbus/machine-id", 
+      [with_machine_id="yes"], no)
+   if test $with_machine_id = yes ; then
+      AC_DEFINE([HAVE_MACHINE_ID], [], [Description])
+   fi
+])
+
+
 # CMU_SASL2
 # ---------
 # What we want to do here is setup LIB_SASL with what one would
