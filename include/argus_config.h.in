@@ -173,6 +173,9 @@
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
 
+/* Define to 1 if you have a machine-id in the file system. */
+#undef HAVE_MACHINE_ID
+
 /* Define to 1 if you have the `memalign' function. */
 #undef HAVE_MEMALIGN
 

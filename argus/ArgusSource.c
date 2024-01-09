@@ -2192,6 +2192,16 @@ ArgusParseSourceID (struct ArgusSourceStruct *src, struct ArgusDeviceStruct *dev
             type = ARGUS_TYPE_UUID;
          }
       } else
+      if (strlen(optarg) == 32) {
+         const char *cptr = (const char *) optarg;
+         int i;
+         for (i = 0; i < 16; i++) {
+            sscanf((const char *) cptr, "%2hhx", &buf[i]);
+            cptr += 2;
+         }
+         slen = 16;
+         type = ARGUS_TYPE_UUID;
+      } else
       if (strchr(optarg, '.')) {
 
 #if defined(HAVE_INET_ATON)
