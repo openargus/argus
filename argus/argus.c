@@ -1213,12 +1213,6 @@ close_out:
 static int
 __linux_get_machine_id_uuid(char *uuidstr, size_t len)
 {
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
-   char *fptr = "/etc/machine-id";
-#else
-   char *fptr = "/var/lib/dbus/machine-id";
-#endif
-
    char str[64], *sptr = str;
    int slen, res = -1;
    FILE *fp;
@@ -1227,9 +1221,7 @@ __linux_get_machine_id_uuid(char *uuidstr, size_t len)
       /* need 37 bytes, including terminating null, to hold uuid string */
       return -1;
 
-
-
-   if ((fp = fopen(fptr, "r")) != NULL) {
+   if ((fp = fopen("/var/lib/dbus/machine-id", "r")) != NULL) {
       if (fgets(str, sizeof(str), fp) == NULL)
          goto linux_close_out;
 
@@ -1299,7 +1291,6 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         optarg[strlen(optarg) - 1] = '\0';
 
                      switch (i) {
-
                         case ARGUS_MONITOR_ID: 
                            if (optarg && quoted) {   // Argus ID is a string.  Limit to date is 4 characters.
                               int slen = strlen(optarg);
@@ -1352,6 +1343,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                           ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: popen() %s\n", file, strerror(errno));
                                     } else
                                     if (!(strcmp (optarg, "hostuuid"))) {
+#ifdef HAVE_GETHOSTUUID
                                        uuid_t id;
                                        struct timespec ts = {0,0};
                                        if (gethostuuid(id, &ts) == 0) {
@@ -1365,12 +1357,48 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                           optarg = strdup(buf);
                                        } else
                                           ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: gethostuuid() %s\n", file, strerror(errno));
+#else
+# ifdef HAVE_MACHINE_ID
+                                       char uuidstr[64];
+                                       char buf[128];
 
+                                       if (__linux_get_machine_id_uuid(uuidstr, 37) == 0) {
+                                          if (appendInf)
+                                             sprintf(buf, "%s/inf", uuidstr);
+                                          else
+                                             sprintf(buf, "%s", uuidstr);
+                                          optarg = strdup(buf);
+                                       } else {
+                                          ArgusLog(LOG_ERR, "%s(%s) unable to "
+                                                   "read system UUID\n",
+                                                   __func__, file);
+                                       }
+#else
+#  ifdef CYGWIN
+                                       char uuidstr[64];
+                                       char buf[128];
+
+                                       if (__wmic_get_uuid(uuidstr, 37) == 0) {
+                                          if (appendInf)
+                                             sprintf(buf, "%s/inf", uuidstr);
+                                          else
+                                             sprintf(buf, "%s", uuidstr);
+                                          optarg = strdup(buf);
+                                       } else {
+                                          ArgusLog(LOG_ERR, "%s(%s) unable to "
+                                                   "read system UUID\n",
+                                                   __func__, file);
+                                       }
+#  endif
+# endif
+#endif
                                     } else
-                                       ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` at line %d.\n", file, optarg, linenum);
+                                       ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` line %d.\n", optarg, linenum);
                                  } else
                                     ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
-                              }
+                              } else
+                                 ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
+
                               ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
                            }
                            break;
