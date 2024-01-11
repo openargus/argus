@@ -49,17 +49,16 @@
 
 #include <stdlib.h>
 
-/* #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__) */
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
 #include <net/bpf.h>
 #include <pcap.h>
 #include <net/if_dl.h>
-/* #else
+#else
 #if !defined(CYGWIN)
 #include <linux/if_packet.h>
 #endif
 #endif
-*/
 
 #include <pcap.h>
 
