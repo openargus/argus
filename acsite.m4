@@ -27,7 +27,7 @@ dnl   $2 (yacc appended)
 dnl   $3 (optional flex and bison -P prefix)
 dnl
 AC_DEFUN([AC_QOSIENT_LEX_AND_YACC],
-   [AC_CHECK_PROGS($1, flex, lex)
+   [AC_CHECK_PROGS([$1], flex, lex)
    if test "$$1" = flex ; then
       AC_MSG_CHECKING(for flex 2.4 or higher)
       AC_CACHE_VAL(ac_cv_lbl_flex_v24,
@@ -49,7 +49,9 @@ AC_DEFUN([AC_QOSIENT_LEX_AND_YACC],
    AC_CHECK_PROGS([$2], bison, yacc)
 
    if test "$$2" = bison ; then
+      AC_MSG_CHECKING(for bison parameter set)
       $2="$$2 -y"
+      AC_MSG_RESULT(yes)
    else
       AC_MSG_ERROR(bison not found. see the INSTALL for more info)
    fi
