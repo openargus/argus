@@ -16,6 +16,7 @@
  * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
  * THIS SOFTWARE.
  *
+ * Date: Thu Jan 11 15:35:49 EST 2024
  */
 
 QUICK MAKE
@@ -42,22 +43,20 @@ hopefully it won't be a problem.
 
 Below is the offical source of libpcap and current version:
 
-libpcap-1.5.3
-http://www.tcpdump.org/release/libpcap-1.5.3.tar.gz
+libpcap-1.10.4
+http://www.tcpdump.org/release/libpcap-1.10.4.tar.gz
 
 
 The official site and current version of bison is:
 
-bison-3.0.1
+bison-3.8
 http://ftp.gnu.org/gun/bison/
 
 
 And the offical site for Flex: The Fast Lexical Analyzer is:
 
-flex-2.5.39
-http://flex.sourceforge.net
-http://sourceforge.net/projects/flex/files
-
+flex-2.6.4
+https://github.com/westes/flex
 
 
 Because argus is dependant on libpcap and flex/bison, you will need to
