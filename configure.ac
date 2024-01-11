@@ -36,21 +36,46 @@ AC_CANONICAL_TARGET
 
 AC_PREFIX_DEFAULT( /usr/local )
 
-AC_QOSIENT_PERL(V_PERL)
+AC_LBL_C_INIT(V_CCOPT, V_INCLS)
+
+AC_QOSIENT_LIBPCAP(V_PCAPDEP, V_INCLS)
+if test ! -z "$V_PCAPDEP"; then
+   if test -f "$V_PCAPDEP"; then
+      if test -f lib/libpcap.a; then
+           rm -rf lib/libpcap.a
+      fi
+      pcapdir=`echo $V_PCAPDEP | sed -e 's/\.\./..\/../'`
+      ln -s $pcapdir lib/libpcap.a
+      V_PCAPDEP="../lib/libpcap.a"
+   else
+      if test "$V_PCAPDEP" = "-lpcap" ; then
+         if test -f lib/libpcap.a; then
+            rm -rf lib/libpcap.a
+         fi
+      fi
+      if test "$V_PCAPDEP" = "-lwpcap" ; then
+         if test -f lib/libpcap.a; then
+            rm -rf lib/libpcap.a
+         fi
+      fi
+   fi
+   LIBS="$LIBS $V_PCAPDEP"
+fi
+
+AC_QOSIENT_LEX_AND_YACC(V_LEX, V_YACC, argus_)
 AC_QOSIENT_MACHINE_ID
 
 # Checks for programs.
-AC_LBL_C_INIT(V_CCOPT, V_INCLS)
 AC_C_INLINE
 AC_PROG_MAKE_SET
 AC_PROG_LN_S
-AC_PROG_LEX(yywrap)
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_YACC
 
 AC_CHECK_PROGS(V_RANLIB, ranlib, @true)
-AC_QOSIENT_LEX_AND_YACC(V_LEX, V_YACC, argus_)
+
+AC_QOSIENT_PERL(V_PERL)
 
 # Checks for libraries.
 
@@ -308,30 +333,6 @@ if test ! -z "$V_WRAPDEP"; then
    fi
    AC_DEFINE([HAVE_TCP_WRAPPER], [], [Using Tcp wrappers])
    WRAPLIBS="$V_WRAPDEP"
-fi
-
-AC_QOSIENT_LIBPCAP(V_PCAPDEP, V_INCLS)
-if test ! -z "$V_PCAPDEP"; then
-   if test -f "$V_PCAPDEP"; then
-      if test -f lib/libpcap.a; then
-           rm -rf lib/libpcap.a
-      fi
-      pcapdir=`echo $V_PCAPDEP | sed -e 's/\.\./..\/../'`
-      ln -s $pcapdir lib/libpcap.a
-      V_PCAPDEP="../lib/libpcap.a"
-   else
-      if test "$V_PCAPDEP" = "-lpcap" ; then
-         if test -f lib/libpcap.a; then
-            rm -rf lib/libpcap.a
-         fi
-      fi
-      if test "$V_PCAPDEP" = "-lwpcap" ; then
-         if test -f lib/libpcap.a; then
-            rm -rf lib/libpcap.a
-         fi
-      fi
-   fi
-   LIBS="$LIBS $V_PCAPDEP"
 fi
 
 case "$target_cpu" in
