@@ -659,8 +659,6 @@ LIB_XDR
 COMPATLIB
 WRAPLIBS
 V_THREADS
-V_FLEXLM_ARCH
-V_FLEXLM
 V_PERL
 V_INCLS
 V_CCOPT
@@ -766,7 +764,6 @@ with_pcre_config
 enable_largefile
 with_hashdebug
 with_nanoseconds
-with_flexlm
 with_threads
 with_tcpwrappers
 with_libpcap
@@ -1420,7 +1417,6 @@ Optional Packages:
   --with-pcre-config=PATH Location of PCRE pcre-config (auto)
   --with-hashdebug        enable hash table debugging
   --without-nanoseconds   don't use nanosecond timestamps
-  --with-flexlm=DIR       location of Flexnet Publisher distribution
   --without-threads       don't use native threads package
   --with-wrappers=DIR     Compile with tcpwrappers in <DIR>
   --with-libpcap=DIR      Compile with libpcap in <DIR>
@@ -3050,9 +3046,11 @@ printf "%s\n" "no" >&6; }
    fi
 
 
-   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether machine-id is found" >&5
-printf %s "checking whether machine-id is found... " >&6; };
-   as_ac_File=`printf "%s\n" "ac_cv_file_"/var/lib/dbus/machine-id"" | $as_tr_sh`
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether machine_id is found" >&5
+printf %s "checking whether machine_id is found... " >&6; };
+      case "$target_os" in
+         linux*)
+           as_ac_File=`printf "%s\n" "ac_cv_file_"/var/lib/dbus/machine-id"" | $as_tr_sh`
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for \"/var/lib/dbus/machine-id\"" >&5
 printf %s "checking for \"/var/lib/dbus/machine-id\"... " >&6; }
 if eval test \${$as_ac_File+y}
@@ -3072,16 +3070,48 @@ eval ac_res=\$$as_ac_File
 printf "%s\n" "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"
 then :
-  with_machine_id="yes"
+
+printf "%s\n" "#define HAVE_MACHINE_ID /**/" >>confdefs.h
+
 else $as_nop
   no
 fi
 
-   if test $with_machine_id = yes ; then
+         ;;
+
+         cygwin*)
+         ;;
+
+        *bsd*)
+         as_ac_File=`printf "%s\n" "ac_cv_file_"/etc/machine-id"" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for \"/etc/machine-id\"" >&5
+printf %s "checking for \"/etc/machine-id\"... " >&6; }
+if eval test \${$as_ac_File+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r ""/etc/machine-id""; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"
+then :
 
 printf "%s\n" "#define HAVE_MACHINE_ID /**/" >>confdefs.h
 
-   fi
+else $as_nop
+  no
+fi
+
+         ;;
+      esac
 
 
 # Checks for programs.
@@ -9242,26 +9272,6 @@ printf "%s\n" "no" >&6; }
   fi
 
 
-# Check whether --with-flexlm was given.
-if test ${with_flexlm+y}
-then :
-  withval=$with_flexlm;
-      with_flexlm="$withval"
-
-printf "%s\n" "#define ARGUS_FLEXLM /**/" >>confdefs.h
-
-      V_FLEXLM="$withval"
-
-      case $target in
-        x86_64-*-linux-gnu) V_FLEXLM_ARCH=x64_lsb ;;
-        *-apple-darwin*)    V_FLEXLM_ARCH=universal_mac10 ;;
-        i686-pc-cygwin)     V_FLEXLM_ARCH=i86_n3 ;;
-      esac
-
-
-fi
-
-
 # Check whether --with-threads was given.
 if test ${with_threads+y}
 then :
@@ -10167,8 +10177,6 @@ fi
 
 INSTALL_LIB="../lib"
 INSTALL_BIN="../bin"
-
-
 
 
 
