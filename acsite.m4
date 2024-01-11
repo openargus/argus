@@ -1574,19 +1574,20 @@ AC_DEFUN([SASL_SET_GSSAPI_LIBS],
 # AC_QOSIENT_MACHINE_ID
 # --------------------
 AC_DEFUN([AC_QOSIENT_MACHINE_ID],[
-   AC_MSG_CHECKING([whether machine_id is found]);
       case "$target_os" in
          linux*)
+           AC_MSG_CHECKING([whether machine_id is found]);
            AC_CHECK_FILE("/var/lib/dbus/machine-id", 
-              [AC_DEFINE([HAVE_MACHINE_ID], [], [Description])], no)
+             [AC_DEFINE([HAVE_MACHINE_ID], [], [Description])], no)
          ;;
 
          cygwin*)
          ;;
 
         *bsd*)
-         AC_CHECK_FILE("/etc/machine-id", 
-            [AC_DEFINE([HAVE_MACHINE_ID], [], [Description])], no)
+           AC_MSG_CHECKING([whether machine_id is found]);
+           AC_CHECK_FILE("/etc/machine-id", 
+             [AC_DEFINE([HAVE_MACHINE_ID], [], [Description])], no)
          ;;
       esac
 ])

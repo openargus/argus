@@ -478,9 +478,6 @@ AC_CONFIG_FILES([
    ./pkg/win7/Makefile
    ./pkg/win7/argus.wxs
    ./lib/argus.spec
-   ./licenses/arguspro_sensor_appliance.lic.template
-   ./licenses/arguspro_sensor_floating.lic.template
-   ./licenses/arguspro_sensor_workstation.lic.template
 ])
 
 AC_OUTPUT
