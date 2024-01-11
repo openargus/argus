@@ -1212,6 +1212,12 @@ close_out:
 static int
 __linux_get_machine_id_uuid(char *uuidstr, size_t len)
 {
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
+   char *fptr = "/etc/machine-id";
+#else
+   char *fptr = "/var/lib/dbus/machine-id";
+#endif
+
    char str[64], *sptr = str;
    int slen, res = -1;
    FILE *fp;
@@ -1220,7 +1226,9 @@ __linux_get_machine_id_uuid(char *uuidstr, size_t len)
       /* need 37 bytes, including terminating null, to hold uuid string */
       return -1;
 
-   if ((fp = fopen("/var/lib/dbus/machine-id", "r")) != NULL) {
+
+
+   if ((fp = fopen(fptr, "r")) != NULL) {
       if (fgets(str, sizeof(str), fp) == NULL)
          goto linux_close_out;
 
@@ -1395,8 +1403,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                        ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` line %d.\n", optarg, linenum);
                                  } else
                                     ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
-                              } else
-                                 ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
+                              }
 
                               ArgusParseSourceID(ArgusSourceTask, NULL, optarg);
                            }
