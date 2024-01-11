@@ -56,21 +56,9 @@ INCLS = -I$(srcdir) @V_INCLS@ -I$(srcdir)/../include
 DEFS = @DEFS@
 #DEFS = -DARGUSPERFMETRICS=1 @DEFS@
 
-FLEXLM = @V_FLEXLM@
-FLEXLM_ARCH = @V_FLEXLM_ARCH@
-FLEXLM_ARCH_universal_mac10_LIBS = -framework IOKit -framework CoreFoundation
-FLEXLM_ARCH_x64_lsb_LIBS = -ldl
-FLEXLM_ARCH_i86_n3_LIBS =
-ifneq ($(FLEXLM),)
-    FLEXLM_LDFLAGS = -L$(FLEXLM)/$(FLEXLM_ARCH) -L$(FLEXLM)/$(FLEXLM_ARCH)/activation/lib
-       FLEXLM_LIBS = -llmgr_trl -lcrvs -lsb -llmgr_dongle_stub -lnoact $(FLEXLM_ARCH_$(FLEXLM_ARCH)_LIBS)
-     FLEXLM_CFLAGS = -I$(FLEXLM)/$(FLEXLM_ARCH) -I$(FLEXLM)/machind
-endif
-
-
 # Standard CFLAGS
-CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS) $(FLEXLM_CFLAGS)
-LDFLAGS = @LDFLAGS@ $(FLEXLM_LDFLAGS)
+CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(EXTRA_CFLAGS)
+LDFLAGS = @LDFLAGS@
 
 INSTALL = @INSTALL@
 RANLIB = @V_RANLIB@
@@ -94,9 +82,6 @@ SRC =	argus.c ArgusModeler.c ArgusSource.c ArgusUtil.c ArgusOutput.c ArgusUdp.c 
 	ArgusTcp.c ArgusIcmp.c ArgusIgmp.c ArgusEsp.c ArgusArp.c ArgusFrag.c ArgusUdt.c \
 	ArgusLcp.c ArgusIsis.c ArgusAuth.c Argus802.11.c ArgusApp.c ArgusEvents.c \
 	ArgusNetflow.c ArgusSflow.c ArgusVxLan.c ArgusL2TP.c ArgusIfnam.c
-ifneq ($(FLEXLM),)
-SRC += argus_lic.c
-endif
 
 PROG =	@INSTALL_BIN@/argus
 
@@ -105,11 +90,7 @@ PROG =	@INSTALL_BIN@/argus
 
 OBJ =	$(SRC:.c=.o)
 
-ifneq ($(FLEXLM),)
-   OBJ += $(FLEXLM)/$(FLEXLM_ARCH)/lm_new.o
-endif
-
-LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.a $(FLEXLM_LIBS)
+LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.a
 
 HDR =	pcap.h pcap-int.h pcap-namedb.h pcap-nit.h pcap-pf.h \
 	ethertype.h gencode.h gnuc.h
@@ -126,9 +107,6 @@ all: $(PROG)
 
 @INSTALL_BIN@/argus: $(OBJ) ../lib/argus_common.a
 	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LDFLAGS) $(LIB)
-
-$(FLEXLM)/$(FLEXLM_ARCH)/lm_new.o:
-	$(MAKE) -C $(FLEXLM)/$(FLEXLM_ARCH) lm_new.o
 
 install: force all
 	[ -d $(DESTDIR)$(SBINDIR) ] || \

@@ -52,15 +52,16 @@
 
 #include <stdlib.h>
 
-#if defined(__APPLE_CC__) || defined(__APPLE__)
+/* #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__) */
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
 #include <pcap/bpf.h>
 #include <net/if_dl.h>
-#else
-# if !defined(CYGWIN)
-#  include <linux/if_packet.h>
-# endif
+/* #else
+#if !defined(CYGWIN)
+#include <linux/if_packet.h>
 #endif
+#endif
+*/
 
 #include <pcap.h>
 
@@ -1378,7 +1379,7 @@ struct ArgusAddressStruct {
 
         if (sa != NULL) {
            switch (sa->sa_family) {
-#if defined(__APPLE_CC__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
               case AF_LINK: {
                  struct sockaddr_dl *dl = (struct sockaddr_dl *) sa;
                  char *addr = (char *)&taddr->addr.l2addr;
