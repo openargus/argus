@@ -69,6 +69,8 @@
 #include <pcap.h>
 #include <linux/if_packet.h>
 #endif
+#endif
+*/
 
 
 #if defined(HAVE_NETINET_IN_H)
