@@ -5056,6 +5056,7 @@ fi
 
    LIBS="$LBL_LIBS"
 
+
 if test ! -z "$V_PCAPDEP"; then
    if test -f "$V_PCAPDEP"; then
       if test -f lib/libpcap.a; then
@@ -5076,7 +5077,6 @@ if test ! -z "$V_PCAPDEP"; then
          fi
       fi
    fi
-   LIBS="$LIBS $V_PCAPDEP"
 fi
 
 for ac_prog in flex
@@ -6099,6 +6099,277 @@ printf "%s\n" "#define ARGUS_SASL /**/" >>confdefs.h
    LDFLAGS="$cmu_saved_LDFLAGS"
    CPPFLAGS="$cmu_saved_CPPFLAGS"
    fi
+
+
+
+    # Most operating systems have gethostbyname() in the default searched
+    # libraries (i.e. libc):
+    # Some OSes (eg. Solaris) place it in libnsl
+    # Some strange OSes (SINIX) have it in libsocket:
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing gethostbyname" >&5
+printf %s "checking for library containing gethostbyname... " >&6; }
+if test ${ac_cv_search_gethostbyname+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+char gethostbyname ();
+int
+main (void)
+{
+return gethostbyname ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' nsl socket resolv
+do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"
+then :
+  ac_cv_search_gethostbyname=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext
+  if test ${ac_cv_search_gethostbyname+y}
+then :
+  break
+fi
+done
+if test ${ac_cv_search_gethostbyname+y}
+then :
+
+else $as_nop
+  ac_cv_search_gethostbyname=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_gethostbyname" >&5
+printf "%s\n" "$ac_cv_search_gethostbyname" >&6; }
+ac_res=$ac_cv_search_gethostbyname
+if test "$ac_res" != no
+then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+    # Unfortunately libsocket sometimes depends on libnsl and
+    # AC_SEARCH_LIBS isn't up to the task of handling dependencies like this.
+    if test "$ac_cv_search_gethostbyname" = "no"
+    then
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for gethostbyname in -lsocket" >&5
+printf %s "checking for gethostbyname in -lsocket... " >&6; }
+if test ${ac_cv_lib_socket_gethostbyname+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lsocket -lnsl $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+char gethostbyname ();
+int
+main (void)
+{
+return gethostbyname ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  ac_cv_lib_socket_gethostbyname=yes
+else $as_nop
+  ac_cv_lib_socket_gethostbyname=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_socket_gethostbyname" >&5
+printf "%s\n" "$ac_cv_lib_socket_gethostbyname" >&6; }
+if test "x$ac_cv_lib_socket_gethostbyname" = xyes
+then :
+  LIBS="-lsocket -lnsl $LIBS"
+fi
+
+    fi
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing socket" >&5
+printf %s "checking for library containing socket... " >&6; }
+if test ${ac_cv_search_socket+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+char socket ();
+int
+main (void)
+{
+return socket ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' socket
+do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"
+then :
+  ac_cv_search_socket=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext
+  if test ${ac_cv_search_socket+y}
+then :
+  break
+fi
+done
+if test ${ac_cv_search_socket+y}
+then :
+
+else $as_nop
+  ac_cv_search_socket=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_socket" >&5
+printf "%s\n" "$ac_cv_search_socket" >&6; }
+ac_res=$ac_cv_search_socket
+if test "$ac_res" != no
+then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+else $as_nop
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for socket in -lsocket" >&5
+printf %s "checking for socket in -lsocket... " >&6; }
+if test ${ac_cv_lib_socket_socket+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lsocket -lnsl $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+char socket ();
+int
+main (void)
+{
+return socket ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  ac_cv_lib_socket_socket=yes
+else $as_nop
+  ac_cv_lib_socket_socket=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_socket_socket" >&5
+printf "%s\n" "$ac_cv_lib_socket_socket" >&6; }
+if test "x$ac_cv_lib_socket_socket" = xyes
+then :
+  LIBS="-lsocket -lnsl $LIBS"
+fi
+
+fi
+
+    # DLPI needs putmsg under HPUX so test for -lstr while we're at it
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing putmsg" >&5
+printf %s "checking for library containing putmsg... " >&6; }
+if test ${ac_cv_search_putmsg+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+char putmsg ();
+int
+main (void)
+{
+return putmsg ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' str
+do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"
+then :
+  ac_cv_search_putmsg=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext
+  if test ${ac_cv_search_putmsg+y}
+then :
+  break
+fi
+done
+if test ${ac_cv_search_putmsg+y}
+then :
+
+else $as_nop
+  ac_cv_search_putmsg=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_putmsg" >&5
+printf "%s\n" "$ac_cv_search_putmsg" >&6; }
+ac_res=$ac_cv_search_putmsg
+if test "$ac_res" != no
+then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
 
 
 
@@ -9045,276 +9316,6 @@ fi
 # Do this before checking for ether_hostton(), as it's a
 # "gethostbyname() -ish function".
 #
-
-    # Most operating systems have gethostbyname() in the default searched
-    # libraries (i.e. libc):
-    # Some OSes (eg. Solaris) place it in libnsl
-    # Some strange OSes (SINIX) have it in libsocket:
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing gethostbyname" >&5
-printf %s "checking for library containing gethostbyname... " >&6; }
-if test ${ac_cv_search_gethostbyname+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_func_search_save_LIBS=$LIBS
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char gethostbyname ();
-int
-main (void)
-{
-return gethostbyname ();
-  ;
-  return 0;
-}
-_ACEOF
-for ac_lib in '' nsl socket resolv
-do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_search_gethostbyname=$ac_res
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext
-  if test ${ac_cv_search_gethostbyname+y}
-then :
-  break
-fi
-done
-if test ${ac_cv_search_gethostbyname+y}
-then :
-
-else $as_nop
-  ac_cv_search_gethostbyname=no
-fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_gethostbyname" >&5
-printf "%s\n" "$ac_cv_search_gethostbyname" >&6; }
-ac_res=$ac_cv_search_gethostbyname
-if test "$ac_res" != no
-then :
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-
-fi
-
-    # Unfortunately libsocket sometimes depends on libnsl and
-    # AC_SEARCH_LIBS isn't up to the task of handling dependencies like this.
-    if test "$ac_cv_search_gethostbyname" = "no"
-    then
-   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for gethostbyname in -lsocket" >&5
-printf %s "checking for gethostbyname in -lsocket... " >&6; }
-if test ${ac_cv_lib_socket_gethostbyname+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lsocket -lnsl $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char gethostbyname ();
-int
-main (void)
-{
-return gethostbyname ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_lib_socket_gethostbyname=yes
-else $as_nop
-  ac_cv_lib_socket_gethostbyname=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_socket_gethostbyname" >&5
-printf "%s\n" "$ac_cv_lib_socket_gethostbyname" >&6; }
-if test "x$ac_cv_lib_socket_gethostbyname" = xyes
-then :
-  LIBS="-lsocket -lnsl $LIBS"
-fi
-
-    fi
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing socket" >&5
-printf %s "checking for library containing socket... " >&6; }
-if test ${ac_cv_search_socket+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_func_search_save_LIBS=$LIBS
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char socket ();
-int
-main (void)
-{
-return socket ();
-  ;
-  return 0;
-}
-_ACEOF
-for ac_lib in '' socket
-do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_search_socket=$ac_res
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext
-  if test ${ac_cv_search_socket+y}
-then :
-  break
-fi
-done
-if test ${ac_cv_search_socket+y}
-then :
-
-else $as_nop
-  ac_cv_search_socket=no
-fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_socket" >&5
-printf "%s\n" "$ac_cv_search_socket" >&6; }
-ac_res=$ac_cv_search_socket
-if test "$ac_res" != no
-then :
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-
-else $as_nop
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for socket in -lsocket" >&5
-printf %s "checking for socket in -lsocket... " >&6; }
-if test ${ac_cv_lib_socket_socket+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lsocket -lnsl $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char socket ();
-int
-main (void)
-{
-return socket ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_lib_socket_socket=yes
-else $as_nop
-  ac_cv_lib_socket_socket=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_socket_socket" >&5
-printf "%s\n" "$ac_cv_lib_socket_socket" >&6; }
-if test "x$ac_cv_lib_socket_socket" = xyes
-then :
-  LIBS="-lsocket -lnsl $LIBS"
-fi
-
-fi
-
-    # DLPI needs putmsg under HPUX so test for -lstr while we're at it
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing putmsg" >&5
-printf %s "checking for library containing putmsg... " >&6; }
-if test ${ac_cv_search_putmsg+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_func_search_save_LIBS=$LIBS
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char putmsg ();
-int
-main (void)
-{
-return putmsg ();
-  ;
-  return 0;
-}
-_ACEOF
-for ac_lib in '' str
-do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_search_putmsg=$ac_res
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext
-  if test ${ac_cv_search_putmsg+y}
-then :
-  break
-fi
-done
-if test ${ac_cv_search_putmsg+y}
-then :
-
-else $as_nop
-  ac_cv_search_putmsg=no
-fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_putmsg" >&5
-printf "%s\n" "$ac_cv_search_putmsg" >&6; }
-ac_res=$ac_cv_search_putmsg
-if test "$ac_res" != no
-then :
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-
-fi
-
-
 ac_fn_c_check_func "$LINENO" "ether_hostton" "ac_cv_func_ether_hostton"
 if test "x$ac_cv_func_ether_hostton" = xyes
 then :
@@ -10147,7 +10148,9 @@ printf "%s\n" "#define HAVE_SYS_ERRLIST /**/" >>confdefs.h
 
 fi
 
-
+if test ! -z "$V_PCAPDEP"; then
+   LIBS="$LIBS $V_PCAPDEP"
+fi
 
 INSTALL_LIB="../lib"
 INSTALL_BIN="../bin"

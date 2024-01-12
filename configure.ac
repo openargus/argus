@@ -39,6 +39,7 @@ AC_PREFIX_DEFAULT( /usr/local )
 AC_LBL_C_INIT(V_CCOPT, V_INCLS)
 
 AC_QOSIENT_LIBPCAP(V_PCAPDEP, V_INCLS)
+
 if test ! -z "$V_PCAPDEP"; then
    if test -f "$V_PCAPDEP"; then
       if test -f lib/libpcap.a; then
@@ -59,7 +60,6 @@ if test ! -z "$V_PCAPDEP"; then
          fi
       fi
    fi
-   LIBS="$LIBS $V_PCAPDEP"
 fi
 
 AC_QOSIENT_LEX_AND_YACC(V_LEX, V_YACC, argus_)
@@ -80,6 +80,8 @@ AC_QOSIENT_PERL(V_PERL)
 # Checks for libraries.
 
 CMU_SASL2(V_INCLS)
+
+AC_LBL_LIBRARY_NET
 
 AC_QOSIENT_PCRE(V_PCRE, V_INCLS)
 
@@ -185,7 +187,6 @@ fi
 # Do this before checking for ether_hostton(), as it's a
 # "gethostbyname() -ish function".
 #
-AC_LBL_LIBRARY_NET
 AC_CHECK_FUNCS([ether_hostton getaddrinfo gethostname])
 
 if test "$ac_cv_func_ether_hostton" = yes; then
@@ -439,7 +440,9 @@ if test $arg_cv_sys_errlist = yes ; then
    AC_DEFINE([HAVE_SYS_ERRLIST], [], [sys_errlist in stdio.h])
 fi
 
-
+if test ! -z "$V_PCAPDEP"; then
+   LIBS="$LIBS $V_PCAPDEP"
+fi
 
 INSTALL_LIB="../lib"
 INSTALL_BIN="../bin"
