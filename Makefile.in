@@ -194,7 +194,7 @@ distclean: force
 	rm -f bin/*.exe
 	rm -f include/argus_config.h
 	rm -rf pkg/osx/BUILDROOT/
-	rm -f pkg/osx/argus-5.0.3.pkg
+	rm -f pkg/osx/argus*.pkg
 	rm -f pkg/win/Makefile
 	rm -f pkg/win/argus.wxs
 
