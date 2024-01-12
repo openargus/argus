@@ -189,10 +189,12 @@ distclean: force
 	done
 	rm -rf log
 	rm -f config.*
+	rm -rf autom4te.cache
 	rm -f TAGS
 	rm -f lib/*.a
 	rm -f bin/*.exe
 	rm -f include/argus_config.h
+	rm -f include/*~
 	rm -rf pkg/osx/BUILDROOT/
 	rm -f pkg/osx/argus*.pkg
 	rm -f pkg/win/Makefile
@@ -200,6 +202,7 @@ distclean: force
 
 clobber realclean: distclean
 	rm -f ./Makefile
+	rm -f ./*~
 
 dist: distclean
 	echo argus-`cat VERSION` > .fname
