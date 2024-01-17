@@ -42,7 +42,8 @@ MANDEST = @mandir@
 srcdir = @srcdir@
 VPATH = @srcdir@
 
-COMPATLIB = @COMPATLIB@
+COMPATLIB = @COMPATLIB@ @LIB_XDR@ 
+
 WRAPLIBS = @WRAPLIBS@
 SASLLIBS = @LIB_SASL@
 
