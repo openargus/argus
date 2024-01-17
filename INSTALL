@@ -75,6 +75,24 @@ fixes this problem:
    yum install libpcap-devel
    apt-get install libpcap-devel
 
+
+In order to support some specific DSR metrics, argus needs the XDR library, 
+which is now provided in the libtirpc-devel package on Linux. Without the 
+XDR functions, argus will not be able to generate the ARGUS_JITTER_DSR 
+metrics, but argus will build without the library.
+
+Getting this library can be different for most any platform. For 
+Centos Stream 9, as an example, libtirpc is available in the Base OS
+repository, but the needed libtirpc-devel package in is the CRB
+repository.  You will need to configure 'dnf' to add CRB to the
+repo lists.
+
+  # dnf config-manager --set-enabled crb
+  # dnf install libtirpc-devel
+
+
+
+
 Argus supports block compression for some of its functions.  To support
 this, argus will look for a usable zlib.  If not found, it will not
 use the functions.
