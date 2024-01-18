@@ -54,7 +54,7 @@ XDRLIBS  = @LIB_XDR@
 
 CC = @CC@
 CCOPT = @V_CCOPT@
-INCLS = -I$(srcdir) @V_INCLS@ -I$(srcdir)/../include 
+INCLS = -I$(srcdir) @V_INCLS@ @XDR_INCLS@ -I$(srcdir)/../include 
 DEFS = @DEFS@
 #DEFS = -DARGUSPERFMETRICS=1 @DEFS@
 
