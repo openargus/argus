@@ -107,7 +107,7 @@ shortname_ethdev_unique(char *in, char *out, size_t outlen,
    size_t inlen;
 
    /* Really only needed for Windows Transport Names */
-   while (*in && !isalpha(*in))
+   while (*in && !isalpha((int)*in))
       in++;
 
    incopy = strdup(in);
@@ -115,7 +115,7 @@ shortname_ethdev_unique(char *in, char *out, size_t outlen,
       return -1;
 
    inlen = strlen(incopy);
-   while (inlen > 0 && !isalnum(incopy[inlen-1]))
+   while (inlen > 0 && !isalnum((int)incopy[inlen-1]))
       incopy[--inlen] = '\0';
 
    ret = shortname_ethdev(incopy, out, outlen);
