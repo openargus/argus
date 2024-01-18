@@ -1,3 +1,0 @@
-#!/bin/sh
-set -e
-/bin/launchctl load "/Library/LaunchDaemons/com.qosient.argus.plist"
