@@ -87,9 +87,12 @@ repository, but the needed libtirpc-devel package in is the CRB
 repository.  You will need to configure 'dnf' to add CRB to the
 repo lists.
 
-  # dnf config-manager --set-enabled crb
-  # dnf install libtirpc-devel
+  dnf config-manager --set-enabled crb
 
+
+For all Linux platforms, you will use either yum, apt-get, or dnf ...
+
+  dnf install libtirpc-devel
 
 
 
