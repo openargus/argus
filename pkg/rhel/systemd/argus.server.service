@@ -1,0 +1,17 @@
+[Unit]
+Description=Argus Flow Monitor
+After=syslog.target network.target
+Wants=firewalld.service
+
+[Service]
+Type=forking
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/sysconfig/argus
+Environment=LM_LICENSE_FILE=/home/argus/license.dat
+ExecStartPre=/usr/sbin/argus-setup start
+ExecStart=/usr/sbin/argus -X -d -F /run/argus/argus.conf $DAEMON_ARGS
+ExecStopPost=/usr/sbin/argus-setup stop
+
+[Install]
+WantedBy=multi-user.target
