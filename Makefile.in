@@ -48,10 +48,10 @@ SHELL = /bin/sh
 DIRS = ./common ./argus ./events
 INSTDIRS = ./argus ./events
 
-DISTFILES = AUTHORS ChangeLog INSTALL MANIFEST Makefile.in\
-	CREDITS README VERSION bin common argus events doc include pkg debian\
-	lib man support aclocal.m4 acsite.m4 config configure configure.ac\
-	lib/argus.spec .threads licenses
+DISTFILES = AUTHORS INSTALL MANIFEST CREDITS README VERSION Makefile.in \
+	bin common argus events lib man support doc include pkg debian \
+	aclocal.m4 acsite.m4 config configure configure.ac lib/argus.spec \
+	.threads
 
 .c.o:
 	$(CC) -c $(CPPFLAGS) $(DEFS) $(CFLAGS) $<
