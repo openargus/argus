@@ -353,7 +353,7 @@ int
 xdtoi(c)
 int c;
 {
-   if (isdigit(c))
+   if (isdigit((int)c))
       return c - '0';
    else if (islower(c))
       return c - 'a' + 10;
@@ -374,7 +374,7 @@ stoi(char *s)
    int sign = 0;
 
    /* Skip whitespace */
-   while (isspace(*s)) s++;
+   while (isspace((int)*s)) s++;
 
    /* Check for sign */
    if (*s == '-') {
@@ -417,7 +417,7 @@ stof(char* s)
    int sign = 0;
      
    /* Skip whitespace */
-   while (isspace(*s)) s++;
+   while (isspace((int)*s)) s++;
      
    /* Check for sign */
    if (*s == '-') { 
@@ -429,24 +429,24 @@ stof(char* s)
    }
      
    /* Read integer part */
-   while (isdigit(*s))
+   while (isdigit((int)*s))
       retn = retn * 10 + (*(s++) - '0');
      
    /* Read fractional part */ 
    if (*s == '.') {
       float q;
       s++;
-      while (isdigit(*s)) s++; 
+      while (isdigit((int)*s)) s++; 
       s--;
       do {
          q = *s - '0';
          frac = (frac + q) / 10;
-      } while (isdigit(*(--s)));
-      while (isdigit(*(++s))) s++;
+      } while (isdigit((int)*(--s)));
+      while (isdigit((int)*(++s))) s++;
    }
      
    /* Skip whitespace */
-   while (isspace(*s)) s++;
+   while (isspace((int)*s)) s++;
      
    /* Combine integer and fractional part, and apply sign */
    retn += frac;

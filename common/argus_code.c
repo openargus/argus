@@ -170,11 +170,14 @@ static struct ablock *Argusgen_jitter(float, int, int, u_int);
 static struct ablock *Argusgen_dur(float, int, u_int);
 static struct ablock *Argusgen_mean(float, int, u_int);
 static struct ablock *Argusgen_encaps(int, int, u_int);
-static u_int net_mask(u_int *);
 static struct slist *xfer_to_x(struct arth *);
 static struct slist *xfer_to_a(struct arth *);
 static struct ablock *Argusgen_len(int, int);
 static struct ablock *Argusgen_linktype(unsigned int);
+
+#if !defined(CYGWIN)
+static u_int net_mask(u_int *);
+#endif
 
 extern void ArgusLog (int, char *, ...);
 extern float RaDeltaFloatTime (struct timeval *, struct timeval *);
@@ -3851,7 +3854,7 @@ Argusgen_nstroke(int v, int dir, u_int op)
 #define TH_CWR  0x80
 #endif
 
-
+#if !defined(CYGWIN)
 static u_int
 net_mask(u_int *addr)
 {
@@ -3867,7 +3870,7 @@ net_mask(u_int *addr)
  
    return m;
 }
-
+#endif
 
 #include <netinet/tcp.h>
 
