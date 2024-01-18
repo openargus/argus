@@ -85,11 +85,11 @@ YACC = @V_YACC@
 	$(CC) $(CFLAGS) -c $<
 
 SRC =	argus-extip.pl argus-lsof.pl argus-stumbler.pl argus-snmp.sh argus-vmstat.sh argus-airport.sh argus-netstat.pl\
-	argus-ipaddr.pl argus-ipmitool.pl
+	argus-top.pl argus-ipaddr.pl argus-ipmitool.pl
 
 PROG =	@INSTALL_BIN@/argus-extip @INSTALL_BIN@/argus-lsof @INSTALL_BIN@/argus-stumbler @INSTALL_BIN@/argus-snmp \
-	@INSTALL_BIN@/argus-vmstat @INSTALL_BIN@/argus-airport @INSTALL_BIN@/argus-netstat \
-	@INSTALL_BIN@/argus-ipaddr @INSTALL_BIN@/argus-ipmitool
+	@INSTALL_BIN@/argus-vmstat @INSTALL_BIN@/argus-airport @INSTALL_BIN@/argus-netstat\
+	@INSTALL_BIN@/argus-top @INSTALL_BIN@/argus-ipaddr @INSTALL_BIN@/argus-ipmitool
 
 CLEANFILES = $(PROG)
 
@@ -97,6 +97,10 @@ all: $(PROG)
 
 @INSTALL_BIN@/argus-ipmitool: argus-ipmitool.pl
 	sed 's+@PERLBIN@+$(PERL)+' argus-ipmitool.pl > $@
+	chmod +x $@
+
+@INSTALL_BIN@/argus-top: argus-top.pl
+	sed 's+@PERLBIN@+$(PERL)+' argus-top.pl > $@
 	chmod +x $@
 
 @INSTALL_BIN@/argus-ipaddr: argus-ipaddr.pl
@@ -138,6 +142,7 @@ install: all force
 	$(INSTALL) $(srcdir)/../bin/argus-snmp     $(DESTDIR)$(BINDIR)/argus-snmp
 	$(INSTALL) $(srcdir)/../bin/argus-vmstat   $(DESTDIR)$(BINDIR)/argus-vmstat
 	$(INSTALL) $(srcdir)/../bin/argus-airport  $(DESTDIR)$(BINDIR)/argus-airport
+	$(INSTALL) $(srcdir)/../bin/argus-top      $(DESTDIR)$(BINDIR)/argus-top
 	$(INSTALL) $(srcdir)/../bin/argus-ipaddr   $(DESTDIR)$(BINDIR)/argus-ipaddr
 	$(INSTALL) $(srcdir)/../bin/argus-ipmitool $(DESTDIR)$(BINDIR)/argus-ipmitool
 
@@ -149,6 +154,7 @@ uninstall: all force
 	rm -f $(DESTDIR)$(BINDIR)/argus-snmp
 	rm -f $(DESTDIR)$(BINDIR)/argus-vmstat
 	rm -f $(DESTDIR)$(BINDIR)/argus-airport
+	rm -f $(DESTDIR)$(BINDIR)/argus-top
 	rm -f $(DESTDIR)$(BINDIR)/argus-ipaddr
 	rm -f $(DESTDIR)$(BINDIR)/argus-ipmitool
 
