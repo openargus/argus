@@ -1,0 +1,140 @@
+/*
+ * Gargoyle Software. README.win
+ * Copyright (c) 2000-2024 QoSient, LLC
+ * All rights reserved.
+ *
+ * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
+ * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
+ * EXPRESS PERMISSION OF QoSIENT, LLC.
+ *
+ * QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+ * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+ * THIS SOFTWARE.
+ *
+ */
+
+Windows README
+
+Argus has been ported to run on All versions of windows back to Windows 7, using
+Cygwin and WinPcap, or the WinPcap replacement Npcap.
+
+For Windows 10 and 11 (as of 12/23/2023), Argus is best built using Cygwin-3.4.9,
+available from https://www.cygwin.com, and Npcap-1.78 from https://npcap.com.
+
+To make a windows msi installer for argus on Windows, we still use the latest
+version of WiX3, from https://wixtoolset.org.  The makefile for generating an msi
+installer, uses the WiX tools light and candle, which do not appear in WiX4.
+
+To make a windows msi installer for argus on Windows 10, 11 Argus the packge depends on:
+  Cygwin (CYGWIN_NT-10.0-22621 3.4.10-1.x86_64 2023-11-29 12:12 UTC x86_64 Cygwin)
+
+
+To make a windows msi installer for argus on Windows 7 and 8, the packge depends on:
+  Cygwin (CYGWIN_NT-6.1-WOW 2.6.1(0.305/5/3) 2016-12-16 11:50 i686 Cygwin)
+  WiX3 / WiX Toolset v3.11-- https://wixtoolset.com
+  Npcap-1.78 (the latest)
+
+
+Cygwin, WiX3 and ether Npcap or WinPcap must be installed.
+WiX3 is used to generate the .MSI package.
+
+Within Cygwin, at least these packages must be installed, in addition to
+the compiler toolchain:
+  autoconf
+  bison
+  cygrunsrv
+  flex
+  gawk
+  libsasl-devel
+  make
+  zlib-devel
+
+To build for Windows 10, 11 using Npcap:
+  % ./configure --prefix=/usr
+  % make
+  % make winpackage
+
+To build for Windows 7 using WinPcap:
+  % ( cd .. && unzip /path/to/WpdPack_4_1_2.zip )
+  % ./configure --prefix=/usr
+  % make
+  % make winpackage
+
+
+CUSTOMIZATION
+
+The argus.conf file that is installed makes some assumptions as to how argus should run.
+You will want to review the file to turn on, or off features for your installation.
+Argus is configure to offer a remote access on port 562, with assumption that you will
+be running a client radium on port 561.  To limit access to argus from within the 
+machine, there is an ARGUS_BIND setting to limit it to IPv6 and IPv4 localhost.
+You will want to modify that if you want to access argus from other systems.
+
+
+
+NOTES
+
+Installing Npcap so that the standard Argus source distro compiles cleanly involves a bit.
+The installation provides wpcap.dll and we'd like a libpcap.a so that we can find all the routines.
+This is well described described in https://redmine.openinfosecfoundation.org/issues/931 ...
+
+/*
+   To compile:
+   
+   1 Install cygwin64 (https://cygwin.com/install.html) - setup-x86_64.exe - (regular "next/next/ok" install). Make sure you install the lynx and wget packages!
+   
+   2 Npcap (https://nmap.org/npcap/)
+   
+   2.1 - Download and install Npcap (Npcap 0.82 installer for windows). Double click on the npcap-0.82 and accept all settings including winpcap compatibility mode.
+   2.2 - Download Npcap SDK (ZIP).
+   Copy all from npcap-sdk-0\npcap-sdk\lib to cygwin64\lib\
+   Copy all from npcap-sdk-0\npcap-sdk\Include to C:\cygwin64\usr\include\
+   
+   3. Open up cygwin64 and install some dependencies.
+   
+   3.1 First - an apt-get like tool for cygwin
+   
+   lynx -source rawgit.com/transcode-open/apt-cyg/master/apt-cyg > apt-cyg
+   install apt-cyg /bin
+   
+   3.2 Install the deps
+   
+   apt-cyg install libmpfr4 libmpfr-devel libiconv-devel mpfr mingw64-x86_64-winpthreads gcc-core make automake automake1.9 zlib zlib-devel zlib0 autoconf autoconf2.5 libtool libglib2.0-devel libglib2.0_0 pkg-config libyaml-devel libyaml0_2 libpcre1 libpcre-devel file-devel gcc-g++ wget luajit luajit-devel libGeoIP-devel libGeoIP1 libnss-devel libnss3 libnspr-devel libnspr4 git
+   
+   3.3 For our DLLs file hacking
+   
+   apt-cyg install gendef
+   
+   4. Find the 64bit versions of the wpcap.dll and Packet.dll
+   
+   Take the x64 version of your wpcap.dll (usually Windows\System32 or Windows\System32\Npcap).
+   Copy that over to some temp/work folder in cygwin64 and from within cygwin64 shell:
+   
+   gendef wpcap.dll
+   dlltool --as-flags=--64 -m i386:x86-64 -k --output-lib libpcap.a --input-def wpcap.def
+   
+   Same for Packet.dll
+   Take the x64 version of your Packet.dll, do (usually Windows\System32 or Windows\System32\Npcap).
+   
+   In the cygwin64 shell again:
+   
+   gendef wpcap.dll
+   dlltool --as-flags=--64 -m i386:x86-64 -k --output-lib libpacket.a --input-def Packet.def
+   
+   You will end up with 64 bit usable libpacket.a and libpcap.a.
+   Copy those to C:\cygwin64\lib
+*/
+
+
+Time drift between the system clock and the Npcap layer can be horrible, especially in
+sleeping VM's and mobile devices.  With modern versions of Npcap, the solution is to
+create and set the Windows registry variable TimestampMode for Npcap to be 4, using regedit.
+As described in https://github.com/nmap/npcap/issues/583.
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\npcap\Parameters\TimestampMode DWORD Decimal 4.
+

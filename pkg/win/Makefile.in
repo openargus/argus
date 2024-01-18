@@ -1,0 +1,14 @@
+.PHONY: top
+
+top: winpackage
+
+WFLAGS = -ext WixUtilExtension
+
+winpackage: argus-@PACKAGE_VERSION@.@PACKAGE_RELEASE@.msi
+
+argus-@PACKAGE_VERSION@.@PACKAGE_RELEASE@.msi: argus.wixobj
+	light $(WFLAGS) -o $@ $^
+
+argus.wixobj: argus.wxs
+	candle $(WFLAGS) $^
+
