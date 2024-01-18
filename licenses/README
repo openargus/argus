@@ -1,0 +1,11 @@
+The license templates in this directory can be copied and modified
+to generate license files that are specific to a particular machine.
+Licenses for appliance systems are "uncounted", meaning that the resulting
+license can be checked out any number of times - it need only be present
+for a /usr/sbin/argus process to run.  Licenses for workstation builds
+to be used on specific machines are also uncounted.
+
+Counted licenses are used with the flexera+qosient license server and
+are checked out as floating licenses.
+
+These licenses are specific to a major release of ArgusPro.

@@ -11447,6 +11447,8 @@ do
     "./common/Makefile") CONFIG_FILES="$CONFIG_FILES ./common/Makefile" ;;
     "./argus/Makefile") CONFIG_FILES="$CONFIG_FILES ./argus/Makefile" ;;
     "./events/Makefile") CONFIG_FILES="$CONFIG_FILES ./events/Makefile" ;;
+    "./pkg/win/Makefile") CONFIG_FILES="$CONFIG_FILES ./pkg/win/Makefile" ;;
+    "./pkg/win/argus.wxs") CONFIG_FILES="$CONFIG_FILES ./pkg/win/argus.wxs" ;;
     "./lib/argus.spec") CONFIG_FILES="$CONFIG_FILES ./lib/argus.spec" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

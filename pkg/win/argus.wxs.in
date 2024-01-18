@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Product Name='ArgusPro @PACKAGE_VERSION@'
+  Id="*"
+  UpgradeCode='a3661ada-3ca2-44aa-ad48-d6b3c87f77ab'
+  Language='1033' Codepage='1252'
+  Version='@PACKAGE_VERSION@.@PACKAGE_RELEASE@'
+  Manufacturer='QoSient LLC'>
+    <Package Id='*' Keywords='Installer'
+    Description="QoSient Argus @PACKAGE_VERSION@ Installer"
+    Manufacturer='QoSient LLC' InstallerVersion='100'
+    Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+    <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes'
+    DiskPrompt="CD-ROM #1" />
+
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version alredy installed." />
+
+    <Property Id='DiskPrompt' Value="Argus Installation [1]" />
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Component Id="REG_MACHINE"
+      Guid="*">
+        <RegistryKey Id="srvc1" Root="HKLM"
+        Key="SYSTEM\CurrentControlSet\Services\argus\Parameters"
+        Action="create">
+          <RegistryValue Type="expandable" Name="AppPath"
+          Value="/bin/argus.exe" />
+          <RegistryValue Type="string" Name="AppArgs"
+          Value="-F /etc/argus.conf" />
+          <RegistryValue Type="integer" Name="NeverExits"
+          Value="1" />
+        </RegistryKey>
+      </Component>
+      <Directory Id='ProgramFilesFolder' Name='PFiles'>
+        <Directory Id='QoSientTopDir' Name='Argus'>
+          <Directory Id='VARDIR' Name='var'>
+            <Directory Id='VARLOGDIR' Name='log'>
+            </Directory>
+          </Directory>
+          <Directory Id='etc' Name='etc'>
+            <Component Id='Config' Guid="*">
+              <File Id='argus.conf' Name='argus.conf' DiskId='1'
+              Source="etc/argus.conf"
+              KeyPath='yes'></File>
+            </Component>
+          </Directory>
+          <Directory Id='INSTALLDIR' Name='bin'>
+            <Component Id='MainExecutable' Guid="*">
+              <File Id='argus.exe' Name='argus.exe' DiskId='1'
+              Source="BUILDROOT/usr/local/sbin/argus.exe" KeyPath='yes'>
+              </File>
+            </Component>
+            <Component Id='dash.exe' Guid="*">
+              <File Id='dash.exe' Name='sh.exe' DiskId='1'
+              Source="c:\cygwin64\bin\dash.exe" KeyPath='yes'>
+              </File>
+            </Component>
+            <Component Id="cygrunsrv.exe" Guid="*">
+              <File Id="cygrunsrv.exe"
+              Source="c:\cygwin64\bin\cygrunsrv.exe"
+              Name="cygrunsrv.exe" KeyPath="yes" Checksum="yes" />
+              <ServiceInstall Id="cygrunsrv.exe" Type="ownProcess"
+              Vital="yes" Name="argus"
+              DisplayName="argus"
+              Description="QoSient Argus Version @PACKAGE_VERSION@"
+              Start="auto" Account="LocalSystem"
+              ErrorControl="ignore" Interactive="no">
+                <ServiceDependency Id="npcap"/>
+              </ServiceInstall>
+              <ServiceControl Id="cygrunsrv.exe" Start="install"
+              Stop="both" Remove="uninstall" Name="argus"
+              Wait="no" />
+              <util:ServiceConfig
+               FirstFailureActionType="restart"
+               SecondFailureActionType="restart"
+               ThirdFailureActionType="restart"
+               ResetPeriodInDays="1"
+               RestartServiceDelayInSeconds="5"
+               ServiceName="argus"/>
+            </Component>
+            <Component Id='LibGCC' Guid="*">
+              <File Id='LibGCC' Name='cyggcc_s-seh-1.dll' DiskId='1'
+              Source='C:\cygwin64\bin\cyggcc_s-seh-1.dll' KeyPath='yes'>
+              </File>
+            </Component>
+            <Component Id='LibCygwin1' Guid="*">
+              <File Id='LibCygwin1' Name='cygwin1.dll' DiskId='1'
+              Source='C:\cygwin64\bin\cygwin1.dll' KeyPath='yes'>
+              </File>
+            </Component>
+            <Component Id='LibCygWrap' Guid="*">
+              <File Id='LibCygWrap' Name='cygwrap-0.dll' DiskId='1'
+              Source='C:\cygwin64\bin\cygwrap-0.dll' KeyPath='yes'></File>
+            </Component>
+            <Component Id='LibCygz' Guid="*">
+              <File Id='LibCygz' Name='cygz.dll' DiskId='1'
+              Source='C:\cygwin64\bin\cygz.dll' KeyPath='yes'></File>
+            </Component>
+            <Component Id='LibSasl2' Guid="*">
+              <File Id='LibSasl2' Name='cygsasl2-3.dll' DiskId='1'
+              Source='C:\cygwin64\bin\cygsasl2-3.dll' KeyPath='yes'></File>
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder" Name="Programs">
+        <Directory Id="ProgramMenuDir"
+        Name="Argus @PACKAGE_VERSION@">
+          <Component Id="ProgramMenuDir" Guid="*">
+            <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
+            <RegistryValue Root='HKCU'
+            Key='Software\[Manufacturer]\[ProductName]'
+            Type='string' Value='' KeyPath='yes' />
+          </Component>
+        </Directory>
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <!--All files and directories created by argus are owned by
+        "NT AUTHORITY\SYSTEM".  Directories created by openlog(3)
+        do not allow administrators to delete the directory contents.
+        Files created by open(2) in Cygwin have an ACL that does not allow
+        administrators to delete the file.  Create the directories from
+        the installer and set the permissions to what we want before
+        Cygwin's openlog() gets the chance.  If the directory's ACL
+        allows deleting subdirectories and files, the lack of delete
+        permissions on the files in that directory are overridden.-->
+
+    <DirectoryRef Id='VARDIR'>
+      <Component Id='create_var_directory'
+                 Guid="252c66f4-096d-46fe-9429-dad6ba442134">
+        <CreateFolder>
+          <util:PermissionEx User="BUILTIN\Administrators"
+                             Delete="yes"
+                             DeleteChild="yes"
+                             Read="yes"
+                             ReadExtendedAttributes="yes"
+                             WriteExtendedAttributes="yes"
+                             Synchronize="yes"/>
+        </CreateFolder>
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id='VARLOGDIR'>
+      <Component Id='create_varlog_directory'
+                 Guid="9b377bf9-05b3-44df-bef7-18feb6611c81">
+        <CreateFolder>
+          <util:PermissionEx User="BUILTIN\Administrators"
+                             Delete="yes"
+                             DeleteChild="yes"
+                             Read="yes"
+                             ReadExtendedAttributes="yes"
+                             WriteExtendedAttributes="yes"
+                             Synchronize="yes"/>
+        </CreateFolder>
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id='Complete' Level='1'>
+      <ComponentRef Id='MainExecutable' />
+      <ComponentRef Id='dash.exe' />
+      <ComponentRef Id='LibGCC' />
+      <ComponentRef Id='LibCygwin1' />
+      <ComponentRef Id='LibCygz' />
+      <ComponentRef Id='LibCygWrap' />
+      <ComponentRef Id='LibSasl2' />
+      <ComponentRef Id='ProgramMenuDir' />
+      <ComponentRef Id='Config' />
+      <ComponentRef Id='cygrunsrv.exe' />
+      <ComponentRef Id='REG_MACHINE' />
+      <ComponentRef Id='create_var_directory' />
+      <ComponentRef Id='create_varlog_directory' />
+    </Feature>
+
+  </Product>
+</Wix>

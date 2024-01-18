@@ -47,10 +47,14 @@ SHELL = /bin/sh
 DIRS = ./common ./argus ./events
 INSTDIRS = ./argus ./events
 
-DISTFILES = AUTHORS INSTALL MANIFEST CREDITS README VERSION Makefile.in \
-	bin common argus events lib man support doc include pkg debian \
-	aclocal.m4 acsite.m4 config configure configure.ac lib/argus.spec \
-	.threads
+# this should probably be the same as INSTDIRS.
+# See if scripts in pkg/osx/osx-pkg can be removed.
+OSXPACKAGE_INSTDIRS = ./argus
+
+DISTFILES = AUTHORS ChangeLog INSTALL MANIFEST Makefile.in\
+	CREDITS README VERSION bin common argus events doc include pkg debian\
+	lib man support aclocal.m4 acsite.m4 config configure configure.ac\
+	lib/argus.spec .threads licenses
 
 .c.o:
 	$(CC) -c $(CPPFLAGS) $(DEFS) $(CFLAGS) $<
@@ -122,6 +126,38 @@ installdirs:
 	${srcdir}/config/mkinstalldirs $(DESTDIR)$(bindir) $(DESTDIR)$(mandir)\
 		$(DESTDIR)$(docdir) $(DESTDIR)$(exec_prefix)/argus/archive
 
+osxpackage:
+	( \
+        $(MAKE) install DESTDIR=`pwd`/pkg/osx/BUILDROOT/Contents/MacOS \
+                        INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
+        ( find pkg/osx/BUILDROOT/Contents/MacOS/usr -type f | xargs file \
+           | awk -F: '/Mach-O.*executable/{print $$1}' \
+           | xargs strip ) && \
+        cp -f -L -R pkg/osx/osx-pkg/* pkg/osx/BUILDROOT/  && \
+        codesign -vvvv -s "Developer ID Application: Carter Bullard" -r="designated => identifier com.qosient.argus" --timestamp --options runtime pkg/osx/BUILDROOT/Contents/MacOS/usr/local/sbin/argus && \
+        pkgbuild --root pkg/osx/BUILDROOT/Contents/MacOS \
+	         --identifier com.qosient.argus \
+	         --version $(VERSION) \
+	         --ownership recommended \
+	         --scripts pkg/osx/scripts pkg/osx/output.pkg && \
+	productbuild --distribution pkg/osx/distribution.xml \
+	             --resources pkg/osx/resources \
+	             --package-path pkg/osx \
+	             --version $(VERSION) \
+	             $(OSXSIGN) \
+	             pkg/osx/argus-$(VERSION).pkg && \
+	rm -f pkg/osx/output.pkg \
+	)
+
+winpackage:
+	( \
+	$(MAKE) install DESTDIR=`pwd`/pkg/win/BUILDROOT \
+	                INSTDIRS="$(OSXPACKAGE_INSTDIRS)" && \
+	( find pkg/win/BUILDROOT -type f | xargs file \
+	   | awk -F: '/PE32 executable/{print $$1}' ) && \
+	$(MAKE) -C pkg/win \
+	)
+
 Makefile: Makefile.in config.status
 	$(SHELL) config.status
 
@@ -158,6 +194,16 @@ distclean: force
 	rm -f bin/*.exe
 	rm -f include/argus_config.h
 	rm -f include/*~
+	rm -rf pkg/osx/BUILDROOT/
+	rm -f pkg/osx/argus*.pkg
+	rm -f pkg/win/Makefile
+	rm -f pkg/win/argus.wxs
+	rm -f argus/magic.mgc
+	rm -rf pkg/win/BUILDROOT/
+	rm -f pkg/win/argus-5.0.3.8.msi
+	rm -f pkg/win/argus-5.0.3.8.wixpdb
+	rm -f pkg/win/argus.wixobj
+	rm -f pkg/win/argus.wxs.orig
 
 clobber realclean: distclean
 	rm -f ./Makefile

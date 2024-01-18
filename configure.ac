@@ -470,11 +470,14 @@ AC_SUBST(XDR_INCLS)
 AC_SUBST(INSTALL_LIB)
 AC_SUBST(INSTALL_BIN)
 
+
 AC_CONFIG_FILES([
    Makefile 
    ./common/Makefile 
    ./argus/Makefile
    ./events/Makefile 
+   ./pkg/win/Makefile
+   ./pkg/win/argus.wxs
    ./lib/argus.spec
 ])
 
