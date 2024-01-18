@@ -53,7 +53,7 @@ SASLLIBS = @LIB_SASL@
 
 CC = @CC@
 CCOPT = @V_CCOPT@
-INCLS = -I$(srcdir) @V_INCLS@ -I$(srcdir)/../include 
+INCLS = -I$(srcdir) @V_INCLS@ @XDR_INCLS@ -I$(srcdir)/../include 
 DEFS = @DEFS@
 #DEFS = -DARGUSPERFMETRICS=1 @DEFS@
 
@@ -91,7 +91,7 @@ PROG =	@INSTALL_BIN@/argus
 
 OBJ =	$(SRC:.c=.o)
 
-LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.a
+LIB = ../lib/argus_common.a @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB)
 
 HDR =	pcap.h pcap-int.h pcap-namedb.h pcap-nit.h pcap-pf.h \
 	ethertype.h gencode.h gnuc.h
