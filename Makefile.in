@@ -199,6 +199,12 @@ distclean: force
 	rm -f pkg/osx/argus*.pkg
 	rm -f pkg/win/Makefile
 	rm -f pkg/win/argus.wxs
+	rm -f argus/magic.mgc
+	rm -rf pkg/win/BUILDROOT/
+	rm -f pkg/win/argus-5.0.3.8.msi
+	rm -f pkg/win/argus-5.0.3.8.wixpdb
+	rm -f pkg/win/argus.wixobj
+	rm -f pkg/win/argus.wxs.orig
 
 clobber realclean: distclean
 	rm -f ./Makefile

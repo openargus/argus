@@ -299,9 +299,13 @@ main (int argc, char *argv[])
    int dodebug = 0, i, pid = 0;
    int readoffline = 0;
    char *tmparg, *filter;
+
+#if !defined(CYGWIN)
    extern char *optarg;
-   struct stat statbuf;
    extern int optind, opterr;
+#endif
+
+   struct stat statbuf;
    int op, commandlinei = 0;
 #if defined(ARGUS_THREADS)
    sigset_t blocked_signals;
