@@ -52,10 +52,14 @@ SHELL = /bin/sh
 DIRS = ./common ./argus ./events
 INSTDIRS = ./argus ./events
 
-DISTFILES = AUTHORS INSTALL MANIFEST CREDITS README VERSION Makefile.in \
-	bin common argus events lib man support doc include pkg debian \
-	aclocal.m4 acsite.m4 config configure configure.ac lib/argus.spec \
-	.threads
+# this should probably be the same as INSTDIRS.
+# See if scripts in pkg/osx/osx-pkg can be removed.
+OSXPACKAGE_INSTDIRS = ./argus
+
+DISTFILES = AUTHORS ChangeLog INSTALL MANIFEST Makefile.in\
+	CREDITS README VERSION bin common argus events doc include pkg debian\
+	lib man support aclocal.m4 acsite.m4 config configure configure.ac\
+	lib/argus.spec .threads licenses
 
 .c.o:
 	$(CC) -c $(CPPFLAGS) $(DEFS) $(CFLAGS) $<
