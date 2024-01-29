@@ -250,9 +250,15 @@ total 24
 -rw-r--r--  1 carter  staff  2182 Aug 23 10:24 tcp_fsm.h
 
 ./lib:
-total 32
--rw-r--r--  1 carter  staff  4608 Jan 18 17:58 argus.spec
--rw-r--r--  1 carter  staff  4636 Jan 18 10:34 argus.spec.in
+total 16
+-rw-rw-r-- 1 carter carter 4580 Jan 29 14:30 argus.spec
+-rw-rw-r-- 1 carter carter 4606 Jan 29 14:26 argus.spec.in
+
+./licenses:
+total 12
+-rw-rw-r-- 1 carter carter 111 Jan  9 18:20 arguspro_sensor_appliance.lic.template
+-rw-rw-r-- 1 carter carter 137 Jan  9 18:20 arguspro_sensor_floating.lic.template
+-rw-rw-r-- 1 carter carter  89 Jan  9 18:20 arguspro_sensor_workstation.lic.template
 
 ./logo:
 total 8
