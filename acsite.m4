@@ -1,21 +1,23 @@
 dnl
-dnl Gargoyle Software. Argus flow data generation.
+dnl Argus-5.0 Software. Argus flow data generation.
 dnl Copyright (c) 2000-2024 QoSient, LLC
 dnl All rights reserved.
 dnl
-dnl THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
-dnl AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
-dnl EXPRESS PERMISSION OF QoSIENT, LLC.
+dnl This program is free software, released under the GNU General
+dnl Public License; you can redistribute it and/or modify it under the terms
+dnl of the GNU General Public License as published by the Free Software
+dnl Foundation; either version 3, or any later version.
 dnl
-dnl QOSIENT, LLC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
-dnl SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-dnl AND FITNESS, IN NO EVENT SHALL QOSIENT, LLC BE LIABLE FOR ANY
-dnl SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-dnl WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
-dnl IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
-dnl ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
-dnl THIS SOFTWARE.
+dnl Other licenses are available through QoSient, LLC.
+dnl Inquire at info@qosient.com.
 dnl
+dnl This program is distributed WITHOUT ANY WARRANTY; without even the
+dnl implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+dnl See the * GNU General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 dnl
 dnl Copyright (c) 1995, 1996, 1997, 1998
 dnl   The Regents of the University of California.  All rights reserved.
@@ -24,7 +26,6 @@ dnl $Id: //depot/gargoyle/argus/acsite.m4#6 $
 dnl $DateTime: 2015/04/13 14:26:55 $
 dnl $Change: 2989 $
 dnl
-
 
 dnl QOSIENT and LBL autoconf macros
 dnl
