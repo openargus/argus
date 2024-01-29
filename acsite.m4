@@ -9,7 +9,6 @@ dnl $DateTime: 2015/04/13 14:26:55 $
 dnl $Change: 2989 $
 dnl
 
-
 dnl QOSIENT and LBL autoconf macros
 dnl
 dnl
