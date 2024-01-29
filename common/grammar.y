@@ -3,9 +3,10 @@
  * Copyright (c) 2000-2020 QoSient, LLC
  * All rights reserved.
  *
- * THE ACCOMPANYING PROGRAM IS PROPRIETARY SOFTWARE OF QoSIENT, LLC,
- * AND CANNOT BE USED, DISTRIBUTED, COPIED OR MODIFIED WITHOUT
- * EXPRESS PERMISSION OF QoSIENT, LLC.
+ * This program is free software, released under the GNU General
+ * Public License; you can redistribute it and/or modify it under the terms
+ * of the GNU General Public License as published by the Free Software
+ * Foundation; either version 3, or any later version.
  *
  */
 /*
