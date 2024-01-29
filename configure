@@ -317,14 +317,6 @@ as_fn_exit ()
   as_fn_set_status $1
   exit $1
 } # as_fn_exit
-# as_fn_nop
-# ---------
-# Do nothing but, unlike ":", preserve the value of $?.
-as_fn_nop ()
-{
-  return $?
-}
-as_nop=as_fn_nop
 
 # as_fn_mkdir_p
 # -------------
@@ -420,14 +412,6 @@ else case e in #(
 esac
 fi # as_fn_arith
 
-# as_fn_nop
-# ---------
-# Do nothing but, unlike ":", preserve the value of $?.
-as_fn_nop ()
-{
-  return $?
-}
-as_nop=as_fn_nop
 
 # as_fn_error STATUS ERROR [LINENO LOG_FD]
 # ----------------------------------------
@@ -4228,18 +4212,20 @@ if test "x$ac_cv_prog_cc_c89" = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: unsupported" >&5
 printf "%s\n" "unsupported" >&6; }
-else $as_nop
-  if test "x$ac_cv_prog_cc_c89" = x
+else case e in #(
+  e) if test "x$ac_cv_prog_cc_c89" = x
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: none needed" >&5
 printf "%s\n" "none needed" >&6; }
-else $as_nop
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_prog_cc_c89" >&5
+else case e in #(
+  e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_prog_cc_c89" >&5
 printf "%s\n" "$ac_cv_prog_cc_c89" >&6; }
-     CC="$CC $ac_cv_prog_cc_c89"
+     CC="$CC $ac_cv_prog_cc_c89" ;;
+esac
 fi
   ac_cv_prog_cc_stdc=$ac_cv_prog_cc_c89
-  ac_prog_cc_stdc=c89
+  ac_prog_cc_stdc=c89 ;;
+esac
 fi
 fi
 
@@ -10764,7 +10750,6 @@ as_fn_error ()
   printf "%s\n" "$as_me: error: $2" >&2
   as_fn_exit $as_status
 } # as_fn_error
-
 
 
 # as_fn_set_status STATUS
