@@ -795,7 +795,7 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
          struct ip *ip = (struct ip *) p;
 
          if (STRUCTCAPTURED(model,*ip)) {
-            if ((ntohs(ip->ip_len)) >= 20) {
+            if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
                if (ip->ip_v == 4) 
                   model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
                else if (ip->ip_v == 6)
