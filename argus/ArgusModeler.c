@@ -4350,12 +4350,6 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
       bcopy(&ip->ip6_src, sp, sizeof(ip->ip6_src));
       bcopy(&ip->ip6_dst, dp, sizeof(ip->ip6_dst));
 
-      rsp = (unsigned int *)&tflow->ipv6_flow.ip_src;
-      rdp = (unsigned int *)&tflow->ipv6_flow.ip_dst;
-
-      bcopy(&ip->ip6_src, sp, sizeof(ip->ip6_src));
-      bcopy(&ip->ip6_dst, dp, sizeof(ip->ip6_dst));
-
       model->ArgusThisIpv6Frag = NULL;
       model->ArgusThisLength -= sizeof(*ip);
       model->ArgusSnapLength -= sizeof(*ip);
@@ -4440,10 +4434,6 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
                   struct udphdr *up = (struct udphdr *) model->ArgusThisUpHdr;
                   sport = ntohs(up->uh_sport);
                   dport = ntohs(up->uh_dport);
-                  if ((sport == 53) || (dport == 53)) {
-                     unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
-                     bcopy(&pad, &model->ArgusThisFlow->ipv6_flow.smask, 2);
-                  }
                   break;
                }
 
@@ -4637,7 +4627,7 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
             if (model->ArgusFlowType == ARGUS_BIDIRECTIONAL)
                if ((tip->ip_src.s_addr > tip->ip_dst.s_addr) ||
                    ((tip->ip_src.s_addr == tip->ip_dst.s_addr) &&
-                    sport > dport))
+                    sport < dport))
                   model->state |= ARGUS_DIRECTION;
 
             if (model->state & ARGUS_DIRECTION) {
