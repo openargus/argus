@@ -4427,6 +4427,10 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
                   struct udphdr *up = (struct udphdr *) model->ArgusThisUpHdr;
                   sport = ntohs(up->uh_sport);
                   dport = ntohs(up->uh_dport);
+                  if ((sport == 53) || (dport == 53)) {
+                     unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
+                     bcopy(&pad, &model->ArgusThisFlow->ipv6_flow.smask, 2);
+                  }
                   break;
                }
 
