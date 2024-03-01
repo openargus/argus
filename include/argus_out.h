@@ -476,6 +476,7 @@ struct ArgusIPv6Flow {
    unsigned int flow:20;
 #endif
    unsigned short sport, dport;
+   unsigned short smask, dmask;
 };
 
 struct ArgusUdtFlow {
