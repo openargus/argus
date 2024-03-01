@@ -4319,56 +4319,18 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
       unsigned int *dp  = (void *) &ip->ip6_dst;
       unsigned short alen, sport = 0, dport = 0;
       unsigned int *rsp, *rdp;
-#ifdef _LITTLE_ENDIAN
-//    unsigned plen;
-//    plen = ntohs(ip->ip6_plen);
-#endif 
 
       tflow = model->ArgusThisFlow;
 
       bcopy(&ip->ip6_src, sp, sizeof(ip->ip6_src));
       bcopy(&ip->ip6_dst, dp, sizeof(ip->ip6_dst));
 
-      rsp = (unsigned int *)&tflow->ipv6_flow.ip_src;
-      rdp = (unsigned int *)&tflow->ipv6_flow.ip_dst;
-
-      tflow->ipv6_flow.flow = 0;
-
-      nxt = ip->ip6_nxt;
-      model->ArgusThisIpHdr = ip;
-
-      alen = sizeof(ip->ip6_src)/sizeof(int);
-      if (model->ArgusFlowType == ARGUS_BIDIRECTIONAL) {
-         while ((i < alen) && (*dp == *sp)) {    /* copy while they are equal */
-            *rsp++ = *sp++;                     /* leave pointers where they are not */
-            *rdp++ = *dp++;
-            i++;
-         }
-         if (i < alen) {
-            if (ntohl(*sp) < ntohl(*dp)) {
-               unsigned int *tmp = rdp;
-               rdp = rsp;
-               rsp = tmp;
-               model->state |= ARGUS_DIRECTION;
-            }
-            while (i < alen) {
-               *rsp++ = *sp++;
-               *rdp++ = *dp++;
-               i++;
-            }
-         }
-      } else {
-         for (i = 0; i < alen; i++) {
-            *rsp++ = *sp++;
-            *rdp++ = *dp++;
-         }
-      }
-
       model->ArgusThisIpv6Frag = NULL;
       model->ArgusThisLength -= sizeof(*ip);
       model->ArgusSnapLength -= sizeof(*ip);
 
       model->ArgusThisUpHdr = (unsigned char *)(ip + 1);
+      nxt = ip->ip6_nxt;
       ip++;
        
       while (!done) {
@@ -4410,12 +4372,14 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 
       tflow->hdr.type       = ARGUS_FLOW_DSR;
       retn = tflow;
-
       if (model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE) {
-         tflow->hdr.subtype          = ARGUS_FLOW_CLASSIC5TUPLE;
+         tflow->hdr.subtype           = ARGUS_FLOW_CLASSIC5TUPLE;
          tflow->hdr.argus_dsrvl8.qual = ARGUS_TYPE_IPV6;
          tflow->hdr.argus_dsrvl8.len  = 11;
-         tflow->ipv6_flow.ip_p       = nxt;
+         tflow->ipv6_flow.ip_p        = nxt;
+         tflow->ipv6_flow.flow        = 0;
+
+         model->ArgusThisIpHdr = ip;
 
          if ((model->ArgusThisIpv6Frag) && ((ntohs(model->ArgusThisIpv6Frag->ip6f_offlg & IP6F_OFF_MASK)) != 0)) {
             tflow->fragv6_flow.ip_id = model->ArgusThisIpv6Frag->ip6f_ident;
@@ -4436,48 +4400,75 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
             switch (nxt) {
                case IPPROTO_TCP: {
                   struct tcphdr *tp = (struct tcphdr *) model->ArgusThisUpHdr;
-                  if (model->state & ARGUS_DIRECTION) {
-                     dport = ntohs(tp->th_sport);
-                     sport = ntohs(tp->th_dport);
-                  } else {
-                     sport = ntohs(tp->th_sport);
-                     dport = ntohs(tp->th_dport);
-                  }
-                  tflow->ipv6_flow.sport = sport;
-                  tflow->ipv6_flow.dport = dport;
+                  sport = ntohs(tp->th_sport);
+                  dport = ntohs(tp->th_dport);
                   break;
                }
 
                case IPPROTO_UDP: {
                   struct udphdr *up = (struct udphdr *) model->ArgusThisUpHdr;
-                  if (model->state & ARGUS_DIRECTION) {
-                     dport = ntohs(up->uh_sport);
-                     sport = ntohs(up->uh_dport);
-                  } else {
-                     sport = ntohs(up->uh_sport);
-                     dport = ntohs(up->uh_dport);
-                  }
-                  tflow->ipv6_flow.sport = sport;
-                  tflow->ipv6_flow.dport = dport;
+                  sport = ntohs(up->uh_sport);
+                  dport = ntohs(up->uh_dport);
                   break;
                }
 
-               case IPPROTO_ESP:
+               case IPPROTO_ESP: {
                   retn = ArgusCreateESPv6Flow(model, ip);
+                  return (retn);
                   break;
+               }
 
-               case IPPROTO_ICMPV6:
+               case IPPROTO_ICMPV6: {
                   retn = ArgusCreateICMPv6Flow(model, (struct icmp6_hdr *)model->ArgusThisUpHdr);
+                  return (retn);
                   break;
+               }
               
-               case IPPROTO_IGMP: 
+               case IPPROTO_IGMP: {
                   retn = ArgusCreateIGMPv6Flow(model, (struct igmp *)model->ArgusThisUpHdr);
+                  return (retn);
                   break;
+               }
 
                default:
-                  tflow->ipv6_flow.sport = sport;
-                  tflow->ipv6_flow.dport = dport;
                   break;
+            }
+         }
+
+         if (model->ArgusFlowType == ARGUS_BIDIRECTIONAL) {
+            rsp = (unsigned int *)&tflow->ipv6_flow.ip_src;
+            rdp = (unsigned int *)&tflow->ipv6_flow.ip_dst;
+            alen = sizeof(ip->ip6_src)/sizeof(int);
+
+            while ((i < alen) && (*dp == *sp)) {   /* copy while they are equal */
+               *rsp++ = *sp++;                     /* leave pointers where they are not */
+               *rdp++ = *dp++;
+               i++;
+            }
+            if (i < alen) {
+               if (ntohl(*sp) > ntohl(*dp)) {
+                  unsigned int *tmp = rdp;
+                  rdp = rsp;
+                  rsp = tmp;
+                  model->state |= ARGUS_DIRECTION;
+               }
+               while (i < alen) {
+                  *rsp++ = *sp++;
+                  *rdp++ = *dp++;
+                  i++;
+               }
+            } else {
+               if (sport < dport)
+                  model->state |= ARGUS_DIRECTION;
+            }
+      
+            if (model->state & ARGUS_DIRECTION) {
+               tflow->hdr.subtype       |= ARGUS_REVERSE;
+               tflow->ipv6_flow.sport    = dport;
+               tflow->ipv6_flow.dport    = sport;
+            } else {
+               tflow->ipv6_flow.sport    = sport;
+               tflow->ipv6_flow.dport    = dport;
             }
          }
 
@@ -4611,7 +4602,7 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
             if (model->ArgusFlowType == ARGUS_BIDIRECTIONAL)
                if ((tip->ip_src.s_addr > tip->ip_dst.s_addr) ||
                    ((tip->ip_src.s_addr == tip->ip_dst.s_addr) &&
-                    sport > dport))
+                    sport < dport))
                   model->state |= ARGUS_DIRECTION;
 
             if (model->state & ARGUS_DIRECTION) {
