@@ -1,6 +1,6 @@
 /*
- * Argus Software
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Common library routines - Filter code
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -18,9 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * Written by Carter Bullard
- * QoSient, LLC
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -48,6 +45,11 @@
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/common/argus_code.c#7 $
+ * $DateTime: 2015/06/22 18:22:35 $
+ * $Change: 3025 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

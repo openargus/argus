@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-#  Argus Software
-#  Copyright (c) 2006-2020 QoSient, LLC
+#  Argus-5.0 Software.  Argus Event scripts - vmstat
+#  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 #
 #  This program is free software, released under the GNU General
@@ -27,8 +27,10 @@
 #           This example is provided to show how you can format most programs
 #           to get to the XML oriented output used by the argus events system.
 #
-# Carter Bullard
-# QoSient, LLC
+# 
+#  $Id: //depot/gargoyle/argus/events/argus-vmstat.sh#5 $
+#  $DateTime: 2015/04/13 00:39:28 $
+#  $Change: 2980 $
 #
 
 output=`vm_stat | sed -e 's/"//g' -e 's/\.//' -e 's/: */:/' | \

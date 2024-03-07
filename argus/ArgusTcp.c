@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - TCP protocol
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - TCP Protocol processing
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,11 +22,13 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/argus/ArgusTcp.c#11 $
+ * $DateTime: 2016/09/18 16:32:53 $
+ * $Change: 3186 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

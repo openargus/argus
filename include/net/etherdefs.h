@@ -1,6 +1,6 @@
 /*
  * Argus Software.  Argus files - main argus processing
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,6 +19,11 @@
  *
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/include/net/etherdefs.h#4 $
+ * $DateTime: 2015/04/13 00:39:28 $
+ * $Change: 2980 $
+ */
 #ifndef _NET_ETHERNET_H_
 #define _NET_ETHERNET_H_
 

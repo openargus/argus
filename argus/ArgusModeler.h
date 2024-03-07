@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Modeler includes
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Modeler includes
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,10 +22,14 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
  */
+
+/* 
+ * $Id: //depot/gargoyle/argus/argus/ArgusModeler.h#8 $
+ * $DateTime: 2016/02/23 00:04:12 $
+ * $Change: 3099 $
+ */
+
 
 #ifndef ArgusModeler_h
 #define ArgusModeler_h
@@ -224,8 +228,6 @@ struct ArgusModelerStruct {
 
    struct ArgusSourceStruct *ArgusSrc;
    struct ArgusQueueStruct *ArgusStatusQueue;
-   struct ArgusQueueStruct *ArgusTimeOutQueues;
-   struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
    struct ArgusListStruct *ArgusOutputList;
    struct ArgusHashTable *ArgusHashTable;
    struct ArgusSystemFlow  *ArgusThisFlow;
@@ -317,12 +319,6 @@ struct ArgusModelerStruct {
    int ArgusSnapLen;
  
    int ArgusTunnelDiscovery;
-   int ArgusGreParsing;
-   int ArgusVXLanParsing;
-
-   int ArgusUserDataLen;
- 
-   int ArgusTunnelDiscovery;
    int ArgusOSFingerPrinting;
    int ArgusUserDataLen;
    int ArgusAflag, ArgusTCPflag, Argusmflag;
@@ -348,6 +344,9 @@ struct ArgusModelerStruct {
    unsigned int ArgusLocalNet;
    unsigned int ArgusNetMask;
    unsigned int ArgusLink;
+
+   struct ArgusQueueStruct *ArgusTimeOutQueues;
+   struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
 };
 
 
@@ -487,12 +486,6 @@ void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 int getArgusTunnelDiscovery (struct ArgusModelerStruct *);
 void setArgusTunnelDiscovery (struct ArgusModelerStruct *, int);
 
-int getArgusGreParsing(struct ArgusModelerStruct *);
-void setArgusGreParsing(struct ArgusModelerStruct *, int);
-
-int getArgusVxLanParsing(struct ArgusModelerStruct *);
-void setArgusVxLanParsing(struct ArgusModelerStruct *, int);
-
 int getArgusTrackDuplicates (struct ArgusModelerStruct *);
 void setArgusTrackDuplicates (struct ArgusModelerStruct *, int);
 
@@ -626,21 +619,6 @@ extern void ArgusUpdateArpState (struct ArgusModelerStruct *, struct ArgusFlowSt
 extern  int ArgusUpdateFRAGState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char, unsigned short);
 extern void ArgusUpdateESPState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 
-extern unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
-
-#define MAX_PORT_ALG_TYPES      2
-struct ArgusTransportRoutines {
-   char *field;
-   unsigned short type, port;
-   unsigned short (*parse)(struct ArgusModelerStruct *, void *ptr);
-};
-
-struct ArgusTransportRoutines
-RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
-#define ARGUS_PARSE_VXLAN       0
-   { "vxlan", ARGUS_PARSE_VXLAN, 4789, ArgusParseVxLan},
-   { "vxlan", ARGUS_PARSE_VXLAN, 8472, ArgusParseVxLan},
-};
 
 extern unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
 extern unsigned short ArgusParseL2TP  (struct ArgusModelerStruct *, void *);
@@ -725,12 +703,6 @@ extern void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 
 extern int getArgusTunnelDiscovery(struct ArgusModelerStruct *);
 extern void setArgusTunnelDiscovery(struct ArgusModelerStruct *, int);
-
-extern int getArgusGreParsing(struct ArgusModelerStruct *);
-extern void setArgusGreParsing(struct ArgusModelerStruct *, int);
-
-extern int getArgusVxLanParsing(struct ArgusModelerStruct *);
-extern void setArgusVxLanParsing(struct ArgusModelerStruct *, int);
 
 extern int getArgusTrackDuplicates (struct ArgusModelerStruct *);
 extern void setArgusTrackDuplicates (struct ArgusModelerStruct *, int);

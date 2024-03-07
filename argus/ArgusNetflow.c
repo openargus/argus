@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Fragment processing
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Netflow processing
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,11 +22,13 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
  */
 
+/* 
+ * $Id: //depot/argus/argus/argus/ArgusNetflow.c#23 $
+ * $DateTime: 2011/01/26 17:21:20 $
+ * $Change: 2089 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

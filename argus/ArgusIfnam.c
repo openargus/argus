@@ -35,6 +35,7 @@
 #include "argus_compat.h"
 #include "ArgusModeler.h"
 #include "ArgusSource.h"
+#include "ArgusIfnam.h"
 
 #define __NAMELENGTH 4
 

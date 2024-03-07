@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - UDP protocol
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - UDP Protocol processing
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,11 +22,13 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/argus/ArgusUdp.c#5 $
+ * $DateTime: 2015/06/22 17:59:06 $
+ * $Change: 3024 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

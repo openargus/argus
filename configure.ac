@@ -1,6 +1,6 @@
 # 
-#  Argus Software
-#  Copyright (c) 2000-2020 QoSient, LLC
+#  Argus-5.0 Software. Tools to read, analyze and manage Argus data.
+#  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 # 
 # This program is free software, released under the GNU General
@@ -21,8 +21,11 @@
 #
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.61)
-AC_INIT([Argus Server Programs], [3.0.8], [bug-report@qosient.com], [argus], [http://openargus.org])
+AC_PREREQ([2.69])
+AC_INIT([Argus-5.0 Server Programs],[5.0.0],[bug-report@qosient.com],[argus],[http://qosient.com/argus])
+PACKAGE_RELEASE='3.8'
+ARGUSPRO_VERSION='1.0'
+AC_DEFINE([ARGUSPRO_VERSION_STRING], ["1.0"], [Product version number string])
 AC_CONFIG_SRCDIR([argus/argus.c])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_HEADERS([include/argus_config.h])
@@ -33,6 +36,7 @@ AC_PREFIX_DEFAULT( /usr/local )
 AC_LBL_C_INIT(V_CCOPT, V_INCLS)
 
 AC_QOSIENT_LIBPCAP(V_PCAPDEP, V_INCLS)
+
 if test ! -z "$V_PCAPDEP"; then
    if test -f "$V_PCAPDEP"; then
       if test -f lib/libpcap.a; then
@@ -53,7 +57,6 @@ if test ! -z "$V_PCAPDEP"; then
          fi
       fi
    fi
-   LIBS="$LIBS $V_PCAPDEP"
 fi
 
 AC_QOSIENT_LEX_AND_YACC(V_LEX, V_YACC, argus_)
@@ -138,6 +141,8 @@ AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 
+
+AC_CHECK_FUNCS(backtrace)
 AC_CHECK_FUNCS(openlog syslog)
 AC_CHECK_FUNCS(vfprintf strlcpy)
 AC_CHECK_FUNCS(strftime)
@@ -180,7 +185,6 @@ fi
 # Do this before checking for ether_hostton(), as it's a
 # "gethostbyname() -ish function".
 #
-AC_LBL_LIBRARY_NET
 AC_CHECK_FUNCS([ether_hostton getaddrinfo gethostname])
 
 if test "$ac_cv_func_ether_hostton" = yes; then
@@ -456,8 +460,6 @@ AC_SUBST(V_PERL)
 AC_SUBST(V_THREADS)
 AC_SUBST(WRAPLIBS)
 AC_SUBST(COMPATLIB)
-AC_SUBST(XDR_INCLS)
-AC_SUBST(LIB_XDR)
 AC_SUBST(LIB_SASL)
 AC_SUBST(LIB_XDR)
 AC_SUBST(XDR_INCLS)

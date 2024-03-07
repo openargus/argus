@@ -1,6 +1,6 @@
 /*
- * Argus Software
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Common include files. dscodepoints
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -18,9 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * Written by Carter Bullard
- * QoSient, LLC
  *
  * Written by Carter Bullard
  * QoSient, LLC

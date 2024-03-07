@@ -1,6 +1,6 @@
-/* 
- * Argus Software.  Argus files - Modeler
- * Copyright (c) 2000-2020 QoSient, LLC
+/*
+ * Argus-5.0 Software.  Argus files - Modeler
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,6 +24,11 @@
  *
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/argus/ArgusModeler.c#19 $
+ * $DateTime: 2016/10/04 10:36:36 $
+ * $Change: 3213 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
@@ -159,6 +164,7 @@ ArgusNewModeler()
    if ((retn = (struct ArgusModelerStruct *) ArgusCalloc (1, sizeof (struct ArgusModelerStruct))) == NULL)
       ArgusLog (LOG_ERR, "ArgusNewModeler () ArgusCalloc error %s\n", strerror(errno));
 
+   retn->ArgusHashTableSize = ARGUS_HASHTABLESIZE;
    setArgusFlowKey (retn, ARGUS_FLOW_KEY_CLASSIC5TUPLE);
    setArgusFlowType (retn, ARGUS_BIDIRECTIONAL);
 
@@ -189,10 +195,9 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusMinorVersion = VERSION_MINOR;
    model->ArgusSnapLen = ARGUS_MINSNAPLEN;
 
-   gettimeofday (&model->ArgusGlobalTime, 0L);
+   ArgusGetTimeOfDay(model->ArgusSrc, &model->ArgusGlobalTime);
 
    if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
-      model->ArgusGlobalTime.tv_usec *= 1000;
       model->ArgusUpdateInterval.tv_usec = 500000000;
       model->ival = ((model->ArgusUpdateInterval.tv_sec * 1000000000LL) + model->ArgusUpdateInterval.tv_usec);
    } else {
@@ -225,12 +230,11 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    model->ArgusOutputList = ArgusOutputTask->ArgusInputList;
 
-   if ((model->ArgusThisLLC = (struct llc  *) ArgusCalloc (1, sizeof (struct llc ) + 32)) == NULL)
+   if ((model->ArgusThisLLC = (struct argus_llc  *) ArgusCalloc (1, sizeof (struct argus_llc ) + 32)) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
 
    model->ArgusSeqNum = 1;
    model->ArgusReportAllTime = 1;
-
 
    if (!(model->ArgusFlowType)) {
       if (model->ArgusFlowKey & ARGUS_FLOW_KEY_CLASSIC5TUPLE)
@@ -258,8 +262,8 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    ArgusInitMallocList(sizeof(struct ArgusRecordStruct));
 
-   if (getArgusTunnelDiscovery(model) || getArgusVxLanParsing(model) || getArgusGreParsing(model))
-      ArgusInitTunnelPortNumbers();
+   if (getArgusTunnelDiscovery(model))
+      ArgusInitTunnelPortNumbers ();
 
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusInitModeler(%p) done\n", model);
@@ -449,7 +453,6 @@ ArgusQueueManager(void *param)
                testime.tv_usec -= 1000000;
             }
          }
-#endif
       }
    }
 #endif 
@@ -471,17 +474,8 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
    while ((!done)) {
       if (queue->start != NULL) {
          if ((last = (struct ArgusFlowStruct *) queue->start->prv) != NULL) {
-            struct timeval nowbuf, *now;
-
+            struct timeval *now;
             now = &model->ArgusGlobalTime;
-/*
-            if (ArgusSourceTask->ArgusReadingOffLine) {
-               now = &model->ArgusGlobalTime;
-            } else {
-               now = &nowbuf;
-               gettimeofday(now, 0L);
-            }
-*/
 
             if (queue == model->ArgusStatusQueue) {
                if (ArgusCheckTimeout(model, &last->qhdr.qtime, now, getArgusFarReportInterval(model))) {
@@ -550,7 +544,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 #endif
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
+   ArgusDebug (8, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
 #endif 
 }
 
@@ -801,7 +795,7 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
          struct ip *ip = (struct ip *) p;
 
          if (STRUCTCAPTURED(model,*ip)) {
-            if ((ntohs(ip->ip_len)) >= 20) {
+            if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
                if (ip->ip_v == 4) 
                   model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
                else if (ip->ip_v == 6)
@@ -814,13 +808,12 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
                      break;
                   }
                   case IPPROTO_UDP: { /* RCP 4380 */
-                     if (getArgusTunnelDiscovery(model) || getArgusVxLanParsing(model))
+                     if (getArgusTunnelDiscovery(model))
                         retn = ArgusProcessUdpHdr(model, ip, length);
                      break;
                   }
                   case IPPROTO_GRE: { /* RFC 2784 */
-                     if (getArgusTunnelDiscovery(model) || getArgusGreParsing(model))
-                        retn = ArgusProcessGreHdr(model, ip, length);
+                     retn = ArgusProcessGreHdr(model, ip, length);
                      break;
                   }
                   default:
@@ -937,14 +930,15 @@ ArgusProcessTtpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
    return (retn);
 }
 
-void ArgusInitUDPTunnelPortNumbers(void);
 
-void ArgusInitTunnelPortNumbers(void)
+void ArgusInitUDPTunnelPortNumbers (void);
+
+void
+ArgusInitTunnelPortNumbers (void)
 {
    int i = 0;
-   bzero(ArgusTransportParseRoutines, sizeof(ArgusTransportParseRoutines));
-   for (i = 0; i < MAX_PORT_ALG_TYPES; i++)
-   {
+   bzero (ArgusTransportParseRoutines, sizeof(ArgusTransportParseRoutines));
+   for (i = 0; i < MAX_PORT_ALG_TYPES; i++) {
       ArgusTransportParseRoutines[RaPortAlgorithmTable[i].port] = RaPortAlgorithmTable[i].parse;
    }
 }
@@ -963,23 +957,12 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
       sport = ntohs(up->uh_sport);
       dport = ntohs(up->uh_dport);
 
-      if (!((sport == 53) || (dport == 53) || (sport == 5353) || (dport == 5353))) {
-         char *ptr = (char *) (up + 1);
-         struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
-         int isipv6 = 0;
-
-         len += sizeof (*up);
-
-         if (STRUCTCAPTURED(model, *ipv6)) {
-            if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-               retn = ETHERTYPE_IPV6;
-               len = ((char *) ipv6 - (char *)ip);
-               model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-               model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-               model->ArgusThisLength -= len;
-               model->ArgusSnapLength -= len;
-            } else {
-               struct teredo *tptr = (struct teredo *) (up + 1);
+      if (ArgusTransportParseRoutines[dport] != NULL) {
+         if ((retn = ArgusTransportParseRoutines[dport](model, up + 1)) < 0) {
+#ifdef ARGUSDEBUG
+            ArgusDebug (4, "ArgusTransportParseRoutines(%p, %p, %d) error %d\n", model, ip, length, retn);
+#endif 
+         }
 
       } else {
          if (!((sport == 53) || (dport == 53))) {
@@ -990,7 +973,6 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
             len += sizeof (*up);
 
             if (STRUCTCAPTURED(model, *ipv6)) {
-/*
                int isipv6 = 0;
                if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
                   retn = ETHERTYPE_IPV6;
@@ -1052,7 +1034,6 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                      }
                   }
                }
-*/
             }
 */
          }
@@ -2387,7 +2368,17 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       flow->dsrs[ARGUS_TIME_INDEX] = (struct ArgusDSRHeader *) time;
       time->hdr.type               = ARGUS_TIME_DSR;
       time->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
-      time->hdr.argus_dsrvl8.qual  = model->ArgusSrc->timeStampType;
+
+      /* The global time precision must be independent of pcap device
+       * precision.  ArgusGlobalTime is always scaled to nanoseconds,
+       * if argus is compiled with nanosecond support, and always scaled
+       * to microseconds otherwise.
+       */
+#if defined(ARGUS_NANOSECONDS)
+      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_NANOSECONDS;
+#else
+      time->hdr.argus_dsrvl8.qual  = ARGUS_TYPE_UTC_MICROSECONDS;
+#endif
       time->hdr.argus_dsrvl8.len   = 3;
 
       if (model->ArgusThisDir) {
@@ -2553,20 +2544,21 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    }
 
    if (model->ArgusThisEncaps & ARGUS_ENCAPS_VXLAN) {
-      if ((vxlan = (struct ArgusVxLanStruct *)flow->dsrs[ARGUS_VXLAN_INDEX]) == NULL) {
-         vxlan = (struct ArgusVxLanStruct *)&flow->canon.vxlan;
+      if ((vxlan = (struct ArgusVxLanStruct *) flow->dsrs[ARGUS_VXLAN_INDEX]) == NULL) {
+         vxlan = (struct ArgusVxLanStruct *) &flow->canon.vxlan;
          memset(vxlan, 0, sizeof(*vxlan));
-         flow->dsrs[ARGUS_VXLAN_INDEX] = (struct ArgusDSRHeader *)vxlan;
-         vxlan->hdr.type = ARGUS_VXLAN_DSR;
-         vxlan->hdr.subtype = 0;
-         vxlan->hdr.argus_dsrvl8.qual = 0;
-         vxlan->hdr.argus_dsrvl8.len = 3;
+         flow->dsrs[ARGUS_VXLAN_INDEX] = (struct ArgusDSRHeader *) vxlan;
+         vxlan->hdr.type               = ARGUS_VXLAN_DSR;
+         vxlan->hdr.subtype            = 0;
+         vxlan->hdr.argus_dsrvl8.qual  = 0;
+         vxlan->hdr.argus_dsrvl8.len   = 3;
          flow->dsrindex |= 1 << ARGUS_VXLAN_INDEX;
       }
 
       if (model->ArgusThisDir) {
          vxlan->svnid = model->ArgusThisVxLanVni;
          vxlan->hdr.argus_dsrvl8.qual |= ARGUS_SRC_VXLAN;
+
       } else {
          vxlan->dvnid = model->ArgusThisVxLanVni;
          vxlan->hdr.argus_dsrvl8.qual |= ARGUS_DST_VXLAN;
@@ -3208,8 +3200,9 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         for (z = 0; z < (tlen / 4); z++)
                            *dsrptr++ = *sptr++;
 
-                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE)
-                           *dsrptr++ = *sptr++;
+                        if (trans->hdr.argus_dsrvl8.qual & ARGUS_TYPE_INTERFACE) {
+                           bcopy(&trans->srcid.inf, dsrptr++, sizeof(trans->srcid.inf));
+                        }
 
                         if (trans->hdr.subtype & ARGUS_SEQ)
                            *dsrptr++ = trans->seqnum;
@@ -4339,9 +4332,9 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
    struct ArgusSystemFlow *tflow;
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
-      int nxt, done = 0, i = 0;
-      unsigned int *sp  = (void *) &ip->ip6_src;
-      unsigned int *dp  = (void *) &ip->ip6_dst;
+      int nxt = 0, done = 0, i = 0;
+      unsigned int saddr[4], *sp = saddr;
+      unsigned int daddr[4], *dp = daddr;
       unsigned short alen, sport = 0, dport = 0;
       unsigned int *rsp, *rdp;
 
@@ -4434,6 +4427,10 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
                   struct udphdr *up = (struct udphdr *) model->ArgusThisUpHdr;
                   sport = ntohs(up->uh_sport);
                   dport = ntohs(up->uh_dport);
+                  if ((sport == 53) || (dport == 53)) {
+                     unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
+                     bcopy(&pad, &model->ArgusThisFlow->ipv6_flow.smask, 2);
+                  }
                   break;
                }
 
@@ -4600,7 +4597,7 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                         sport = ntohs(up->uh_sport);
                         dport = ntohs(up->uh_dport);
                      }
-                     if ((sport == 53) || (dport == 53) || (sport == 5353) || (dport == 5353)) {
+                     if ((sport == 53) || (dport == 53)) {
                         unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
                         bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
                      }
@@ -5003,26 +5000,6 @@ void
 setArgusTunnelDiscovery (struct ArgusModelerStruct *model, int value)
 {
    model->ArgusTunnelDiscovery = value;
-}
-
-int getArgusGreParsing(struct ArgusModelerStruct *model)
-{
-   return (model->ArgusGreParsing);
-}
-
-void setArgusGreParsing(struct ArgusModelerStruct *model, int value)
-{
-   model->ArgusGreParsing = value;
-}
-
-int getArgusVxLanParsing(struct ArgusModelerStruct *model)
-{
-   return (model->ArgusVXLanParsing);
-}
-
-void setArgusVxLanParsing(struct ArgusModelerStruct *model, int value)
-{
-   model->ArgusVXLanParsing = value;
 }
 
 int

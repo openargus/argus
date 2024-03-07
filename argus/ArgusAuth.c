@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Authentication
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software. Argus files - Authentication
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,6 +22,12 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
+ */
+
+/* 
+ * $Id: //depot/gargoyle/argus/argus/ArgusAuth.c#5 $
+ * $DateTime: 2016/09/20 14:50:14 $
+ * $Change: 3197 $
  */
 
 /*

@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Common library routines - Utilities
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Common library routines - Utilities
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,11 +22,13 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/common/argus_util.c#13 $
+ * $DateTime: 2016/10/27 18:40:41 $
+ * $Change: 3232 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
@@ -1077,7 +1079,7 @@ __argus_malloc (int bytes, allocator_func alloc, void *aux)
 #if defined(ARGUS_THREADS)
       pthread_mutex_lock(&memory.lock);
 #endif
-      }
+      ArgusAllocTotal++;
 #if defined(ARGUSMEMDEBUG)
       ArgusAllocBytes += bytes;
       if (ArgusAllocMax < ArgusAllocBytes)
@@ -1167,12 +1169,8 @@ ArgusCalloc (int nitems, int bytes)
 #ifdef ARGUSDEBUG
    ArgusDebug (6, "ArgusCalloc (%d, %d) returning 0x%x\n", nitems, bytes, retn);
 #endif
-      }
-#if defined(ARGUSMEMDEBUG)
-      ArgusAllocBytes += total;
-      if (ArgusAllocMax < ArgusAllocBytes)
-         ArgusAllocMax = ArgusAllocBytes;
-#endif
+   return (retn);
+}
 
 static void *
 __malloc_aligned(size_t bytes, void *aux)
@@ -1212,6 +1210,10 @@ ArgusFree (void *buf)
    void *ptr = buf;
 
    if (ptr) {
+#if defined(ARGUS_THREADS)
+      pthread_mutex_lock(&memory.lock);
+#endif
+      ArgusFreeTotal++;
 #if defined(ARGUSMEMDEBUG)
       {
          struct ArgusMemoryHeader *mem = ptr;
@@ -1252,9 +1254,8 @@ ArgusFree (void *buf)
       if (ArgusAllocTotal > 0)
          ArgusAllocTotal--;
    }
-
-#ifdef ARGUSDEBUG
-   ArgusDebug (6, "ArgusFree (%p)\n", buf);
+#if defined(ARGUS_THREADS)
+      pthread_mutex_unlock(&memory.lock);
 #endif
 }
 /* 
@@ -2593,9 +2594,7 @@ RaParseCIDRAddr (struct ArgusParserStruct *parser, char *addr)
 
       case AF_INET6: {
          unsigned short *val = (unsigned short *)&retn->addr;
-         int asize = sizeof(retn->addr);
-         int ssize = sizeof(unsigned short);
-         int ind = 0, len = asize/ssize;
+         int ind = 0, len = sizeof(retn->addr)/(sizeof(unsigned short));
          int fsecnum = 8, lsecnum = 0, rsecnum = 0, i, masklen;
          char *sstr = NULL, *ipv4addr = NULL;
 

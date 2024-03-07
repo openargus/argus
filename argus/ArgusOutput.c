@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Modeler
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Output processor
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,6 +24,11 @@
  *
  */
 
+/*
+ * $Id: //depot/gargoyle/argus/argus/ArgusOutput.c#16 $
+ * $DateTime: 2016/10/27 18:40:41 $
+ * $Change: 3232 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
@@ -82,10 +87,7 @@ ArgusNewOutput (struct ArgusSourceStruct *src, struct ArgusModelerStruct *model)
    if ((retn = (struct ArgusOutputStruct *) ArgusCalloc (1, sizeof (struct ArgusOutputStruct))) == NULL)
      ArgusLog (LOG_ERR, "ArgusNewOutput() ArgusCalloc error %s\n", strerror(errno));
 
-   gettimeofday (&retn->ArgusGlobalTime, 0L);
-   if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-      retn->ArgusGlobalTime.tv_usec *= 1000;
-
+   ArgusGetTimeOfDay(src, &retn->ArgusGlobalTime);
    retn->ArgusStartTime = retn->ArgusGlobalTime;
 
    retn->ArgusReportTime.tv_sec   = retn->ArgusGlobalTime.tv_sec + retn->ArgusMarReportInterval.tv_sec;
@@ -1151,7 +1153,9 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
       switch (stat(ARGUS_SOCKET_PATH, &statbuf)) {
          case 0:
             if (unlink(ARGUS_SOCKET_PATH))
-               snprintf(errbuf, 1024, "%s: ArgusEstablishListen: unlink() %s", ArgusProgramName, strerror(errno));
+               snprintf(errbuf, errbuflen,
+                        "%s: ArgusEstablishListen: unlink() %s",
+                        ArgusProgramName, strerror(errno));
             break;
 
          case ENOENT:  break;
@@ -1167,13 +1171,18 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
                if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
                   output->ArgusLfd[output->ArgusListens++] = s;
                } else {
-                  snprintf(errbuf, 1024, "%s: ArgusEstablishListen: listen() %s", ArgusProgramName, strerror(errno));
+                  snprintf(errbuf, errbuflen,
+                           "%s: ArgusEstablishListen: listen() %s",
+                           ArgusProgramName, strerror(errno));
                }
             } else {
-               snprintf(errbuf, 256, "%s: ArgusEstablishListen: bind() %s", ArgusProgramName, strerror(errno));
+               snprintf(errbuf, errbuflen,
+                        "%s: ArgusEstablishListen: bind() %s",
+                        ArgusProgramName, strerror(errno));
             }
          } else
-            snprintf(errbuf, 256, "%s: ArgusEstablishListen: fcntl() %s", ArgusProgramName, strerror(errno));
+            snprintf(errbuf, errbuflen, "%s: ArgusEstablishListen: fcntl() %s",
+                     ArgusProgramName, strerror(errno));
 
          if (retn == -1) {
             close (s);
@@ -1181,7 +1190,8 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
          }
 
       } else
-         snprintf(errbuf, 256, "%s: ArgusEstablishListen: socket() error", ArgusProgramName);
+         snprintf(errbuf, errbuflen, "%s: ArgusEstablishListen: socket() error",
+                  ArgusProgramName);
    }
      
 #ifdef ARGUSDEBUG
@@ -1752,7 +1762,6 @@ ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char
    }
 
    if (retn) {
-      struct ArgusSourceStruct *ArgusSrc = NULL, *aSrc = NULL;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
       struct timeval now;
 
@@ -1766,18 +1775,15 @@ ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char
       rec->hdr = retn->hdr;
 
       if (getArgusID(ArgusSourceTask, asptr))
-        bcopy (&asptr->a_un.value, &rec->argus_sup.argusid, sizeof(rec->argus_sup.argusid));
+        bcopy (&asptr->a_un.value, &rec->argus_inf.srcid, sizeof(rec->argus_inf.srcid));
 
       switch (getArgusIDType(ArgusSourceTask)) {
-         case ARGUS_TYPE_STRING: rec->argus_sup.status |= ARGUS_IDIS_STRING; break;
-         case ARGUS_TYPE_INT:    rec->argus_sup.status |= ARGUS_IDIS_INT; break;
-         case ARGUS_TYPE_IPV4:   rec->argus_sup.status |= ARGUS_IDIS_IPV4; break;
-         case ARGUS_TYPE_IPV6:   rec->argus_sup.status |= ARGUS_IDIS_IPV6; break;
-         case ARGUS_TYPE_UUID:   rec->argus_sup.status |= ARGUS_IDIS_UUID; break;
+         case ARGUS_TYPE_STRING: rec->argus_inf.status |= ARGUS_IDIS_STRING; break;
+         case ARGUS_TYPE_INT:    rec->argus_inf.status |= ARGUS_IDIS_INT; break;
+         case ARGUS_TYPE_IPV4:   rec->argus_inf.status |= ARGUS_IDIS_IPV4; break;
+         case ARGUS_TYPE_IPV6:   rec->argus_inf.status |= ARGUS_IDIS_IPV6; break;
+         case ARGUS_TYPE_UUID:   rec->argus_inf.status |= ARGUS_IDIS_UUID; break;
       }
-
-      if (getArgusManInf(ArgusSourceTask) != NULL)
-        rec->argus_sup.status |=  ARGUS_ID_INC_INF;
 
       gettimeofday (&now, 0L);
 
@@ -1789,7 +1795,7 @@ ArgusGenerateMarInterfaceRecord (struct ArgusOutputStruct *output, unsigned char
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (4, "ArgusGenerateSupplementalMarRecord(%p, %d) returning 0x%x", output, status, retn);
+   ArgusDebug (4, "ArgusGenerateMarInterfaceRecord(%p, %d) returning 0x%x", output, status, retn);
 #endif
 
    return (retn);

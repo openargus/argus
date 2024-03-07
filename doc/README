@@ -1,6 +1,6 @@
 /*
- * Argus Software
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Common include files. namedb
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,8 +24,8 @@
  *
  */
 
-All documenation for argus-3.0 can be found on the argus home website:
-   http://openargus.org/
+All documenation for argus-5.0 can be found on the argus home website:
+   http://qosient.com/argus/
 
 If you find that any documentation is either not current, or incorrect,
 please don't hesitate to send email to the argus developers mailing list,

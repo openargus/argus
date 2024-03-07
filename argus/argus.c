@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - main argus processing
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Main argus processing
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,13 +22,16 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
+ */
+
+/* 
+ * $Id: //depot/gargoyle/argus/argus/argus.c#18 $
+ * $DateTime: 2016/10/27 18:40:41 $
+ * $Change: 3232 $
  */
 
 /*
- * argus.c - Audit Record Generation and Utilization System
+ * argus - Audit Record Generation and Utilization System
  *
  * written by Carter Bullard
  * QoSient LLC
@@ -89,6 +92,11 @@ int ArgusDaemon = 0;
 
 #if defined(ARGUS_THREADS)
 pthread_attr_t attrbuf, *ArgusAttr = &attrbuf;
+#endif
+
+#if defined(ARGUS_FLEXLM)
+# include "argus_lic.h"
+static void *license;
 #endif
 
 static void ArgusShutDown (void);
@@ -434,7 +442,7 @@ main (int argc, char *argv[])
 
     optind = 1; opterr = 0;
 
-   while ((op = getopt (argc, argv, "AbB:c:CdD:e:fF:g:H:i:Jk:lmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
+   while ((op = getopt (argc, argv, "AbB:c:CdD:e:E:fF:g:H:i:Jk:lmM:N:OP:pRr:S:s:tT:u:U:w:XZh")) != EOF) {
       switch (op) {
          case 'A': setArgusAflag(ArgusModel, 1); break;
          case 'b': setArgusbpflag (ArgusSourceTask, 1); break;
@@ -454,6 +462,7 @@ main (int argc, char *argv[])
          case 'e': ArgusParseSourceID(ArgusSourceTask, NULL, optarg); break;
 
          case 'H': setArgusHashTableSize (ArgusModel, atoi(optarg)); break;
+         case 'E': /* handled above */ break;
          case 'f': setArgusfflag (ArgusSourceTask, 1); break;
          case 'F': ArgusParseResourceFile (ArgusModel, optarg, readoffline); break;
 
@@ -777,7 +786,10 @@ ArgusComplete ()
 #define ARGUSPERFMETRICS		1
 
 #if defined(ARGUSPERFMETRICS)
-   long long ArgusTotalPkts = 0;
+/*
+   long long ArgusTotalPkts = 0, ArgusTotalIPPkts = 0;
+   long long ArgusTotalNonIPPkts = 0;
+*/
    struct timeval timediff;
    double totaltime;
    int i, len;
@@ -800,6 +812,9 @@ ArgusComplete ()
       if (ArgusSourceTask->ArgusInterface[i].ArgusDevice != NULL) {
 /*
          ArgusTotalPkts      += ArgusSourceTask->ArgusInterface[i].ArgusTotalPkts;
+         ArgusTotalIPPkts    += ArgusSourceTask->ArgusInterface[i].ArgusTotalIPPkts;
+         ArgusTotalNonIPPkts += ArgusSourceTask->ArgusInterface[i].ArgusTotalNonIPPkts;
+*/
       }
    }
    if (ArgusSourceTask->ArgusEndTime.tv_sec == 0)
@@ -807,6 +822,8 @@ ArgusComplete ()
 
    if (ArgusSourceTask->ArgusStartTime.tv_sec == 0)
       ArgusSourceTask->ArgusStartTime = ArgusSourceTask->ArgusEndTime;
+
+   bzero(buf, sizeof(buf));
 
    timediff.tv_sec  = ArgusSourceTask->ArgusEndTime.tv_sec  - ArgusSourceTask->ArgusStartTime.tv_sec;
    timediff.tv_usec = ArgusSourceTask->ArgusEndTime.tv_usec - ArgusSourceTask->ArgusStartTime.tv_usec;
@@ -825,8 +842,6 @@ ArgusComplete ()
 #else
    totaltime = (double) timediff.tv_sec + (((double) timediff.tv_usec)/1000000.0);
 #endif
-
-   sprintf (buf, "%s\n    Total Pkts %8lld  Rate %f\n", "Total", ArgusTotalPkts, ArgusTotalPkts/totaltime);
 
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       char sbuf[MAXSTRLEN];
@@ -906,16 +921,14 @@ int ArgusShutDownSig = 0;
 void
 ArgusBacktrace (void)
 {
-#if defined(HAVE_BACKTRACE)
-   void* callstack[128];
-   int i, frames = backtrace(callstack, 128);
-   char** strs = backtrace_symbols(callstack, frames);
+      void* callstack[128];
+      int i, frames = backtrace(callstack, 128);
+      char** strs = backtrace_symbols(callstack, frames);
 
-   for (i = 0; i < frames; ++i) {
-      ArgusLog(LOG_WARNING, "%s", strs[i]);
-   }
-   free(strs);
-#endif
+      for (i = 0; i < frames; ++i) {
+         ArgusLog(LOG_WARNING, "%s", strs[i]);
+      }
+      free(strs);
 }
 #endif
 
@@ -925,10 +938,12 @@ ArgusScheduleShutDown (int sig)
    ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
 #ifdef ARGUSDEBUG
+#if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
       ArgusLog(LOG_WARNING, "ArgusScheduleShutDown(%d)", sig);
       ArgusBacktrace();
    }
+#endif
 
    ArgusShutDownSig = sig;
    ArgusShutDownFlag++;
@@ -940,10 +955,12 @@ static void
 ArgusShutDown (void)
 {
 #if defined(ARGUSDEBUG)
+#if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
       ArgusLog(LOG_WARNING, "ArgusShutDown(%d)", ArgusShutDownSig);
       ArgusBacktrace();
    }
+#endif
 #endif
 
 
@@ -1039,66 +1056,68 @@ getArguspidflag ()
 
 #define ARGUS_RCITEMS				62
 
-#define ARGUS_DAEMON				0
-#define ARGUS_MONITOR_ID			1
-#define ARGUS_ACCESS_PORT			2
-#define ARGUS_INTERFACE				3
-#define ARGUS_OUTPUT_FILE			4
-#define ARGUS_SET_PID 				5
-#define ARGUS_PID_PATH				6
-#define ARGUS_GO_PROMISCUOUS			7
-#define ARGUS_FLOW_STATUS_INTERVAL		8
-#define ARGUS_MAR_STATUS_INTERVAL		9
-#define ARGUS_CAPTURE_DATA_LEN			10
-#define ARGUS_GENERATE_START_RECORDS		11
-#define ARGUS_GENERATE_RESPONSE_TIME_DATA	12
-#define ARGUS_GENERATE_JITTER_DATA		13
-#define ARGUS_GENERATE_MAC_DATA			14
-#define ARGUS_DEBUG_LEVEL			15
-#define ARGUS_FILTER_OPTIMIZER			16
-#define ARGUS_FILTER				17
-#define ARGUS_PACKET_CAPTURE_FILE		18
-#define ARGUS_PACKET_CAPTURE_ON_ERROR		19
-#define ARGUS_BIND_IP				20
-#define ARGUS_MIN_SSF				21
-#define ARGUS_MAX_SSF				22
-#define ARGUS_COLLECTOR				23
-#define ARGUS_FLOW_TYPE				24
-#define ARGUS_FLOW_KEY				25
-#define ARGUS_GENERATE_APPBYTE_METRIC		26
-#define ARGUS_CHROOT_DIR			27
-#define ARGUS_SETUSER_ID			28
-#define ARGUS_SETGROUP_ID			29
-#define ARGUS_GENERATE_TCP_PERF_METRIC		30
-#define ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS 31
-#define ARGUS_GENERATE_PACKET_SIZE		32
-#define ARGUS_ENV				33
-#define ARGUS_CAPTURE_FULL_CONTROL_DATA         34
-#define ARGUS_SELF_SYNCHRONIZE                  35
-#define ARGUS_EVENT_DATA                        36
-#define ARGUS_JITTER_HISTOGRAM                  37
-#define ARGUS_OUTPUT_STREAM                     38
-#define ARGUS_KEYSTROKE				39
-#define ARGUS_KEYSTROKE_CONF			40
-#define ARGUS_TUNNEL_DISCOVERY			41
-#define ARGUS_IP_TIMEOUT			42
-#define ARGUS_TCP_TIMEOUT			43
-#define ARGUS_ICMP_TIMEOUT			44
-#define ARGUS_IGMP_TIMEOUT			45
-#define ARGUS_FRAG_TIMEOUT			46
-#define ARGUS_ARP_TIMEOUT			47
-#define ARGUS_OTHER_TIMEOUT			48
-#define ARGUS_TRACK_DUPLICATES			49
-#define ARGUS_PCAP_BUF_SIZE			50
-#define ARGUS_GRE_PARSING			51
-#define ARGUS_VXLAN_PARSING			52
-#define ARGUS_GENERATE_FLOWID			53
-#define ARGUS_GENERATE_HASH_METRICS		54
-#define ARGUS_MONITOR_ID_INCLUDE_INF		55
-#define ARGUS_REPORT_STATUS			56
-#define ARGUS_DEDUP				57
-#define ARGUS_DEDUP_TIME			58
-
+#define ARGUS_MONITOR_ID			0
+#define ARGUS_MONITOR_ID_INCLUDE_INF		1
+#define ARGUS_DAEMON				2
+#define ARGUS_ACCESS_PORT			3
+#define ARGUS_INTERFACE				4
+#define ARGUS_OUTPUT_FILE			5
+#define ARGUS_SET_PID 				6
+#define ARGUS_PID_PATH				7
+#define ARGUS_GO_PROMISCUOUS			8
+#define ARGUS_FLOW_STATUS_INTERVAL		9
+#define ARGUS_MAR_STATUS_INTERVAL		10
+#define ARGUS_CAPTURE_DATA_LEN			11
+#define ARGUS_GENERATE_START_RECORDS		12
+#define ARGUS_GENERATE_RESPONSE_TIME_DATA	13
+#define ARGUS_GENERATE_JITTER_DATA		14
+#define ARGUS_GENERATE_MAC_DATA			15
+#define ARGUS_DEBUG_LEVEL			16
+#define ARGUS_FILTER_OPTIMIZER			17
+#define ARGUS_FILTER				18
+#define ARGUS_PACKET_CAPTURE_FILE		19
+#define ARGUS_PACKET_CAPTURE_ON_ERROR		20
+#define ARGUS_BIND_IP				21
+#define ARGUS_MIN_SSF				22
+#define ARGUS_MAX_SSF				23
+#define ARGUS_COLLECTOR				24
+#define ARGUS_FLOW_TYPE				25
+#define ARGUS_FLOW_KEY				26
+#define ARGUS_GENERATE_APPBYTE_METRIC		27
+#define ARGUS_CHROOT_DIR			28
+#define ARGUS_SETUSER_ID			29
+#define ARGUS_SETGROUP_ID			30
+#define ARGUS_GENERATE_TCP_PERF_METRIC		31
+#define ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS 32
+#define ARGUS_GENERATE_PACKET_SIZE		33
+#define ARGUS_ENV				34
+#define ARGUS_CAPTURE_FULL_CONTROL_DATA         35
+#define ARGUS_SELF_SYNCHRONIZE                  36
+#define ARGUS_EVENT_DATA                        37
+#define ARGUS_JITTER_HISTOGRAM                  38
+#define ARGUS_OUTPUT_STREAM                     39
+#define ARGUS_KEYSTROKE				40
+#define ARGUS_KEYSTROKE_CONF			41
+#define ARGUS_TUNNEL_DISCOVERY			42
+#define ARGUS_IP_TIMEOUT			43
+#define ARGUS_TCP_TIMEOUT			44
+#define ARGUS_ICMP_TIMEOUT			45
+#define ARGUS_IGMP_TIMEOUT			46
+#define ARGUS_FRAG_TIMEOUT			47
+#define ARGUS_ARP_TIMEOUT			48
+#define ARGUS_OTHER_TIMEOUT			49
+#define ARGUS_TRACK_DUPLICATES			50
+#define ARGUS_PCAP_BUF_SIZE			51
+#define ARGUS_OS_FINGERPRINTING			52
+#define ARGUS_CONTROLPLANE_PROTO		53
+#define ARGUS_PCAP_DISPATCH_NUM			54
+#define ARGUS_HASHTABLE_SIZE			55
+#define ARGUS_GENERATE_HASH_METRICS		56
+#define ARGUS_INTERFACE_SCAN_INTERVAL		57
+#define ARGUS_LOG_DISPLAY_PRIORITY		58
+#define ARGUS_MAR_INTERFACE_INTERVAL		59
+#define ARGUS_TIMESTAMP_TYPE			60
+#define ARGUS_DEDUP				61
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1154,14 +1173,16 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_OTHER_TIMEOUT=",
    "ARGUS_TRACK_DUPLICATES=",
    "ARGUS_PCAP_BUF_SIZE=",
-   "ARGUS_GRE_PARSING=",
-   "ARGUS_VXLAN_PARSING=",
-   "ARGUS_GENERATE_FLOWID=",
+   "ARGUS_OS_FINGERPRINTING=",
+   "ARGUS_CONTROLPLANE_PROTO=",
+   "ARGUS_PCAP_DISPATCH_NUM=",
+   "ARGUS_HASHTABLE_SIZE=",
    "ARGUS_GENERATE_HASH_METRICS=",
-   "ARGUS_MONITOR_ID_INCLUDE_INF=",
-   "ARGUS_REPORT_STATUS=",
-   "ARGUS_DEDUP=",
-   "ARGUS_DEDUP_TIME=",
+   "ARGUS_INTERFACE_SCAN_INTERVAL=",
+   "ARGUS_LOG_DISPLAY_PRIORITY=",
+   "ARGUS_MAR_INTERFACE_INTERVAL=",
+   "ARGUS_TIMESTAMP_TYPE=",
+   "ARGUS_DEDUDEDUP=",
 };
 
 
@@ -1304,7 +1325,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                      switch (i) {
                         case ARGUS_MONITOR_ID: 
                            if (optarg && quoted) {   // Argus ID is a string.  Limit to date is 4 characters.
-                              int slen = strlen(optarg);
+                              int slen = (int) strlen(optarg);
                               if (slen > 4) {
                                  optarg[4] = '\0';
                                  slen = 4;
@@ -1798,23 +1819,6 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                               setArgusTunnelDiscovery(model, 0);
                            break;
                         }
-
-                        case ARGUS_GRE_PARSING: {
-                           if (!(strncasecmp(optarg, "yes", 3)))
-                              setArgusGreParsing(model, 1);
-                           else
-                              setArgusGreParsing(model, 0);
-                           break;
-                        }
-
-                        case ARGUS_VXLAN_PARSING: {
-                           if (!(strncasecmp(optarg, "yes", 3)))
-                              setArgusVxLanParsing(model, 1);
-                           else
-                              setArgusVxLanParsing(model, 0);
-                           break;
-                        }
-
                         case ARGUS_TRACK_DUPLICATES: {
                            if (!(strncasecmp(optarg, "yes", 3)))
                               setArgusTrackDuplicates(model, 1);
@@ -1895,7 +1899,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                        ARGUS_INTERFACE_SCAN_INTERVAL_MAX);
                               num = ARGUS_INTERFACE_SCAN_INTERVAL_MAX;
                            }
-                           setArgusInterfaceScanInterval(ArgusSourceTask, num);
+                           setArgusInterfaceScanInterval(ArgusSourceTask, (int) num);
                            break;
                         }
                         case ARGUS_LOG_DISPLAY_PRIORITY:
@@ -2177,7 +2181,6 @@ setArgusEventDataRecord (char *ptr)
                event->status |= ARGUS_ZLIB_COMPRESS;
             if (!(strncmp(pp, "compress2", 9)))
                event->status |= ARGUS_ZLIB_COMPRESS2;
-            free (pp);
          }
   
          ArgusPushFrontList(ArgusEventsTask->ArgusEventsList, (struct ArgusListRecord *) event, ARGUS_LOCK);

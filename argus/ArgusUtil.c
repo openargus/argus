@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Utilities
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Utilities
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,11 +22,15 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/argus/ArgusUtil.c#13 $
+ * $DateTime: 2016/06/07 14:21:31 $
+ * $Change: 3159 $
+ */
+
+/* ArgusUtil.c */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
@@ -730,12 +734,15 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
       model->ArgusUpdateTimer.tv_usec += model->ArgusUpdateInterval.tv_usec;
 
 #if defined(ARGUS_NANOSECONDS)
-      while (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
+      if (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
          model->ArgusUpdateTimer.tv_sec++; 
          model->ArgusUpdateTimer.tv_usec -= 1000000000;
+         if (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
+            ArgusLog (LOG_ERR, "ArgusUpdateTime: usec still too big %d(using NANO)\n", model->ArgusUpdateTimer.tv_usec);
+         }
       }
 #else
-      while (model->ArgusUpdateTimer.tv_usec >= 1000000) {
+      if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
          model->ArgusUpdateTimer.tv_sec++; 
          model->ArgusUpdateTimer.tv_usec -= 1000000;
          if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
@@ -746,44 +753,17 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
 
    } else {
 
-      if (ArgusSourceTask != NULL) {
-         if (!(ArgusSourceTask->ArgusReadingOffLine)) {
-            if (llabs(diff) > (ival * 2)) {
-
-// something is wrong, so try to figure out if ArgusGlobalTime needs to be adjusted.
-// Must be kernel time bug, so try to reset the ArgusUpdateTimer, and declare
-// that the timer has popped.  Redefine global timer if needed.
-
-               unsigned long long tdiff;
-               struct timeval now;
-
-               retn = 1;
-
-               gettimeofday(&now, 0L);
-               tdiff =  ArgusAbsTimeDiff(&now, &model->ArgusGlobalTime);
-
-               if (tdiff > (ival * 2))
-                  model->ArgusGlobalTime = now;
-
-               model->ArgusUpdateTimer = model->ArgusGlobalTime;
-
-               model->ArgusUpdateTimer.tv_sec  += model->ArgusUpdateInterval.tv_sec;
-               model->ArgusUpdateTimer.tv_usec += model->ArgusUpdateInterval.tv_usec;
-
+#ifdef ARGUSDEBUG
 #if defined(ARGUS_NANOSECONDS)
-               while (model->ArgusUpdateTimer.tv_usec >= 1000000000) {
-                  model->ArgusUpdateTimer.tv_sec++;
-                  model->ArgusUpdateTimer.tv_usec -= 1000000000;
-               }
+      ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%09d global time %d.%09d returning %d\n",
+                   model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
+                   model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
 #else
-               while (model->ArgusUpdateTimer.tv_usec >= 1000000) {
-                  model->ArgusUpdateTimer.tv_sec++;
-                  model->ArgusUpdateTimer.tv_usec -= 1000000;
-               }
+      ArgusDebug (8, "ArgusUpdateTime (%p) update %d.%06d global time %d.%06d returning %d\n",
+                   model, model->ArgusUpdateTimer.tv_sec, model->ArgusUpdateTimer.tv_usec,
+                   model->ArgusGlobalTime.tv_sec, model->ArgusGlobalTime.tv_usec, retn);
 #endif
-            }
-         }
-      }
+#endif
    }
 
 #ifdef ARGUSDEBUG
@@ -2334,8 +2314,8 @@ ArgusFetchDstLoad (struct ArgusRecordStruct *ns)
    if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
    d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
 #else
-   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000000;}
-   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000000.0));
+   if (t1d->tv_usec < 0) {t1d->tv_sec--; t1d->tv_usec += 1000000;}
+   d1 = ((t1d->tv_sec * 1.0) + (t1d->tv_usec/1000000.0));
 #endif
  
    if ((m1 = (struct ArgusMetricStruct *) ns->dsrs[ARGUS_METRIC_INDEX]) != NULL)

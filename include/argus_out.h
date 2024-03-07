@@ -1,6 +1,6 @@
 /*
- * Argus Software Common include files -  output structures
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Common include files. Output structures
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -18,9 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * Written by Carter Bullard
- * QoSient, LLC
  *
  * Written by Carter Bullard
  * QoSient, LLC
@@ -137,6 +134,7 @@ struct ArgusTCPObjectMetrics {
    unsigned int bytes, retrans, ackbytes, winbytes;
    unsigned short win;
    unsigned char flags, winshift;
+   unsigned short maxseg, pad; 
 // unsigned int dup;
 };
  
@@ -586,12 +584,6 @@ struct ArgusV3TransportStruct {
    unsigned int seqnum;
 };
 
-struct ArgusV3TransportStruct {
-   struct ArgusDSRHeader hdr;
-   struct ArgusV3AddrStruct srcid;
-   unsigned int seqnum;
-};
-
 struct ArgusTransportStruct {
    struct ArgusDSRHeader hdr;
    struct ArgusAddrStruct srcid;
@@ -679,17 +671,12 @@ struct ArgusMacStruct {
 struct ArgusVxLanStruct {
    struct ArgusDSRHeader hdr;
    unsigned int svnid, dvnid;
+   struct ArgusFlow tflow;
 };
    
 struct ArgusVlanStruct {
    struct ArgusDSRHeader hdr;
    unsigned short sid, did;
-};
-
-struct ArgusVxLanStruct {
-   struct ArgusDSRHeader hdr;
-   unsigned int svnid, dvnid;
-   struct ArgusFlow tflow;
 };
    
 struct ArgusMplsStruct {
@@ -914,7 +901,6 @@ struct ArgusMarInfStruct {
    unsigned int status;
    struct ArgusAddrStruct srcid;
    struct ArgusTime startime, now;
-
    struct ArgusMarInterfaceStruct *inf;
 };
 
@@ -1003,7 +989,6 @@ struct ArgusCanonRecord {
    struct ArgusVxLanStruct       vxlan;
    struct ArgusMacStruct         mac;
    struct ArgusVlanStruct        vlan;
-   struct ArgusVxLanStruct       vxlan;
    struct ArgusMplsStruct        mpls;
    struct ArgusIcmpStruct        icmp;
    struct ArgusAgrStruct         agr;

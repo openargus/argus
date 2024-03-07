@@ -15,8 +15,13 @@
 # implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 # See the * GNU General Public License for more details.
 #
-# Makefile for Argus
-# Copyright (C) 1996-2020 QoSient, LLC
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# 
+# Makefile for Argus-5.0
+# Copyright (C) 1996-2024 QoSient, LLC
 # All rights reserved
 #
 #### Start of system configuration section. ####
@@ -169,7 +174,7 @@ dist: distclean
 	mkdir `cat .fname`
 	tar cf - $(DISTFILES) | (cd `cat .fname`; tar xpf -)
 	ls -lR `cat .fname` | fgrep CVS: | sed 's/:$///' > exfile
-	env COPYFILE_DISABLE=1 tar -X exfile -chozf `cat .fname`.tar.gz `cat .fname`
+	env COPYFILE_DISABLE=1 tar -X exfile -chzf `cat .fname`.tar.gz `cat .fname`
 	rm -rf `cat .fname` .fname exfile
 
 force:  /tmp
