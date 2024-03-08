@@ -607,7 +607,7 @@ PACKAGE_TARNAME='argus'
 PACKAGE_VERSION='5.0.0'
 PACKAGE_STRING='Argus-5.0 Server Programs 5.0.0'
 PACKAGE_BUGREPORT='bug-report@qosient.com'
-PACKAGE_URL='http://openargus.org'
+PACKAGE_URL='http://qosient.com/argus'
 
 ac_unique_file="argus/argus.c"
 ac_default_prefix=/usr/local
@@ -653,8 +653,6 @@ LIB_XDR
 COMPATLIB
 WRAPLIBS
 V_THREADS
-V_FLEXLM_ARCH
-V_FLEXLM
 V_PERL
 V_INCLS
 V_CCOPT
@@ -758,7 +756,6 @@ with_pcre_config
 enable_largefile
 with_hashdebug
 with_nanoseconds
-with_flexlm
 with_threads
 with_tcpwrappers
 enable_year2038
@@ -1414,7 +1411,6 @@ Optional Packages:
   --with-pcre-config=PATH Location of PCRE pcre-config (auto)
   --with-hashdebug        enable hash table debugging
   --without-nanoseconds   don't use nanosecond timestamps
-  --with-flexlm=DIR       location of Flexnet Publisher distribution
   --without-threads       don't use native threads package
   --with-wrappers=DIR     Compile with tcpwrappers in <DIR>
 
@@ -4182,30 +4178,6 @@ done
 rm -f conftest.$ac_ext
 CC=$ac_save_CC ;;
 esac
-fi
-
-if test "x$ac_cv_prog_cc_c89" = xno
-then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: unsupported" >&5
-printf "%s\n" "unsupported" >&6; }
-else case e in #(
-  e) if test "x$ac_cv_prog_cc_c89" = x
-then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: none needed" >&5
-printf "%s\n" "none needed" >&6; }
-else case e in #(
-  e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_prog_cc_c89" >&5
-printf "%s\n" "$ac_cv_prog_cc_c89" >&6; }
-     CC="$CC $ac_cv_prog_cc_c89" ;;
-esac
-fi
-  ac_cv_prog_cc_stdc=$ac_cv_prog_cc_c89
-  ac_prog_cc_stdc=c89 ;;
-esac
-fi
-
-fi
-
 fi
 
 if test "x$ac_cv_prog_cc_c89" = xno
@@ -7346,16 +7318,6 @@ then :
 
 fi
 
-for ac_header in dns_sd.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "dns_sd.h" "ac_cv_header_dns_sd_h" "$ac_includes_default"
-if test "x$ac_cv_header_dns_sd_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_DNS_SD_H 1
-_ACEOF
-
-fi
-
 
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -7615,7 +7577,7 @@ fi
                           ? 1 : -1];
 
 int
-main ()
+main (void)
 {
 
   ;
@@ -7683,10 +7645,8 @@ else case e in #(
 #      include <sys/types.h>
 #      include <sys/wait.h>
 #      include <stdio.h>
-#      include <stdlib.h>
-#      include <unistd.h>
       unsigned char a[5] = { 1, 2, 3, 4, 5 };
-      int main() {
+      main() {
       unsigned int i;
       pid_t pid;
       int status;
@@ -7764,17 +7724,6 @@ rm -f os-proto.h
              ;;
           esac
        fi
-       for ac_func in backtrace
-do :
-  ac_fn_c_check_func "$LINENO" "backtrace" "ac_cv_func_backtrace"
-if test "x$ac_cv_func_backtrace" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_BACKTRACE 1
-_ACEOF
-
-fi
-done
-
     fi
 
     if test -f .debug ; then
@@ -9275,6 +9224,7 @@ fi
  ;;
 esac
 fi
+
 done
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for working strtod" >&5
 printf %s "checking for working strtod... " >&6; }
@@ -9971,14 +9921,6 @@ case "$target" in
         ;;
 esac
 
-case "$target" in
-   arm*darwin*)
-	V_ARCH="-arch arm64 -arch x86_64"
-        ;;
-   x86*darwin*)
-        ;;
-esac
-
 case "$target_os" in
    arm*darwin*)
 	V_ARCH="-arch arm64 -arch x86_64"
@@ -10043,26 +9985,6 @@ printf "%s\n" "yes" >&6; }
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }
   fi
-
-
-# Check whether --with-flexlm was given.
-if test ${with_flexlm+y}
-then :
-  withval=$with_flexlm;
-      with_flexlm="$withval"
-
-printf "%s\n" "#define ARGUS_FLEXLM /**/" >>confdefs.h
-
-      V_FLEXLM="$withval"
-
-      case $target in
-        x86_64-*-linux-gnu) V_FLEXLM_ARCH=x64_lsb ;;
-        *-apple-darwin*)    V_FLEXLM_ARCH=universal_mac10 ;;
-        i686-pc-cygwin)     V_FLEXLM_ARCH=i86_n3 ;;
-      esac
-
-
-fi
 
 
 # Check whether --with-threads was given.

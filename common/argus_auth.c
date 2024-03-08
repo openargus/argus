@@ -22,15 +22,6 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
- * Written by Carter Bullard
- * QoSient, LLC
- *
- */
-
-/*
- * $Id: //depot/gargoyle/argus/common/argus_auth.c#5 $
- * $DateTime: 2015/04/13 00:39:28 $
- * $Change: 2980 $
  */
 
 /*

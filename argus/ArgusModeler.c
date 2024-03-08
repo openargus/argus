@@ -453,7 +453,6 @@ ArgusQueueManager(void *param)
                testime.tv_usec -= 1000000;
             }
          }
-#endif
       }
    }
 #endif 
@@ -545,7 +544,7 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 #endif
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
+   ArgusDebug (8, "ArgusProcessQueueTimeout(%p, %p) timeout %d, remaining %d records\n", model, queue, count, queue->count);
 #endif 
 }
 
@@ -1035,7 +1034,6 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                      }
                   }
                }
-*/
             }
 */
          }
@@ -1394,6 +1392,8 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
          hdr_len++;
       } else {
          proto = EXTRACT_16BITS(p);
+         p += 2;                     /* ACFC not used */
+         length -= 2;
          hdr_len += 2;
       }
 

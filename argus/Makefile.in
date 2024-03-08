@@ -22,9 +22,6 @@
 #  Written by Carter Bullard
 #  QoSient, LLC
 # 
-#  Written by Carter Bullard
-#  QoSient, LLC
-# 
 # Various configurable paths (remember to edit Makefile.in, not Makefile)
 
 # Top level hierarchy
@@ -81,27 +78,21 @@ YACC = @V_YACC@
 # Explicitly define compilation rule since SunOS 4's make doesn't like gcc.
 # Also, gcc does not remove the .o before forking 'as', which can be a
 # problem if you don't own the file but can write to the directory.
-
-%.arm.o: %.c
+.c.o:
 	@rm -f $@
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -target arm64-apple-macos11 $< -o $@
-
-%.x86.o: %.c
-	@rm -f $@
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -target x86_64-apple-macos10.12 $< -o $@
+	$(CC) $(CFLAGS) -c $<
 
 SRC =	argus.c ArgusModeler.c ArgusSource.c ArgusUtil.c ArgusOutput.c ArgusUdp.c \
 	ArgusTcp.c ArgusIcmp.c ArgusIgmp.c ArgusEsp.c ArgusArp.c ArgusFrag.c ArgusUdt.c \
 	ArgusLcp.c ArgusIsis.c ArgusAuth.c Argus802.11.c ArgusApp.c ArgusEvents.c \
 	ArgusNetflow.c ArgusSflow.c ArgusVxLan.c ArgusL2TP.c ArgusIfnam.c
 
-PROG =	../bin/argus argus.arm argus.x86
+PROG =	@INSTALL_BIN@/argus
 
 # We would like to say "OBJ = $(SRC:.c=.o)" but Ultrix's make cannot
 # hack the extra indirection
 
-ARMOBJ =	$(SRC:.c=.arm.o)
-X86OBJ =	$(SRC:.c=.x86.o)
+OBJ =	$(SRC:.c=.o)
 
 LIB = ../lib/argus_common.a @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB)
 
@@ -114,18 +105,12 @@ TAGHDR = \
 TAGFILES = \
 	$(SRC) $(HDR) $(TAGHDR)
 
-CLEANFILES = $(ARMOBJ) $(X86OBJ) $(PROG)
+CLEANFILES = $(OBJ) $(PROG)
 
 all: $(PROG)
 
-argus.arm: $(ARMOBJ) ../lib/argus_common.arm.a
-	$(CC) $(CFLAGS) -target arm64-apple-macos11 -o $@ $(ARMOBJ) $(LDFLAGS) $(ARMLIB) 
-
-argus.x86: $(X86OBJ) ../lib/argus_common.x86.a
-	$(CC) $(CFLAGS) -target x86_64-apple-macos10.12 -o $@ $(X86OBJ) $(LDFLAGS) $(X86LIB)
-
-../bin/argus: argus.arm argus.x86
-	lipo -create -output ../bin/argus argus.arm argus.x86
+@INSTALL_BIN@/argus: $(OBJ) ../lib/argus_common.a
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LDFLAGS) $(LIB)
 
 install: force all
 	[ -d $(DESTDIR)$(SBINDIR) ] || \
