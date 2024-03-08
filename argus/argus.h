@@ -118,8 +118,6 @@ int ArgusMaxSsf = 0;
 int ArgusMinSsf = 0;
 #endif
 
-void ArgusBacktrace (void);
-
 char *ArgusProgramName = NULL;
 void ArgusLoop (void);
 void ArgusBacktrace (void);
@@ -175,8 +173,6 @@ extern struct ArgusListStruct *ArgusWfileList;
 extern int ArgusMaxSsf;
 extern int ArgusMinSsf;
 #endif
-
-extern void ArgusBacktrace (void);
 
 extern void usage(void);
 extern void ArgusLog (int, char *, ...);

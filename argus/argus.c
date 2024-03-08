@@ -31,7 +31,7 @@
  */
 
 /*
- * argus.c - Audit Record Generation and Utilization System
+ * argus - Audit Record Generation and Utilization System
  *
  * written by Carter Bullard
  * QoSient LLC
@@ -823,6 +823,8 @@ ArgusComplete ()
    if (ArgusSourceTask->ArgusStartTime.tv_sec == 0)
       ArgusSourceTask->ArgusStartTime = ArgusSourceTask->ArgusEndTime;
 
+   bzero(buf, sizeof(buf));
+
    timediff.tv_sec  = ArgusSourceTask->ArgusEndTime.tv_sec  - ArgusSourceTask->ArgusStartTime.tv_sec;
    timediff.tv_usec = ArgusSourceTask->ArgusEndTime.tv_usec - ArgusSourceTask->ArgusStartTime.tv_usec;
  
@@ -840,8 +842,6 @@ ArgusComplete ()
 #else
    totaltime = (double) timediff.tv_sec + (((double) timediff.tv_usec)/1000000.0);
 #endif
-
-   sprintf (buf, "%s\n    Total Pkts %8lld  Rate %f\n", "Total", ArgusTotalPkts, ArgusTotalPkts/totaltime);
 
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       char sbuf[MAXSTRLEN];
@@ -956,6 +956,7 @@ ArgusScheduleShutDown (int sig)
       ArgusLog(LOG_WARNING, "ArgusScheduleShutDown(%d)", sig);
       ArgusBacktrace();
    }
+#endif
 
    ArgusShutDownSig = sig;
    ArgusShutDownFlag++;
@@ -967,10 +968,12 @@ static void
 ArgusShutDown (void)
 {
 #if defined(ARGUSDEBUG)
+#if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
       ArgusLog(LOG_WARNING, "ArgusShutDown(%d)", ArgusShutDownSig);
       ArgusBacktrace();
    }
+#endif
 #endif
 
 
@@ -1829,23 +1832,6 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                               setArgusTunnelDiscovery(model, 0);
                            break;
                         }
-
-                        case ARGUS_GRE_PARSING: {
-                           if (!(strncasecmp(optarg, "yes", 3)))
-                              setArgusGreParsing(model, 1);
-                           else
-                              setArgusGreParsing(model, 0);
-                           break;
-                        }
-
-                        case ARGUS_VXLAN_PARSING: {
-                           if (!(strncasecmp(optarg, "yes", 3)))
-                              setArgusVxLanParsing(model, 1);
-                           else
-                              setArgusVxLanParsing(model, 0);
-                           break;
-                        }
-
                         case ARGUS_TRACK_DUPLICATES: {
                            if (!(strncasecmp(optarg, "yes", 3)))
                               setArgusTrackDuplicates(model, 1);
@@ -2208,7 +2194,6 @@ setArgusEventDataRecord (char *ptr)
                event->status |= ARGUS_ZLIB_COMPRESS;
             if (!(strncmp(pp, "compress2", 9)))
                event->status |= ARGUS_ZLIB_COMPRESS2;
-            free (pp);
          }
   
          ArgusPushFrontList(ArgusEventsTask->ArgusEventsList, (struct ArgusListRecord *) event, ARGUS_LOCK);

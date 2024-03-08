@@ -665,9 +665,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
       switch (pcap_set_tstamp_precision(inf->ArgusPd, PCAP_TSTAMP_PRECISION_NANO)) {
          case PCAP_ERROR_TSTAMP_PRECISION_NOTSUP:
          case PCAP_ERROR_ACTIVATED:
-            ArgusLog(LOG_WARNING,
-                     "Cannot set pcap timestamp precision to nanoseconds for %s\n",
-                     device->name);
+#ifdef ARGUSDEBUG
+            ArgusDebug(4, "Cannot set pcap timestamp precision to nanoseconds for %s\n", device->name);
+#endif
             break;
          case 0:
             src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
@@ -1351,7 +1351,9 @@ ArgusGenerateMarInfStruct(struct ArgusDeviceStruct *dev, pcap_if_t *d)
 {
    struct ArgusMarInterfaceStruct *retn = NULL;
    pcap_addr_t *dev_addr;
+#if !defined(CYGWIN)
    struct ifreq ifr;
+#endif
 
    char *tptr;
 
@@ -1405,6 +1407,7 @@ struct ArgusAddressStruct {
                  bcopy(&ll->sll_addr, addr, len);
                  break;
               }
+# endif
 #endif
               case AF_INET: {
                  struct sockaddr_in *sin = (struct sockaddr_in *)sa;
@@ -3319,7 +3322,7 @@ juniper_parse_header (const u_char *p, const struct pcap_pkthdr *h, struct junip
     l2info->header_len = 0;
     l2info->cookie_len = 0;
     l2info->proto = 0;
-    l2info->pictype = 0;
+
 
     l2info->length = h->len;
     l2info->caplen = h->caplen;
@@ -3855,80 +3858,6 @@ ArgusIpPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "ArgusIpPacket (%p, %p, %p) returning\n", user, h, p);
-#endif
-}
-
-#define PFLOG_RULESET_NAME_SIZE   16
-
-struct pfloghdr {
-   u_int8_t    length;
-   sa_family_t af;
-   u_int8_t    action;
-   u_int8_t    reason;
-   char        ifname[IFNAMSIZ];
-   char        ruleset[PFLOG_RULESET_NAME_SIZE];
-   u_int32_t   rulenr;
-   u_int32_t   subrulenr;
-   uid_t       uid;
-   pid_t       pid;
-   uid_t       rule_uid;
-   pid_t       rule_pid;
-   u_int8_t    dir;
-   u_int8_t    pad[3];
-};
-
-#define PFLOG_HDRLEN      sizeof(struct pfloghdr)
-
-void
-ArgusPflogPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
-{
-   struct pcap_pkthdr hbuf;
-   u_int hdrlen = 0;
-   u_int caplen = h->caplen;
-   const struct pfloghdr *hdr;
-   uint8_t af;
-
-   /* check length */
-   if (caplen >= sizeof(uint8_t)) {
-#define MIN_PFLOG_HDRLEN   45
-      hdr = (struct pfloghdr *)p;
-      if (hdr->length >= MIN_PFLOG_HDRLEN) {
-         hdrlen = BPF_WORDALIGN(hdr->length);
-
-         if (caplen >= hdrlen) {
-      /* print what we know */
-            hdr = (struct pfloghdr *)p;
-
-      /* skip to the real packet */
-            af = hdr->af;
-
-            memcpy((char *)&hbuf, (char *)h, sizeof(*h));
-
-            hbuf.len    -= hdrlen;
-            hbuf.caplen -= hdrlen;
-            p           += hdrlen;
-
-            switch (af) {
-               case AF_INET:
-               case AF_INET6:
-                  ArgusIpPacket(user, &hbuf, p);
-                  break;
-
-               default:
-      /* address family not handled, print raw packet
-                  if (!ndo->ndo_eflag)
-                     pflog_print(ndo, hdr);
-                  if (!ndo->ndo_suppress_default_print)
-                     ND_DEFAULTPRINT(p, caplen);
-       */
-                  break;
-            }
-         }
-      }
-   }
- 
-#ifdef ARGUSDEBUG
-   ArgusDebug (8, "ArgusPflogPacket (%p, %p, %p) returning\n", user, h, p);
 #endif
 }
 
@@ -4768,7 +4697,9 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
          int source_closed;
 
          if (stask->ArgusDeviceStr != NULL && !stask->ArgusReadingOffLine) {
-
+            gettimeofday (&tv, 0L);
+            if ((stv.tv_sec < tv.tv_sec) || ((stv.tv_sec  == tv.tv_sec) &&
+                                             (stv.tv_usec <= tv.tv_usec))) {
 //       OK, periodically look for new devices to be created.
 //       For laptops that may be the pflog0 device coming and going.
 
@@ -4884,7 +4815,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     }
                                  }
                               }
-                           }
 
                               if (!found) {
                                  int type = ARGUS_LIVE_DEVICE, mode = 0, status = ARGUS_TYPE_IND;
@@ -5034,34 +4964,26 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     }
                                  }
 
+                                 ArgusLog(LOG_INFO, "ArgusSourceProcess: new device: %s found\n", ifa->name);
                                  src = ArgusCloneSource(stask);
                                  clearArgusDevice(src);
-                     
-                                 if (dev->trans.srcid.a_un.value != 0) {
-                                    src->trans = dev->trans;
-                                 } else {
-                                    dev->trans  = stask->trans;
-                                    dev->idtype = stask->type;
-                                    src->trans  = stask->trans;
-                                    src->type   = stask->type;
-                                 }
-                     
-                                 src->type    = dev->type;
-                     
+
+                                 setArgusDevice (src, ifa->name, ARGUS_LIVE_DEVICE, 0);
+
                                  if (ArgusInitSource (src) > 0) {
-                                    if (new_gid > 0) {
-                                       if (setgid(new_gid) < 0)
-                                          ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
-                                    }
-                                    if (new_uid > 0) {
-                                       if (setuid(new_uid) < 0)
-                                          ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
-                                    }
-                     
-                                    src->status |= ARGUS_LAUNCHED;
-                                    if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
-                                       ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
-                                    ArgusThreadCount++;
+                                       if (new_gid > 0) {
+                                          if (setgid(new_gid) < 0)
+                                             ArgusLog (LOG_ERR, "ArgusInitOutput: setgid error %s", strerror(errno));
+                                       }
+                                       if (new_uid > 0) {
+                                          if (setuid(new_uid) < 0)
+                                             ArgusLog (LOG_ERR, "ArgusInitOutput: setuid error %s", strerror(errno));
+                                       }
+
+                                       src->status |= ARGUS_LAUNCHED;
+                                       if ((pthread_create(&src->thread, NULL, ArgusGetPackets, (void *) src)) != 0)
+                                          ArgusLog (LOG_ERR, "ArgusNewEventProcessor() pthread_create error %s\n", strerror(errno));
+                                       ArgusThreadCount++;
                                  }
 
                                  stask->srcs[ArgusSourceCount++] = src;
@@ -5147,14 +5069,13 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                                     ArgusPushBackList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
                                  }
                               }
-*/
-                           }
 
-                           lookup_interface(interfacetable, (const u_char *)ifa->name);
+                              lookup_interface(interfacetable, (const u_char *)ifa->name);
 #ifdef ARGUSDEBUG
-                           ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
+                              ArgusDebug (2, "ArgusSourceProcess: Adding Interface %s\n", ifa->name);
 #endif
-                        } else {
+                           } else {
+                           }
                         }
                      }
                   }
@@ -5328,9 +5249,7 @@ ArgusGetPackets (void *arg)
 
       ArgusGetInterfaceStatus(src);
 
-      gettimeofday (&src->ArgusStartTime, 0L);
-      if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-         src->ArgusModel->ArgusStartTime.tv_usec *= 1000;
+      ArgusGetTimeOfDay(src, &src->ArgusStartTime);
 
       for (i = 0; i < ARGUS_MAXINTERFACE; i++)
          fds[i] = -1;
@@ -5403,14 +5322,9 @@ ArgusGetPackets (void *arg)
                         if (cnt > 0) {
                            noPkts = 0;
                         } else if (cnt == 0) {
-                           if (noPkts++ > 50) {
-                              struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; /* 5 millisec */
-
-                              gettimeofday (&src->ArgusModel->ArgusGlobalTime, NULL);
-                              if (src->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) 
-                                 src->ArgusModel->ArgusGlobalTime.tv_usec *= 1000;
-
-                              ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
+#if !defined(CYGWIN)
+                           if (noPkts++ > 5) {
+                              struct timespec tsbuf = {0, 5000000}, *ts = &tsbuf; // 5 millisec
                               nanosleep(ts, NULL);
 
                               ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);

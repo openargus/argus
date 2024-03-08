@@ -678,12 +678,6 @@ struct ArgusVlanStruct {
    struct ArgusDSRHeader hdr;
    unsigned short sid, did;
 };
-
-struct ArgusVxLanStruct {
-   struct ArgusDSRHeader hdr;
-   unsigned int svnid, dvnid;
-   struct ArgusFlow tflow;
-};
    
 struct ArgusMplsStruct {
    struct ArgusDSRHeader hdr;
@@ -995,7 +989,6 @@ struct ArgusCanonRecord {
    struct ArgusVxLanStruct       vxlan;
    struct ArgusMacStruct         mac;
    struct ArgusVlanStruct        vlan;
-   struct ArgusVxLanStruct       vxlan;
    struct ArgusMplsStruct        mpls;
    struct ArgusIcmpStruct        icmp;
    struct ArgusAgrStruct         agr;
