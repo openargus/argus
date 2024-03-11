@@ -1,6 +1,6 @@
-# 
-#  Argus Software
-#  Copyright (c) 2000-2020 QoSient, LLC
+#
+#  Argus-5.0 Software.  Common files - Makefile.in
+#  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 #
 # This program is free software, released under the GNU General
@@ -45,7 +45,9 @@ VPATH = @srcdir@
 
 CC = @CC@
 CCOPT = @V_CCOPT@
-INCLS = -I$(srcdir) @V_INCLS@ -I$(srcdir)/../include  -I$(srcdir)/../argus @XDR_INCLS@
+ARCH = @V_ARCH@
+INCLS = -I$(srcdir) @V_INCLS@ @XDR_INCLS@ -I$(srcdir)/../include  -I$(srcdir)/../argus
+
 DEFS = @DEFS@
 
 # Standard CFLAGS

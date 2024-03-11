@@ -1,6 +1,6 @@
 /*
- * Argus Software
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Common include files. cons_def
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -45,6 +45,14 @@
  * SOFTWARE.
  *
  */
+
+/* 
+ * $Id: //depot/gargoyle/argus/include/argus/cons_def.h#5 $
+ * $DateTime: 2015/04/13 00:39:28 $
+ * $Change: 2980 $
+ */
+
+
 
 /*
     0                   1                   2                   3

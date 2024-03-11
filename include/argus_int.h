@@ -1,7 +1,7 @@
 /*
- * Argus Software.  Common include files - interface
- * Copyright (C) 2000-2020 QoSient, LLC.
- * All Rights Reserved
+ * Argus-5.0 Software.  Common include files. interface specs
+ * Copyright (c) 2000-2024 QoSient, LLC
+ * All rights reserved.
  *
  * This program is free software, released under the GNU General
  * Public License; you can redistribute it and/or modify it under the terms

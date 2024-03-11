@@ -1,6 +1,6 @@
 /*
- * Argus Software
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Common include files. L2 encapsulations
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -73,11 +73,8 @@ struct ArgusEncapsulationStruct {
 #define ARGUS_ENCAPS_UDT        0x800000
 #define ARGUS_ENCAPS_SPI        0x1000000
 #define ARGUS_ENCAPS_JUNIPER    0x2000000
-#define ARGUS_ENCAPS_ERSPAN_II  0x4000000
-
-#define ARGUS_ENCAPS_AVSP       0x8000000
-#define ARGUS_ENCAPS_VXLAN      0x10000000
-
+#define ARGUS_ENCAPS_VXLAN      0x4000000
+#define ARGUS_ENCAPS_L2TP       0x8000000
 
 #if defined(ArgusUtil)
 struct ArgusEncapsulationStruct argus_encapsulations [] = {
@@ -106,9 +103,8 @@ struct ArgusEncapsulationStruct argus_encapsulations [] = {
    { ARGUS_ENCAPS_TEREDO,"teredo", "Teredo IPV6 Tunneling"},
    { ARGUS_ENCAPS_SPI,   "enc", "IPsec Tunnel"},
    { ARGUS_ENCAPS_JUNIPER, "juniper", "Juniper Ethernet"},
-   { ARGUS_ENCAPS_ERSPAN_II, "erspan_ii", "Cisco ERSPAN II"},
-   {ARGUS_ENCAPS_AVSP, "avsp", "Arista Vendor Specific Protocol"},
-   {ARGUS_ENCAPS_VXLAN, "vxlan", "VxLan Encapsulation"},
+   { ARGUS_ENCAPS_VXLAN, "vxlan", "VxLan Encapsulation"},
+   { ARGUS_ENCAPS_L2TP,  "l2tp", "L2TP Encapsulation"},
    { 0, (char *) NULL, (char *) NULL }, 
 };
 

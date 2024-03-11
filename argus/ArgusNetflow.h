@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Modeler
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Netflow processing includes
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,8 +24,12 @@
  *
  */
 
-#ifndef ArgusNetflow_h
-#define ArgusNetflow_h
+/* 
+ * $Id: //depot/argus/argus/argus/ArgusNetflow.h#1 $
+ * $DateTime: 2011/01/26 17:21:20 $
+ * $Change: 2089 $
+ */
+
 
 #define CISCO_VERSION_1         1
 #define CISCO_VERSION_5         5
@@ -56,5 +60,4 @@ extern void ArgusParseCiscoRecordV6 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV7 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV8 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV9 (struct ArgusModelerStruct *, void *);
-#endif
 #endif

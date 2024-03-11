@@ -1,7 +1,7 @@
 # 
-#  Argus Software
-#  Copyright (c) 2000-2020 QoSient, LLC
-#  All rights reserved.
+# Argus-5.0 Software.  Argus files - Makefile.in
+# Copyright (c) 2000-2024 QoSient, LLC
+# All rights reserved.
 # 
 # This program is free software, released under the GNU General
 # Public License; you can redistribute it and/or modify it under the terms
@@ -49,7 +49,6 @@ COMPATLIB = @COMPATLIB@ @LIB_XDR@
 
 WRAPLIBS = @WRAPLIBS@
 SASLLIBS = @LIB_SASL@
-XDRLIBS  = @LIB_XDR@
 
 #
 # You shouldn't need to edit anything below.
@@ -86,7 +85,7 @@ YACC = @V_YACC@
 SRC =	argus.c ArgusModeler.c ArgusSource.c ArgusUtil.c ArgusOutput.c ArgusUdp.c \
 	ArgusTcp.c ArgusIcmp.c ArgusIgmp.c ArgusEsp.c ArgusArp.c ArgusFrag.c ArgusUdt.c \
 	ArgusLcp.c ArgusIsis.c ArgusAuth.c Argus802.11.c ArgusApp.c ArgusEvents.c \
-	ArgusNetflow.c ArgusSflow.c ArgusVxLan.c
+	ArgusNetflow.c ArgusSflow.c ArgusVxLan.c ArgusL2TP.c ArgusIfnam.c
 
 PROG =	@INSTALL_BIN@/argus
 
@@ -95,7 +94,7 @@ PROG =	@INSTALL_BIN@/argus
 
 OBJ =	$(SRC:.c=.o)
 
-LIB = @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB) ../lib/argus_common.a $(XDRLIBS)
+LIB = ../lib/argus_common.a @LIBS@ @V_THREADS@ $(WRAPLIBS) $(SASLLIBS) $(COMPATLIB)
 
 HDR =	pcap.h pcap-int.h pcap-namedb.h pcap-nit.h pcap-pf.h \
 	ethertype.h gencode.h gnuc.h

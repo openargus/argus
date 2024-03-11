@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Modeler
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software. Argus files - Events processing
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -22,6 +22,12 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
+ */
+
+/* 
+ * $Id: //depot/gargoyle/argus/argus/ArgusEvents.c#10 $
+ * $DateTime: 2016/10/03 10:25:27 $
+ * $Change: 3209 $
  */
 
 #ifdef HAVE_CONFIG_H

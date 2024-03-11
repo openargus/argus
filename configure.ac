@@ -1,6 +1,6 @@
 # 
-#  Argus Software
-#  Copyright (c) 2000-2020 QoSient, LLC
+#  Argus-5.0 Software. Tools to read, analyze and manage Argus data.
+#  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 # 
 # This program is free software, released under the GNU General
@@ -21,8 +21,11 @@
 #
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.61)
-AC_INIT([Argus Server Programs], [3.0.8], [bug-report@qosient.com], [argus], [http://openargus.org])
+AC_PREREQ([2.69])
+AC_INIT([Argus-5.0 Server Programs],[5.0.0],[bug-report@qosient.com],[argus],[http://qosient.com/argus])
+PACKAGE_RELEASE='3.8'
+ARGUSPRO_VERSION='1.0'
+AC_DEFINE([ARGUSPRO_VERSION_STRING], ["1.0"], [Product version number string])
 AC_CONFIG_SRCDIR([argus/argus.c])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_HEADERS([include/argus_config.h])
@@ -138,6 +141,8 @@ AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 
+
+AC_CHECK_FUNCS(backtrace)
 AC_CHECK_FUNCS(openlog syslog)
 AC_CHECK_FUNCS(vfprintf strlcpy)
 AC_CHECK_FUNCS(strftime)
@@ -455,8 +460,6 @@ AC_SUBST(V_PERL)
 AC_SUBST(V_THREADS)
 AC_SUBST(WRAPLIBS)
 AC_SUBST(COMPATLIB)
-AC_SUBST(XDR_INCLS)
-AC_SUBST(LIB_XDR)
 AC_SUBST(LIB_SASL)
 AC_SUBST(LIB_XDR)
 AC_SUBST(XDR_INCLS)

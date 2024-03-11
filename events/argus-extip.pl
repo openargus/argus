@@ -1,7 +1,7 @@
 #!@PERLBIN@
 #
-#  Argus Software
-#  Copyright (c) 2006-2020 QoSient, LLC
+#  Argus-5.0 Software.  Argus Event scripts - argus-extip
+#  Copyright (c) 2000-2024 QoSient, LLC
 #  All rights reserved.
 #
 #  This program is free software, released under the GNU General

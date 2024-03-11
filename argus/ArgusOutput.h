@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Output include file
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Output include files
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -23,6 +23,13 @@
  * QoSient, LLC
  *
  */
+
+/*
+ * $Id: //depot/gargoyle/argus/argus/ArgusOutput.h#7 $
+ * $DateTime: 2015/04/21 19:24:29 $
+ * $Change: 3018 $
+ */
+
 
 
 #ifndef ArgusOutput_h

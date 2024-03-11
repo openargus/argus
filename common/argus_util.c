@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Common library routines - Utilities
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Common library routines - Utilities
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,6 +24,11 @@
  *
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/common/argus_util.c#13 $
+ * $DateTime: 2016/10/27 18:40:41 $
+ * $Change: 3232 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
@@ -2589,9 +2594,7 @@ RaParseCIDRAddr (struct ArgusParserStruct *parser, char *addr)
 
       case AF_INET6: {
          unsigned short *val = (unsigned short *)&retn->addr;
-         int asize = sizeof(retn->addr);
-         int ssize = sizeof(unsigned short);
-         int ind = 0, len = asize/ssize;
+         int ind = 0, len = sizeof(retn->addr)/(sizeof(unsigned short));
          int fsecnum = 8, lsecnum = 0, rsecnum = 0, i, masklen;
          char *sstr = NULL, *ipv4addr = NULL;
 

@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Utilities
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Utilities
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,6 +24,13 @@
  *
  */
 
+/* 
+ * $Id: //depot/gargoyle/argus/argus/ArgusUtil.c#13 $
+ * $DateTime: 2016/06/07 14:21:31 $
+ * $Change: 3159 $
+ */
+
+/* ArgusUtil.c */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"

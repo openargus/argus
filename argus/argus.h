@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - main argus includes
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - main argus includes
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -23,6 +23,13 @@
  * QoSient, LLC
  *
  */
+
+/* 
+ * $Id: //depot/gargoyle/argus/argus/argus.h#7 $
+ * $DateTime: 2016/10/04 10:36:36 $
+ * $Change: 3213 $
+ */
+
 
 /*  argus.h */
 
@@ -111,10 +118,9 @@ int ArgusMaxSsf = 0;
 int ArgusMinSsf = 0;
 #endif
 
-void ArgusBacktrace (void);
-
 char *ArgusProgramName = NULL;
 void ArgusLoop (void);
+void ArgusBacktrace (void);
 void ArgusScheduleShutDown (int);
 
 void usage(void);
@@ -167,8 +173,6 @@ extern struct ArgusListStruct *ArgusWfileList;
 extern int ArgusMaxSsf;
 extern int ArgusMinSsf;
 #endif
-
-extern void ArgusBacktrace (void);
 
 extern void usage(void);
 extern void ArgusLog (int, char *, ...);

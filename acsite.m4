@@ -1,5 +1,23 @@
 dnl
-dnl Copyright (C) 2000-2020 QoSient, LLC.
+dnl Argus-5.0 Software. Argus flow data generation.
+dnl Copyright (c) 2000-2024 QoSient, LLC
+dnl All rights reserved.
+dnl
+dnl This program is free software, released under the GNU General
+dnl Public License; you can redistribute it and/or modify it under the terms
+dnl of the GNU General Public License as published by the Free Software
+dnl Foundation; either version 3, or any later version.
+dnl
+dnl Other licenses are available through QoSient, LLC.
+dnl Inquire at info@qosient.com.
+dnl
+dnl This program is distributed WITHOUT ANY WARRANTY; without even the
+dnl implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+dnl See the * GNU General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 dnl
 dnl Copyright (c) 1995, 1996, 1997, 1998
 dnl   The Regents of the University of California.  All rights reserved.
@@ -134,8 +152,8 @@ m4_define([AC_LBL_C_INIT],
           ac_cv_lbl_gcc_vers=0
           AC_MSG_CHECKING(gcc version)
           AC_CACHE_VAL(ac_cv_lbl_gcc_vers,
-          ac_cv_lbl_gcc_vers=`$CC --version 2>&1 | \
-             sed -e '/^ version /!d' \
+          ac_cv_lbl_gcc_vers=`$CC -v 2>&1 | \
+             sed -e '/^gcc version /!d' \
             -e 's/^gcc version //' \
             -e 's/ .*//' -e 's/^[[[^0-9]]]*//' \
             -e 's/\..*//'`)
@@ -281,10 +299,8 @@ AC_DEFUN([AC_LBL_UNALIGNED_ACCESS],
 #      include <sys/types.h>
 #      include <sys/wait.h>
 #      include <stdio.h>
-#      include <stdlib.h>
-#      include <unistd.h>
       unsigned char a[[5]] = { 1, 2, 3, 4, 5 };
-      int main() {
+      main() {
       unsigned int i;
       pid_t pid;
       int status;
@@ -374,7 +390,6 @@ AC_DEFUN([AC_LBL_DEVEL],
              ;;
           esac
        fi
-       AC_CHECK_FUNCS(backtrace)
     fi])
 
 dnl

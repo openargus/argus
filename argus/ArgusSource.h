@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Input includes
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Input processing includes
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,6 +24,13 @@
  *
  */
 
+/*
+ * $Id: //depot/gargoyle/argus/argus/ArgusSource.h#12 $
+ * $DateTime: 2016/10/03 10:25:27 $
+ * $Change: 3209 $
+ */
+
+/*  ArgusSource.h */
 
 #ifndef ArgusSource_h
 #define ArgusSource_h
@@ -165,7 +172,7 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 #define ARGUS_INITED            0x02
 #define ARGUS_COMPLETE          0x04
 #define ARGUS_NOSOURCES         0x08
-#define ARGUS_DONT_OPEN         0x10
+#define ARGUS_DONT_OPEN		0x10
 
 struct ArgusDeviceStruct {
    struct ArgusListObjectStruct *nxt;
@@ -783,7 +790,6 @@ char *getArgusManInf (struct ArgusSourceStruct *);
 int ArgusSnoopRead (struct ArgusSourceStruct *);
 
 void ArgusIpPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
-void ArgusPflogPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusTokenPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);

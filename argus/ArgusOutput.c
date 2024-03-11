@@ -1,6 +1,6 @@
 /*
- * Argus Software.  Argus files - Modeler
- * Copyright (c) 2000-2020 QoSient, LLC
+ * Argus-5.0 Software.  Argus files - Output processor
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
  * This program is free software, released under the GNU General
@@ -24,6 +24,11 @@
  *
  */
 
+/*
+ * $Id: //depot/gargoyle/argus/argus/ArgusOutput.c#16 $
+ * $DateTime: 2016/10/27 18:40:41 $
+ * $Change: 3232 $
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
@@ -518,7 +523,7 @@ ArgusOutputMarInfTime(struct ArgusOutputStruct *output)
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (7, "ArgusOutputStatusTime(%p) done", output);
+   ArgusDebug (7, "ArgusOutputMarInfTime(%p) done", output);
 #endif
    return (retn);
 }
