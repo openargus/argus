@@ -1063,6 +1063,19 @@ ArgusProcessGreHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
    char *bp = ((char *)ip + hlen);
       
    if (BYTESCAPTURED(model, *bp, 4)) {
+      switch (model->ArgusThisNetworkFlowType & 0xFFFF) {
+         case ETHERTYPE_IP: {
+            ArgusCreateIPv4Flow (model, (struct ip *)model->ArgusThisIpHdr);
+            bcopy(model->ArgusThisFlow, &model->ArgusThisGre->tflow, sizeof(*model->ArgusThisFlow));
+            break;
+         }
+         case ETHERTYPE_IPV6: {
+            ArgusCreateIPv6Flow (model, (struct ip6_hdr *)model->ArgusThisIpHdr);
+            bcopy(model->ArgusThisFlow, &model->ArgusThisGre->tflow, sizeof(*model->ArgusThisFlow));
+            break;
+         }
+      }
+
       retn = ArgusParseGre(model, ip, length);
    }
 
@@ -2498,7 +2511,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          gre->hdr.type               = ARGUS_GRE_DSR;
          gre->hdr.subtype            = 0;
          gre->hdr.argus_dsrvl8.qual  = 0;
-         gre->hdr.argus_dsrvl8.len   = 3;
+         gre->hdr.argus_dsrvl8.len   = (sizeof(struct ArgusGreStruct) + 3) / 4;
          flow->dsrindex |= 1 << ARGUS_GRE_INDEX;
       }
 

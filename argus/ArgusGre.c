@@ -45,8 +45,10 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
    struct argus_gre *gre = model->ArgusThisGre;
    unsigned short flags;
 
+/*
    model->ArgusThisLength -= hlen;
    model->ArgusSnapLength -= hlen;
+*/
    length -= hlen;
       
    flags = EXTRACT_16BITS(bp);
