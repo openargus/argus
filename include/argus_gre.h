@@ -63,7 +63,7 @@
 
 struct argus_gre {
    unsigned short vers, proto;
-   struct ArgusFlow *tflow;
+   struct ArgusSystemFlow *tflow;
 };
 
 #define GRE_CP          0x8000          /* checksum present */

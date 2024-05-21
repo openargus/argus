@@ -233,7 +233,10 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    if ((model->ArgusThisLLC = (struct argus_llc  *) ArgusCalloc (1, sizeof (struct argus_llc ) + 32)) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
 
-   if ((model->ArgusThisGre = (struct argus_gre  *) ArgusCalloc (1, sizeof (struct argus_gre ) + 32)) == NULL)
+   if ((model->ArgusThisGre = (struct argus_gre *) ArgusCalloc (1, sizeof (struct argus_gre ))) == NULL)
+      ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
+
+   if ((model->ArgusThisGre->tflow = (struct ArgusSystemFlow *) ArgusCalloc (1, sizeof (struct ArgusSystemFlow ))) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
 
    model->ArgusSeqNum = 1;
@@ -359,6 +362,7 @@ ArgusCloseModeler(struct ArgusModelerStruct *model)
          model->ArgusThisLLC = NULL;
       }
       if (model->ArgusThisGre != NULL) {
+         ArgusFree(model->ArgusThisGre->tflow);
          ArgusFree(model->ArgusThisGre);
          model->ArgusThisGre = NULL;
       }
@@ -1066,12 +1070,12 @@ ArgusProcessGreHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
       switch (model->ArgusThisNetworkFlowType & 0xFFFF) {
          case ETHERTYPE_IP: {
             ArgusCreateIPv4Flow (model, (struct ip *)model->ArgusThisIpHdr);
-            bcopy(model->ArgusThisFlow, &model->ArgusThisGre->tflow, sizeof(*model->ArgusThisFlow));
+            bcopy(model->ArgusThisFlow, model->ArgusThisGre->tflow, sizeof(*model->ArgusThisFlow));
             break;
          }
          case ETHERTYPE_IPV6: {
             ArgusCreateIPv6Flow (model, (struct ip6_hdr *)model->ArgusThisIpHdr);
-            bcopy(model->ArgusThisFlow, &model->ArgusThisGre->tflow, sizeof(*model->ArgusThisFlow));
+            bcopy(model->ArgusThisFlow, model->ArgusThisGre->tflow, sizeof(*model->ArgusThisFlow));
             break;
          }
       }
