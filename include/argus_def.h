@@ -467,6 +467,7 @@ extern "C" {
 #define ARGUS_TYPE_IB_GLOBAL                    0x0C
 #define ARGUS_TYPE_UDT                          0x0D
 #define ARGUS_TYPE_VXLAN                        0x0E
+#define ARGUS_TYPE_GRE                          0x0F
  
 #define ARGUS_TYPE_INTERFACE                    0x10
 
@@ -1814,12 +1815,19 @@ extern "C" {
 #define ARGUS_FLOW_HASH_DSR		0x07
 #define ARGUS_FLOW_HASH_INDEX           21
 
-/* VxLan Transport DSR Type */
-#define ARGUS_VXLAN_DSR                  0x43
-#define ARGUS_VXLAN_INDEX                22
+/* Gre Transport DSR Type */
+#define ARGUS_GRE_DSR			0x41
+#define ARGUS_GRE_INDEX			23
+ 
+#define ARGUS_SRC_GRE			0x01
+#define ARGUS_DST_GRE			0x02
 
-#define ARGUS_SRC_VXLAN                  0x01
-#define ARGUS_DST_VXLAN                  0x02
+/* VxLan Transport DSR Type */
+#define ARGUS_VXLAN_DSR			0x43
+#define ARGUS_VXLAN_INDEX		22
+
+#define ARGUS_SRC_VXLAN			0x01
+#define ARGUS_DST_VXLAN			0x02
 
 /*
     0                   1                   2                   3

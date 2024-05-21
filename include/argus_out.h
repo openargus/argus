@@ -685,6 +685,12 @@ struct ArgusMplsStruct {
    unsigned int dlabel;
 }; 
 
+struct ArgusGreStruct {
+   struct ArgusDSRHeader hdr;
+   unsigned short flags, proto;
+   struct ArgusFlow tflow;
+};
+
 struct ArgusIPAttrStruct {
    struct ArgusDSRHeader hdr;
    struct ArgusIPAttrObject src, dst;
@@ -987,6 +993,7 @@ struct ArgusCanonRecord {
    struct ArgusMetricStruct      metric;
    struct ArgusNetworkStruct     net;
    struct ArgusVxLanStruct       vxlan;
+   struct ArgusGreStruct         gre;
    struct ArgusMacStruct         mac;
    struct ArgusVlanStruct        vlan;
    struct ArgusMplsStruct        mpls;
