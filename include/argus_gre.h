@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Common include files. Gre support
+ * Argus-5.0 Software.  Common include files. Gre defines
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -23,22 +23,47 @@
  * QoSient, LLC
  *
  */
+/*
+ * Copyright (c) 1993, 1994, 1997
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that: (1) source code distributions
+ * retain the above copyright notice and this paragraph in its entirety, (2)
+ * distributions including binary code include the above copyright notice and
+ * this paragraph in its entirety in the documentation or other materials
+ * provided with the distribution, and (3) all advertising materials mentioning
+ * features or use of this software display the following acknowledgement:
+ * ``This product includes software developed by the University of California,
+ * Lawrence Berkeley Laboratory and its contributors.'' Neither the name of
+ * the University nor the names of its contributors may be used to endorse
+ * or promote products derived from this software without specific prior
+ * written permission.
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ */
 
 /* 
- * $Id: //depot/gargoyle/argus/include/argus_gre.h#5 $
+ * $Id: //depot/gargoyle/argus/include/argus_gre.h#3 $
  * $DateTime: 2015/04/13 00:39:28 $
  * $Change: 2980 $
  */
 
 #if !defined(Argus_gre_h)
-#define(Argus_gre_h)
+#define Argus_gre_h
 
 /*
- * A somewhat abstracted view of the GRE header
+ * A definition of the global GRE context for a given flow ...
+ * This should hold the IP addresses of the enclosing IP flow
+ * for the GRE tunnel ...
+ *
  */
 
-struct gre {
+struct argus_gre {
    unsigned short vers, proto;
+   struct ArgusFlow *tflow;
 };
 
 #define GRE_CP          0x8000          /* checksum present */

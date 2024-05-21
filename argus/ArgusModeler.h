@@ -238,7 +238,6 @@ struct ArgusModelerStruct {
    unsigned int ArgusThisInterface;
    unsigned int ArgusThisEncaps;
    unsigned int ArgusThisNetworkFlowType;
-   struct argus_llc *ArgusThisLLC;
    unsigned int ArgusThisAppFlowType;
    int ArgusThisMplsLabelIndex;
    unsigned int ArgusThisMplsLabel;
@@ -253,6 +252,8 @@ struct ArgusModelerStruct {
    struct ArgusUniStats *ArgusThisStats;
  
    struct ether_header *ArgusThisEpHdr;
+   struct argus_llc *ArgusThisLLC;
+   struct argus_gre *ArgusThisGre;
 
    void *ArgusThisMacHdr;
    void *ArgusThisIpHdr; 

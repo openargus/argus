@@ -51,6 +51,7 @@
 #include <netinet/if_ether.h>
 #include <netinet/rtp.h>
 
+#include <argus_gre.h>
 #include <argus_llc.h>
 #include <argus_isis.h>
 #include <argus_udt.h>
