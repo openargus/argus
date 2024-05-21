@@ -40,5 +40,5 @@
 
 #include <argus/bootp.h>
 
-unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
+unsigned short ArgusParseGre (struct ArgusModelerStruct *, struct ip *, int);
 #endif

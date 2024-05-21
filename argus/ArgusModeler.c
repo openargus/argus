@@ -233,6 +233,9 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    if ((model->ArgusThisLLC = (struct argus_llc  *) ArgusCalloc (1, sizeof (struct argus_llc ) + 32)) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
 
+   if ((model->ArgusThisGre = (struct argus_gre  *) ArgusCalloc (1, sizeof (struct argus_gre ) + 32)) == NULL)
+      ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
+
    model->ArgusSeqNum = 1;
    model->ArgusReportAllTime = 1;
 
@@ -354,6 +357,10 @@ ArgusCloseModeler(struct ArgusModelerStruct *model)
       if (model->ArgusThisLLC != NULL) {
          ArgusFree(model->ArgusThisLLC);
          model->ArgusThisLLC = NULL;
+      }
+      if (model->ArgusThisGre != NULL) {
+         ArgusFree(model->ArgusThisGre);
+         model->ArgusThisGre = NULL;
       }
 
       if (!(model->status & ARGUS_MODELER_CLONE)) {

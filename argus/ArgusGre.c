@@ -35,17 +35,6 @@
 
 #include <ArgusGre.h>
 
-#define GRE_VERS_MASK   0x0007          /* protocol version */
-#define GRESRE_IP       0x0800          /* IP */
-#define GRESRE_ASN      0xfffe          /* ASN */
-#define GRE_CP          0x8000          /* checksum present */
-#define GRE_RP          0x4000          /* routing present */
-#define GRE_KP          0x2000          /* key present */
-#define GRE_SP          0x1000          /* sequence# present */
-#define GRE_sP          0x0800          /* source routing */
-#define GRE_RECRS       0x0700          /* recursion count */
-#define GRE_AP          0x0080          /* acknowledgment# present */
-
 unsigned short ArgusParseGre (struct ArgusModelerStruct *, struct ip *, int);
 
 unsigned short
@@ -53,6 +42,7 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
 {
    int retn = 0, grelen = 4, hlen = ip->ip_hl << 2;
    char *bp = ((char *)ip + hlen);
+   struct argus_gre *gre = model->ArgusThisGre;
    unsigned short flags;
 
    model->ArgusThisLength -= hlen;
@@ -68,61 +58,63 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
    model->ArgusThisEncaps |= ARGUS_ENCAPS_GRE;
 
    switch(flags & GRE_VERS_MASK) {
-         case 0: 
-            if ((flags & GRE_CP) | (flags & GRE_RP)) {
-               grelen += 4;
-               bp += 4;
-            }
+      case 0: {
+         if ((flags & GRE_CP) | (flags & GRE_RP)) {
+            grelen += 4;
+            bp += 4;
+         }
 
-            if (flags & GRE_KP) {
-               bp += 4;
-               grelen -= 4;
-            }
+         if (flags & GRE_KP) {
+            bp += 4;
+            grelen -= 4;
+         }
 
-            if (flags & GRE_SP) {
-               bp += 4;
-               grelen += 4;
-            }
+         if (flags & GRE_SP) {
+            bp += 4;
+            grelen += 4;
+         }
 
-            if (flags & GRE_RP) {
-               for (;;) {
-                  u_int16_t af;
-                  u_int8_t srelen;
+         if (flags & GRE_RP) {
+            for (;;) {
+               u_int16_t af;
+               u_int8_t srelen;
 
-                  if (BYTESCAPTURED(model, *bp, 4)) {
-                     af = EXTRACT_16BITS(bp);
-                     srelen = *(bp + 3);
-                     bp += 4;
-                     grelen -= 4;
+               if (BYTESCAPTURED(model, *bp, 4)) {
+                  af = EXTRACT_16BITS(bp);
+                  srelen = *(bp + 3);
+                  bp += 4;
+                  grelen -= 4;
 
-                     if (af == 0 && srelen == 0)
-                        break;
-
-                     bp += srelen;
-                     grelen += srelen;
-
-                  } else
+                  if (af == 0 && srelen == 0)
                      break;
-               }
-            }
-            break;
 
-         case 1:
-            if (flags & GRE_KP) {
-               bp += 4;
-               grelen -= 4;
-            }
+                  bp += srelen;
+                  grelen += srelen;
 
-            if (flags & GRE_SP) {
-               bp += 4;
-               grelen += 4;
+               } else
+                  break;
             }
+         }
+         break;
+      }
 
-            if (flags & GRE_AP) {
-               bp += 4;
-               grelen += 4;
-            }
-            break;
+      case 1: {
+         if (flags & GRE_KP) {
+            bp += 4;
+            grelen -= 4;
+         }
+
+         if (flags & GRE_SP) {
+            bp += 4;
+            grelen += 4;
+         }
+
+         if (flags & GRE_AP) {
+            bp += 4;
+            grelen += 4;
+         }
+         break;
+      }
    }
 
    model->ArgusThisUpHdr  = (unsigned char *) bp;
