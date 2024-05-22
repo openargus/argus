@@ -802,6 +802,7 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
          break;
       }
 
+      case IPPROTO_IPIP:
       case ETHERTYPE_IP: {
          struct ip *ip = (struct ip *) p;
 
@@ -815,15 +816,19 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
                model->ArgusThisIpHdr = (void *)ip;
                switch (ip->ip_p) {
                   case IPPROTO_TTP: { /* Preparation for Juniper TTP */
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
                      retn = ArgusProcessTtpHdr(model, ip, length);
                      break;
                   }
                   case IPPROTO_UDP: { /* RCP 4380 */
-                     if (getArgusTunnelDiscovery(model))
+                     if (getArgusTunnelDiscovery(model)) {
+                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
                         retn = ArgusProcessUdpHdr(model, ip, length);
+		     }
                      break;
                   }
                   case IPPROTO_GRE: { /* RFC 2784 */
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
                      retn = ArgusProcessGreHdr(model, ip, length);
                      break;
                   }
@@ -839,9 +844,28 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
       }
 
       case ETHERTYPE_IPV6: {
-         model->ArgusThisIpHdr = (void *)p;
+         struct ip6_hdr *ipv6 = (struct ip6_hdr *) p;
+
          model->ArgusThisNetworkFlowType = type;
-         retn = 0;
+         switch (ipv6->ip6_nxt) {
+            case IPPROTO_IPIP: { /* Preparation for Juniper TTP */
+               model->ArgusThisIpHdr = (void *)p;
+               model->ArgusThisUpHdr  += sizeof(*ipv6);
+               model->ArgusThisLength -= sizeof(*ipv6);
+               model->ArgusSnapLength -= sizeof(*ipv6);
+               model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
+               retn = ipv6->ip6_nxt;
+               break;
+            }
+            case IPPROTO_GRE: { /* RFC 2784 */
+               model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
+               retn = ArgusProcessGreHdr(model, (void *)p, length);
+               break;
+            }
+            default:
+               retn = 0;
+               break;
+	 }
          break;
       }
 
