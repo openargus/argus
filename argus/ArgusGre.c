@@ -138,6 +138,8 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
       model->ArgusThisLength -= grelen;
       model->ArgusSnapLength -= grelen;
    }
+   gre->flags = flags;
+   gre->proto = retn;
 
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "ArgusParseGre(%p, %p, %d) returning 0x%x\n", model, ip, length, retn);
