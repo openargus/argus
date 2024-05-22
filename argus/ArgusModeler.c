@@ -2515,8 +2515,13 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          gre->hdr.type               = ARGUS_GRE_DSR;
          gre->hdr.subtype            = 0;
          gre->hdr.argus_dsrvl8.qual  = 0;
-         gre->hdr.argus_dsrvl8.len   = (sizeof(struct ArgusGreStruct) + 3) / 4;
          flow->dsrindex |= 1 << ARGUS_GRE_INDEX;
+
+         gre->flags = model->ArgusThisGre->flags;
+         gre->proto = model->ArgusThisGre->proto;
+         bcopy(model->ArgusThisGre->tflow, &gre->tflow, sizeof(gre->tflow));
+
+         gre->hdr.argus_dsrvl8.len   = gre->tflow.hdr.argus_dsrvl8.len + 2;
       }
 
       if (model->ArgusThisDir) {
@@ -4764,6 +4769,42 @@ setArgusOtherTimeout (struct ArgusModelerStruct *model, int value)
    if (model != NULL) {
       model->ArgusOtherTimeout = value;
    }
+}
+
+void
+setArgusTunnelParsing(struct ArgusModelerStruct *model, char *optarg)
+{
+   if (model != NULL) {
+      if (optarg && strlen(optarg)) {
+         if (!(strcasecmp(optarg, "yes"))) {
+            model->ArgusTunnelParsing = 1;
+         } else {
+            model->ArgusTunnelParsing = 0;
+         }
+      }
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug(4, "setArgusTunnelParsing(%p, '%s'): called\n", model, optarg);
+#endif
+}
+
+void
+setArgusTunnelInformation(struct ArgusModelerStruct *model, char *optarg)
+{
+   if (model != NULL) {
+      if (optarg && strlen(optarg)) {
+         if (!(strcasecmp(optarg, "yes"))) {
+            model->ArgusTunnelInfo = 1;
+         } else {
+            model->ArgusTunnelInfo = 0;
+         }
+      }
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug(4, "setArgusTunnelInformation(%p, '%s'): called\n", model, optarg);
+#endif
 }
 
 

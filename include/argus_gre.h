@@ -62,7 +62,7 @@
  */
 
 struct argus_gre {
-   unsigned short vers, proto;
+   unsigned short flags, proto;
    struct ArgusSystemFlow *tflow;
 };
 

@@ -319,6 +319,8 @@ struct ArgusModelerStruct {
    int ArgusMinorVersion;
    int ArgusSnapLen;
  
+   int ArgusTunnelParsing;
+   int ArgusTunnelInfo;
    int ArgusTunnelDiscovery;
    int ArgusOSFingerPrinting;
    int ArgusUserDataLen;
@@ -470,6 +472,9 @@ void setArgusIgmpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusFragTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusArpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusOtherTimeout (struct ArgusModelerStruct *model, int value);
+
+void setArgusTunnelParsing (struct ArgusModelerStruct *model, char *);
+void setArgusTunnelInformation (struct ArgusModelerStruct *model, char *);
 
 int getArgusHashTableSize (struct ArgusModelerStruct *model);
 

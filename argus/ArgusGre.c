@@ -118,6 +118,8 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
          break;
       }
    }
+   gre->flags = flags;
+   gre->proto = retn;
 
    model->ArgusThisUpHdr  = (unsigned char *) bp;
    model->ArgusThisLength -= grelen;
