@@ -806,41 +806,39 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
       case ETHERTYPE_IP: {
          struct ip *ip = (struct ip *) p;
 
-         if (STRUCTCAPTURED(model,*ip)) {
-            if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
-               if (ip->ip_v == 4) 
-                  model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
-               else if (ip->ip_v == 6)
-                  model->ArgusThisNetworkFlowType = ETHERTYPE_IPV6;
+         if (ip->ip_v == 4) {
+            if (STRUCTCAPTURED(model,*ip)) {
+               model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
 
-               model->ArgusThisIpHdr = (void *)ip;
-               switch (ip->ip_p) {
-                  case IPPROTO_TTP: { /* Preparation for Juniper TTP */
-                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                     retn = ArgusProcessTtpHdr(model, ip, length);
-                     break;
-                  }
-                  case IPPROTO_UDP: { /* RCP 4380 */
-                     if (getArgusTunnelDiscovery(model)) {
+               if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
+                  model->ArgusThisIpHdr = (void *)ip;
+                  switch (ip->ip_p) {
+                     case IPPROTO_TTP: { /* Preparation for Juniper TTP */
                         model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                        retn = ArgusProcessUdpHdr(model, ip, length);
-		     }
-                     break;
+                        retn = ArgusProcessTtpHdr(model, ip, length);
+                        break;
+                     }
+                     case IPPROTO_UDP: { /* RCP 4380 */
+                        if (getArgusTunnelDiscovery(model)) {
+                           model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
+                           retn = ArgusProcessUdpHdr(model, ip, length);
+		        }
+                        break;
+                     }
+                     case IPPROTO_GRE: { /* RFC 2784 */
+                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
+                        retn = ArgusProcessGreHdr(model, ip, length);
+                        break;
+                     }
+                     default:
+                        retn = 0;
+                        break;
                   }
-                  case IPPROTO_GRE: { /* RFC 2784 */
-                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                     retn = ArgusProcessGreHdr(model, ip, length);
-                     break;
-                  }
-                  default:
-                     retn = 0;
-                     break;
                }
-
-            } else
-               break;
+            }
+            break;
          }
-         break;
+// FALL THROUGH TO V6
       }
 
       case ETHERTYPE_IPV6: {
@@ -848,13 +846,25 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
 
          model->ArgusThisNetworkFlowType = type;
          switch (ipv6->ip6_nxt) {
-            case IPPROTO_IPIP: { /* Preparation for Juniper TTP */
+            case IPPROTO_IPIP: {                         // IPNIP
                model->ArgusThisIpHdr = (void *)p;
                model->ArgusThisUpHdr  += sizeof(*ipv6);
                model->ArgusThisLength -= sizeof(*ipv6);
                model->ArgusSnapLength -= sizeof(*ipv6);
                model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
                retn = ipv6->ip6_nxt;
+               break;
+            }
+            case IPPROTO_TTP: { /* Preparation for Juniper TTP */
+               model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
+               retn = ArgusProcessTtpHdr(model, (void *)p, length);
+               break;
+            }
+            case IPPROTO_UDP: { /* RCP 4380 */
+               if (getArgusTunnelDiscovery(model)) {
+                  model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
+                  retn = ArgusProcessUdpHdr(model, (void *)p, length);
+               }
                break;
             }
             case IPPROTO_GRE: { /* RFC 2784 */
@@ -981,86 +991,99 @@ ArgusInitTunnelPortNumbers (void)
 unsigned short
 ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 {
-   int retn = 0;
-   int hlen = ip->ip_hl << 2;
-   char *bp = ((char *)ip + hlen);
-   struct udphdr *up = (struct udphdr *) bp;
+   int retn = 0, pass = 0, hlen = 0;
 
-   if (STRUCTCAPTURED(model, *up)) {
-      unsigned short dport, sport;
+   if (ip->ip_v == 4) {
+      model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
+      pass = STRUCTCAPTURED(model,*ip);
+      hlen = ip->ip_hl << 2;
+   } else {
+      struct ip6_hdr *ipv6 = (struct ip6_hdr *) ip;
+      model->ArgusThisNetworkFlowType = ETHERTYPE_IPV6;
+      pass = STRUCTCAPTURED(model,*ipv6);
+      hlen = sizeof(*ipv6);
+   }
 
-      sport = ntohs(up->uh_sport);
-      dport = ntohs(up->uh_dport);
+   if (pass) {
+      char *bp = ((char *)ip + hlen);
+      struct udphdr *up = (struct udphdr *) bp;
 
-      if (ArgusTransportParseRoutines[dport] != NULL) {
-         if ((retn = ArgusTransportParseRoutines[dport](model, up + 1)) < 0) {
+      if (STRUCTCAPTURED(model, *up)) {
+         unsigned short dport, sport;
+
+         sport = ntohs(up->uh_sport);
+         dport = ntohs(up->uh_dport);
+
+         if (ArgusTransportParseRoutines[dport] != NULL) {
+            if ((retn = ArgusTransportParseRoutines[dport](model, up + 1)) < 0) {
 #ifdef ARGUSDEBUG
-            ArgusDebug (4, "ArgusTransportParseRoutines(%p, %p, %d) error %d\n", model, ip, length, retn);
+               ArgusDebug (4, "ArgusTransportParseRoutines(%p, %p, %d) error %d\n", model, ip, length, retn);
 #endif 
-         }
+            }
 
-      } else {
-         if (!((sport == 53) || (dport == 53))) {
+         } else {
+            if (!((sport == 53) || (dport == 53))) {
 /*
-            char *ptr = (char *) (up + 1);
-            struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
+               char *ptr = (char *) (up + 1);
+               struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
 
-            len += sizeof (*up);
+               len += sizeof (*up);
 
-            if (STRUCTCAPTURED(model, *ipv6)) {
-               int isipv6 = 0;
-               if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-                  retn = ETHERTYPE_IPV6;
-                  len = ((char *) ipv6 - (char *)ip);
-                  model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-                  model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-                  model->ArgusThisLength -= len;
-                  model->ArgusSnapLength -= len;
-               } else {
-                  struct teredo *tptr = (struct teredo *) (up + 1);
+               if (STRUCTCAPTURED(model, *ipv6)) {
+                  int isipv6 = 0;
+                  if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
+                     retn = ETHERTYPE_IPV6;
+                     len = ((char *) ipv6 - (char *)ip);
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
+                     model->ArgusThisUpHdr  = (unsigned char *) ipv6;
+                     model->ArgusThisLength -= len;
+                     model->ArgusSnapLength -= len;
+                  } else {
+                     struct teredo *tptr = (struct teredo *) (up + 1);
 
-                  if (STRUCTCAPTURED(model, *tptr)) {
-                     u_short type = ntohs(tptr->tid); 
+                     if (STRUCTCAPTURED(model, *tptr)) {
+                        u_short type = ntohs(tptr->tid); 
 
-                     int offset = 0;
-                     switch (type) {
-                        case 0x0000:  offset = 8; break;
-                        case 0x0001:  offset = (4 + (tptr->tauth.idlen + tptr->tauth.aulen) + 8 + 1); break;
-                        default: isipv6 = -1;
-                     }
+                        int offset = 0;
+                        switch (type) {
+                           case 0x0000:  offset = 8; break;
+                           case 0x0001:  offset = (4 + (tptr->tauth.idlen + tptr->tauth.aulen) + 8 + 1); break;
+                           default: isipv6 = -1;
+                        }
 
-                     if (isipv6 == 0) {
-                        ipv6 = (struct ip6_hdr *)(((u_char *)tptr) + offset);
+                        if (isipv6 == 0) {
+                           ipv6 = (struct ip6_hdr *)(((u_char *)tptr) + offset);
 
-                        if (STRUCTCAPTURED(model, *ipv6)) {
-                           if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-                              retn = ETHERTYPE_IPV6;
-                              len = ((char *) ipv6 - (char *)ip);
-                              model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-                              model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-                              model->ArgusThisLength -= len;
-                              model->ArgusSnapLength -= len;
+                           if (STRUCTCAPTURED(model, *ipv6)) {
+                              if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
+                                 retn = ETHERTYPE_IPV6;
+                                 len = ((char *) ipv6 - (char *)ip);
+                                 model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
+                                 model->ArgusThisUpHdr  = (unsigned char *) ipv6;
+                                 model->ArgusThisLength -= len;
+                                 model->ArgusSnapLength -= len;
 
-                           } else {
-                              struct teredo *iptr = (struct teredo *) ((char *)tptr + offset);
-                              if (STRUCTCAPTURED(model, *iptr)) {
-                                 u_short type = ntohs(iptr->tid); 
-                                 int offset = 0;
-                                 switch (type) {
-                                    case 0x0000:  offset = 8; break;
-                                    case 0x0001:  offset = (4 + (iptr->tauth.idlen + iptr->tauth.aulen) + 8 + 1); break;
-                                    default: isipv6 = -1;
-                                 }
+                              } else {
+                                 struct teredo *iptr = (struct teredo *) ((char *)tptr + offset);
+                                 if (STRUCTCAPTURED(model, *iptr)) {
+                                    u_short type = ntohs(iptr->tid); 
+                                    int offset = 0;
+                                    switch (type) {
+                                       case 0x0000:  offset = 8; break;
+                                       case 0x0001:  offset = (4 + (iptr->tauth.idlen + iptr->tauth.aulen) + 8 + 1); break;
+                                       default: isipv6 = -1;
+                                    }
 
-                                 if (isipv6 == 0) {
-                                    ipv6 = (struct ip6_hdr *)(((u_char *)iptr) + offset);
-                                    if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-                                       retn = ETHERTYPE_IPV6;
-                                       len = ((char *) ipv6 - (char *)ip);
-                                       model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-                                       model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-                                       model->ArgusThisLength -= len;
-                                       model->ArgusSnapLength -= len;
+                                    if (isipv6 == 0) {
+                                       ipv6 = (struct ip6_hdr *)(((u_char *)iptr) + offset);
+                                       if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
+                                          retn = ETHERTYPE_IPV6;
+                                          len = ((char *) ipv6 - (char *)ip);
+                                          model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
+                                          model->ArgusThisUpHdr  = (unsigned char *) ipv6;
+                                          model->ArgusThisLength -= len;
+                                          model->ArgusSnapLength -= len;
+                                       }
                                     }
                                  }
                               }
@@ -1069,8 +1092,8 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
                      }
                   }
                }
-            }
 */
+            }
          }
       }
    }
