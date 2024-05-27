@@ -1371,9 +1371,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                           }
 
                                           if (appendInf)
-                                             sprintf(buf, "%s/inf",  ptr);
+                                             sprintf(buf, "\"%s\"/inf",  ptr);
                                           else
-                                             sprintf(buf, "%s",  ptr);
+                                             sprintf(buf, "\"%s\"",  ptr);
 
                                           optarg = strdup(buf);
 
