@@ -482,7 +482,6 @@ Commandline equivalent  -D
 \fBARGUS_DEBUG_LEVEL=\fP0
 
 
-
 .SH ARGUS_GENERATE_PACKET_SIZE
 
 Argus can be configured to generate packet size information
@@ -493,6 +492,24 @@ Commandline equivalent   -Z
 
 .nf
 \fBARGUS_GENERATE_PACKET_SIZE=\fPyes
+.fi
+
+.SH ARGUS_PACKET_SIZE_HISTOGRAM
+
+Argus can be configured to generate packet size information
+on a per flow basis. This includes the ability to generate a
+logorithmic frequency distribution histogram of the packet sizes seen.
+All argus clients can print the distribution as a hex number, where each
+nibble is one of the columns of the logarithmic histogram, and the
+relative values are from 0-15.  1 generally means that a packet was seen,
+and 15 handles all packets up and above the last column range.
+
+The default value is to not generate this data.
+
+No commandline equivalent
+
+.nf
+\fBARGUS_PACKET_SIZE_HISTOGRAM=\fPno
 .fi
 
 

@@ -615,6 +615,21 @@ struct ArgusEventTimeStruct {
    unsigned int duration;
 };
 
+/*
+   ARGUS_HISTO_LINEAR       size:bins:start
+   ARGUS_HISTO_EXPONENTIAL  size:bins:start:base
+   ARGUS_HISTO_SCALED
+   ARGUS_HISTO_OUTLAYER_LOWER
+   ARGUS_HISTO_OUTLAYER_UPPER
+*/
+
+struct ArgusHistoObject {
+   struct ArgusDSRHeader hdr;
+   float size;
+   char bins, bits;
+   short start;
+   unsigned char *data;
+};
 
 struct ArgusUniStats {
    long long pkts, bytes, appbytes;
@@ -635,6 +650,22 @@ struct ArgusStatsObject {
    float meanval;
    float stdev;
    float maxval;
+   union {
+      unsigned int exp;
+      unsigned int *linear;
+   } dist_union;
+};
+
+struct ArgusOutputStatObject {
+   int n;
+   float minval;
+   float meanval;
+   float stdev;
+   float maxval;
+   union {
+      unsigned char fdist[8];
+      struct ArgusHistoObject linear;
+   } dist_union;
 };
 
 struct ArgusAgrStruct {
@@ -647,6 +678,7 @@ struct ArgusAgrStruct {
 
 struct ArgusPacketSizeObject {
    unsigned short psizemin, psizemax;
+   unsigned char psize[8];
 };
 
 struct ArgusPacketSizeStruct {

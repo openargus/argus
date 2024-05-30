@@ -1054,7 +1054,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				62
+#define ARGUS_RCITEMS				63
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1118,6 +1118,7 @@ getArguspidflag ()
 #define ARGUS_MAR_INTERFACE_INTERVAL		59
 #define ARGUS_TIMESTAMP_TYPE			60
 #define ARGUS_DEDUP				61
+#define ARGUS_PACKET_SIZE_HISTOGRAM		62
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1183,6 +1184,7 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MAR_INTERFACE_INTERVAL=",
    "ARGUS_TIMESTAMP_TYPE=",
    "ARGUS_DEDUDEDUP=",
+   "ARGUS_PACKET_SIZE_HISTOGRAM=",
 };
 
 
@@ -1726,6 +1728,14 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                               setArgusGeneratePacketSize(model, 1);
                            else
                               setArgusGeneratePacketSize(model, 0);
+                           break;
+                        }
+
+                        case ARGUS_PACKET_SIZE_HISTOGRAM: {
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              setArgusGeneratePacketSizeHisto(model, 1);
+                           else
+                              setArgusGeneratePacketSizeHisto(model, 0);
                            break;
                         }
 
