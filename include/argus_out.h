@@ -632,7 +632,6 @@ struct ArgusHistoObject {
    unsigned char *data;
 };
 
-
 struct ArgusUniStats {
    long long pkts, bytes, appbytes;
 };
