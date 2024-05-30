@@ -271,6 +271,7 @@ struct ArgusModelerStruct {
    int ArgusSnapLength;
    int ArgusGenerateTime;
    int ArgusGeneratePacketSize;
+   int ArgusGeneratePacketSizeHisto;
 
    int ArgusThisLength;
    int ArgusThisBytes;
@@ -515,6 +516,8 @@ int getArgusGenerateTime(struct ArgusModelerStruct *);
 void setArgusGenerateTime(struct ArgusModelerStruct *, int);
 int getArgusGeneratePacketSize(struct ArgusModelerStruct *);
 void setArgusGeneratePacketSize(struct ArgusModelerStruct *, int);
+int getArgusGeneratePacketSizeHisto(struct ArgusModelerStruct *);
+void setArgusGeneratePacketSizeHisto(struct ArgusModelerStruct *, int);
 void setArgusTimeReport(struct ArgusModelerStruct *, int);
 
 struct timeval *getArgusQueueInterval(struct ArgusModelerStruct *);
@@ -745,6 +748,8 @@ extern void setArgusGenerateTime(struct ArgusModelerStruct *, int);
 
 extern int getArgusGeneratePacketSize(struct ArgusModelerStruct *);
 extern void setArgusGeneratePacketSize(struct ArgusModelerStruct *, int);
+extern int getArgusGeneratePacketSizeHisto(struct ArgusModelerStruct *);
+extern void setArgusGeneratePacketSizeHisto(struct ArgusModelerStruct *, int);
 
 extern void setArgusTimeReport(struct ArgusModelerStruct *, int);
 

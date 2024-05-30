@@ -2926,10 +2926,10 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
       model->ArgusThisStats->bytes += bytes;
    }
 
-   if (model->ArgusGeneratePacketSize) {
+   if (getArgusGeneratePacketSize(model)) {
       struct ArgusPacketSizeStruct *psize = (void *)flow->dsrs[ARGUS_PSIZE_INDEX];
       struct ArgusPacketSizeObject *tpsize;
-
+      
       if (psize == NULL) {
          psize = &flow->canon.psize;
          memset (psize, 0, sizeof(*psize));
@@ -2949,6 +2949,25 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
          tpsize->psizemax = bytes;
       if (bytes < tpsize->psizemin)
          tpsize->psizemin = bytes;
+
+      if (getArgusGeneratePacketSizeHisto(model)) {
+         double value = log2(bytes - 40);
+         double integral;
+
+         modf(value, &integral);
+         integral -= 4;
+
+         if (integral < 0) integral = 0;
+         if (integral > 7) integral = 7;
+         tpsize->psize[(int)integral]++;
+
+         if (tpsize->psize[(int)integral] >= 254) {
+            for (int i = 0; i < 8; i++) {
+               if (tpsize->psize[i] > 1)
+                  tpsize->psize[i] <<= 1;
+	    }
+         }
+      }
    }
 
    if (model->ArgusGenerateTime) {
@@ -3699,13 +3718,17 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         if (psize->dst.psizemax > 0)
                            type = ARGUS_DST_SHORT;
 
-                        if (type != 0) {
+                        if (type) {
+                           unsigned char value = 0, tmp = 0, *ptr;
+                           int max, i;
+
                            dsr = (struct ArgusDSRHeader *)dsrptr;
                            dsr->type    = ARGUS_PSIZE_DSR;
                            dsr->subtype = 0;
 
                            switch (type) {
                               case ARGUS_SRCDST_SHORT:
+                                 dsr->subtype = ARGUS_PSIZE_SRC_MAX_MIN | ARGUS_PSIZE_DST_MAX_MIN;
                                  dsr->argus_dsrvl8.qual = type;
                                  dsr->argus_dsrvl8.len = 3;
                                  ((unsigned short *)(dsr + 1))[0] = psize->src.psizemin;
@@ -3715,6 +3738,7 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                                  break;
 
                               case ARGUS_SRC_SHORT:
+                                 dsr->subtype = ARGUS_PSIZE_SRC_MAX_MIN;
                                  dsr->argus_dsrvl8.qual = type;
                                  dsr->argus_dsrvl8.len = 2;
                                  ((unsigned short *)(dsr + 1))[0] = psize->src.psizemin;
@@ -3722,6 +3746,7 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                                  break;
 
                               case ARGUS_DST_SHORT:
+                                 dsr->subtype = ARGUS_PSIZE_DST_MAX_MIN;
                                  dsr->argus_dsrvl8.qual = type;
                                  dsr->argus_dsrvl8.len = 2;
                                  ((unsigned short *)(dsr + 1))[0] = psize->dst.psizemin;
@@ -3729,9 +3754,84 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                                  break;
 
                               default:
-                                 ArgusLog (LOG_ERR, "ArgusGenerateRecord: packet size type not defined");
                                  break;
                            }
+
+                           if (getArgusGeneratePacketSizeHisto(model)) {
+                              if (dsr->subtype & ARGUS_PSIZE_SRC_MAX_MIN) {
+                                 ptr = (unsigned char *)(dsr + dsr->argus_dsrvl8.len);
+                                 dsr->subtype |= ARGUS_PSIZE_HISTO;
+
+                                 dsr->argus_dsrvl8.len++;
+                                 *((unsigned int *)(dsr + dsr->argus_dsrvl8.len)) = 0;
+
+                                 for (i = 0, max = 0; i < 8; i++)
+                                    if (max < psize->src.psize[i])
+                                       max = psize->src.psize[i];
+
+                                 for (i = 0; i < 8; i++) {
+                                    if ((tmp = psize->src.psize[i])) {
+                                       if (i & 0x01) {
+                                          if (max > 15)
+                                            tmp = ((tmp * 15)/max);
+                                          if (!tmp) tmp++;
+                                          value |= tmp;
+                                          *ptr++ = value;
+                                       } else {
+                                          if (max > 15)
+                                            tmp = ((tmp * 15)/max);
+                                          if (!tmp) tmp++;
+                                          value = (tmp << 4);
+                                       }
+                                    } else {
+                                       if (i & 0x01) {
+                                          value &= 0xF0;
+                                          *ptr++ = value;
+                                       } else {
+                                          value = 0;
+                                       }
+                                    }
+                                 }
+                              }
+
+                              if (dsr->subtype & ARGUS_PSIZE_DST_MAX_MIN) {
+                                 ptr = (unsigned char *)(dsr + dsr->argus_dsrvl8.len);
+
+                                 dsr->subtype |= ARGUS_PSIZE_HISTO;
+
+                                 dsr->argus_dsrvl8.len++;
+                                 *((unsigned int *)(dsr + dsr->argus_dsrvl8.len)) = 0;
+
+                                 for (i = 0, max = 0; i < 8; i++)
+                                    if (max < psize->dst.psize[i])
+                                       max = psize->dst.psize[i];
+
+                                 for (i = 0; i < 8; i++) {
+                                    if ((tmp = psize->dst.psize[i])) {
+                                       if (i & 0x01) {
+                                          if (max > 15)
+                                            tmp = ((tmp * 15)/max);
+                                          if (!tmp) tmp++;
+                                          value |= tmp;
+                                          *ptr++ = value;
+                                       } else {
+                                          if (max > 15)
+                                            tmp = ((tmp * 15)/max);
+                                          if (!tmp) tmp++;
+                                          value = (tmp << 4);
+                                       }
+                                    } else {
+                                       if (i & 0x01) {
+                                          value &= 0xF0;
+                                          *ptr++ = value;
+                                       } else {
+                                          value = 0;
+                                       }
+                                    }
+                                 }
+                              }
+                           }
+
                            dsr->argus_dsrvl8.qual = type;
                            len = dsr->argus_dsrvl8.len;
                            dsrptr += len;
@@ -4915,6 +5015,19 @@ void
 setArgusGeneratePacketSize(struct ArgusModelerStruct *model, int value)
 {
    model->ArgusGeneratePacketSize = value;
+}
+
+
+int
+getArgusGeneratePacketSizeHisto(struct ArgusModelerStruct *model)
+{
+   return (model->ArgusGeneratePacketSizeHisto);
+}
+
+void
+setArgusGeneratePacketSizeHisto(struct ArgusModelerStruct *model, int value)
+{
+   model->ArgusGeneratePacketSizeHisto = value;
 }
 
 int
