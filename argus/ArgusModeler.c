@@ -1855,10 +1855,7 @@ ArgusProcessIpPacket (struct ArgusModelerStruct *model, struct ip *ip, int lengt
          model->ArgusThisNetworkFlowType = ETHERTYPE_IPV6;
          pass = STRUCTCAPTURED(model,*ipv6);
       }
-/*
-      model->ArgusThisIpHdr = (unsigned char *)ip;
-      model->ArgusThisUpHdr = (unsigned char *)ip;
-*/
+
       model->ArgusThisBytes = length;
 
       if (pass) {
@@ -2945,27 +2942,29 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
       else
          tpsize = &psize->dst;
 
-      if (bytes > tpsize->psizemax)
-         tpsize->psizemax = bytes;
-      if (bytes < tpsize->psizemin)
-         tpsize->psizemin = bytes;
+      if (bytes > 0) {
+         if (bytes > tpsize->psizemax)
+            tpsize->psizemax = bytes;
+         if (bytes < tpsize->psizemin)
+            tpsize->psizemin = bytes;
 
-      if (getArgusGeneratePacketSizeHisto(model)) {
-         double value = log2(bytes - 40);
-         double integral;
+         if (getArgusGeneratePacketSizeHisto(model)) {
+            double value = log2(bytes - 40);
+            double integral;
 
-         modf(value, &integral);
-         integral -= 4;
+            modf(value, &integral);
+            integral -= 4;
 
-         if (integral < 0) integral = 0;
-         if (integral > 7) integral = 7;
-         tpsize->psize[(int)integral]++;
+            if (integral < 0) integral = 0;
+            if (integral > 7) integral = 7;
+            tpsize->psize[(int)integral]++;
 
-         if (tpsize->psize[(int)integral] >= 254) {
-            for (int i = 0; i < 8; i++) {
-               if (tpsize->psize[i] > 1)
-                  tpsize->psize[i] <<= 1;
-	    }
+            if (tpsize->psize[(int)integral] >= 254) {
+               for (int i = 0; i < 8; i++) {
+                  if (tpsize->psize[i] > 1)
+                     tpsize->psize[i] <<= 1;
+	       }
+            }
          }
       }
    }
