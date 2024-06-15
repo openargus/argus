@@ -1,6 +1,6 @@
 /*
  * Argus Software - README
- * Copyright (c) 2000-2023 QoSient, LLC
+ * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved. 
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,36 +19,44 @@
  * 
  */
 
-Argus Pro (Gargoyle) 5.0.0
-
-Argus 3.0.8.3
+Argus 5.0.0
 Open Argus
 http://openargus.org
 
 This directory contains source code for Argus, an IP network
-transaction auditing tool, that generates a network activity audit
-of all network transactions, their state, and their performance.
-The data that Argus generates can be used for a wide range of tasks
+transaction auditing tool, that generates comprehensive network flow
+data from a network traffic stream. Argus strives to be the advanced
+network flow data generator, capturing more network traffic features
+than other systems. The primary design goal of Argus is to generate
+network traffic audit data to enable leading edge network analysis,
+include modern AI/ML strategies, for any scale needed.
+
+The data that Argus generates has been used for a wide range of tasks
 including Network Operations, Security, Assurance and Performance
-Management.
+Monitoring and Management, with an emphasis on network traffic auditing
+and forensics analysis.  It is designed to generate network status
+data suitable for real-time network situtional awareness as well as
+historic analysis, to enable network baseline development, and anomaly
+detection strategies for network operations, performance and cyber
+security.
 
 This package contains the network activity sensor, that takes in
 raw packet data, from either a file or from the network, and generates
 network flow activity status records.  Argus is comprehensive, in
-that it accounts for all network activity,, not just IP traffic.
+that it accounts for all network activity, not just IP (Layer 3) traffic.
 
-Use the accompaning argus-clients-3.0.8 tools to collect,
-process, print, graph, store, archive and manage the data that
-Argus generates.
+Use the accompaning argus-clients-5.0.0 tools to collect,
+process, print, graph, store, process, analyze, archive and manage
+the data that Argus generates.
 
 To install the software and get started, see the ./INSTALL file.
 For answers to many questions, please see the argus web site
 at http://qosient.com/argus.
 
-The Argus 3.0 has been ported to SunOS, Solaris, Linux, FreeBSD,
-OpenBSD, NetBSD, BSD Unix, AIX, HPUX, Irix, Onix, UniCos, VxWorks,
-Cygwin and OpenWRT, to name just a few, and the argus client 
-software has been successfully used under most if not all
+The Argus 5.0 has been ported to MacOS, Windows, SunOS, Solaris,
+Linux, FreeBSD, OpenBSD, NetBSD, BSD Unix, AIX, HPUX, Irix, Onix,
+UniCos, VxWorks, Cygwin and OpenWRT, to name just a few, and the
+argus client software has been successfully used under most if not all
 the same platforms.  If you port Argus to another system, please
 let us know on the mailing list.
 
