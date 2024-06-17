@@ -1099,12 +1099,12 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
 
             case ARGUS_JITTER_INDEX: {
                struct ArgusJitterStruct *jit = (void *)flow->dsrs[i];
-               bzero ((char *)&jit->act, sizeof(struct ArgusJitterObject));
-               bzero ((char *)&jit->idle, sizeof(struct ArgusJitterObject));
-               jit->act.src.minval  = -1.0;
-               jit->idle.src.minval = -1.0;
-               jit->act.dst.minval  = -1.0;
-               jit->idle.dst.minval = -1.0;
+               bzero ((char *)&jit->src, sizeof(struct ArgusJitterObject));
+               bzero ((char *)&jit->dst, sizeof(struct ArgusJitterObject));
+               jit->src.act.minval  = -1.0;
+               jit->src.idle.minval = -1.0;
+               jit->dst.act.minval  = -1.0;
+               jit->dst.idle.minval = -1.0;
                break;
             }
 

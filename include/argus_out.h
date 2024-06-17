@@ -620,8 +620,8 @@ struct ArgusEventTimeStruct {
    ARGUS_HISTO_LINEAR       size:bins:start
    ARGUS_HISTO_EXPONENTIAL  size:bins:start:base
    ARGUS_HISTO_SCALED
-   ARGUS_HISTO_OUTLAYER_LOWER
-   ARGUS_HISTO_OUTLAYER_UPPER
+   ARGUS_HISTO_OUTLAYER_LOWER     
+   ARGUS_HISTO_OUTLAYER_UPPER     
 */
 
 struct ArgusHistoObject {
@@ -631,6 +631,7 @@ struct ArgusHistoObject {
    short start;
    unsigned char *data;
 };
+
 
 struct ArgusUniStats {
    long long pkts, bytes, appbytes;
@@ -688,12 +689,12 @@ struct ArgusPacketSizeStruct {
 };
 
 struct ArgusJitterObject {
-   struct ArgusStatsObject src, dst;
+   struct ArgusStatObject act, idle;
 };
 
 struct ArgusJitterStruct {
    struct ArgusDSRHeader hdr;
-   struct ArgusJitterObject act, idle;
+   struct ArgusJitterObject src, dst;
 };
 
 struct ArgusMacStruct {

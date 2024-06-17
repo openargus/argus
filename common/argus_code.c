@@ -3147,31 +3147,31 @@ Argusgen_inter(float v, int dir, int type, u_int op)
    switch (dir) {
       case Q_SRC:
          switch (type) {
-            case Q_INTER:       offset = (char *)&jitter.act.src.meanval - (char *)&jitter; break;
-            case Q_INTERACTIVE: offset = (char *)&jitter.act.src.meanval - (char *)&jitter; break;
-            case Q_INTERIDLE:   offset = (char *)&jitter.idle.src.meanval - (char *)&jitter; break;
+            case Q_INTER:       offset = (char *)&jitter.src.act.meanval - (char *)&jitter; break;
+            case Q_INTERACTIVE: offset = (char *)&jitter.src.act.meanval - (char *)&jitter; break;
+            case Q_INTERIDLE:   offset = (char *)&jitter.src.idle.meanval - (char *)&jitter; break;
          }
          b1 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
          break;
 
       case Q_DST:
          switch (type) {
-            case Q_INTER:       offset = (char *)&jitter.act.dst.meanval - (char *)&jitter; break;
-            case Q_INTERACTIVE: offset = (char *)&jitter.act.dst.meanval - (char *)&jitter; break;
-            case Q_INTERIDLE:   offset = (char *)&jitter.idle.dst.meanval - (char *)&jitter; break;
+            case Q_INTER:       offset = (char *)&jitter.dst.act.meanval - (char *)&jitter; break;
+            case Q_INTERACTIVE: offset = (char *)&jitter.dst.act.meanval - (char *)&jitter; break;
+            case Q_INTERIDLE:   offset = (char *)&jitter.dst.idle.meanval - (char *)&jitter; break;
          }
          b1 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
          break;
 
       case Q_OR:
          switch (type) {
-            case Q_INTER:       offset = (char *)&jitter.act.src.meanval - (char *)&jitter; break;
-            case Q_INTERACTIVE: offset = (char *)&jitter.act.src.meanval - (char *)&jitter; break;
-            case Q_INTERIDLE:   offset = (char *)&jitter.idle.src.meanval - (char *)&jitter; break;
+            case Q_INTER:       offset = (char *)&jitter.src.act.meanval - (char *)&jitter; break;
+            case Q_INTERACTIVE: offset = (char *)&jitter.src.act.meanval - (char *)&jitter; break;
+            case Q_INTERIDLE:   offset = (char *)&jitter.src.idle.meanval - (char *)&jitter; break;
          }
          b0 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
 
-         offset = (char *)&jitter.act.dst.meanval - (char *)&jitter;
+         offset = (char *)&jitter.dst.act.meanval - (char *)&jitter;
          b1 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
          Argusgen_or(b0, b1);
          break;
@@ -3179,16 +3179,16 @@ Argusgen_inter(float v, int dir, int type, u_int op)
       case Q_DEFAULT:
       case Q_AND:
          switch (type) {
-            case Q_INTER:       offset = (char *)&jitter.act.src.meanval - (char *)&jitter; break;
-            case Q_INTERACTIVE: offset = (char *)&jitter.act.src.meanval - (char *)&jitter; break;
-            case Q_INTERIDLE:   offset = (char *)&jitter.idle.src.meanval - (char *)&jitter; break;
+            case Q_INTER:       offset = (char *)&jitter.src.act.meanval - (char *)&jitter; break;
+            case Q_INTERACTIVE: offset = (char *)&jitter.src.act.meanval - (char *)&jitter; break;
+            case Q_INTERIDLE:   offset = (char *)&jitter.src.idle.meanval - (char *)&jitter; break;
          }
          b0 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
 
          switch (type) {
-            case Q_INTER:       offset = (char *)&jitter.act.dst.meanval - (char *)&jitter; break;
-            case Q_INTERACTIVE: offset = (char *)&jitter.act.dst.meanval - (char *)&jitter; break;
-            case Q_INTERIDLE:   offset = (char *)&jitter.idle.dst.meanval - (char *)&jitter; break;
+            case Q_INTER:       offset = (char *)&jitter.dst.act.meanval - (char *)&jitter; break;
+            case Q_INTERACTIVE: offset = (char *)&jitter.dst.act.meanval - (char *)&jitter; break;
+            case Q_INTERIDLE:   offset = (char *)&jitter.dst.idle.meanval - (char *)&jitter; break;
          }
          b1 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
          Argusgen_and(b0, b1);
@@ -3213,31 +3213,31 @@ Argusgen_jitter(float v, int dir, int type, u_int op)
    switch (dir) {
       case Q_SRC:
          switch (type) {
-            case Q_JITTER:       offset = (char *)&jitter.act.src.stdev - (char *)&jitter; break;
-            case Q_JITTERACTIVE: offset = (char *)&jitter.act.src.stdev - (char *)&jitter; break;
-            case Q_JITTERIDLE:   offset = (char *)&jitter.idle.src.stdev - (char *)&jitter; break;
+            case Q_JITTER:       offset = (char *)&jitter.src.act.stdev - (char *)&jitter; break;
+            case Q_JITTERACTIVE: offset = (char *)&jitter.src.act.stdev - (char *)&jitter; break;
+            case Q_JITTERIDLE:   offset = (char *)&jitter.src.idle.stdev - (char *)&jitter; break;
          }
          b1 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
          break;
 
       case Q_DST:
          switch (type) {
-            case Q_JITTER:       offset = (char *)&jitter.act.dst.stdev - (char *)&jitter; break;
-            case Q_JITTERACTIVE: offset = (char *)&jitter.act.dst.stdev - (char *)&jitter; break;
-            case Q_JITTERIDLE:   offset = (char *)&jitter.idle.dst.stdev - (char *)&jitter; break;
+            case Q_JITTER:       offset = (char *)&jitter.dst.act.stdev - (char *)&jitter; break;
+            case Q_JITTERACTIVE: offset = (char *)&jitter.dst.act.stdev - (char *)&jitter; break;
+            case Q_JITTERIDLE:   offset = (char *)&jitter.dst.idle.stdev - (char *)&jitter; break;
          }
          b1 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
          break;
 
       case Q_OR:
          switch (type) {
-            case Q_JITTER:       offset = (char *)&jitter.act.src.stdev - (char *)&jitter; break;
-            case Q_JITTERACTIVE: offset = (char *)&jitter.act.src.stdev - (char *)&jitter; break;
-            case Q_JITTERIDLE:   offset = (char *)&jitter.idle.src.stdev - (char *)&jitter; break;
+            case Q_JITTER:       offset = (char *)&jitter.src.act.stdev - (char *)&jitter; break;
+            case Q_JITTERACTIVE: offset = (char *)&jitter.src.act.stdev - (char *)&jitter; break;
+            case Q_JITTERIDLE:   offset = (char *)&jitter.src.idle.stdev - (char *)&jitter; break;
          }
          b0 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
 
-         offset = (char *)&jitter.act.dst.stdev - (char *)&jitter;
+         offset = (char *)&jitter.dst.act.stdev - (char *)&jitter;
          b1 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
          Argusgen_or(b0, b1);
          break;
@@ -3245,16 +3245,16 @@ Argusgen_jitter(float v, int dir, int type, u_int op)
       case Q_DEFAULT:
       case Q_AND:
          switch (type) {
-            case Q_JITTER:       offset = (char *)&jitter.act.src.stdev - (char *)&jitter; break;
-            case Q_JITTERACTIVE: offset = (char *)&jitter.act.src.stdev - (char *)&jitter; break;
-            case Q_JITTERIDLE:   offset = (char *)&jitter.idle.src.stdev - (char *)&jitter; break;
+            case Q_JITTER:       offset = (char *)&jitter.src.act.stdev - (char *)&jitter; break;
+            case Q_JITTERACTIVE: offset = (char *)&jitter.src.act.stdev - (char *)&jitter; break;
+            case Q_JITTERIDLE:   offset = (char *)&jitter.src.idle.stdev - (char *)&jitter; break;
          }
          b0 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
 
          switch (type) {
-            case Q_JITTER:       offset = (char *)&jitter.act.dst.stdev - (char *)&jitter; break;
-            case Q_JITTERACTIVE: offset = (char *)&jitter.act.dst.stdev - (char *)&jitter; break;
-            case Q_JITTERIDLE:   offset = (char *)&jitter.idle.dst.stdev - (char *)&jitter; break;
+            case Q_JITTER:       offset = (char *)&jitter.dst.act.stdev - (char *)&jitter; break;
+            case Q_JITTERACTIVE: offset = (char *)&jitter.dst.act.stdev - (char *)&jitter; break;
+            case Q_JITTERIDLE:   offset = (char *)&jitter.dst.idle.stdev - (char *)&jitter; break;
          }
          b1 = Argusgen_fcmp(ARGUS_JITTER_INDEX, offset, NFF_F, value, op, Q_DEFAULT);
          Argusgen_and(b0, b1);
