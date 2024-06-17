@@ -2573,13 +2573,6 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
          flow->dsrindex |= 1 << ARGUS_JITTER_INDEX;
 
-         bzero((char *)&jitter->act,  sizeof(struct ArgusJitterObject));
-         bzero((char *)&jitter->idle, sizeof(struct ArgusJitterObject));
-
-         memset(&flow->stime.act,  0, sizeof(flow->stime.act));
-         memset(&flow->stime.idle, 0, sizeof(flow->stime.idle));
-         memset(&flow->dtime.act,  0, sizeof(flow->dtime.act));
-         memset(&flow->dtime.idle, 0, sizeof(flow->dtime.idle));
          flow->stime.act.minval  = 0xffffffff;
          flow->stime.idle.minval = 0xffffffff;
          flow->dtime.act.minval  = 0xffffffff;
@@ -5092,7 +5085,7 @@ setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)
             if (!(strncmp(proto, "tcp", 3))) model->cps->tcpport[port] = 1;  else
             if (!(strncmp(proto, "udp", 3))) model->cps->udpport[port] = 1; 
          } else {
-            model->cps->udpport[port] = 1; 
+            model->cps->tcpport[port] = 1; 
             model->cps->udpport[port] = 1; 
          }
          sptr = NULL;
