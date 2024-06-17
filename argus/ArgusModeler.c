@@ -3858,31 +3858,31 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                      case ARGUS_JITTER_INDEX: {
                         struct ArgusJitterStruct *jitter = (struct ArgusJitterStruct *) dsr;
                         struct ArgusJitterStruct *tjit   = (struct ArgusJitterStruct *) dsrptr;
-                        int size = sizeof(jitter->act.src)/4;
+                        int size = sizeof(jitter->src.act)/4;
                               
                         *dsrptr++ = *(unsigned int *)dsr; 
                         tjit->hdr.argus_dsrvl8.len = 1;
                                  
                         if (jitter->hdr.argus_dsrvl8.qual & ARGUS_SRC_ACTIVE_JITTER) {
-                           unsigned int *tptr = (unsigned int *)&jitter->act.src;
+                           unsigned int *tptr = (unsigned int *)&jitter->src.act;
                            for (x = 0; x < size; x++)
                               *dsrptr++ = *tptr++;
                            tjit->hdr.argus_dsrvl8.len += size;
                         }        
                         if (jitter->hdr.argus_dsrvl8.qual & ARGUS_SRC_IDLE_JITTER) {
-                           unsigned int *tptr = (unsigned int *)&jitter->idle.src;
+                           unsigned int *tptr = (unsigned int *)&jitter->src.idle;
                            for (x = 0; x < size; x++)
                               *dsrptr++ = *tptr++;
                            tjit->hdr.argus_dsrvl8.len += size;
                         }     
                         if (jitter->hdr.argus_dsrvl8.qual & ARGUS_DST_ACTIVE_JITTER) {
-                           unsigned int *tptr = (unsigned int *)&jitter->act.dst;
+                           unsigned int *tptr = (unsigned int *)&jitter->dst.act;
                            for (x = 0; x < size; x++)
                               *dsrptr++ = *tptr++;
                            tjit->hdr.argus_dsrvl8.len += size;
                         }     
                         if (jitter->hdr.argus_dsrvl8.qual & ARGUS_DST_IDLE_JITTER) {
-                           unsigned int *tptr = (unsigned int *)&jitter->idle.dst;
+                           unsigned int *tptr = (unsigned int *)&jitter->dst.idle;
                            for (x = 0; x < size; x++)
                               *dsrptr++ = *tptr++;
                            tjit->hdr.argus_dsrvl8.len += size;
@@ -4138,7 +4138,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                            jitter->hdr.argus_dsrvl8.len  = 1;
 
                            if (flow->stime.act.n) {
-                              struct ArgusStatsObject *tjit = (struct ArgusStatsObject *) (&jitter->act.src);
+                              struct ArgusStatsObject *tjit = (struct ArgusStatsObject *) (&jitter->src.act);
                               tjit->n       = flow->stime.act.n;
                               tjit->minval  = flow->stime.act.minval;
                               tjit->maxval  = flow->stime.act.maxval;
@@ -4152,7 +4152,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                            }
 
                            if (flow->stime.idle.n) {
-                              struct ArgusStatsObject *tjit = (struct ArgusStatsObject *) (&jitter->idle.src);
+                              struct ArgusStatsObject *tjit = (struct ArgusStatsObject *) (&jitter->src.idle);
                               tjit->n       = flow->stime.idle.n;
                               tjit->minval  = flow->stime.idle.minval;
                               tjit->maxval  = flow->stime.idle.maxval;
@@ -4166,7 +4166,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                            }
 
                            if (flow->dtime.act.n) {
-                              struct ArgusStatsObject *tjit = (struct ArgusStatsObject *) (&jitter->act.dst);
+                              struct ArgusStatsObject *tjit = (struct ArgusStatsObject *) (&jitter->dst.act);
                               tjit->n       = flow->dtime.act.n;
                               tjit->minval  = flow->dtime.act.minval;
                               tjit->maxval  = flow->dtime.act.maxval;
@@ -4180,7 +4180,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                            }
 
                            if (flow->dtime.idle.n) {
-                              struct ArgusStatsObject *tjit = (struct ArgusStatsObject *) (&jitter->idle.dst);
+                              struct ArgusStatsObject *tjit = (struct ArgusStatsObject *) (&jitter->dst.idle);
                               tjit->n       = flow->dtime.act.n;
                               tjit->n       = flow->dtime.idle.n;
                               tjit->minval  = flow->dtime.idle.minval;
