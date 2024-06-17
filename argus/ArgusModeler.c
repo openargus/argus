@@ -54,6 +54,7 @@
 #include <sched.h>
 #include <errno.h>
 #include <math.h>
+#include <float.h>
 
 #include <net/ppp.h>
 #include <argus/extract.h>
@@ -2573,10 +2574,10 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
 
          flow->dsrindex |= 1 << ARGUS_JITTER_INDEX;
 
-         flow->stime.act.minval  = 0xffffffff;
-         flow->stime.idle.minval = 0xffffffff;
-         flow->dtime.act.minval  = 0xffffffff;
-         flow->dtime.idle.minval = 0xffffffff;
+         flow->stime.act.minval  = FLT_MAX;
+         flow->stime.idle.minval = FLT_MAX;
+         flow->dtime.act.minval  = FLT_MAX;
+         flow->dtime.idle.minval = FLT_MAX;
       }
    }
 }
@@ -4124,9 +4125,9 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                               tjit->n       = flow->stime.act.n;
                               tjit->minval  = flow->stime.act.minval;
                               tjit->maxval  = flow->stime.act.maxval;
-                              tjit->meanval = flow->stime.act.sum/flow->stime.act.n;
-                              tjit->stdev   = (sqrt ((flow->stime.act.sumsqrd/flow->stime.act.n) -
-                                                      pow ((flow->stime.act.sum)/flow->stime.act.n, 2.0))) * 1;
+                              tjit->meanval = (float)flow->stime.act.sum / flow->stime.act.n;
+                              tjit->stdev   = sqrtf (((float)flow->stime.act.sumsqrd/flow->stime.act.n) -
+                                                pow (((float)flow->stime.act.sum)/flow->stime.act.n, 2.0));
                               
                               jitter->hdr.argus_dsrvl8.qual |= ARGUS_SRC_ACTIVE_JITTER;
                               jitter->hdr.argus_dsrvl8.len  += sizeof(*tjit)/4;
@@ -4138,9 +4139,9 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                               tjit->n       = flow->stime.idle.n;
                               tjit->minval  = flow->stime.idle.minval;
                               tjit->maxval  = flow->stime.idle.maxval;
-                              tjit->meanval = flow->stime.idle.sum/flow->stime.idle.n;
-                              tjit->stdev   = (sqrt ((flow->stime.idle.sumsqrd/flow->stime.idle.n) -
-                                                      pow ((flow->stime.idle.sum)/flow->stime.idle.n, 2.0))) * 1;
+                              tjit->meanval = (float)flow->stime.idle.sum / flow->stime.idle.n;
+                              tjit->stdev   = (float)sqrtf ((flow->stime.idle.sumsqrd/flow->stime.idle.n) -
+                                                      pow ((flow->stime.idle.sum)/flow->stime.idle.n, 2.0));
 
                               jitter->hdr.argus_dsrvl8.qual |= ARGUS_SRC_IDLE_JITTER;
                               jitter->hdr.argus_dsrvl8.len  += sizeof(*tjit)/4;
@@ -4152,9 +4153,9 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                               tjit->n       = flow->dtime.act.n;
                               tjit->minval  = flow->dtime.act.minval;
                               tjit->maxval  = flow->dtime.act.maxval;
-                              tjit->meanval = flow->dtime.act.sum/flow->dtime.act.n;
-                              tjit->stdev   = (sqrt ((flow->dtime.act.sumsqrd/flow->dtime.act.n) -
-                                                      pow ((flow->dtime.act.sum)/flow->dtime.act.n, 2.0))) * 1;
+                              tjit->meanval = (float)flow->dtime.act.sum / flow->dtime.act.n;
+                              tjit->stdev   = (float)sqrtf (((float)flow->dtime.act.sumsqrd/flow->dtime.act.n) -
+                                                      pow (((float)flow->dtime.act.sum)/flow->dtime.act.n, 2.0));
 
                               jitter->hdr.argus_dsrvl8.qual |= ARGUS_DST_ACTIVE_JITTER;
                               jitter->hdr.argus_dsrvl8.len  += sizeof(*tjit)/4;
@@ -4167,9 +4168,9 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                               tjit->n       = flow->dtime.idle.n;
                               tjit->minval  = flow->dtime.idle.minval;
                               tjit->maxval  = flow->dtime.idle.maxval;
-                              tjit->meanval = flow->dtime.idle.sum/flow->dtime.idle.n;
-                              tjit->stdev   = (sqrt ((flow->dtime.idle.sumsqrd/flow->dtime.idle.n) -
-                                                      pow ((flow->dtime.idle.sum)/flow->dtime.idle.n, 2.0))) * 1;
+                              tjit->meanval = (float)flow->dtime.idle.sum/flow->dtime.idle.n;
+                              tjit->stdev   = (float)(sqrtf (((float)flow->dtime.idle.sumsqrd/flow->dtime.idle.n) -
+                                                      pow (((float)flow->dtime.idle.sum)/flow->dtime.idle.n, 2.0)));
 
                               jitter->hdr.argus_dsrvl8.qual |= ARGUS_DST_IDLE_JITTER;
                               jitter->hdr.argus_dsrvl8.len  += sizeof(*tjit)/4;
