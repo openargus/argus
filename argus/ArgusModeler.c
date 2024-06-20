@@ -4195,6 +4195,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                               tjit++;
                            }
              
+                           retn->dsrindex |= ARGUS_JITTER_INDEX;
                            retn->dsrs[i] = (struct ArgusDSRHeader *)jitter;
 
                         } else {
