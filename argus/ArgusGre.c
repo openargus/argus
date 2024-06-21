@@ -40,6 +40,7 @@ unsigned short ArgusParseGre (struct ArgusModelerStruct *, struct ip *, int);
 unsigned short
 ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
 {
+   struct argus_gre *gre = model->ArgusThisGre;
    int retn = 0, grelen = 4, hlen = 0, pass = 0;
 
    if (ip->ip_v == 4) {
@@ -55,7 +56,6 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
 
    if (pass) {
       char *bp = ((char *)ip + hlen);
-      struct argus_gre *gre = model->ArgusThisGre;
       unsigned short flags;
 
 /*
@@ -138,8 +138,6 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
       model->ArgusThisLength -= grelen;
       model->ArgusSnapLength -= grelen;
    }
-   gre->flags = flags;
-   gre->proto = retn;
 
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "ArgusParseGre(%p, %p, %d) returning 0x%x\n", model, ip, length, retn);
