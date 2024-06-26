@@ -62,7 +62,9 @@
  */
 
 struct argus_geneve {
-   unsigned short flags, proto;
+   unsigned char ver_opt, flags;
+   unsigned short ptype;
+   unsigned int vni;
    struct ArgusSystemFlow *tflow;
 };
 

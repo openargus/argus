@@ -77,8 +77,8 @@ int ArgusProcessPPPHdr (struct ArgusModelerStruct *, char *, int);
 
 extern void ArgusTCPKeystroke (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 
-static void *ArgusCreateIPv4Flow (struct ArgusModelerStruct *, struct ip *);
-static void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
+void *ArgusCreateIPv4Flow (struct ArgusModelerStruct *, struct ip *);
+void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
 
 static int
 ArgusCheckTimeout(const struct ArgusModelerStruct * const model,
@@ -239,6 +239,13 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
 
    if ((model->ArgusThisGre->tflow = (struct ArgusSystemFlow *) ArgusCalloc (1, sizeof (struct ArgusSystemFlow ))) == NULL)
       ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
+
+   if ((model->ArgusThisGeneve = (struct argus_geneve *) ArgusCalloc (1, sizeof (struct argus_geneve ))) == NULL)
+      ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
+
+   if ((model->ArgusThisGeneve->tflow = (struct ArgusSystemFlow *) ArgusCalloc (1, sizeof (struct ArgusSystemFlow ))) == NULL)
+      ArgusLog (LOG_ERR, "ArgusInitModeler () ArgusCalloc error %s\n", strerror(errno));
+
 
    model->ArgusSeqNum = 1;
    model->ArgusReportAllTime = 1;
@@ -2275,7 +2282,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    struct ArgusVlanStruct *vlan;
    struct ArgusVxLanStruct *vxlan;
    struct ArgusGreStruct *gre;
-   struct ArgusGeneveStruct *geneve;
+   struct ArgusGeneveStruct *gen;
    struct ArgusTimeObject *time;
    struct ArgusJitterStruct *jitter;
    model->ArgusTotalUpdates++;
@@ -2551,6 +2558,24 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       } else {
          vxlan->dvnid = model->ArgusThisVxLanVni;
          vxlan->hdr.argus_dsrvl8.qual |= ARGUS_DST_VXLAN;
+      }
+   }
+
+   if (model->ArgusThisEncaps & ARGUS_ENCAPS_GENEVE) {
+      if ((gen = (struct ArgusGeneveStruct *) flow->dsrs[ARGUS_GENEVE_INDEX]) == NULL) {
+         gen = (struct ArgusGeneveStruct *) &flow->canon.gen;
+         memset(gen, 0, sizeof(*gen));
+         flow->dsrs[ARGUS_GENEVE_INDEX] = (struct ArgusDSRHeader *) gen;
+         gen->hdr.type               = ARGUS_GENEVE_DSR;
+         gen->hdr.subtype            = 0;
+         gen->hdr.argus_dsrvl8.qual  = 0;
+         flow->dsrindex |= 1 << ARGUS_GENEVE_INDEX;
+
+         gen->flags = model->ArgusThisGeneve->flags;
+         gen->ptype = model->ArgusThisGeneve->ptype;
+         bcopy(model->ArgusThisGeneve->tflow, &gen->tflow, sizeof(gen->tflow));
+
+         gen->hdr.argus_dsrvl8.len = gen->tflow.hdr.argus_dsrvl8.len + 3;
       }
    }
 
@@ -3189,6 +3214,11 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         break;
 
                      case ARGUS_GRE_INDEX:
+                        for (x = 0; x < len; x++)
+                           *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+                        break;
+
+                     case ARGUS_GENEVE_INDEX:
                         for (x = 0; x < len; x++)
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
                         break;
@@ -4017,6 +4047,7 @@ ArgusCopyRecordStruct (struct ArgusRecordStruct *rec)
                            case ARGUS_PSIZE_INDEX:     retn->dsrs[i] = &retn->canon.psize.hdr; break;
                            case ARGUS_MAC_INDEX:       retn->dsrs[i] = &retn->canon.mac.hdr; break;
                            case ARGUS_VLAN_INDEX:      retn->dsrs[i] = &retn->canon.vlan.hdr; break;
+                           case ARGUS_GENEVE_INDEX:    retn->dsrs[i] = &retn->canon.gen.hdr; break;
                            case ARGUS_GRE_INDEX:       retn->dsrs[i] = &retn->canon.gre.hdr; break;
                            case ARGUS_VXLAN_INDEX:     retn->dsrs[i] = &retn->canon.vxlan.hdr; break;
                            case ARGUS_MPLS_INDEX:      retn->dsrs[i] = &retn->canon.mpls.hdr; break;
@@ -4130,6 +4161,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                      case ARGUS_MPLS_INDEX:        retn->dsrs[i] = &retn->canon.mpls.hdr; break;
                      case ARGUS_VLAN_INDEX:        retn->dsrs[i] = &retn->canon.vlan.hdr; break;
                      case ARGUS_VXLAN_INDEX:       retn->dsrs[i] = &retn->canon.vxlan.hdr; break;
+                     case ARGUS_GENEVE_INDEX:      retn->dsrs[i] = &retn->canon.gen.hdr; break;
                      case ARGUS_GRE_INDEX:         retn->dsrs[i] = &retn->canon.gre.hdr; break;
 
                      case ARGUS_JITTER_INDEX: {
@@ -4439,7 +4471,7 @@ ArgusCmp(void *p1, void *p2, int len)
 }
 
 
-static void *
+void *
 ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
 {
    void *retn = NULL;
@@ -4627,7 +4659,7 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
    return (retn);
 }
 
-static void *
+void *
 ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 {
    void *retn = model->ArgusThisFlow;

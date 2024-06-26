@@ -87,25 +87,42 @@ static const struct tok geneve_flag_values[] = {
 };
 
 
+extern void *ArgusCreateIPv4Flow (struct ArgusModelerStruct *, struct ip *);
+extern void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
+
 unsigned short
 ArgusParseGeneve (struct ArgusModelerStruct *model, void *ptr)
 {
+   struct argus_geneve *gen = model->ArgusThisGeneve;
+   int genlen = 4, hlen = 0, pass = 0;
+   struct genevehdr *genhdr = ptr;
+   struct ip *ip = (struct ip *) model->ArgusThisUpHdr;
+
    unsigned short retn = 0;
-   struct genevehdr *gen = ptr;
    u_int version;
    u_int optlen;
    uint32_t vni;
    int len;
 
-   if (STRUCTCAPTURED(model, *gen)) {
-      version = gen->ver_opt >> VER_SHIFT;
-      optlen = (gen->ver_opt & OPT_LEN_MASK) << 2;
-      retn = ntohs(gen->ptype);
-      vni = ntohl(gen->vni) >> 8;
+   if (ip->ip_v == 4) {
+      ArgusCreateIPv4Flow (model, (struct ip *)model->ArgusThisUpHdr);
+      bcopy(model->ArgusThisFlow, model->ArgusThisGeneve->tflow, sizeof(*model->ArgusThisFlow));
+   } else {
+      ArgusCreateIPv6Flow (model, (struct ip6_hdr *)model->ArgusThisUpHdr);
+      bcopy(model->ArgusThisFlow, model->ArgusThisGeneve->tflow, sizeof(*model->ArgusThisFlow));
+   }
 
-      len = ((unsigned char *) (gen + 1) + optlen) - model->ArgusThisUpHdr;
+   if (STRUCTCAPTURED(model, *genhdr)) {
+      version = genhdr->ver_opt >> VER_SHIFT;
+      optlen = (genhdr->ver_opt & OPT_LEN_MASK) << 2;
+      retn = ntohs(genhdr->ptype);
+      gen->ver_opt = genhdr->ver_opt;
+      gen->flags = genhdr->flags;
+      gen->vni = ntohl(genhdr->vni) >> 8;
+
+      len = ((unsigned char *) (genhdr + 1) + optlen) - model->ArgusThisUpHdr;
       model->ArgusThisEncaps |= ARGUS_ENCAPS_GENEVE;
-      model->ArgusThisUpHdr  = (unsigned char *)(gen + 1) + optlen;
+      model->ArgusThisUpHdr  = (unsigned char *)(genhdr + 1) + optlen;
       model->ArgusThisLength -= len;
       model->ArgusSnapLength -= len;
 

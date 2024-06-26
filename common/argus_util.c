@@ -831,6 +831,13 @@ ArgusHtoN (struct ArgusRecord *argus)
                      break;
                   }
 
+                  case ARGUS_GENEVE_DSR: {
+                     struct ArgusGeneveStruct *gen = (struct ArgusGeneveStruct *) dsr;
+                     gen->ptype = htons(gen->ptype);
+                     gen->vni = htonl(gen->vni);
+                     break;
+                  }
+
                   case ARGUS_MPLS_DSR: {
                      struct ArgusMplsStruct *mpls = (struct ArgusMplsStruct *) dsr;
                      unsigned int *label = (unsigned int *)(dsr + 1);

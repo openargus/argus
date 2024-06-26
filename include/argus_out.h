@@ -727,7 +727,9 @@ struct ArgusGreStruct {
 
 struct ArgusGeneveStruct {
    struct ArgusDSRHeader hdr;
-   unsigned short flags, proto;
+   unsigned char ver_opt, flags;
+   unsigned short ptype;
+   unsigned int vni;
    struct ArgusFlow tflow;
 };
 
@@ -1034,6 +1036,7 @@ struct ArgusCanonRecord {
    struct ArgusNetworkStruct     net;
    struct ArgusVxLanStruct       vxlan;
    struct ArgusGreStruct         gre;
+   struct ArgusGeneveStruct      gen;
    struct ArgusMacStruct         mac;
    struct ArgusVlanStruct        vlan;
    struct ArgusMplsStruct        mpls;
