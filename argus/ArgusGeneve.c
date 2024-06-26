@@ -61,31 +61,7 @@ struct genevehdr {
 
 #define VER_SHIFT 6
 #define HDR_OPTS_LEN_MASK 0x3F
-
-#define FLAG_OAM      (1 << 7)
-#define FLAG_CRITICAL (1 << 6)
-#define FLAG_R1       (1 << 5)
-#define FLAG_R2       (1 << 4)
-#define FLAG_R3       (1 << 3)
-#define FLAG_R4       (1 << 2)
-#define FLAG_R5       (1 << 1)
-#define FLAG_R6       (1 << 0)
-
-#define OPT_TYPE_CRITICAL (1 << 7)
 #define OPT_LEN_MASK 0x1F
-
-static const struct tok geneve_flag_values[] = {
-   { FLAG_OAM, "O" },
-   { FLAG_CRITICAL, "C" },
-   { FLAG_R1, "R1" },
-   { FLAG_R2, "R2" },
-   { FLAG_R3, "R3" },
-   { FLAG_R4, "R4" },
-   { FLAG_R5, "R5" },
-   { FLAG_R6, "R6" },
-   { 0, NULL }
-};
-
 
 extern void *ArgusCreateIPv4Flow (struct ArgusModelerStruct *, struct ip *);
 extern void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *);
@@ -93,16 +69,11 @@ extern void *ArgusCreateIPv6Flow (struct ArgusModelerStruct *, struct ip6_hdr *)
 unsigned short
 ArgusParseGeneve (struct ArgusModelerStruct *model, void *ptr)
 {
+   unsigned short retn = 0;
    struct argus_geneve *gen = model->ArgusThisGeneve;
-   int genlen = 4, hlen = 0, pass = 0;
    struct genevehdr *genhdr = ptr;
    struct ip *ip = (struct ip *) model->ArgusThisUpHdr;
-
-   unsigned short retn = 0;
-   u_int version;
-   u_int optlen;
-   uint32_t vni;
-   int len;
+   int len, optlen;
 
    if (ip->ip_v == 4) {
       ArgusCreateIPv4Flow (model, (struct ip *)model->ArgusThisUpHdr);
@@ -113,11 +84,10 @@ ArgusParseGeneve (struct ArgusModelerStruct *model, void *ptr)
    }
 
    if (STRUCTCAPTURED(model, *genhdr)) {
-      version = genhdr->ver_opt >> VER_SHIFT;
       optlen = (genhdr->ver_opt & OPT_LEN_MASK) << 2;
-      retn = ntohs(genhdr->ptype);
       gen->ver_opt = genhdr->ver_opt;
       gen->flags = genhdr->flags;
+      gen->ptype = retn = ntohs(genhdr->ptype);
       gen->vni = ntohl(genhdr->vni) >> 8;
 
       len = ((unsigned char *) (genhdr + 1) + optlen) - model->ArgusThisUpHdr;
@@ -127,7 +97,7 @@ ArgusParseGeneve (struct ArgusModelerStruct *model, void *ptr)
       model->ArgusSnapLength -= len;
 
 #ifdef ARGUSDEBUG
-      ArgusDebug (2, "ArgusParseGeneve(%p, %p) vni is %d\n", model, ptr, vni);
+      ArgusDebug (2, "ArgusParseGeneve(%p, %p) vni is %d\n", model, ptr, gen->vni);
 #endif
    }
 #ifdef ARGUSDEBUG
