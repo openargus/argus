@@ -52,6 +52,7 @@
 #include <netinet/rtp.h>
 
 #include <argus_gre.h>
+#include <argus_geneve.h>
 #include <argus_llc.h>
 #include <argus_isis.h>
 #include <argus_udt.h>
@@ -719,6 +720,12 @@ struct ArgusMplsStruct {
 }; 
 
 struct ArgusGreStruct {
+   struct ArgusDSRHeader hdr;
+   unsigned short flags, proto;
+   struct ArgusFlow tflow;
+};
+
+struct ArgusGeneveStruct {
    struct ArgusDSRHeader hdr;
    unsigned short flags, proto;
    struct ArgusFlow tflow;

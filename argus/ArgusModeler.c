@@ -1107,6 +1107,7 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 }
 
 extern unsigned short ArgusParseGre (struct ArgusModelerStruct *, struct ip *, int);
+extern unsigned short ArgusParseGeneve (struct ArgusModelerStruct *, void *);
 
 int
 ArgusProcessGreHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
@@ -2274,6 +2275,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    struct ArgusVlanStruct *vlan;
    struct ArgusVxLanStruct *vxlan;
    struct ArgusGreStruct *gre;
+   struct ArgusGeneveStruct *geneve;
    struct ArgusTimeObject *time;
    struct ArgusJitterStruct *jitter;
    model->ArgusTotalUpdates++;

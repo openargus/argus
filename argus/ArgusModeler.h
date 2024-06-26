@@ -254,6 +254,7 @@ struct ArgusModelerStruct {
    struct ether_header *ArgusThisEpHdr;
    struct argus_llc *ArgusThisLLC;
    struct argus_gre *ArgusThisGre;
+   struct argus_geneve *ArgusThisGeneve;
 
    void *ArgusThisMacHdr;
    void *ArgusThisIpHdr; 
@@ -630,9 +631,10 @@ extern void ArgusUpdateESPState (struct ArgusModelerStruct *, struct ArgusFlowSt
 
 
 extern unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
+extern unsigned short ArgusParseGeneve (struct ArgusModelerStruct *, void *);
 extern unsigned short ArgusParseL2TP  (struct ArgusModelerStruct *, void *);
 
-#define MAX_PORT_ALG_TYPES	3
+#define MAX_PORT_ALG_TYPES	4
 struct ArgusTransportRoutines {
    char *field;
    unsigned short type, port;
@@ -647,6 +649,8 @@ RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
 #define ARGUS_PARSE_VXLAN	1
    { "vxlan", ARGUS_PARSE_VXLAN, 4789, ArgusParseVxLan},
    { "vxlan", ARGUS_PARSE_VXLAN, 8472, ArgusParseVxLan},
+#define ARGUS_PARSE_GENEVE	2
+   { "geneve", ARGUS_PARSE_GENEVE, 6081, ArgusParseGeneve},
 };
 
 
