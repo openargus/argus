@@ -375,6 +375,12 @@ ArgusCloseModeler(struct ArgusModelerStruct *model)
          model->ArgusThisGre = NULL;
       }
 
+      if (model->ArgusThisGeneve != NULL) {
+         ArgusFree(model->ArgusThisGeneve->tflow);
+         ArgusFree(model->ArgusThisGeneve);
+         model->ArgusThisGeneve = NULL;
+      }
+
       if (!(model->status & ARGUS_MODELER_CLONE)) {
          if (model->cps != NULL) {
             ArgusFree(model->cps);
