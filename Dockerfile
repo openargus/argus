@@ -8,22 +8,22 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # Install dependencies
 RUN apt-get update && \
-    apt-get install -y gcc make flex bison zlib1g-dev libpcap-dev
+    apt-get install -y gcc make flex bison zlib1g-dev libpcap-dev wget
 
 WORKDIR /argus
 
-# Copy and extract source code
-COPY argus-${ARGUS_VERSION}.tar.gz clients-${CLIENTS_VERSION}.tar.gz ./
+# Download and extract source code from GitHub releases
+RUN wget https://github.com/openargus/clients/archive/refs/tags/v${CLIENTS_VERSION}.tar.gz -O clients-${CLIENTS_VERSION}.tar.gz && \
+    tar -xvf clients-${CLIENTS_VERSION}.tar.gz && \
+    wget https://github.com/openargus/argus/archive/refs/tags/v${ARGUS_VERSION}.tar.gz -O argus-${ARGUS_VERSION}.tar.gz && \
+    tar -xvf argus-${ARGUS_VERSION}.tar.gz
 
 # Build and install argus and clients
-RUN tar -xzf clients-${CLIENTS_VERSION}.tar.gz && \
-    cd clients-${CLIENTS_VERSION} && \
+RUN cd clients-${CLIENTS_VERSION} && \
     LIBS="-lz" ./configure && \
     make && \
     make install && \
-    cd .. && \
-    tar -xzf argus-${ARGUS_VERSION}.tar.gz && \
-    cd argus-${ARGUS_VERSION} && \
+    cd ../argus-${ARGUS_VERSION} && \
     LIBS="-lz" ./configure && \
     make && \
     make install
