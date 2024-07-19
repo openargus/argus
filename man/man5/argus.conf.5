@@ -331,6 +331,43 @@ Commandline equivalent   -c dir
 .fi
 
 
+.SH ARGUS_CAPTURE_FULL_CONTROL_DATA
+
+Argus can be configured to capture the complete packet contents of
+protocols of interest to enable a detailed control plane flow monitoring
+capability for specific control plane protocols.  The concept is that
+argus-clients will be able to parse the packet contents to provide utility.
+
+This feature requires full packet capture for all traffic from monitored interfaces
+in order to capture the complete control plane protocol. As a result, it will have
+a performance impact on the sensor, especially in high performance environments (> 100G).
+
+The default is to not turn this feature on.
+
+Commandline equivalent   -C
+
+.nf
+\fBARGUS_CAPTURE_FULL_CONTROL_DATA=\fP"yes"
+.fi
+
+
+.SH ARGUS_CONTROLPLANE_PROTO
+
+When \fBARGUS_CAPTURE_FULL_CONTROL_DATA\fP is enabled, you can specify
+what protocols are control plane protocols. This is whatever you want to specify.
+The feature assumes non-IP traffic is a control plane protocol, for IP traffic,
+you can specify protocols, as seen in the /etc/services file, that should be considered
+control plane.
+
+The example below, is just a suggestion.
+
+No commandline equivalent
+
+.nf
+\fBARGUS_CONTROLPLANE_PROTO=\fP"sip,udp:name,udp:nicname,udp:domain,udp:netbios-ns,xns-time,udp:ntp,udp:router,udp:ripng,timed,mdns,mdnsresponder,bootps,bootpc"
+.fi
+
+
 .SH ARGUS_SETUSER_ID
 
 Argus can be directed to change its user id using the setuid() system
@@ -637,10 +674,39 @@ Argus allows you to capture packets in tcpdump() format
 if the source of the packets is a tcpdump() formatted
 file or live packet source.
 
-Specify the path to the packet capture file here.
+Use this configuration variable to pecify the path to the packet
+capture file.  Argus will generate the file if it doesn't exist.
 
 .nf
 \fBARGUS_PACKET_CAPTURE_FILE=\fP"/var/log/argus/packet.out"
+.fi
+
+.SH ARGUS_PACKET_CAPTURE_ON_PROTO
+
+When an \fBARGUS_PACKET_CAPTURE_FILE\fP is specified, argus
+allows you to capture packets in tcpdump() format based on the
+protocol headers parsed in the packets. 
+
+Use this directive to specify the list of protocols of interest.  This
+is a comma separated list of protocol types found in the encapsulation protocols
+supported in ./include/encapsulations, the protocols seen in /etc/protocols,
+and the tunnel protocols that can be discovered using the ARGUS_TUNNEL_DISCOVERY
+directives.
+
+.nf
+\fBARGUS_PACKET_CAPTURE_ON_PROTO=\fP"gre,vxlan,l2tp"
+.fi
+
+.SH ARGUS_PACKET_CAPTURE_ON_ERROR
+
+When an \fBARGUS_PACKET_CAPTURE_FILE\fP is specified, argus
+allows you to capture packets in tcpdump() format when there is a
+header parsing error in the argus header logic.  This is designed to
+support the development of argus when adding new packet headers parsing
+to the suite of headers, but is useful in many other conditions.
+
+.nf
+\fBARGUS_PACKET_CAPTURE_ON_ERROR=\fP"no"
 .fi
 
 
