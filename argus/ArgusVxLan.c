@@ -33,6 +33,7 @@
 #if !defined(ArgusVxLan)
 #define ArgusVxLan
 
+#include <ArgusModeler.h>
 #include <ArgusVxLan.h>
 
 unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
@@ -60,6 +61,8 @@ ArgusParseVxLan (struct ArgusModelerStruct *model, void *ptr)
          model->ArgusThisLength -= len;
          model->ArgusSnapLength -= len;
 
+         if (model->ppc[ARGUS_VXLAN_PROTO] == 1)
+            model->ArgusMatchProtocol++;
 #ifdef ARGUSDEBUG
          ArgusDebug (2, "ArgusParseVxLan(%p, %p) vni is %d\n", model, ptr, vni);
 #endif
