@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - Input processing includes
+ * Argus-5.0 Software.  Argus files - Source processor
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -764,7 +764,10 @@ struct ArgusSourceStruct {
    int Argusbpflag, ArgusCaptureFlag;
    int Argusfflag, ArgusDumpPacket;
    int ArgusDumpPacketOnError;
+   int ArgusDumpPacketOnProto;
    unsigned long ArgusPacketOffset;
+
+   char *ppc;
   
    FILE *ArgusPacketInput;
    long ArgusInputOffset;

@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - Modeler includes
+ * Argus-5.0 Software.  Argus files - Modeler Includes
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -96,6 +96,9 @@
 #define ARGUS_ISIS    131
 #define ARGUS_NULLNS  132
 
+#define ARGUS_L2TP_PROTO	384
+#define ARGUS_VXLAN_PROTO	385
+#define ARGUS_GENEVE_PROTO	386
 
 /* True if  "l" bytes of "var" were captured */
 #define BYTESCAPTURED(m, var, l) ((u_char *)&(var) <= m->ArgusThisSnapEnd - (l))
@@ -110,6 +113,8 @@
 #define STRUCTCHECK(m, var) BYTESCHECK(m, var, sizeof(var))
 
 #define LENCHECK(m, l) { if ((l) > len) goto bad; BYTESCHECK(m, *cp, l); }
+
+#define ARGUS_MAX_PROTOCOLS	512
 
 
 #if defined(ARGUS_THREADS)
@@ -246,7 +251,8 @@ struct ArgusModelerStruct {
    unsigned char ArgusFlowType, ArgusFlowKey;
    unsigned short ArgusOptionIndicator;
 
-   int ArgusInProtocol, ArgusThisDir, ArgusTrackDuplicates;
+   int ArgusInProtocol, ArgusMatchProtocol;
+   int ArgusThisDir, ArgusTrackDuplicates;
 
    struct ArgusKeyStrokeConf ArgusKeyStroke;
    struct ArgusUniStats *ArgusThisStats;
@@ -266,6 +272,7 @@ struct ArgusModelerStruct {
  
    int ArgusControlMonitor;
    struct ArgusControlProtocols *cps;
+   char *ppc;
 
    int ArgusHashTableSize;
 
@@ -489,6 +496,7 @@ void setArgusKeystrokeVariable(struct ArgusModelerStruct *, char *);
 int getArgusOSFingerPrinting (struct ArgusModelerStruct *);
 void setArgusOSFingerPrinting (struct ArgusModelerStruct *, int);
 
+void setArgusPacketCaptureProtocols(struct ArgusModelerStruct *, char *);
 void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 
 int getArgusTunnelDiscovery (struct ArgusModelerStruct *);
@@ -637,6 +645,7 @@ extern unsigned short ArgusParseL2TP  (struct ArgusModelerStruct *, void *);
 #define MAX_PORT_ALG_TYPES	4
 struct ArgusTransportRoutines {
    char *field;
+   int proto;
    unsigned short type, port;
    unsigned short (*parse)(struct ArgusModelerStruct *, void *ptr);
 };
@@ -645,12 +654,12 @@ struct ArgusTransportRoutines {
 struct ArgusTransportRoutines
 RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
 #define ARGUS_PARSE_L2TP	0
-   { "l2tp",  ARGUS_PARSE_L2TP,  1701, ArgusParseL2TP},
+   { "l2tp",  ARGUS_L2TP_PROTO, ARGUS_PARSE_L2TP,  1701, ArgusParseL2TP},
 #define ARGUS_PARSE_VXLAN	1
-   { "vxlan", ARGUS_PARSE_VXLAN, 4789, ArgusParseVxLan},
-   { "vxlan", ARGUS_PARSE_VXLAN, 8472, ArgusParseVxLan},
+   { "vxlan", ARGUS_VXLAN_PROTO, ARGUS_PARSE_VXLAN, 4789, ArgusParseVxLan},
+   { "vxlan", ARGUS_VXLAN_PROTO, ARGUS_PARSE_VXLAN, 8472, ArgusParseVxLan},
 #define ARGUS_PARSE_GENEVE	2
-   { "geneve", ARGUS_PARSE_GENEVE, 6081, ArgusParseGeneve},
+   { "geneve", ARGUS_GENEVE_PROTO, ARGUS_PARSE_GENEVE, 6081, ArgusParseGeneve},
 };
 
 
@@ -712,6 +721,7 @@ extern void setArgusKeystrokeVariable(struct ArgusModelerStruct *, char *);
 extern int getArgusOSFingerPrinting (struct ArgusModelerStruct *);
 extern void setArgusOSFingerPrinting (struct ArgusModelerStruct *, int);
 
+extern void setArgusPacketCaptureProtocols(struct ArgusModelerStruct *, char *);
 extern void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 
 extern int getArgusTunnelDiscovery(struct ArgusModelerStruct *);

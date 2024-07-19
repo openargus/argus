@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - Modeler
+ * Argus-5.0 Software.  Argus files - Output processor
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -30,6 +30,7 @@
  * $Change: 3213 $
  */
 
+
 #ifdef HAVE_CONFIG_H
 #include "argus_config.h"
 #endif
@@ -56,6 +57,7 @@
 #include <math.h>
 #include <float.h>
 
+#include <netdb.h>
 #include <net/ppp.h>
 #include <argus/extract.h>
 
@@ -824,8 +826,15 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
             if (STRUCTCAPTURED(model,*ip)) {
                model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
 
+               if (model->ppc && (model->ppc[0] == 1))
+                  model->ArgusMatchProtocol++;
+
                if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
                   model->ArgusThisIpHdr = (void *)ip;
+
+                  if (model->ppc && (model->ppc[ip->ip_p] == 1))
+                     model->ArgusMatchProtocol++;
+
                   switch (ip->ip_p) {
                      case IPPROTO_TTP: { /* Preparation for Juniper TTP */
                         model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
@@ -1028,86 +1037,15 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
          sport = ntohs(up->uh_sport);
          dport = ntohs(up->uh_dport);
 
-         if (ArgusTransportParseRoutines[dport] != NULL) {
-            if ((retn = ArgusTransportParseRoutines[dport](model, up + 1)) < 0) {
+         if ((ArgusTransportParseRoutines[sport] != NULL) || (ArgusTransportParseRoutines[dport] != NULL)) {
+            if (ArgusTransportParseRoutines[dport] != NULL) 
+               retn = ArgusTransportParseRoutines[dport](model, up + 1);
+	    else
+               retn = ArgusTransportParseRoutines[sport](model, up + 1);
 #ifdef ARGUSDEBUG
+            if (retn < 0)
                ArgusDebug (4, "ArgusTransportParseRoutines(%p, %p, %d) error %d\n", model, ip, length, retn);
 #endif 
-            }
-
-         } else {
-            if (!((sport == 53) || (dport == 53))) {
-/*
-               char *ptr = (char *) (up + 1);
-               struct ip6_hdr *ipv6 = (struct ip6_hdr *) ptr;
-
-               len += sizeof (*up);
-
-               if (STRUCTCAPTURED(model, *ipv6)) {
-                  int isipv6 = 0;
-                  if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-                     retn = ETHERTYPE_IPV6;
-                     len = ((char *) ipv6 - (char *)ip);
-                     model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-                     model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-                     model->ArgusThisLength -= len;
-                     model->ArgusSnapLength -= len;
-                  } else {
-                     struct teredo *tptr = (struct teredo *) (up + 1);
-
-                     if (STRUCTCAPTURED(model, *tptr)) {
-                        u_short type = ntohs(tptr->tid); 
-
-                        int offset = 0;
-                        switch (type) {
-                           case 0x0000:  offset = 8; break;
-                           case 0x0001:  offset = (4 + (tptr->tauth.idlen + tptr->tauth.aulen) + 8 + 1); break;
-                           default: isipv6 = -1;
-                        }
-
-                        if (isipv6 == 0) {
-                           ipv6 = (struct ip6_hdr *)(((u_char *)tptr) + offset);
-
-                           if (STRUCTCAPTURED(model, *ipv6)) {
-                              if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-                                 retn = ETHERTYPE_IPV6;
-                                 len = ((char *) ipv6 - (char *)ip);
-                                 model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-                                 model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-                                 model->ArgusThisLength -= len;
-                                 model->ArgusSnapLength -= len;
-
-                              } else {
-                                 struct teredo *iptr = (struct teredo *) ((char *)tptr + offset);
-                                 if (STRUCTCAPTURED(model, *iptr)) {
-                                    u_short type = ntohs(iptr->tid); 
-                                    int offset = 0;
-                                    switch (type) {
-                                       case 0x0000:  offset = 8; break;
-                                       case 0x0001:  offset = (4 + (iptr->tauth.idlen + iptr->tauth.aulen) + 8 + 1); break;
-                                       default: isipv6 = -1;
-                                    }
-
-                                    if (isipv6 == 0) {
-                                       ipv6 = (struct ip6_hdr *)(((u_char *)iptr) + offset);
-                                       if ((isipv6 = (ipv6->ip6_vfc & IPV6_VERSION_MASK)) == IPV6_VERSION) {
-                                          retn = ETHERTYPE_IPV6;
-                                          len = ((char *) ipv6 - (char *)ip);
-                                          model->ArgusThisEncaps |= ARGUS_ENCAPS_TEREDO;
-                                          model->ArgusThisUpHdr  = (unsigned char *) ipv6;
-                                          model->ArgusThisLength -= len;
-                                          model->ArgusSnapLength -= len;
-                                       }
-                                    }
-                                 }
-                              }
-                           }
-                        }
-                     }
-                  }
-               }
-*/
-            }
          }
       }
    }
@@ -1760,9 +1698,14 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
       model->ArgusThisUpHdr = (unsigned char *)p;
       model->ArgusThisBytes = length;
 
-      while (type > 0)
+      while (type > 0) {
+         if (type < 512) {
+            if (model->ppc[type])
+               model->ArgusMatchProtocol++;
+	 }
          if ((type = ArgusProcessPacketHdrs (model, ptr, model->ArgusThisLength, type)) >= 0)
             ptr = (char *)model->ArgusThisUpHdr;
+      }
 
       if (model->ArgusThisEpHdr)
          ptr = (char *)model->ArgusThisEpHdr;
@@ -5140,6 +5083,54 @@ void
 setArgusOSFingerPrinting (struct ArgusModelerStruct *model, int value)
 {
    model->ArgusOSFingerPrinting = value;
+}
+
+void
+setArgusPacketCaptureProtocols(struct ArgusModelerStruct *model, char *optarg)
+{
+   char ppc[ARGUS_MAX_PROTOCOLS];
+   int enabled = 0, found = 0;
+
+   bzero (ppc, ARGUS_MAX_PROTOCOLS);
+   if (model->ppc != NULL) {
+      ArgusFree(model->ppc);
+      model->ppc = NULL;
+   }
+
+   if (optarg && strlen(optarg)) {
+      struct protoent *pent = NULL;
+      char *sptr = optarg, *tok;
+
+      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
+         found = 0;
+         if ((pent = getprotobyname(tok)) != NULL) {
+            ppc[pent->p_proto] = 1;
+            enabled = 1;
+            found = 1;
+         } else {
+            int i;
+            for (i = 0; i < MAX_PORT_ALG_TYPES; i++) {
+               if (strcmp(tok, RaPortAlgorithmTable[i].field) == 0) {
+                  ppc[RaPortAlgorithmTable[i].proto] = 1;
+                  enabled = 1;
+                  found = 1;
+	       }
+            }
+         }
+#ifdef ARGUSDEBUG
+         if (!found) {
+            ArgusDebug (1, "setArgusPacketCaptureProtocols() %s not supported.\n", tok);
+	 }
+#endif 
+         sptr = NULL;
+      }
+   }
+
+   if (enabled) {
+      if ((model->ppc = (char *) ArgusCalloc (1, ARGUS_MAX_PROTOCOLS)) == NULL)
+         ArgusLog (LOG_ERR, "setArgusPacketCaptureProtocols () ArgusCalloc error %s\n", strerror(errno));
+      bcopy(ppc, model->ppc, ARGUS_MAX_PROTOCOLS);
+   }
 }
 
 

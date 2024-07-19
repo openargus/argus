@@ -1056,7 +1056,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				65
+#define ARGUS_RCITEMS				66
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1079,7 +1079,7 @@ getArguspidflag ()
 #define ARGUS_FILTER				18
 #define ARGUS_PACKET_CAPTURE_FILE		19
 #define ARGUS_PACKET_CAPTURE_ON_ERROR		20
-#define ARGUS_BIND_IP				21
+#define ARGUS_PACKET_CAPTURE_ON_PROTO		21
 #define ARGUS_MIN_SSF				22
 #define ARGUS_MAX_SSF				23
 #define ARGUS_COLLECTOR				24
@@ -1123,6 +1123,7 @@ getArguspidflag ()
 #define ARGUS_PACKET_SIZE_HISTOGRAM		62
 #define ARGUS_TUNNEL_PARSING			63
 #define ARGUS_TUNNEL_INFORMATION		64
+#define ARGUS_BIND_IP				65
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1147,7 +1148,7 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_FILTER=",
    "ARGUS_PACKET_CAPTURE_FILE=",
    "ARGUS_PACKET_CAPTURE_ON_ERROR=",
-   "ARGUS_BIND_IP=",
+   "ARGUS_PACKET_CAPTURE_ON_PROTO=",
    "ARGUS_MIN_SSF=",
    "ARGUS_MAX_SSF=",
    "ARGUS_COLLECTOR=",
@@ -1190,7 +1191,8 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_DEDUP=",
    "ARGUS_PACKET_SIZE_HISTOGRAM=",
    "ARGUS_TUNNEL_PARSING=",
-   "ARGUS_TUNNEL_INFORMATION="
+   "ARGUS_TUNNEL_INFORMATION=",
+   "ARGUS_BIND_IP="
 };
 
 
@@ -1608,6 +1610,16 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 #endif
                            break;
 
+                        case ARGUS_PACKET_CAPTURE_ON_PROTO:
+                           setArgusPacketCaptureProtocols(model, optarg);
+                           if (model->ppc) {
+                              ArgusSourceTask->ArgusDumpPacketOnProto = 1;
+                              ArgusSourceTask->ArgusDumpPacket = 0;
+			   }
+#ifdef ARGUSDEBUG
+                           ArgusDebug (1, "ArgusParseResourceFile: ArgusPacketCaptureProtocols \"%s\" \n", optarg);
+#endif
+                           break;
 
                         case ARGUS_BIND_IP:
                            if (*optarg != '\0')
