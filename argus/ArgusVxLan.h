@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - UDP Protocol processing
+ * Argus-5.0 Software.  Argus files - VxLan Protocol Includes
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -22,6 +22,13 @@
  * Written by Carter Bullard
  * QoSient, LLC
  *
+ */
+
+
+/* 
+ * $Id$
+ * $DateTime: 2014/05/14 12:53:31 $
+ * $Change: 2827 $
  */
 
 #ifdef HAVE_CONFIG_H

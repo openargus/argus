@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - UDP Protocol processing
+ * Argus-5.0 Software.  Argus files - VxLan Protocol Processor
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -61,8 +61,10 @@ ArgusParseVxLan (struct ArgusModelerStruct *model, void *ptr)
          model->ArgusThisLength -= len;
          model->ArgusSnapLength -= len;
 
-         if (model->ppc && (model->ppc[ARGUS_VXLAN_PROTO] == 1))
-            model->ArgusMatchProtocol++;
+         if (ArgusDumpTask->ppc != NULL)
+            if (ArgusDumpTask->ppc[ARGUS_VXLAN_PROTO] == 1)
+               model->ArgusMatchProtocol++;
+
 #ifdef ARGUSDEBUG
          ArgusDebug (2, "ArgusParseVxLan(%p, %p) vni is %d\n", model, ptr, vni);
 #endif

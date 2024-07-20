@@ -274,7 +274,6 @@ struct ArgusModelerStruct {
  
    int ArgusControlMonitor;
    struct ArgusControlProtocols *cps;
-   char *ppc;
 
    int ArgusHashTableSize;
 
@@ -426,6 +425,13 @@ struct ArgusFlowStruct {
    struct ArgusCanonRecord canon;
 };
 
+#define MAX_PORT_ALG_TYPES	4
+struct ArgusTransportRoutines {
+   char *field;
+   int proto;
+   unsigned short type, port;
+   unsigned short (*parse)(struct ArgusModelerStruct *, void *ptr);
+};
 
 #if defined(ArgusModeler)
 
@@ -502,7 +508,7 @@ void setArgusKeystrokeVariable(struct ArgusModelerStruct *, char *);
 int getArgusOSFingerPrinting (struct ArgusModelerStruct *);
 void setArgusOSFingerPrinting (struct ArgusModelerStruct *, int);
 
-void setArgusPacketCaptureProtocols(struct ArgusModelerStruct *, char *);
+extern void setArgusPacketCaptureProtocols(struct ArgusDumpStruct *, char *);
 void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 
 int getArgusTunnelDiscovery (struct ArgusModelerStruct *);
@@ -650,14 +656,6 @@ extern unsigned short ArgusParseVxLan (struct ArgusModelerStruct *, void *);
 extern unsigned short ArgusParseGeneve (struct ArgusModelerStruct *, void *);
 extern unsigned short ArgusParseL2TP  (struct ArgusModelerStruct *, void *);
 
-#define MAX_PORT_ALG_TYPES	4
-struct ArgusTransportRoutines {
-   char *field;
-   int proto;
-   unsigned short type, port;
-   unsigned short (*parse)(struct ArgusModelerStruct *, void *ptr);
-};
-
 
 struct ArgusTransportRoutines
 RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
@@ -675,6 +673,7 @@ RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
 
 extern struct ArgusModelerStruct *ArgusModel;
 extern struct argus_llc ArgusThisLLCBuffer;
+extern struct ArgusTransportRoutines RaPortAlgorithmTable[];
 
 #if defined(LBL_ALIGN)
 extern unsigned char *ArgusAlignBuf;
@@ -729,7 +728,7 @@ extern void setArgusKeystrokeVariable(struct ArgusModelerStruct *, char *);
 extern int getArgusOSFingerPrinting (struct ArgusModelerStruct *);
 extern void setArgusOSFingerPrinting (struct ArgusModelerStruct *, int);
 
-extern void setArgusPacketCaptureProtocols(struct ArgusModelerStruct *, char *);
+extern void setArgusPacketCaptureProtocols(struct ArgusDumpStruct *, char *);
 extern void setArgusControlPlaneProtocols(struct ArgusModelerStruct *, char *);
 
 extern void setArgusEncapsCapture (struct ArgusModelerStruct *model, char *);

@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - Output processor
+ * Argus-5.0 Software.  Argus files - Modeler
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -826,13 +826,13 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
             if (STRUCTCAPTURED(model,*ip)) {
                model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
 
-               if (model->ppc && (model->ppc[0] == 1))
+               if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[0] == 1))
                   model->ArgusMatchProtocol++;
 
                if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
                   model->ArgusThisIpHdr = (void *)ip;
 
-                  if (model->ppc && (model->ppc[ip->ip_p] == 1))
+                  if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[ip->ip_p] == 1))
                      model->ArgusMatchProtocol++;
 
                   switch (ip->ip_p) {
@@ -1701,7 +1701,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
 
       while (type > 0) {
          if (type < 512) {
-            if (model->ppc && model->ppc[type])
+            if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[type]))
                model->ArgusMatchProtocol++;
 	 }
          if ((type = ArgusProcessPacketHdrs (model, ptr, model->ArgusThisLength, type)) >= 0)
@@ -5156,55 +5156,6 @@ setArgusEncapsCapture (struct ArgusModelerStruct *model, char *optarg)
       }
    }
 }
-
-void
-setArgusPacketCaptureProtocols(struct ArgusModelerStruct *model, char *optarg)
-{
-   char ppc[ARGUS_MAX_PROTOCOLS];
-   int enabled = 0, found = 0;
-
-   bzero (ppc, ARGUS_MAX_PROTOCOLS);
-   if (model->ppc != NULL) {
-      ArgusFree(model->ppc);
-      model->ppc = NULL;
-   }
-
-   if (optarg && strlen(optarg)) {
-      struct protoent *pent = NULL;
-      char *sptr = optarg, *tok;
-
-      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
-         found = 0;
-         if ((pent = getprotobyname(tok)) != NULL) {
-            ppc[pent->p_proto] = 1;
-            enabled = 1;
-            found = 1;
-         } else {
-            int i;
-            for (i = 0; i < MAX_PORT_ALG_TYPES; i++) {
-               if (strcmp(tok, RaPortAlgorithmTable[i].field) == 0) {
-                  ppc[RaPortAlgorithmTable[i].proto] = 1;
-                  enabled = 1;
-                  found = 1;
-	       }
-            }
-         }
-#ifdef ARGUSDEBUG
-         if (!found) {
-            ArgusDebug (1, "setArgusPacketCaptureProtocols() %s not supported.\n", tok);
-	 }
-#endif 
-         sptr = NULL;
-      }
-   }
-
-   if (enabled) {
-      if ((model->ppc = (char *) ArgusCalloc (1, ARGUS_MAX_PROTOCOLS)) == NULL)
-         ArgusLog (LOG_ERR, "setArgusPacketCaptureProtocols () ArgusCalloc error %s\n", strerror(errno));
-      bcopy(ppc, model->ppc, ARGUS_MAX_PROTOCOLS);
-   }
-}
-
 
 void
 setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)

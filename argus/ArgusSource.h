@@ -1,3 +1,4 @@
+
 /*
  * Argus-5.0 Software.  Argus files - Source processor
  * Copyright (c) 2000-2024 QoSient, LLC
@@ -262,11 +263,12 @@ struct arguspcap {
  
 struct ArgusInterfaceStruct {
    struct ArgusDeviceStruct *ArgusDevice;
-   struct ifreq ifr;
+   struct ArgusDumpStruct *ArgusDump;
    pcap_t *ArgusPd;
    struct bpf_program ArgusFilter;
    int state, index, ArgusInterfaceType;
    pcap_handler ArgusCallBack;
+   struct ifreq ifr;
 
    struct arguspcap ArgusPcap;
 
@@ -710,19 +712,46 @@ static int juniper_parse_header (const u_char *, const struct pcap_pkthdr *, str
 
 #define ARGUS_HOLDING	1
 
+struct ArgusDumpStruct {
+   int state, status, proc;
+
+#if defined(ARGUS_THREADS)
+   pthread_t thread;
+   pthread_mutex_t lock;
+   pthread_cond_t cond;
+#endif
+
+   char *ArgusWriteOutPacketFile;
+   pcap_dumper_t *ArgusPcapOutFile;
+   pcap_t *ArgusPd;
+
+   int ArgusDumpPacket;
+   int ArgusDumpPacketOnError;
+   int ArgusDumpPacketOnProtocol;
+
+   unsigned long ArgusPacketOffset;
+
+   char *ppc;
+};
+
 struct ArgusSourceStruct {
    int state, status, proc;
    int timeStampType;
+
+#if defined(ARGUS_THREADS)
+   pthread_t thread;
+   pthread_mutex_t lock;
+   pthread_cond_t cond;
+#endif
  
    struct ArgusListStruct *ArgusDeviceList;
    struct ArgusListStruct *ArgusRfileList;
    struct ArgusModelerStruct *ArgusModel;
+   struct ArgusDumpStruct *ArgusDump;
  
    char *ArgusInputFilter, *ArgusDeviceStr;
-/*
-   struct ArgusDSRHeader ArgusTransHdr;
-   struct ArgusAddrStruct ArgusID;
-*/
+   char *ArgusWriteOutPacketFile;
+
    struct ArgusTransportStruct trans;
    char * ArgusMarIncludeInterface;
 
@@ -749,26 +778,14 @@ struct ArgusSourceStruct {
    struct ArgusInterfaceStruct ArgusInterface[ARGUS_MAXINTERFACE];
    struct ArgusSourceStruct *srcs[ARGUS_MAXINTERFACE];
 
-#if defined(ARGUS_THREADS)
-   pthread_t thread;
-   pthread_mutex_t lock;
-   pthread_cond_t cond;
-#endif
-
 #if defined(ARGUS_TILERA)
   netio_queue_t queue;
 #endif
 
-   int ArgusInputPacketFileType;
    int ArgusReadingOffLine;
-   int Argusbpflag, ArgusCaptureFlag;
-   int Argusfflag, ArgusDumpPacket;
-   int ArgusDumpPacketOnError;
-   int ArgusDumpPacketOnProto;
-   unsigned long ArgusPacketOffset;
+   int ArgusInputPacketFileType;
+   int Argusbpflag, ArgusCaptureFlag, Argusfflag;
 
-   char *ppc;
-  
    FILE *ArgusPacketInput;
    long ArgusInputOffset;
  
@@ -776,9 +793,6 @@ struct ArgusSourceStruct {
    char **ArgusArgv;
    int ArgusOptind;
    char *ArgusCmdBuf;
-
-   char *ArgusWriteOutPacketFile;
-   pcap_dumper_t *ArgusPcapOutFile;
 };
 
 
@@ -848,7 +862,7 @@ void setArgusID(struct ArgusSourceStruct *, void *, int, unsigned int);
 void setArgusMoatTshFile (struct ArgusSourceStruct *, int);
 int getArgusMoatTshFile (struct ArgusSourceStruct *);
 
-void setArgusWriteOutPacketFile (struct ArgusSourceStruct *, char *);
+void setArgusWriteOutPacketFile (struct ArgusDumpStruct *, char *);
 
 
 
@@ -857,6 +871,8 @@ void setArgusInterfaceType(struct ArgusSourceStruct *, unsigned char);
  
 unsigned char getArgusInterfaceStatus(struct ArgusSourceStruct *);
 void setArgusInterfaceStatus(struct ArgusSourceStruct *, unsigned char);
+
+void setArgusPacketCaptureProtocols(struct ArgusDumpStruct *, char *);
 
 
 #if defined(ArgusSource)
@@ -938,6 +954,7 @@ static struct callback ArgusSourceCallbacks[] = {
 extern int Argustflag;
 
 struct ArgusSourceStruct *ArgusSourceTask = NULL;
+struct ArgusDumpStruct *ArgusDumpTask = NULL;
 
 struct ArgusSourceStruct *ArgusNewSource(struct ArgusModelerStruct *);
 struct ArgusSourceStruct *ArgusCloneSource(struct ArgusSourceStruct *);
@@ -945,12 +962,13 @@ int ArgusInitSource(struct ArgusSourceStruct *);
 int ArgusCloseSource(struct ArgusSourceStruct *);
 void ArgusDeleteSource(struct ArgusSourceStruct *);
 
+struct ArgusDumpStruct *ArgusNewDump(struct ArgusSourceStruct *, struct ArgusInterfaceStruct *);
+
 extern char *ArgusCopyArgv (char **argv);
 
 void setArgusOutputTask(void);
 void setArgusModeler(struct ArgusSourceStruct *);
 
- 
 struct ArgusOutputStruct *getArgusOutputTask(void);
 struct ArgusModelerStruct *getArgusModeler(struct ArgusSourceStruct *);
 
@@ -985,6 +1003,7 @@ int ArgusCreatePktFromFddi(const struct fddi_header *, struct ether_header *, in
 #else /* defined(ArgusSource) */
 
 extern struct ArgusSourceStruct *ArgusSourceTask;
+extern struct ArgusDumpStruct *ArgusDumpTask;
 
 extern long long ArgusTotalPkts;
 extern long long ArgusLastPkts;
@@ -993,13 +1012,13 @@ extern long long ArgusLastDrop;
 extern long long ArgusTotalBytes;
 extern long long ArgusLastBytes;
 
-extern struct ArgusSourceStruct *ArgusSourceTask;
-
 extern struct ArgusSourceStruct *ArgusNewSource(struct ArgusModelerStruct *);
 extern struct ArgusSourceStruct *ArgusCloneSource(struct ArgusSourceStruct *);
 extern int ArgusInitSource(struct ArgusSourceStruct *);
 extern int ArgusCloseSource(struct ArgusSourceStruct *);
 extern void ArgusDeleteSource(struct ArgusSourceStruct *);
+
+extern struct ArgusDumpStruct *ArgusNewDump(struct ArgusSourceStruct *, struct ArgusInterfaceStruct *);
 
 extern struct ArgusOutputStruct *getArgusOutputTask(struct ArgusSourceStruct *);
 extern void setArgusOutputTask(struct ArgusSourceStruct *);
@@ -1023,7 +1042,7 @@ extern void setArgusOflag(struct ArgusSourceStruct *, int);
 extern void setArgusCaptureFlag(struct ArgusSourceStruct *, int);
 extern void setArgusMoatTshFile (struct ArgusSourceStruct *, int value);
 
-extern void setArgusWriteOutPacketFile (struct ArgusSourceStruct *, char *);
+extern void setArgusWriteOutPacketFile (struct ArgusDumpStruct *, char *);
 
 extern void setArgusDevice(struct ArgusSourceStruct *, char *, int, int);
 extern void setArgusInfile(struct ArgusSourceStruct *, char *);

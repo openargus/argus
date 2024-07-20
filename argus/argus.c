@@ -426,10 +426,13 @@ main (int argc, char *argv[])
    if ((ArgusSourceTask = ArgusNewSource(ArgusModel)) == NULL)
       ArgusLog (LOG_ERR, "Error Creating Source Task: Exiting.\n");
 
-   if ((ArgusOutputTask = ArgusNewOutput(ArgusSourceTask, ArgusModel)) == NULL)
-      ArgusLog (LOG_ERR, "Error Creating Output Thread: Exiting.\n");
+   if ((ArgusDumpTask = ArgusNewDump(ArgusSourceTask, NULL)) == NULL)
+      ArgusLog (LOG_ERR, "Error Creating Dump Task: Exiting.\n");
 
    ArgusModel->ArgusSrc = ArgusSourceTask;
+
+   if ((ArgusOutputTask = ArgusNewOutput(ArgusSourceTask, ArgusModel)) == NULL)
+      ArgusLog (LOG_ERR, "Error Creating Output Thread: Exiting.\n");
 
    setArgusFarReportInterval (ArgusModel, ARGUS_FARSTATUSTIMER);
    setArgusMarReportInterval (ArgusOutputTask,ARGUS_MARSTATUSTIMER);
@@ -1591,8 +1594,8 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_PACKET_CAPTURE_FILE:
                            if (*optarg != '\0') {
-                              setArgusWriteOutPacketFile (ArgusSourceTask, optarg);
-                              ArgusSourceTask->ArgusDumpPacket = 1;
+                              setArgusWriteOutPacketFile (ArgusDumpTask, optarg);
+                              ArgusDumpTask->ArgusDumpPacket = 1;
                            }
 #ifdef ARGUSDEBUG
                            ArgusDebug (1, "ArgusParseResourceFile: ArgusPacketCaptureFile \"%s\" \n", ArgusSourceTask->ArgusWriteOutPacketFile);
@@ -1601,10 +1604,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_PACKET_CAPTURE_ON_ERROR:
                            if (!(strncasecmp(optarg, "yes", 3))) {
-                              ArgusSourceTask->ArgusDumpPacketOnError = 1;
-                              ArgusSourceTask->ArgusDumpPacket = 0;
+                              ArgusDumpTask->ArgusDumpPacketOnError = 1;
+                              ArgusDumpTask->ArgusDumpPacket = 0;
                            } else {
-                              ArgusSourceTask->ArgusDumpPacketOnError = 0;
+                              ArgusDumpTask->ArgusDumpPacketOnError = 0;
                            }
 #ifdef ARGUSDEBUG
                            ArgusDebug (1, "ArgusParseResourceFile: ArgusPacketCaptureOnError \"%s\" \n", optarg);
@@ -1612,10 +1615,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                            break;
 
                         case ARGUS_PACKET_CAPTURE_ON_PROTO:
-                           setArgusPacketCaptureProtocols(model, optarg);
-                           if (model->ppc) {
-                              ArgusSourceTask->ArgusDumpPacketOnProto = 1;
-                              ArgusSourceTask->ArgusDumpPacket = 0;
+                           setArgusPacketCaptureProtocols(ArgusDumpTask, optarg);
+                           if (ArgusDumpTask->ppc) {
+                              ArgusDumpTask->ArgusDumpPacketOnProtocol = 1;
+                              ArgusDumpTask->ArgusDumpPacket = 0;
 			   }
 #ifdef ARGUSDEBUG
                            ArgusDebug (1, "ArgusParseResourceFile: ArgusPacketCaptureProtocols \"%s\" \n", optarg);
@@ -2006,12 +2009,15 @@ clearArgusConfiguration (struct ArgusModelerStruct *model)
    setArgusFlowKey (model, ARGUS_FLOW_KEY_CLASSIC5TUPLE);
    setArgusFlowType(model, ARGUS_BIDIRECTIONAL);
 
-   if (ArgusSourceTask->ArgusWriteOutPacketFile) {
-      if (ArgusSourceTask->ArgusPcapOutFile != NULL) {
-         pcap_dump_close(ArgusSourceTask->ArgusPcapOutFile);
-         ArgusSourceTask->ArgusPcapOutFile = NULL;
+   if (ArgusDumpTask) {
+      if (ArgusDumpTask->ArgusPcapOutFile != NULL) {
+         pcap_dump_close(ArgusDumpTask->ArgusPcapOutFile);
+         ArgusDumpTask->ArgusPcapOutFile = NULL;
       }
-      ArgusSourceTask->ArgusWriteOutPacketFile = NULL;
+      free(ArgusDumpTask->ArgusWriteOutPacketFile);
+      ArgusDumpTask->ArgusWriteOutPacketFile = NULL;
+      ArgusDumpTask->ArgusDumpPacketOnProtocol = 0;
+      ArgusDumpTask->ArgusDumpPacketOnError = 0;
    }
 
    if (ArgusSourceTask->ArgusInputFilter) {

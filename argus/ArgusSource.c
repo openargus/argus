@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - Output processor
+ * Argus-5.0 Software.  Argus files - Source processor
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -317,19 +317,6 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
 
    if (src->ArgusInputFilter)
       retn->ArgusInputFilter = strdup(src->ArgusInputFilter);
-
-   if (src->ArgusWriteOutPacketFile)
-      retn->ArgusWriteOutPacketFile = strdup(src->ArgusWriteOutPacketFile);
-
-   retn->ArgusDumpPacket = src->ArgusDumpPacket;
-   retn->ArgusDumpPacketOnError = src->ArgusDumpPacketOnError;
-   retn->ArgusDumpPacketOnProto = src->ArgusDumpPacketOnProto;
-
-   if (src->ppc != NULL) {
-      if ((retn->ppc = ArgusCalloc (1, ARGUS_MAX_PROTOCOLS)) == NULL)
-         ArgusLog (LOG_ERR, "ArgusCloneSource: ArgusCalloc error %s\n", strerror(errno));
-      bcopy(src->ppc, retn->ppc, ARGUS_MAX_PROTOCOLS);
-   }
 
    retn->timeStampType = src->timeStampType;
 
@@ -763,6 +750,9 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
             retn = 0;
          } else
             retn = 1;
+
+	 if (inf->ArgusPd != NULL)
+	    inf->ArgusDump = ArgusNewDump(src, inf);
       }
    }
    ArgusFree(errbuf);
@@ -887,11 +877,6 @@ ArgusInitSource (struct ArgusSourceStruct *src)
          }
       }
 
-      if (src->ArgusWriteOutPacketFile) {
-         if ((src->ArgusPcapOutFile = pcap_dump_open(src->ArgusInterface[0].ArgusPd, src->ArgusWriteOutPacketFile)) == NULL)
-            ArgusLog (LOG_ERR, "%s\n", pcap_geterr (src->ArgusInterface[0].ArgusPd));
-      }
-
       src->ArgusModel = ArgusCloneModeler(ArgusModel);
       src->ArgusModel->ArgusSrc = src;
       ArgusInitModeler(src->ArgusModel);
@@ -938,6 +923,54 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
          pthread_join(src->thread, NULL);
          src->thread = 0;
       }
+      if (src->ArgusInterface[j].ArgusDump) {
+#if defined(ARGUS_THREADS)
+         pthread_mutex_destroy(&src->ArgusInterface[j].ArgusDump->lock);
+#endif
+         if (src->ArgusInterface[j].ArgusDump->ppc)
+            free (src->ArgusInterface[j].ArgusDump->ppc);
+         ArgusFree(src->ArgusInterface[j].ArgusDump);
+         src->ArgusInterface[j].ArgusDump = NULL;
+      }
+   }
+
+   if (src->ArgusInputFilter) {
+      ArgusFree (src->ArgusInputFilter);
+      src->ArgusInputFilter = NULL;
+   }
+
+   if (src->ArgusDeviceStr) {
+      free(src->ArgusDeviceStr);
+      src->ArgusDeviceStr = NULL; 
+   }
+
+   if (src->ArgusMarIncludeInterface) {
+      free(src->ArgusMarIncludeInterface);
+      src->ArgusMarIncludeInterface =  NULL;
+   }
+
+   if (src->ArgusDeviceList) {
+      ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
+      src->ArgusDeviceList = NULL;
+   }
+
+   if (src->ArgusRfileList != NULL) {
+      ArgusDeleteList (src->ArgusRfileList, ARGUS_RFILE_LIST);
+      src->ArgusRfileList = NULL;
+   }
+
+   if (src->ArgusModel != NULL) {
+      ArgusCloseModeler(src->ArgusModel);
+      ArgusFree(src->ArgusModel);
+      src->ArgusModel = NULL;
+   }
+
+   src->status |= ARGUS_SHUTDOWN;
+
+#if defined(ARGUS_THREADS)
+   pthread_mutex_lock(&src->lock);
+   pthread_cond_signal(&src->cond);
+   pthread_mutex_unlock(&src->lock);
 #endif
 
       for (j = 0; j < src->ArgusInterfaces; j++) {
@@ -1852,9 +1885,9 @@ setArgusRealTime (struct ArgusSourceStruct *src, float value)
 
 
 void
-setArgusWriteOutPacketFile (struct ArgusSourceStruct *src, char *file)
+setArgusWriteOutPacketFile (struct ArgusDumpStruct *dump, char *file)
 {
-   src->ArgusWriteOutPacketFile = strdup(file);
+   dump->ArgusWriteOutPacketFile = strdup(file);
 }
 
 
@@ -2350,27 +2383,120 @@ getArgusManInf (struct ArgusSourceStruct *src)
    return (src->ArgusMarIncludeInterface);
 }
 
-int
-ArgusDumpPacket (struct ArgusSourceStruct *src, const struct pcap_pkthdr *h, const u_char *p)
+
+struct ArgusDumpStruct *
+ArgusNewDump (struct ArgusSourceStruct *src, struct ArgusInterfaceStruct *inf)
 {
-   struct stat statbuf;
+   struct ArgusDumpStruct *retn = NULL;
+
+   if ((retn = (struct ArgusDumpStruct *) ArgusCalloc (1, sizeof(*retn))) == NULL)
+      ArgusLog (LOG_ERR, "ArgusNewDump: ArgusCalloc error %s\n", strerror(errno));
+
+   if (ArgusDumpTask != NULL)
+      bcopy(ArgusDumpTask, retn, sizeof(*retn)); 
+
+   if (inf != NULL) {
+      retn->ArgusPd = inf->ArgusPd;
+
+      if (ArgusDumpTask->ArgusWriteOutPacketFile != NULL) {
+         if (inf->ArgusDevice->inf != NULL) {
+            char buf[MAXSTRLEN];
+            int len = strlen (ArgusDumpTask->ArgusWriteOutPacketFile);
+
+            bzero(buf, MAXSTRLEN);
+            bcopy(ArgusDumpTask->ArgusWriteOutPacketFile, buf, len);
+            buf[len++] = '.';
+	    bcopy(inf->ArgusDevice->inf->inf, &buf[len], 4);
+            retn->ArgusWriteOutPacketFile = strdup(buf);
+         } else {
+            retn->ArgusWriteOutPacketFile = strdup(ArgusDumpTask->ArgusWriteOutPacketFile);
+         }
+      }
+   }
+
+#if defined(ARGUS_THREADS)
+   if (pthread_mutex_init(&retn->lock, NULL))
+      ArgusLog (LOG_ERR, "ArgusNewSource: pthread_mutex_init error\n");
+#endif
+
+   return retn;
+}
+
+void
+setArgusPacketCaptureProtocols(struct ArgusDumpStruct *dump, char *optarg)
+{
+   char ppc[ARGUS_MAX_PROTOCOLS];
+   int enabled = 0, found = 0;
+
+   bzero (ppc, ARGUS_MAX_PROTOCOLS);
+   if (dump->ppc != NULL) {
+      ArgusFree(dump->ppc);
+      dump->ppc = NULL;
+   }
+
+   if (optarg && strlen(optarg)) {
+      struct protoent *pent = NULL;
+      char *sptr = optarg, *tok;
+
+      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
+         found = 0;
+         if ((pent = getprotobyname(tok)) != NULL) {
+            ppc[pent->p_proto] = 1;
+            enabled = 1;
+            found = 1;
+         } else {
+            int i;
+            for (i = 0; i < MAX_PORT_ALG_TYPES; i++) {
+               if (strcmp(tok, RaPortAlgorithmTable[i].field) == 0) {
+                  ppc[RaPortAlgorithmTable[i].proto] = 1;
+                  enabled = 1;
+                  found = 1;
+	       }
+            }
+         }
+#ifdef ARGUSDEBUG
+         if (!found) {
+            ArgusDebug (1, "setArgusPacketCaptureProtocols() %s not supported.\n", tok);
+	 }
+#endif 
+         sptr = NULL;
+      }
+   }
+
+   if (enabled) {
+      if ((dump->ppc = (char *) ArgusCalloc (1, ARGUS_MAX_PROTOCOLS)) == NULL)
+         ArgusLog (LOG_ERR, "setArgusPacketCaptureProtocols () ArgusCalloc error %s\n", strerror(errno));
+      bcopy(ppc, dump->ppc, ARGUS_MAX_PROTOCOLS);
+   }
+}
+
+
+int
+ArgusDumpPacket (struct ArgusDumpStruct *dump, const struct pcap_pkthdr *h, const u_char *p)
+{
    int retn = 0;
 
-   if (src->ArgusWriteOutPacketFile != NULL) {
-      if (stat(src->ArgusWriteOutPacketFile, &statbuf) < 0) {
-         if (src->ArgusPcapOutFile != NULL) {
-            pcap_dump_close(src->ArgusPcapOutFile);
-            src->ArgusPcapOutFile = NULL;
-         }
-
-         if ((src->ArgusPcapOutFile = pcap_dump_open(src->ArgusInterface[0].ArgusPd, src->ArgusWriteOutPacketFile)) == NULL)
-            ArgusLog (LOG_ERR, "%s\n", pcap_geterr (src->ArgusInterface[0].ArgusPd));
-      }
-
-#if defined(HAVE_PCAP_DUMP_FTELL)
-      src->ArgusPacketOffset = pcap_dump_ftell(src->ArgusPcapOutFile);
+   if (dump != NULL) {
+#if defined(ARGUS_THREADS)
+      if (pthread_mutex_lock(&dump->lock) == 0) {
 #endif
-      pcap_dump((u_char *)src->ArgusPcapOutFile, h, p);
+         if (dump->ArgusWriteOutPacketFile != NULL) {
+            if (dump->ArgusPcapOutFile == NULL) {
+               if ((dump->ArgusPcapOutFile = pcap_dump_open(dump->ArgusPd, dump->ArgusWriteOutPacketFile)) == NULL)
+                  ArgusLog (LOG_ERR, "%s\n", pcap_geterr (dump->ArgusPd));
+            }
+
+            if (dump->ArgusPcapOutFile != NULL) {
+#if defined(HAVE_PCAP_DUMP_FTELL)
+               dump->ArgusPacketOffset = pcap_dump_ftell(dump->ArgusPcapOutFile);
+#endif
+               pcap_dump((u_char *)dump->ArgusPcapOutFile, h, p);
+            }
+         }
+#if defined(ARGUS_THREADS)
+         pthread_mutex_unlock(&dump->lock);
+      }
+#endif
    }
    return retn;
 }
@@ -2391,14 +2517,15 @@ void
 ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
+   int ind = src->ArgusThisIndex;
    struct timeval tvpbuf, *tvp = &tvpbuf;
    unsigned int caplen;
    unsigned int length;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
 #if defined(CYGWIN)
    struct pcap_pkthdr_32 *h32 = (struct pcap_pkthdr_32 *)h;
@@ -2435,11 +2562,11 @@ ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
          src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_ETHER;
 
          if (ArgusProcessPacket (src, (char *)ep, length, tvp, ARGUS_ETHER_HDR)) {
-            if (src->ArgusDumpPacketOnError)
-               ArgusDumpPacket(src, h, p);
+            if (ArgusDumpTask->ArgusDumpPacketOnError)
+               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
          } else
-            if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-               ArgusDumpPacket(src, h, p);
+            if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
       }
    }
 
@@ -2599,11 +2726,11 @@ ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
             }
 
             if (retn) {
-               if (src->ArgusDumpPacketOnError)
-                  ArgusDumpPacket(src, h, p);
+               if (ArgusDumpTask->ArgusDumpPacketOnError)
+                  ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
             } else
-               if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-                  ArgusDumpPacket(src, h, p);
+               if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+                  ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
             break;
          }
 
@@ -2618,11 +2745,11 @@ ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
             src->ArgusModel->ArgusThisSnapEnd = (u_char *)p + (caplen - 2);
 
             if (ArgusProcessPacket (src, (char *)p, length, tvp, ARGUS_ETHER_HDR)) {
-               if (src->ArgusDumpPacketOnError)
-                  ArgusDumpPacket(src, h, p);
+               if (ArgusDumpTask->ArgusDumpPacketOnError)
+                  ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
             } else
-               if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-                  ArgusDumpPacket(src, h, p);
+               if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+                  ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
             break;
          }
 
@@ -2665,6 +2792,7 @@ ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ether_header *ep = (struct ether_header *) src->ArgusInterface[src->ArgusThisIndex].ArgusPacketBufferBuffer;
    struct arc_header *ap = (struct arc_header *) p;
    u_char arc_type = ap->arc_type;
+   int ind = src->ArgusThisIndex;
    int archdrlen = 0;
 
    struct timeval tvpbuf, *tvp = &tvpbuf;
@@ -2673,8 +2801,8 @@ ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -2688,7 +2816,7 @@ ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 
 
-   src->ArgusInterface[src->ArgusThisIndex].ArgusPacketBuffer = src->ArgusInterface[src->ArgusThisIndex].ArgusPacketBufferBuffer; 
+   src->ArgusInterface[ind].ArgusPacketBuffer = src->ArgusInterface[ind].ArgusPacketBufferBuffer; 
 
    switch (arc_type) {
       case ARCTYPE_IP_OLD:
@@ -2718,11 +2846,11 @@ ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_ARCNET;
 
    if (ArgusProcessPacket (src, (char *)ep, length, tvp, ARGUS_ETHER_HDR)) {
-      if (src->ArgusDumpPacketOnError)
-         ArgusDumpPacket(src, h, p);
+      if (ArgusDumpTask->ArgusDumpPacketOnError)
+         ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    } else
-      if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-         ArgusDumpPacket(src, h, p);
+      if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+         ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "ArgusArcnetPacket (%p, %p, %p) returning\n", user, h, p);
@@ -2759,8 +2887,8 @@ ArgusHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    src->ArgusInterface[ind].ArgusTotalPkts++;
    src->ArgusInterface[ind].ArgusTotalBytes += length;
@@ -2833,11 +2961,11 @@ ArgusHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       }
 
       if (retn) {
-         if (src->ArgusDumpPacketOnError)
-            ArgusDumpPacket(src, h, p);
+         if (ArgusDumpTask->ArgusDumpPacketOnError)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
       } else
-         if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-            ArgusDumpPacket(src, h, p);
+         if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    }
 
 #ifdef ARGUSDEBUG
@@ -2857,8 +2985,8 @@ ArgusPppHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    src->ArgusInterface[ind].ArgusTotalPkts++;
    src->ArgusInterface[ind].ArgusTotalBytes += length;
@@ -2977,11 +3105,11 @@ ArgusPppHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       }
 
       if (retn) {
-         if (src->ArgusDumpPacketOnError)
-            ArgusDumpPacket(src, h, p);
+         if (ArgusDumpTask->ArgusDumpPacketOnError)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
       } else
-         if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-            ArgusDumpPacket(src, h, p);
+         if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    }
 
 #ifdef ARGUSDEBUG
@@ -3078,13 +3206,14 @@ Argus802_11Packet (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
+   int ind = src->ArgusThisIndex;
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -3099,11 +3228,11 @@ Argus802_11Packet (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    src->ArgusModel->ArgusThisEncaps = ARGUS_ENCAPS_802_11;
 
    if (ArgusProcessPacket (src, (char *)p, length, tvp, ARGUS_802_11_HDR)) {
-      if (src->ArgusDumpPacketOnError)
-         ArgusDumpPacket(src, h, p);
+      if (ArgusDumpTask->ArgusDumpPacketOnError)
+         ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    } else
-      if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-         ArgusDumpPacket(src, h, p);
+      if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+         ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "Argus802_11Packet (%p, %p, %p) returning\n", user, h, p);
@@ -3125,13 +3254,14 @@ ArgusJuniperPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
    struct juniper_l2info_t l2info;
+   int ind = src->ArgusThisIndex;
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -3149,11 +3279,11 @@ ArgusJuniperPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       p += l2info.header_len;
 
       if (ArgusProcessPacket (src, (char *)p, length, tvp, ARGUS_ETHER_HDR)) {
-         if (src->ArgusDumpPacketOnError)
-            ArgusDumpPacket(src, h, p); 
+         if (ArgusDumpTask->ArgusDumpPacketOnError)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p); 
       } else
-         if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-            ArgusDumpPacket(src, h, p);
+         if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    }
 
 #ifdef ARGUSDEBUG
@@ -3766,14 +3896,15 @@ ArgusIpPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
+   int ind = src->ArgusThisIndex;
    struct ip *ip = (struct ip *) p;
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -3814,14 +3945,15 @@ ArgusEncPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
+   int ind = src->ArgusThisIndex;
    struct ip *ip = (struct ip *) (p + ENC_HDRLEN);
    unsigned int caplen = h->caplen - ENC_HDRLEN;
    unsigned int length = h->len    - ENC_HDRLEN;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -3837,11 +3969,11 @@ ArgusEncPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       src->ArgusModel->ArgusThisIpHdr   = ip;
       src->ArgusModel->ArgusThisLength  = length;
       if (ArgusProcessPacket (src, (char *)p, length, tvp, ETHERTYPE_IP)) {
-         if (src->ArgusDumpPacketOnError)
-            ArgusDumpPacket(src, h, p);
+         if (ArgusDumpTask->ArgusDumpPacketOnError)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
       } else
-         if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-            ArgusDumpPacket(src, h, p);
+         if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    }
 
 #ifdef ARGUSDEBUG
@@ -3944,15 +4076,15 @@ ArgusFddiPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    const struct fddi_header *fp = (struct fddi_header *)p;
    struct timeval tvpbuf, *tvp = &tvpbuf;
+   int ind = src->ArgusThisIndex;
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
-   int ind = src->ArgusThisIndex;
    struct ether_header *ep;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    ep = (struct ether_header *) src->ArgusInterface[ind].ArgusPacketBuffer;
 
@@ -3972,11 +4104,11 @@ ArgusFddiPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    if (p && (length = ArgusCreatePktFromFddi(fp, ep, length))) {
       if (p && length) {
          if (ArgusProcessPacket (src, (char *)ep, length, tvp, ARGUS_ETHER_HDR)) {
-            if (src->ArgusDumpPacketOnError)
-               ArgusDumpPacket(src, h, p);
+            if (ArgusDumpTask->ArgusDumpPacketOnError)
+               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
          } else
-            if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-               ArgusDumpPacket(src, h, p);
+            if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
       }
    }
 
@@ -3994,15 +4126,15 @@ ArgusATMPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
+   int ind = src->ArgusThisIndex;
    unsigned int caplen = h->caplen;
    unsigned int length = h->len;
-   int ind = src->ArgusThisIndex;
    struct ether_header *ep;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    ep = (struct ether_header *) src->ArgusInterface[ind].ArgusPacketBuffer;
 
@@ -4041,11 +4173,11 @@ ArgusATMPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_ATM;
 
    if (ArgusProcessPacket (src, (char *)ep, length, tvp, ARGUS_ETHER_HDR)) {
-      if (src->ArgusDumpPacketOnError)
-         ArgusDumpPacket(src, h, p);
+      if (ArgusDumpTask->ArgusDumpPacketOnError)
+         ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    } else
-      if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-         ArgusDumpPacket(src, h, p);
+      if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+         ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "ArgusATMPacket (%p, %p, %p) returning\n", user, h, p);
@@ -4058,14 +4190,15 @@ ArgusPppPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
+   int ind = src->ArgusThisIndex;
    struct ip *ip = (struct ip *) (p + PPP_HDRLEN);
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -4101,6 +4234,7 @@ ArgusPppBsdosPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
+   int ind = src->ArgusThisIndex;
    unsigned int length = h->len, hdrlen = 0;
    unsigned int caplen = h->caplen;
    unsigned short ptype = 0;
@@ -4108,8 +4242,8 @@ ArgusPppBsdosPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    tvp->tv_sec  = h->ts.tv_sec;
    tvp->tv_usec = h->ts.tv_usec;
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -4179,6 +4313,7 @@ ArgusSlipPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
+   int ind = src->ArgusThisIndex;
    struct ip *ip = (struct ip *) (p + SLIP_HDRLEN);
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
@@ -4186,8 +4321,8 @@ ArgusSlipPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    tvp->tv_sec  = h->ts.tv_sec;
    tvp->tv_usec = h->ts.tv_usec;
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
@@ -4226,6 +4361,7 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct ArgusModelerStruct *model = src->ArgusModel;
+   int ind = src->ArgusThisIndex;
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
    const struct sll_header *sllp = NULL;
@@ -4244,8 +4380,8 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    ArgusModel->ArgusGlobalTime = *tvp;
    model->ArgusGlobalTime  = *tvp;
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    sllp = (const struct sll_header *)p;
    memcpy((void *)&ep->ether_shost, sllp->sll_addr, ETHER_ADDR_LEN);
@@ -4297,11 +4433,11 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    model->ArgusThisEncaps  = ARGUS_ENCAPS_SLL;
 
    if (ArgusProcessPacket (src, (char *)ep, length, tvp, ARGUS_ETHER_HDR)) {
-      if (src->ArgusDumpPacketOnError)
-         ArgusDumpPacket(src, h, p);
+      if (ArgusDumpTask->ArgusDumpPacketOnError)
+         ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    } else
-      if (src->ArgusDumpPacketOnProto && src->ArgusModel->ArgusMatchProtocol)
-         ArgusDumpPacket(src, h, p);
+      if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+         ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
 #ifdef ARGUSDEBUG
    ArgusDebug (8, "ArgusSllPacket (%p, %p, %p) returning\n", user, h, p);
@@ -4331,11 +4467,12 @@ void
 ArgusNullPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
+   int ind = src->ArgusThisIndex;
    struct pcap_pkthdr hbuf;
    unsigned int family;
 
-   if (src->ArgusDumpPacket)
-      ArgusDumpPacket(src, h, p);
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
    memcpy((char *)&family, (char *)p, sizeof(family));
    memcpy((char *)&hbuf, (char *)h, sizeof(*h));
@@ -4799,7 +4936,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
                          */
                         if (src->ArgusModel)
                            src->ArgusModel->ArgusOutputList = NULL;
-
                      }
                   }
 
@@ -5146,26 +5282,26 @@ ArgusGetPackets (void *arg)
                                     ArgusDebug (2, "ArgusGetPackets () pcap_dispatch returned %s\n", estr);
 #endif
                               }
-
                            }
+
                            if (retn > 0) {
-                                 if (src->eNflag > 0)
-                                    src->eNflag -= retn;
+                              if (src->eNflag > 0)
+                                 src->eNflag -= retn;
 #ifdef ARGUSDEBUG
-                                 ArgusDebug (2, "ArgusGetPackets () pcap_dispatch read %d packets\n", retn);
+                              ArgusDebug (2, "ArgusGetPackets () pcap_dispatch read %d packets\n", retn);
 #endif
-                                 offset = src->ArgusInputOffset;
+                              offset = src->ArgusInputOffset;
 
                            } else {
-                                 struct timespec tsbuf = {0, 100000000}, *ts = &tsbuf;
+                              struct timespec tsbuf = {0, 100000000}, *ts = &tsbuf;
 
 #ifdef ARGUSDEBUG
-                                 ArgusDebug (2, "ArgusGetPackets () pcap_dispatch read 0 packets...sleeping", retn);
+                              ArgusDebug (2, "ArgusGetPackets () pcap_dispatch read 0 packets...sleeping", retn);
 #endif
-                                 nanosleep(ts, NULL);
+                              nanosleep(ts, NULL);
 
-                                 ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
-                                 ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
+                              ArgusGetTimeOfDay(src, &src->ArgusModel->ArgusGlobalTime);
+                              ArgusModel->ArgusGlobalTime = src->ArgusModel->ArgusGlobalTime;
                            }
 
 #if !defined(ARGUS_THREADS)
@@ -5317,6 +5453,8 @@ pcap_open_offline_with_tstamp_precision() takes an  additional  precision  argum
 
          inf->ArgusLocalNet = 0;
          inf->ArgusNetMask = 0;
+	 inf->ArgusDump = ArgusNewDump(src, inf);
+
          src->ArgusReadingOffLine++;
          retn = 1;
 
