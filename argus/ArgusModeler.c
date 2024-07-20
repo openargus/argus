@@ -1700,7 +1700,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
 
       while (type > 0) {
          if (type < 512) {
-            if (model->ppc[type])
+            if (model->ppc && model->ppc[type])
                model->ArgusMatchProtocol++;
 	 }
          if ((type = ArgusProcessPacketHdrs (model, ptr, model->ArgusThisLength, type)) >= 0)
