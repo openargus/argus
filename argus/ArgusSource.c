@@ -2399,14 +2399,14 @@ ArgusNewDump (struct ArgusSourceStruct *src, struct ArgusInterfaceStruct *inf)
       retn->ArgusPd = inf->ArgusPd;
 
       if (ArgusDumpTask->ArgusWriteOutPacketFile != NULL) {
-         if (inf->ArgusDevice->inf != NULL) {
+         if (inf->ArgusDevice->name != NULL) {
             char buf[MAXSTRLEN];
             int len = strlen (ArgusDumpTask->ArgusWriteOutPacketFile);
 
             bzero(buf, MAXSTRLEN);
             bcopy(ArgusDumpTask->ArgusWriteOutPacketFile, buf, len);
             buf[len++] = '.';
-	    bcopy(inf->ArgusDevice->inf->inf, &buf[len], 4);
+  	    bcopy(inf->ArgusDevice->name, &buf[len], strlen(inf->ArgusDevice->name));
             retn->ArgusWriteOutPacketFile = strdup(buf);
          } else {
             retn->ArgusWriteOutPacketFile = strdup(ArgusDumpTask->ArgusWriteOutPacketFile);
