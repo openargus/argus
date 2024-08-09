@@ -828,6 +828,13 @@ ArgusHtoN (struct ArgusRecord *argus)
                      break;
                   }
 
+                  case ARGUS_GRE_DSR: {
+                     struct ArgusGreStruct *gre = (struct ArgusGreStruct *) dsr;
+                     gre->flags = htons(gre->flags);
+                     gre->proto = htons(gre->proto);
+                     break;
+                  }
+
                   case ARGUS_VXLAN_DSR: {
                      struct ArgusVxLanStruct *vlan = (struct ArgusVxLanStruct *) dsr;
                      vlan->svnid = htonl(vlan->svnid);
