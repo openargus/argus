@@ -251,6 +251,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
             case TCPS_TIME_WAIT:
             case TCPS_LISTEN: {
                if (flags & TH_SYN) {
+                  tcpExt->status |= ARGUS_PORT_REUSE;
                   ArgusSendFlowRecord (model, flowstr, ARGUS_STOP);
                   ArgusInitializeTCP (model, flowstr);
                   ArgusRemoveFromQueue(flowstr->qhdr.queue, &flowstr->qhdr, ARGUS_LOCK);
