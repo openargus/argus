@@ -243,6 +243,12 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
          }
 
          switch (tcpExt->state) {
+            case TCPS_CLOSE_WAIT:
+            case TCPS_FIN_WAIT_1:
+            case TCPS_CLOSING:
+            case TCPS_LAST_ACK:
+            case TCPS_FIN_WAIT_2:
+            case TCPS_TIME_WAIT:
             case TCPS_LISTEN: {
                if (flags & TH_SYN) {
                   ArgusSendFlowRecord (model, flowstr, ARGUS_STOP);
