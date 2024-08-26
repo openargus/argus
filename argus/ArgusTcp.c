@@ -253,16 +253,17 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                if (flags & TH_SYN) {
                   tcpExt->status |= ARGUS_PORT_REUSE;
                   ArgusSendFlowRecord (model, flowstr, ARGUS_STOP);
-                  ArgusInitializeTCP (model, flowstr);
+                  ArgusZeroRecord (flowstr);
                   ArgusRemoveFromQueue(flowstr->qhdr.queue, &flowstr->qhdr, ARGUS_LOCK);
-                  ArgusPushQueue(model->ArgusStatusQueue, &flowstr->qhdr, ARGUS_LOCK);
 
-                  *state = ARGUS_START;
+                  ArgusInitializeTCP (model, flowstr);
+
+                  ArgusPushQueue(model->ArgusStatusQueue, &flowstr->qhdr, ARGUS_LOCK);
+                  return;
+                  
 //                ArgusUpdateBasicFlow (model, flowstr, ARGUS_START);
 //                ArgusUpdateTCPState (model, flowstr, state);
                }
-               ArgusThisTCPsrc->flags   |= flags;
-               break;
             }
 
             default: {
@@ -344,7 +345,6 @@ ArgusInitializeTCP (struct ArgusModelerStruct *model, struct ArgusFlowStruct *fl
    model->ArgusThisDir = 1;
 
    flow->qhdr.lasttime = model->ArgusGlobalTime;
-
    ArgusUpdateFlow (model, flow, ARGUS_START, 0);
 }
 
