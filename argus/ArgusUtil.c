@@ -1151,8 +1151,10 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
                            case ARGUS_TCP_STATUS:
                            case ARGUS_TCP_PERF: {
                               struct ArgusTCPObject *tcp = &net->net_union.tcp;
-                              tcp->src.status &= ~(ARGUS_RESET|ARGUS_PKTS_RETRANS|ARGUS_WINDOW_SHUT|ARGUS_OUTOFORDER|ARGUS_ECN_CONGESTED);
-                              tcp->dst.status &= ~(ARGUS_RESET|ARGUS_PKTS_RETRANS|ARGUS_WINDOW_SHUT|ARGUS_OUTOFORDER|ARGUS_ECN_CONGESTED);
+                              unsigned int statusMask = ~(ARGUS_PORT_REUSE|ARGUS_RESET|ARGUS_PKTS_RETRANS|ARGUS_WINDOW_SHUT|ARGUS_OUTOFORDER|ARGUS_ECN_CONGESTED);
+                              tcp->src.status &= statusMask;
+                              tcp->dst.status &= statusMask;
+                              tcp->status     &= statusMask;
                               tcp->src.retrans  = 0;
                               tcp->dst.retrans  = 0;
                               tcp->src.flags    = 0;
