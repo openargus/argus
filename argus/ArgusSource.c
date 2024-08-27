@@ -924,76 +924,74 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 int
 ArgusCloseOneSource(struct ArgusSourceStruct *src)
 {
-   char *str = src->ArgusDeviceStr;
-   int j;
 
-   if (src == NULL)
-       /* nothing to do */
-       goto out;
-
+   if (src != NULL) {
+      int j;
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "%s(%p) %s starting\n", __func__, src, str);
+      char *str = src->ArgusDeviceStr;
+
+      ArgusDebug (1, "%s(%p) %s starting\n", __func__, src, str);
 #endif
 
 #if defined(ARGUS_THREADS)
-   if (src->thread) {
-      pthread_join(src->thread, NULL);
-      src->thread = 0;
-   }
-#endif
-
-   for (j = 0; j < src->ArgusInterfaces; j++) {
-      if (src->ArgusInterface[j].ArgusPd) {
-         pcap_close(src->ArgusInterface[j].ArgusPd);
-         src->ArgusInterface[j].ArgusPd = NULL;
+      if (src->thread) {
+         pthread_join(src->thread, NULL);
+         src->thread = 0;
       }
-   }
-
-   if (src->ArgusPcapOutFile) {
-      pcap_dump_close(src->ArgusPcapOutFile);
-      src->ArgusPcapOutFile = NULL;
-   }
-
-   if (src->ArgusInputFilter) {
-      ArgusFree (src->ArgusInputFilter);
-      src->ArgusInputFilter = NULL;
-   }
-
-   if (src->ArgusDeviceStr) {
-      free(src->ArgusDeviceStr);
-      src->ArgusDeviceStr = NULL; 
-   }
-
-   if (src->ArgusMarIncludeInterface) {
-      free(src->ArgusMarIncludeInterface);
-      src->ArgusMarIncludeInterface =  NULL;
-   }
-
-   if (src->ArgusDeviceList) {
-      ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
-      src->ArgusDeviceList = NULL;
-   }
-
-   if (src->ArgusRfileList != NULL) {
-      ArgusDeleteList (src->ArgusRfileList, ARGUS_RFILE_LIST);
-      src->ArgusRfileList = NULL;
-   }
-
-   if (src->ArgusModel != NULL) {
-      ArgusCloseModeler(src->ArgusModel);
-      ArgusFree(src->ArgusModel);
-      src->ArgusModel = NULL;
-   }
-
-   src->status |= ARGUS_SHUTDOWN;
-
-#if defined(ARGUS_THREADS)
-   pthread_mutex_lock(&src->lock);
-   pthread_cond_signal(&src->cond);
-   pthread_mutex_unlock(&src->lock);
 #endif
 
-out:
+      for (j = 0; j < src->ArgusInterfaces; j++) {
+         if (src->ArgusInterface[j].ArgusPd) {
+            pcap_close(src->ArgusInterface[j].ArgusPd);
+            src->ArgusInterface[j].ArgusPd = NULL;
+         }
+      }
+
+      if (src->ArgusPcapOutFile) {
+         pcap_dump_close(src->ArgusPcapOutFile);
+         src->ArgusPcapOutFile = NULL;
+      }
+
+      if (src->ArgusInputFilter) {
+         ArgusFree (src->ArgusInputFilter);
+         src->ArgusInputFilter = NULL;
+      }
+
+      if (src->ArgusDeviceStr) {
+         free(src->ArgusDeviceStr);
+         src->ArgusDeviceStr = NULL; 
+      }
+
+      if (src->ArgusMarIncludeInterface) {
+         free(src->ArgusMarIncludeInterface);
+         src->ArgusMarIncludeInterface =  NULL;
+      }
+
+      if (src->ArgusDeviceList) {
+         ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
+         src->ArgusDeviceList = NULL;
+      }
+
+      if (src->ArgusRfileList != NULL) {
+         ArgusDeleteList (src->ArgusRfileList, ARGUS_RFILE_LIST);
+         src->ArgusRfileList = NULL;
+      }
+
+      if (src->ArgusModel != NULL) {
+         ArgusCloseModeler(src->ArgusModel);
+         ArgusFree(src->ArgusModel);
+         src->ArgusModel = NULL;
+      }
+
+      src->status |= ARGUS_SHUTDOWN;
+
+#if defined(ARGUS_THREADS)
+      pthread_mutex_lock(&src->lock);
+      pthread_cond_signal(&src->cond);
+      pthread_mutex_unlock(&src->lock);
+#endif
+   }
+
 #ifdef ARGUSDEBUG
    ArgusDebug (2, "%s(%p) done, returning %d\n", __func__, src, 0);
 #endif
@@ -1509,17 +1507,21 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
    if (src->ArgusDeviceList == NULL)
       src->ArgusDeviceList = ArgusNewList();
 
-   if (cmd) {
+   if (cmd && (strlen(cmd) > 0)) {
       struct ArgusDeviceStruct *device = NULL;
-      char *params = strdup(cmd);
+      char *errbuf, *tok, *stok, *params = NULL;
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
       struct ArgusDeviceStruct *dev = NULL;
       int status = 0;
-      char *errbuf, *tok, *stok;
 
-      if (src->ArgusDeviceStr != NULL)
+      if ((params = strdup(cmd)) == NULL)
+         ArgusLog (LOG_ERR, "setArgusDevice strdup %s\n", strerror(errno));
+
+      if (src->ArgusDeviceStr != NULL) {
          free(src->ArgusDeviceStr);
+         src->ArgusDeviceStr = NULL;
+      }
 
       if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
          if (type == ARGUS_LIVE_DEVICE) {
@@ -1608,15 +1610,12 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                                  dev->trans   = ArgusSourceTask->trans;
                                  dev->idtype  = ArgusSourceTask->type | ARGUS_TYPE_INTERFACE;
                                  if (dev && (dev->name != NULL)) {
-                                    shortname_ethdev_unique(dev->name, inf,
-                                                            sizeof(inf),
-                                                            src->ArgusDeviceList);
-
+                                    char buffer[128];
+                                    shortname_ethdev_unique(dev->name, inf, sizeof(inf), src->ArgusDeviceList);
                                     bcopy(inf, dev->trans.srcid.inf, 4);
                                     dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
-                                    ArgusLog(LOG_INFO,
-                                             "mapping interface name %s -> %s\n",
-                                             dev->name, inf);
+                                    snprintf(buffer, 128, "mapping interface name %s -> %s\n", dev->name, inf);
+                                    ArgusLog(LOG_INFO, "%s\n", buffer);
                                  }
                               }
                               dev->inf = ArgusGenerateMarInfStruct(dev, d);
@@ -1683,10 +1682,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                         dev->trans   = ArgusSourceTask->trans;
                         dev->idtype  = ArgusSourceTask->type | ARGUS_TYPE_INTERFACE;
                         if (dev && (dev->name != NULL)) {
-                           shortname_ethdev_unique(dev->name, inf,
-                                                   sizeof(inf),
-                                                   src->ArgusDeviceList);
-
+                           shortname_ethdev_unique(dev->name, inf, sizeof(inf), src->ArgusDeviceList);
                            bcopy(inf, dev->trans.srcid.inf, 4);
                            dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
                            ArgusLog(LOG_INFO, "mapping interface name %s -> %s\n", dev->name, inf);
@@ -1718,15 +1714,16 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
             }
          }
 
-         if (srcid != NULL)
+         if (srcid != NULL) {
             free(srcid);
+            srcid = NULL;
+         }
          ptr = NULL;
       }
 
       if (device != NULL)
          ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) device, ARGUS_LOCK);
       
-      free(params);
       if (alldevs != NULL)
          pcap_freealldevs(alldevs);
    }

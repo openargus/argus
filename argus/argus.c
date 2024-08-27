@@ -697,7 +697,7 @@ main (int argc, char *argv[])
        ArgusLog(LOG_ERR, "unable to unblock all signals\n");
 #endif
 
-   ArgusLog(LOG_INFO, "started");
+// ArgusLog(LOG_INFO, "started");
 
 #if defined(ARGUS_THREADS)
    pthread_mutex_init(&ArgusMainLock, NULL);
@@ -1404,6 +1404,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                        char uuidstr[64];
                                        char buf[128];
 
+                                       bzero(uuidstr, 64);
                                        if (__linux_get_machine_id_uuid(uuidstr, 37) == 0) {
                                           if (appendInf)
                                              sprintf(buf, "%s/inf", uuidstr);
@@ -1427,9 +1428,7 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                              sprintf(buf, "%s", uuidstr);
                                           optarg = strdup(buf);
                                        } else {
-                                          ArgusLog(LOG_ERR, "%s(%s) unable to "
-                                                   "read system UUID\n",
-                                                   __func__, file);
+                                          ArgusLog(LOG_ERR, "%s(%s) unable to " "read system UUID\n", __func__, file);
                                        }
 #  endif
 # endif

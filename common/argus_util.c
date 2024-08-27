@@ -1536,17 +1536,20 @@ void setArgusLogDisplayPriority(int prio)
 }
 
 #include <sys/time.h>
+#define ARGUSLOGBUFLEN	1024
 
 void
 ArgusLog (int priority, char *fmt, ...)
 {
-   va_list ap;
-   char buf[1024], *ptr;
+   char *buf = NULL, *ptr = NULL;
    struct timeval now;
+   va_list ap;
+
+   if ((buf = ArgusCalloc(1, ARGUSLOGBUFLEN)) == NULL) 
+      exit;
 
    gettimeofday (&now, 0L);
-   buf[0] = 0;
-   ptr = &buf[0];
+   ptr = buf;
 
    if (priority == LOG_NOTICE)
       return;
@@ -1554,23 +1557,28 @@ ArgusLog (int priority, char *fmt, ...)
    if (!daemonflag) {
 #if defined(ARGUS_THREADS)
       pthread_t ptid;
-      char pbuf[128];
+      char *pbuf = NULL;
       int i;
 
-      bzero(pbuf, sizeof(pbuf));
+      if ((pbuf = ArgusCalloc(1, 128)) == NULL) 
+         exit;
+
       ptid = pthread_self();
       for (i = 0; i < sizeof(ptid); i++) {
          snprintf (&pbuf[i*2], 3, "%02hhx", ((char *)&ptid)[i]);
       }
-      (void) snprintf (buf, 1024, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
+      (void) snprintf (buf, ARGUSLOGBUFLEN, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
 #else
-      (void) snprintf (buf, 1024, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
+      (void) snprintf (buf, ARGUSLOGBUFLEN, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
 #endif
       ptr = &buf[strlen(buf)];
+      if (pbuf != NULL) {
+         ArgusFree(pbuf);
+      }
    }
 
    va_start (ap, fmt);
-   (void) vsnprintf (ptr, 1024, fmt, ap);
+   (void) vsnprintf (ptr, ARGUSLOGBUFLEN, fmt, ap);
    ptr = &buf[strlen(buf)];
    va_end (ap);
 
@@ -1604,6 +1612,9 @@ ArgusLog (int priority, char *fmt, ...)
           exit(1);
 
       default: break;
+   }
+   if (buf != NULL) {
+      ArgusFree(buf);
    }
 }
 
