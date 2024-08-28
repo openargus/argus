@@ -1546,7 +1546,7 @@ ArgusLog (int priority, char *fmt, ...)
    va_list ap;
 
    if ((buf = ArgusCalloc(1, ARGUSLOGBUFLEN)) == NULL) 
-      exit;
+      exit(1);
 
    gettimeofday (&now, 0L);
    ptr = buf;
@@ -1561,7 +1561,7 @@ ArgusLog (int priority, char *fmt, ...)
       int i;
 
       if ((pbuf = ArgusCalloc(1, 128)) == NULL) 
-         exit;
+         exit(1);
 
       ptid = pthread_self();
       for (i = 0; i < sizeof(ptid); i++) {
