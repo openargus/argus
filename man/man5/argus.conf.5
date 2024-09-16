@@ -87,33 +87,37 @@ Commandline equivalent  -d
 Argus Monitor Data is uniquely identifiable based on the source
 identifier that is included in each output record.  This is to
 allow you to work with Argus Data from multiple monitors at the
-same time.  The ID is 32 bits long, and argus suppors a number of
-formats as legitimate values. Argus support unsigned ints, IPv4
-addresses and 4 bytes strings, as values.
+same time.  The ID for argus v5 is 128 bits long, and 32 bits for
+argus v1,2,3.  With 128 bits, Argus can support a number of formats
+as legitimate values. Argus and argus clients support unsigned ints,
+IPv4 and IPv6 addresses, 4 byte strings (legacy) and UUIDs as values.
 
-The formats are discerned from the values provided.  Double-quoted
-values are treated as strings, and are truncated to 4 characters.
-Non-quoted values are tested for whether they are hostnames, and if
-not, then they are tested wheter they are numbers.
+The formats are discerned from the values provided in the configuration.
+Double-quoted values are treated as strings, and are truncated to 4
+characters.  Non-quoted values are tested for whether they are hostnames,
+and if not, then they are tested wheter they are numbers conforming
+to any of the support formats.
 
 The configuration allows for you to use host names, however, do
-have some understanding how `hostname` will be resolved by the
-nameserver before commiting to this strategy completely.
+have some understanding how a FQDN, or the special keyword  `hostname`
+will be resolved by the nameserver before commiting to this strategy
+completely.
 
-For convenience, argus supports the notion of "`hostname`" for
-assigning the probe's id.  This is to support management of
-large deployments, so you can have one argus.conf file that works
-for a lot of probes.
+For convenience, argus supports the notion of "`hostname`" for assigning
+the probe's id.  This is a pre-V5 strategy is to support management of large
+deployments, so you can have one argus.conf file that works for a lot of probes.
 
 With Argus V5 (gargoyle), the srcid formats are extended to include
-64-bit values, designed primarily to provide interface identifiers,
-in addition to a 32-bit probe id, as well as to support IPv6 addresses
-as identifiers.  Interface string extensions are added when the keyword
-"inf" is added as the ARGUS_MONITOR_ID specifier.
+128-bit values, designed primarily to support host UUIDs, and to add
+4 bytes interface identifiers, to create a compount source identifier.
+
+The actual interface name, reduced to a 4 byte string, can be added to the
+srcid, through static specification, or automatically, when the keyword "inf"
+is added to the ARGUS_MONITOR_ID specifier.
 
 For security, argus does not rely on system programs, like hostname.1.
 It implements the logic of hostname itself, so don't try to run
-arbitrary programs using this method, because it won't work.
+arbitrary programs using this method, because it shouldn't work.
 
 .nf
 The syntax for the monitor id, srcid,  is:
@@ -155,10 +159,12 @@ Commandline equivalent   -e
 
 With Argus V5 (gargoyle), the srcid formats are extended to include
 160-bit values (128-bit sid + 32-bit inf), designed primarily to provide
-support for 128-bit uuid's and IPv6 addrs, as well as interface identifiers.
-Interface string extensions are not added to ARGUS_MONITOR_ID specifier, unless
-you are hard coding the interface name for a specific observation domain,
-this is done int he ARGUS_INTERFACE specification.
+support for 128-bit uuid's and IPv6 addrs for zero-configuration support.
+V5 also to extends the srcid to include the monitored interface (inf).
+
+Interface string extensions are not added to the actual ARGUS_MONITOR_ID specifier (sid),
+unless you are hard coding the interface name for a specific observation domain,
+this is done in the ARGUS_INTERFACE specification.
 
 To add the semantic that the default "mon0" is a part of this MONITOR_ID,
 set the new ARGUS_MONITOR_ID_INDLUCE_INF to "yes".  To turn it off, set
@@ -210,37 +216,42 @@ Commandline equivalent  -B
 
 .SH ARGUS_INTERFACE
 
-By default, Argus will open the first appropriate interface on a
-system that it encounters.  For systems that have only one network
-interface, this is a reasonable thing to do.  But, when there are
-more than one suitable interface, you should specify the
-interface(s) Argus should use either on the command line or in this
-file.
+By default (ie when no configuration is provided) Argus will open the first
+appropriate interface on a system that it encounters.  For systems that have
+only one network interface, this is a very reasonable thing to do.  But,
+when there are more than one suitable interface, you may need to specify the
+interface(s) that Argus will read packets from. You do this either on the
+command line or in this file.
 
 Argus can track packets from any or all interfaces, concurrently.
 The interfaces can be tracked as:
   1.  independant - this is where argus tracks flows from each
-         interface independant from the packets seen on any other
-         interface.  This is useful for hosts/routers that
-         have full-duplex interfaces, and you want to distinguish
-         flows based on their interface. There is an option to specify
-         a distinct srcid to each independant modeler.
+         interface independant of the packets seen on any other
+         interface.  This is useful for hosts/routers that have full-duplex
+         interfaces, and you want to distinguish flows based on their interface.
 
-  2.  duplex - where argus tracks packets from 2 interfaces
-         as if they were two half duplex streams of the same link.
-         Because there is a single modeler tracking the 2
-         interfaces, there is a single srcid that can be passed as
-         an option.
+         When using argus in modern end-systems, where there can be dozens of
+         physical, wired and wireless, and virtual interfaces active at any time,
+         it is important to keep track of which interface a particular packet
+         was seen.
+
+         There is an option to specify a distinct srcid to each independant modeler.
+
+  2.  duplex - where argus tracks packets from 2 interfaces as if they were
+         two half duplex streams of the same link.  Because there is a single
+         processing thread and memory cache tracking the 2 interfaces, there can be
+         a single srcid that can be used to identify the flows, as an option.
 
   3.  bonded - where argus tracks packets from multiple interfaces
-         as if they were from the same stream.  Because there is a
-         single modeler tracking the 2 interfaces, there is a single
-         srcid that can be passed as an option.
+         as if they were from a single packet source (interface).  Again, because
+         there is a single processing thread and memory cache tracking the
+         multiple interfaces, there can be a single srcid that can be passed as an option.
 
 Interfaces can be specified as groups using '[',']' notation, to build
 flexible definitions of packet sources.  However, each interface
 should be referenced only once (this is due to performance and OS
-limitations, so if your OS has no problem with this, go ahead).
+limitations restricting how many readers can open an interface at one time,
+but if your OS has no problem with multiple readers of the same packet, go ahead).
 
 The lo (loopback) interface will be included only if it is specifically
 indicated in the option.
@@ -256,9 +267,9 @@ The syntax for specifying this either on the command line or in this file:
    -i en0 en1     (equivalent '-i bond:en0,en1')
 .fi
 
- In all cases, if there is a "-e srcid" provided, this is used as the
- default.  If a srcid is specified using this option, it overrides
- the default.
+In all cases, if there is a "-e srcid" provided, this is used as the
+default.  If a srcid is specified using this option, it overrides
+the default.
 
 Srcid's are specified using the notion used for ARGUS_MONITOR_ID, as above.
 
