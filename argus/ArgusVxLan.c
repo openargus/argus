@@ -64,7 +64,6 @@ ArgusParseVxLan (struct ArgusModelerStruct *model, void *ptr)
          if (ArgusDumpTask->ppc != NULL)
             if (ArgusDumpTask->ppc[ARGUS_VXLAN_PROTO] == 1)
                model->ArgusMatchProtocol++;
-
 #ifdef ARGUSDEBUG
          ArgusDebug (2, "ArgusParseVxLan(%p, %p) vni is %d\n", model, ptr, vni);
 #endif
