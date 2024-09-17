@@ -268,6 +268,7 @@ struct ArgusModelerStruct {
    struct ip6_frag *ArgusThisIpv6Frag;
    void *ArgusThisNetworkHdr;
 
+   unsigned char *ArgusThisPacket;
    unsigned char *ArgusThisUpHdr;
    unsigned char *ArgusThisSnapEnd;
  
