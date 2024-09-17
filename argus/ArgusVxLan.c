@@ -61,7 +61,7 @@ ArgusParseVxLan (struct ArgusModelerStruct *model, void *ptr)
          model->ArgusThisLength -= len;
          model->ArgusSnapLength -= len;
 
-         if (model->ppc[ARGUS_VXLAN_PROTO] == 1)
+         if (model->ppc && (model->ppc[ARGUS_VXLAN_PROTO] == 1))
             model->ArgusMatchProtocol++;
 #ifdef ARGUSDEBUG
          ArgusDebug (2, "ArgusParseVxLan(%p, %p) vni is %d\n", model, ptr, vni);
