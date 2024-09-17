@@ -649,6 +649,7 @@ ArgusDeleteObject(struct ArgusFlowStruct *obj)
    if (obj) {
       struct ArgusHashTableHeader *htblhdr;
       struct ArgusNetworkStruct *net = NULL;
+      struct ArgusEncapsStruct *encaps = NULL;
       struct ArgusQueueStruct *queue;
 
       if ((queue = obj->qhdr.queue) != NULL) {
@@ -673,6 +674,17 @@ ArgusDeleteObject(struct ArgusFlowStruct *obj)
                free(fragOffset);
             }
             net->hdr.type = 0;
+         }
+      }
+
+      if ((encaps = (struct ArgusEncapsStruct *) obj->dsrs[ARGUS_ENCAPS_INDEX]) != NULL) {
+         if (encaps->sbuf != NULL) {
+            ArgusFree(encaps->sbuf);
+            encaps->slen = 0;
+         }
+         if (encaps->dbuf != NULL) {
+            ArgusFree(encaps->dbuf);
+            encaps->dlen = 0;
          }
       }
 

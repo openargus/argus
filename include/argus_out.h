@@ -599,7 +599,8 @@ struct ArgusTimeStruct {
 struct ArgusEncapsStruct {
    struct ArgusDSRHeader hdr;
    unsigned int src, dst;
-   char array[8];
+   unsigned short slen, dlen;
+   char *sbuf, *dbuf;
 };
 
 struct ArgusTimeObject {

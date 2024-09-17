@@ -1707,6 +1707,8 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
             ptr = (char *)model->ArgusThisUpHdr;
       }
 
+      model->ArgusThisEncapsLength = (p - ptr);
+
       if (model->ArgusThisEpHdr)
          ptr = (char *)model->ArgusThisEpHdr;
 
@@ -2275,10 +2277,17 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       encaps->hdr.argus_dsrvl8.len  = 3;
       flow->dsrindex |= 0x01 << ARGUS_ENCAPS_INDEX;
 
-      if (model->ArgusThisDir)
+      if (model->ArgusThisDir) {
          encaps->src = model->ArgusThisEncaps;
-      else
+         if ((encaps->slen = model->ArgusThisEncapsLength) > 0)
+            if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+            }
+      } else {
          encaps->dst = model->ArgusThisEncaps;
+         if ((encaps->dlen = model->ArgusThisEncapsLength) > 0)
+            if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+            }
+      }
 
    } else {
       if (model->ArgusThisDir) {

@@ -242,6 +242,7 @@ struct ArgusModelerStruct {
 
    unsigned int ArgusThisInterface;
    unsigned int ArgusThisEncaps;
+   unsigned int ArgusThisEncapsLength;
    unsigned int ArgusThisNetworkFlowType;
    unsigned int ArgusThisAppFlowType;
    int ArgusThisMplsLabelIndex;
