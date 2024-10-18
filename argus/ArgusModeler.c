@@ -910,7 +910,8 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
       }
 
       default:
-         retn = -1;
+         model->ArgusThisUpHdr = (void *)p;
+         retn = 0;
          break;
    }
 
@@ -1107,9 +1108,8 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
    model->ArgusThisIpHdr           = NULL;
 
    model->ArgusThisEncaps |= ARGUS_ENCAPS_ETHER;
-   retn = ntohs(ep->ether_type);
 
-   if (retn <= ETHERMTU) {  /* 802.3 Encapsulation */
+   if ((retn = ntohs(ep->ether_type)) < ETHERMTU) {    /* 802.3 Encapsulation */
       struct argus_llc *llc = NULL;
       unsigned short ether_type = 0;
 
@@ -1131,6 +1131,7 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
 
          if (llc->ssap == LLCSAP_GLOBAL && llc->dsap == LLCSAP_GLOBAL) {
             model->ArgusThisNetworkFlowType = ARGUS_IPX_TAG;
+            retn = ARGUS_IPX_TAG;
             return (retn);
          }
 
