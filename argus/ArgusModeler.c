@@ -1145,8 +1145,8 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
                ((unsigned char *)&ether_type)[0] = ((unsigned char *)&llc->ethertype)[0];
                ((unsigned char *)&ether_type)[1] = ((unsigned char *)&llc->ethertype)[1];
 
-               model->ArgusThisNetworkFlowType = ntohs(ether_type);
-
+               retn = ntohs(ether_type);
+               model->ArgusThisNetworkFlowType = retn;
                model->ArgusThisLength -= sizeof(struct argus_llc);
                model->ArgusSnapLength -= sizeof(struct argus_llc);
                model->ArgusThisUpHdr = (ptr + sizeof(struct argus_llc));
