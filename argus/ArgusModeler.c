@@ -2279,7 +2279,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       encaps->hdr.argus_dsrvl8.len  = 3;
       flow->dsrindex |= 0x01 << ARGUS_ENCAPS_INDEX;
 
-      if (model->ArgusTunnelInfo) {
+      if (model->ArgusEncapsCapture) {
          if (model->ArgusThisDir) {
             encaps->src = model->ArgusThisEncaps;
             if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
