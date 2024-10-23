@@ -1708,6 +1708,9 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
             ptr = (char *)model->ArgusThisUpHdr;
       }
 
+      model->ArgusThisPacket = (unsigned char *) p;
+      model->ArgusThisEncapsLength = (ptr - p);
+
       if (model->ArgusThisEpHdr)
          ptr = (char *)model->ArgusThisEpHdr;
 
@@ -2276,10 +2279,23 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       encaps->hdr.argus_dsrvl8.len  = 3;
       flow->dsrindex |= 0x01 << ARGUS_ENCAPS_INDEX;
 
-      if (model->ArgusThisDir)
-         encaps->src = model->ArgusThisEncaps;
-      else
-         encaps->dst = model->ArgusThisEncaps;
+      if (model->ArgusTunnelInfo) {
+         if (model->ArgusThisDir) {
+            encaps->src = model->ArgusThisEncaps;
+            if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
+               if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+                  memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
+               }
+            }
+         } else {
+            encaps->dst = model->ArgusThisEncaps;
+            if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
+               if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+                  memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->dlen);
+               }
+            }
+         }
+      }
 
    } else {
       if (model->ArgusThisDir) {
@@ -3902,6 +3918,40 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         break;
                      }
 
+                     case ARGUS_ENCAPS_INDEX: {
+                        struct ArgusEncapsStruct *encaps = (struct ArgusEncapsStruct *) dsr;
+                        unsigned char *elen = (unsigned char *)&encaps->hdr.argus_dsrvl8.len;
+                        int x, i, slen = 0, dlen = 0;
+
+                        if ((encaps->slen > 0) || (encaps->dlen > 0)) {
+                           slen = ((encaps->slen + 3) / 4);
+			   dlen = ((encaps->dlen + 3) / 4);
+                           *elen += (1 + slen + dlen);
+                        }
+
+                        len = 3;
+                        for (x = 0; x < 3; x++)
+                           *dsrptr++ = ((unsigned int *)encaps)[x];       // get the standard encaps hdr and contents
+
+                        if ((slen > 0) || (dlen > 0)) {
+                           *dsrptr++ = ((unsigned int *)encaps)[x++];    // add the slen and dlen shorts
+                           len++;
+                           if (slen > 0) {
+                              for (i = 0; i < slen; i++) {
+                                 *dsrptr++ = ((unsigned int *)encaps->sbuf)[i];       // get the standard encaps len
+                                 len++;
+                              } 
+                           } 
+                           if (dlen > 0) {
+                              for (i = 0; i < dlen; i++) {
+                                 *dsrptr++ = ((unsigned int *)encaps->dbuf)[i];       // get the standard encaps len
+                                 len++;
+                              }
+                           }
+                        }
+                        break;
+                     }
+
 /* user capture data buffers are passed to the output
       model as (struct ArgusDataStruct *) buffers, not as
       pointers to sections of the canonical record.
@@ -5074,6 +5124,7 @@ setArgusKeystrokeVariable(struct ArgusModelerStruct *model, char *kstok)
    }
 
 }
+
 int
 getArgusOSFingerPrinting (struct ArgusModelerStruct *model)
 {
@@ -5084,6 +5135,26 @@ void
 setArgusOSFingerPrinting (struct ArgusModelerStruct *model, int value)
 {
    model->ArgusOSFingerPrinting = value;
+}
+
+int
+getArgusEncapsCapture (struct ArgusModelerStruct *model)
+{
+   return(model->ArgusEncapsCapture);
+}
+
+void
+setArgusEncapsCapture (struct ArgusModelerStruct *model, char *optarg)
+{
+   if (model != NULL) {
+      if (optarg && strlen(optarg)) {
+         if (!(strcasecmp(optarg, "yes"))) {
+            model->ArgusEncapsCapture = 1;
+         } else {
+            model->ArgusEncapsCapture = 0;
+         }
+      }
+   }
 }
 
 void
