@@ -923,54 +923,6 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
          pthread_join(src->thread, NULL);
          src->thread = 0;
       }
-      if (src->ArgusInterface[j].ArgusDump) {
-#if defined(ARGUS_THREADS)
-         pthread_mutex_destroy(&src->ArgusInterface[j].ArgusDump->lock);
-#endif
-         if (src->ArgusInterface[j].ArgusDump->ppc)
-            free (src->ArgusInterface[j].ArgusDump->ppc);
-         ArgusFree(src->ArgusInterface[j].ArgusDump);
-         src->ArgusInterface[j].ArgusDump = NULL;
-      }
-   }
-
-   if (src->ArgusInputFilter) {
-      ArgusFree (src->ArgusInputFilter);
-      src->ArgusInputFilter = NULL;
-   }
-
-   if (src->ArgusDeviceStr) {
-      free(src->ArgusDeviceStr);
-      src->ArgusDeviceStr = NULL; 
-   }
-
-   if (src->ArgusMarIncludeInterface) {
-      free(src->ArgusMarIncludeInterface);
-      src->ArgusMarIncludeInterface =  NULL;
-   }
-
-   if (src->ArgusDeviceList) {
-      ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
-      src->ArgusDeviceList = NULL;
-   }
-
-   if (src->ArgusRfileList != NULL) {
-      ArgusDeleteList (src->ArgusRfileList, ARGUS_RFILE_LIST);
-      src->ArgusRfileList = NULL;
-   }
-
-   if (src->ArgusModel != NULL) {
-      ArgusCloseModeler(src->ArgusModel);
-      ArgusFree(src->ArgusModel);
-      src->ArgusModel = NULL;
-   }
-
-   src->status |= ARGUS_SHUTDOWN;
-
-#if defined(ARGUS_THREADS)
-   pthread_mutex_lock(&src->lock);
-   pthread_cond_signal(&src->cond);
-   pthread_mutex_unlock(&src->lock);
 #endif
 
       for (j = 0; j < src->ArgusInterfaces; j++) {
@@ -978,11 +930,6 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
             pcap_close(src->ArgusInterface[j].ArgusPd);
             src->ArgusInterface[j].ArgusPd = NULL;
          }
-      }
-
-      if (src->ArgusPcapOutFile) {
-         pcap_dump_close(src->ArgusPcapOutFile);
-         src->ArgusPcapOutFile = NULL;
       }
 
       if (src->ArgusInputFilter) {
