@@ -1056,7 +1056,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				66
+#define ARGUS_RCITEMS				67
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1124,6 +1124,7 @@ getArguspidflag ()
 #define ARGUS_TUNNEL_PARSING			63
 #define ARGUS_TUNNEL_INFORMATION		64
 #define ARGUS_BIND_IP				65
+#define ARGUS_ENCAPS_CAPTURE			66
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1193,6 +1194,7 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_TUNNEL_PARSING=",
    "ARGUS_TUNNEL_INFORMATION=",
    "ARGUS_BIND_IP="
+   "ARGUS_ENCAPS_CAPTURE="
 };
 
 
@@ -1617,6 +1619,13 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 			   }
 #ifdef ARGUSDEBUG
                            ArgusDebug (1, "ArgusParseResourceFile: ArgusPacketCaptureProtocols \"%s\" \n", optarg);
+#endif
+                           break;
+
+                        case ARGUS_ENCAPS_CAPTURE:
+                           setArgusEncapsCapture(model, optarg);
+#ifdef ARGUSDEBUG
+                           ArgusDebug (1, "ArgusParseResourceFile: ArgusEncapsCapture \"%s\" \n", optarg);
 #endif
                            break;
 

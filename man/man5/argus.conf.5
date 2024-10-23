@@ -651,8 +651,24 @@ The default value is to not generate this data.
 
 Commandline equivalent  -U
 
- 
+.nf
 \fBARGUS_CAPTURE_DATA_LEN=\fP0
+.fi
+
+
+.SH ARGUS_ENCAPS_CAPTURE
+
+Argus can also be configured to capture the encapsulation
+packet headers that it parses.  This supports the ability to
+realize and debug unknown/unexpectred encapsulation headers,
+as well as provide client based extensions to encapsulation
+header processing.
+
+The default is to not turn this feature on.
+
+.nf
+\fBARGUS_ENCAPS_CAPTURE=\fP"no"
+.fi
 
 
 .SH ARGUS_FILTER_OPTIMIZER
