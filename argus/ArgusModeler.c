@@ -1659,7 +1659,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
                   model->ArgusGlobalTime.tv_sec  += (tvalue / 1000000000);
                   model->ArgusGlobalTime.tv_usec += (tvalue % 1000000000);
 
-                  while (model->ArgusGlobalTime.tv_usec > 1000000000) {
+                  while (model->ArgusGlobalTime.tv_usec >= 1000000000) {
                      model->ArgusGlobalTime.tv_sec++;
                      model->ArgusGlobalTime.tv_usec -= 1000000000;
                   }
@@ -1667,7 +1667,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
                   model->ArgusGlobalTime.tv_sec  += (tvalue / 1000000);
                   model->ArgusGlobalTime.tv_usec += (tvalue % 1000000);
 
-                  while (model->ArgusGlobalTime.tv_usec > 1000000) {
+                  while (model->ArgusGlobalTime.tv_usec >= 1000000) {
                      model->ArgusGlobalTime.tv_sec++;
                      model->ArgusGlobalTime.tv_usec -= 1000000;
                   }
@@ -2279,16 +2279,18 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       encaps->hdr.argus_dsrvl8.len  = 3;
       flow->dsrindex |= 0x01 << ARGUS_ENCAPS_INDEX;
 
-      if (model->ArgusEncapsCapture) {
-         if (model->ArgusThisDir) {
-            encaps->src = model->ArgusThisEncaps;
+      if (model->ArgusThisDir) {
+         encaps->src = model->ArgusThisEncaps;
+         if (model->ArgusEncapsCapture) {
             if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
                if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
                   memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
                }
             }
-         } else {
-            encaps->dst = model->ArgusThisEncaps;
+         }
+      } else {
+         encaps->dst = model->ArgusThisEncaps;
+         if (model->ArgusEncapsCapture) {
             if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
                if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
                   memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->dlen);
@@ -2304,6 +2306,15 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
                flow->canon.encaps.hdr.argus_dsrvl8.qual |= ARGUS_SRC_CHANGED;
             flow->canon.encaps.src |= model->ArgusThisEncaps;
          }
+         if (model->ArgusEncapsCapture) {
+            if (encaps->slen == 0) {
+               if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
+                  if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+                     memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
+                  }
+               }
+            }
+         }
    
       } else {
          if (flow->canon.encaps.dst != model->ArgusThisEncaps) {
@@ -2311,6 +2322,15 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
                flow->canon.encaps.hdr.argus_dsrvl8.qual |= ARGUS_DST_CHANGED;
             flow->canon.encaps.dst |= model->ArgusThisEncaps;
          }
+         if (model->ArgusEncapsCapture) {
+            if (encaps->dlen == 0) {
+               if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
+                  if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+                     memcpy(encaps->dbuf, model->ArgusThisPacket, encaps->dlen);
+                  }
+               }  
+            }  
+         }  
       }
    }
 

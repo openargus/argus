@@ -502,8 +502,8 @@ ArgusHtoN (struct ArgusRecord *argus)
                      encaps->src = htonl(encaps->src);
                      encaps->dst = htonl(encaps->dst);
                      if (encaps->hdr.argus_dsrvl8.len > 3) {
-                        encaps->slen = ntohs(encaps->slen);
-                        encaps->dlen = ntohs(encaps->dlen);
+                        encaps->slen = htons(encaps->slen);
+                        encaps->dlen = htons(encaps->dlen);
                      }
                      break;
                   }
