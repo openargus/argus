@@ -470,12 +470,12 @@ ArgusQueueManager(void *param)
          testime.tv_usec += update.tv_usec;
 
          if (model->ArgusSrc->timeStampType == ARGUS_TYPE_UTC_NANOSECONDS) {
-            if (testime.tv_usec > 1000000000) {
+            if (testime.tv_usec >= 1000000000) {
                testime.tv_sec++;
                testime.tv_usec -= 1000000000;
             }
          } else {
-            if (testime.tv_usec > 1000000) {
+            if (testime.tv_usec >= 1000000) {
                testime.tv_sec++;
                testime.tv_usec -= 1000000;
             }
