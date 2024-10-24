@@ -198,11 +198,15 @@ ArgusDebug (int d, char *fmt, ...)
 {
    struct timeval now;
    extern int Argusdflag, daemonflag;
-   char buf[MAXSTRLEN], *ptr;
+   char *buf = NULL, *ptr;
    va_list ap;
 
    if (d <= Argusdflag) {
       va_start (ap, fmt);
+
+      if ((buf = ArgusCalloc (1, MAXSTRLEN)) == NULL)
+         ArgusLog (LOG_ERR, "ArgusNewDump: ArgusCalloc error %s\n", strerror(errno));
+      ptr = buf;
 
       gettimeofday (&now, 0L);
 
@@ -254,6 +258,10 @@ ArgusDebug (int d, char *fmt, ...)
       } else
          fprintf (stderr, "%s", buf);
 #endif
+
+      if (buf != NULL)
+         ArgusFree(buf);
+
       va_end (ap);
    }
 }
@@ -1547,20 +1555,17 @@ void setArgusLogDisplayPriority(int prio)
 }
 
 #include <sys/time.h>
-#define ARGUSLOGBUFLEN	1024
 
 void
 ArgusLog (int priority, char *fmt, ...)
 {
-   char *buf = NULL, *ptr = NULL;
-   struct timeval now;
    va_list ap;
-
-   if ((buf = ArgusCalloc(1, ARGUSLOGBUFLEN)) == NULL) 
-      exit;
+   char buf[1024], *ptr;
+   struct timeval now;
 
    gettimeofday (&now, 0L);
-   ptr = buf;
+   buf[0] = 0;
+   ptr = &buf[0];
 
    if (priority == LOG_NOTICE)
       return;
@@ -1568,28 +1573,23 @@ ArgusLog (int priority, char *fmt, ...)
    if (!daemonflag) {
 #if defined(ARGUS_THREADS)
       pthread_t ptid;
-      char *pbuf = NULL;
+      char pbuf[128];
       int i;
 
-      if ((pbuf = ArgusCalloc(1, 128)) == NULL) 
-         exit;
-
+      bzero(pbuf, sizeof(pbuf));
       ptid = pthread_self();
       for (i = 0; i < sizeof(ptid); i++) {
          snprintf (&pbuf[i*2], 3, "%02hhx", ((char *)&ptid)[i]);
       }
-      (void) snprintf (buf, ARGUSLOGBUFLEN, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
+      (void) snprintf (buf, 1024, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
 #else
-      (void) snprintf (buf, ARGUSLOGBUFLEN, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
+      (void) snprintf (buf, 1024, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
 #endif
       ptr = &buf[strlen(buf)];
-      if (pbuf != NULL) {
-         ArgusFree(pbuf);
-      }
    }
 
    va_start (ap, fmt);
-   (void) vsnprintf (ptr, ARGUSLOGBUFLEN, fmt, ap);
+   (void) vsnprintf (ptr, 1024, fmt, ap);
    ptr = &buf[strlen(buf)];
    va_end (ap);
 
@@ -1624,14 +1624,11 @@ ArgusLog (int priority, char *fmt, ...)
 
       default: break;
    }
-   if (buf != NULL) {
-      ArgusFree(buf);
-   }
 }
 
 
 void ArgusRecordDump (struct ArgusRecord *);
-void ArgusDump (const u_char *, int);
+void ArgusDumpBuffer (const u_char *, int);
 
 #define HEXDUMP_BYTES_PER_LINE 16
 #define HEXDUMP_SHORTS_PER_LINE (HEXDUMP_BYTES_PER_LINE / 2)
@@ -1646,14 +1643,14 @@ ArgusRecordDump (struct ArgusRecord *argus)
    int length = argus->hdr.len;
    const u_char *cp = (const u_char *) argus;
 
-   ArgusDump (cp, length);
+   ArgusDumpBuffer (cp, length);
 }
 
 
 #include <ctype.h>
 
 void
-ArgusDump (const u_char *cp, int length)
+ArgusDumpBuffer (const u_char *cp, int length)
 {
    u_int oset = 0;
    register u_int i;
@@ -1663,7 +1660,7 @@ ArgusDump (const u_char *cp, int length)
    char asciistuff[HEXDUMP_BYTES_PER_LINE+1], *asp;
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (2, "ArgusDump (%p, %d)\n", cp, length);
+   ArgusDebug (2, "ArgusDumpBuffer (%p, %d)\n", cp, length);
 #endif
 
    nshorts = length / sizeof(u_short);
@@ -1873,9 +1870,8 @@ ArgusInitServarray(struct ArgusParserStruct *parser)
       table->addr = port;
       table->nxt = (struct hnamemem *)calloc(1, sizeof(*table));
    }
-
-   parser->ArgusSrvInit = 1;
    endservent();
+   parser->ArgusSrvInit = 1;
 #endif
 }
 
