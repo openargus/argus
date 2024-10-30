@@ -1162,9 +1162,6 @@ __argus_malloc (int bytes, allocator_func alloc, void *aux)
       pthread_mutex_unlock(&memory.lock);
 #endif
    }
-#ifdef ARGUSDEBUG
-   ArgusDebug (6, "%s(%d) returning %p\n", __func__, bytes, retn);
-#endif
    return (retn); 
 }
 
@@ -1191,10 +1188,6 @@ ArgusCalloc (int nitems, int bytes)
 {
    int total = nitems * bytes;
    void *retn = __argus_malloc(total, __calloc, NULL);
-
-#ifdef ARGUSDEBUG
-   ArgusDebug (6, "ArgusCalloc (%d, %d) returning 0x%x\n", nitems, bytes, retn);
-#endif
    return (retn);
 }
 
@@ -1358,9 +1351,6 @@ ArgusInitMallocList (int length)
       pthread_mutex_unlock(&ArgusModel->lock);
 #endif
 
-#ifdef ARGUSDEBUG 
-   ArgusDebug (6, "ArgusInitMallocList (%d) returning\n", length);
-#endif
    return;
 }
 
@@ -1444,9 +1434,6 @@ ArgusMallocListRecord (int length)
    if (mem != NULL)
       retn = (void *)(mem + 1);
 
-#ifdef ARGUSDEBUG
-   ArgusDebug (8, "ArgusMallocListRecord (%d) returning %p total %d out %d\n", length, retn, ArgusMallocList->total, ArgusMallocList->out);
-#endif
    return (retn);
 }
 
