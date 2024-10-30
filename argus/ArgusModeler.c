@@ -868,9 +868,10 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
          struct ip6_hdr *ipv6 = (struct ip6_hdr *) p;
 
          model->ArgusThisNetworkFlowType = type;
+         model->ArgusThisIpHdr = (void *)p;
+
          switch (ipv6->ip6_nxt) {
             case IPPROTO_IPIP: {                         // IPNIP
-               model->ArgusThisIpHdr = (void *)p;
                model->ArgusThisUpHdr  += sizeof(*ipv6);
                model->ArgusThisLength -= sizeof(*ipv6);
                model->ArgusSnapLength -= sizeof(*ipv6);
