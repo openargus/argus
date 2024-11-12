@@ -3136,13 +3136,17 @@ static void
 opt_dump(struct ablock *root)
 {
    struct nff_program f;
-   char buf[MAXSTRLEN];
+   char *buf;
+   char *code = NULL;
+   if ((code = ArgusCalloc (1, MAXSTRLEN)) == NULL)
+      ArgusLog (LOG_ERR, "ArgusInitOutput:ArgusCalloc error %s\n", strerror(errno));
 
    memset(bids, 0, sizeof bids);
    f.bf_insns = Argusicode_to_fcode(root, &f.bf_len);
-   nff_dump(&f, buf, MAXSTRLEN, 1);
-   printf("%s\n", buf);
+   nff_dump(&f, code, MAXSTRLEN, 1);
+   printf("%s\n", code);
    free((char *)f.bf_insns);
+   ArgusFree(code);
 }
 #endif
 

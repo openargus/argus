@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - UDP Protocol processing
+ * Argus-5.0 Software.  Argus files - Geneve Includes
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -28,8 +28,8 @@
 #include "argus_config.h"
 #endif
 
-#ifndef ArgusVxLan_h
-#define ArgusVxLan_h
+#ifndef ArgusGeneve_h
+#define ArgusGeneve_h
 
 #include <stdio.h>
 #include <string.h>

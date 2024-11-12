@@ -1,5 +1,5 @@
 /*
- * Argus-5.0 Software.  Argus files - Output processor
+ * Argus-5.0 Software.  Argus files - Modeler
  * Copyright (c) 2000-2024 QoSient, LLC
  * All rights reserved.
  *
@@ -826,13 +826,13 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
             if (STRUCTCAPTURED(model,*ip)) {
                model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
 
-               if (model->ppc && (model->ppc[0] == 1))
+               if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[0] == 1))
                   model->ArgusMatchProtocol++;
 
                if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
                   model->ArgusThisIpHdr = (void *)ip;
 
-                  if (model->ppc && (model->ppc[ip->ip_p] == 1))
+                  if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[ip->ip_p] == 1))
                      model->ArgusMatchProtocol++;
 
                   switch (ip->ip_p) {
@@ -1660,7 +1660,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
                   model->ArgusGlobalTime.tv_sec  += (tvalue / 1000000000);
                   model->ArgusGlobalTime.tv_usec += (tvalue % 1000000000);
 
-                  while (model->ArgusGlobalTime.tv_usec > 1000000000) {
+                  while (model->ArgusGlobalTime.tv_usec >= 1000000000) {
                      model->ArgusGlobalTime.tv_sec++;
                      model->ArgusGlobalTime.tv_usec -= 1000000000;
                   }
@@ -1668,7 +1668,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
                   model->ArgusGlobalTime.tv_sec  += (tvalue / 1000000);
                   model->ArgusGlobalTime.tv_usec += (tvalue % 1000000);
 
-                  while (model->ArgusGlobalTime.tv_usec > 1000000) {
+                  while (model->ArgusGlobalTime.tv_usec >= 1000000) {
                      model->ArgusGlobalTime.tv_sec++;
                      model->ArgusGlobalTime.tv_usec -= 1000000;
                   }
@@ -1702,12 +1702,15 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
 
       while (type > 0) {
          if (type < 512) {
-            if (model->ppc && model->ppc[type])
+            if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[type]))
                model->ArgusMatchProtocol++;
 	 }
          if ((type = ArgusProcessPacketHdrs (model, ptr, model->ArgusThisLength, type)) >= 0)
             ptr = (char *)model->ArgusThisUpHdr;
       }
+
+      model->ArgusThisPacket = (unsigned char *) p;
+      model->ArgusThisEncapsLength = (ptr - p);
 
       if (model->ArgusThisEpHdr)
          ptr = (char *)model->ArgusThisEpHdr;
@@ -2277,10 +2280,25 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       encaps->hdr.argus_dsrvl8.len  = 3;
       flow->dsrindex |= 0x01 << ARGUS_ENCAPS_INDEX;
 
-      if (model->ArgusThisDir)
+      if (model->ArgusThisDir) {
          encaps->src = model->ArgusThisEncaps;
-      else
+         if (model->ArgusEncapsCapture) {
+            if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
+               if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+                  memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
+               }
+            }
+         }
+      } else {
          encaps->dst = model->ArgusThisEncaps;
+         if (model->ArgusEncapsCapture) {
+            if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
+               if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+                  memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->dlen);
+               }
+            }
+         }
+      }
 
    } else {
       if (model->ArgusThisDir) {
@@ -2289,6 +2307,15 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
                flow->canon.encaps.hdr.argus_dsrvl8.qual |= ARGUS_SRC_CHANGED;
             flow->canon.encaps.src |= model->ArgusThisEncaps;
          }
+         if (model->ArgusEncapsCapture) {
+            if (encaps->slen == 0) {
+               if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
+                  if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+                     memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
+                  }
+               }
+            }
+         }
    
       } else {
          if (flow->canon.encaps.dst != model->ArgusThisEncaps) {
@@ -2296,6 +2323,15 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
                flow->canon.encaps.hdr.argus_dsrvl8.qual |= ARGUS_DST_CHANGED;
             flow->canon.encaps.dst |= model->ArgusThisEncaps;
          }
+         if (model->ArgusEncapsCapture) {
+            if (encaps->dlen == 0) {
+               if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
+                  if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+                     memcpy(encaps->dbuf, model->ArgusThisPacket, encaps->dlen);
+                  }
+               }  
+            }  
+         }  
       }
    }
 
@@ -3903,6 +3939,40 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         break;
                      }
 
+                     case ARGUS_ENCAPS_INDEX: {
+                        struct ArgusEncapsStruct *encaps = (struct ArgusEncapsStruct *) dsr;
+                        unsigned char *elen = (unsigned char *)&encaps->hdr.argus_dsrvl8.len;
+                        int x, i, slen = 0, dlen = 0;
+
+                        if ((encaps->slen > 0) || (encaps->dlen > 0)) {
+                           slen = ((encaps->slen + 3) / 4);
+			   dlen = ((encaps->dlen + 3) / 4);
+                           *elen += (1 + slen + dlen);
+                        }
+
+                        len = 3;
+                        for (x = 0; x < 3; x++)
+                           *dsrptr++ = ((unsigned int *)encaps)[x];       // get the standard encaps hdr and contents
+
+                        if ((slen > 0) || (dlen > 0)) {
+                           *dsrptr++ = ((unsigned int *)encaps)[x++];    // add the slen and dlen shorts
+                           len++;
+                           if (slen > 0) {
+                              for (i = 0; i < slen; i++) {
+                                 *dsrptr++ = ((unsigned int *)encaps->sbuf)[i];       // get the standard encaps len
+                                 len++;
+                              } 
+                           } 
+                           if (dlen > 0) {
+                              for (i = 0; i < dlen; i++) {
+                                 *dsrptr++ = ((unsigned int *)encaps->dbuf)[i];       // get the standard encaps len
+                                 len++;
+                              }
+                           }
+                        }
+                        break;
+                     }
+
 /* user capture data buffers are passed to the output
       model as (struct ArgusDataStruct *) buffers, not as
       pointers to sections of the canonical record.
@@ -5075,6 +5145,7 @@ setArgusKeystrokeVariable(struct ArgusModelerStruct *model, char *kstok)
    }
 
 }
+
 int
 getArgusOSFingerPrinting (struct ArgusModelerStruct *model)
 {
@@ -5087,54 +5158,25 @@ setArgusOSFingerPrinting (struct ArgusModelerStruct *model, int value)
    model->ArgusOSFingerPrinting = value;
 }
 
-void
-setArgusPacketCaptureProtocols(struct ArgusModelerStruct *model, char *optarg)
+int
+getArgusEncapsCapture (struct ArgusModelerStruct *model)
 {
-   char ppc[ARGUS_MAX_PROTOCOLS];
-   int enabled = 0, found = 0;
-
-   bzero (ppc, ARGUS_MAX_PROTOCOLS);
-   if (model->ppc != NULL) {
-      ArgusFree(model->ppc);
-      model->ppc = NULL;
-   }
-
-   if (optarg && strlen(optarg)) {
-      struct protoent *pent = NULL;
-      char *sptr = optarg, *tok;
-
-      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
-         found = 0;
-         if ((pent = getprotobyname(tok)) != NULL) {
-            ppc[pent->p_proto] = 1;
-            enabled = 1;
-            found = 1;
-         } else {
-            int i;
-            for (i = 0; i < MAX_PORT_ALG_TYPES; i++) {
-               if (strcmp(tok, RaPortAlgorithmTable[i].field) == 0) {
-                  ppc[RaPortAlgorithmTable[i].proto] = 1;
-                  enabled = 1;
-                  found = 1;
-	       }
-            }
-         }
-#ifdef ARGUSDEBUG
-         if (!found) {
-            ArgusDebug (1, "setArgusPacketCaptureProtocols() %s not supported.\n", tok);
-	 }
-#endif 
-         sptr = NULL;
-      }
-   }
-
-   if (enabled) {
-      if ((model->ppc = (char *) ArgusCalloc (1, ARGUS_MAX_PROTOCOLS)) == NULL)
-         ArgusLog (LOG_ERR, "setArgusPacketCaptureProtocols () ArgusCalloc error %s\n", strerror(errno));
-      bcopy(ppc, model->ppc, ARGUS_MAX_PROTOCOLS);
-   }
+   return(model->ArgusEncapsCapture);
 }
 
+void
+setArgusEncapsCapture (struct ArgusModelerStruct *model, char *optarg)
+{
+   if (model != NULL) {
+      if (optarg && strlen(optarg)) {
+         if (!(strcasecmp(optarg, "yes"))) {
+            model->ArgusEncapsCapture = 1;
+         } else {
+            model->ArgusEncapsCapture = 0;
+         }
+      }
+   }
+}
 
 void
 setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)

@@ -488,10 +488,11 @@ RaSaslNegotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 int
 RaSendSaslString (FILE *f, const char *s, int l)
 {
-   char saslbuf[MAXSTRLEN];
+   char *saslbuf;
    int len, al = 0;
 
-   bzero (saslbuf, MAXSTRLEN);
+   if ((saslbuf = ArgusCalloc (1, MAXSTRLEN)) == NULL)
+      ArgusLog (LOG_ERR, "ArgusInitOutput:ArgusCalloc error %s\n", strerror(errno));
    
    snprintf(saslbuf, MAXSTRLEN, "{%d}\r\n", l);
    len = strlen(saslbuf);
@@ -518,6 +519,7 @@ RaSendSaslString (FILE *f, const char *s, int l)
    }
 #endif 
 
+   ArgusFree (saslbuf);
    return al;
 }
 
