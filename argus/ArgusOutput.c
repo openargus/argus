@@ -357,10 +357,12 @@ ArgusInitOutput (struct ArgusOutputStruct *output)
                client->ArgusFilterInitialized++;
 #ifdef ARGUSDEBUG
                {
-                  char buf[MAXSTRLEN];
-                  bzero(buf, MAXSTRLEN);
-                  nff_dump(&client->ArgusNFFcode, buf, MAXSTRLEN, 1);
-                  ArgusDebug (5, "ArgusInitOutput: ArgusFilterCompile returned: \n%s\n", buf);
+                  char *code = NULL;
+                  if ((code = ArgusCalloc (1, MAXSTRLEN)) == NULL)
+                     ArgusLog (LOG_ERR, "ArgusInitOutput:ArgusCalloc error %s\n", strerror(errno));
+                  nff_dump(&client->ArgusNFFcode, code, MAXSTRLEN, 1);
+                  ArgusDebug (5, "ArgusInitOutput: ArgusFilterCompile returned: \n%s\n", code);
+                  ArgusFree (code);
                }
 #endif
             }
@@ -683,7 +685,7 @@ ArgusOutputProcess(void *arg)
             ts->tv_sec = tvp.tv_sec + 0;
             ts->tv_nsec = tvp.tv_usec * 1000;
             ts->tv_nsec += 100000000;
-            while (ts->tv_nsec > 1000000000) {
+            while (ts->tv_nsec >= 1000000000) {
                ts->tv_sec++; 
                ts->tv_nsec -= 1000000000;
             }
@@ -1410,7 +1412,7 @@ no_auth:
 
 
  
-#define ARGUSMAXCLIENTCOMMANDS           6
+#define ARGUSMAXCLIENTCOMMANDS          6
 #define RADIUM_START                    0
 #define RADIUM_DONE                     1
 #define RADIUM_FILTER                   2
@@ -1428,12 +1430,12 @@ char *ArgusClientCommands[ARGUSMAXCLIENTCOMMANDS] =
    "FILE: ",
 };
 
-
 int
 ArgusCheckClientMessage (struct ArgusOutputStruct *output, struct ArgusClientData *client)
 {
-   int retn = 0, cnt = 0, i, found, fd = client->fd;
-   char buf[MAXSTRLEN], *ptr = buf;
+   int retn = 0, cnt = 0, found = 0;
+   char *buf = NULL, *ptr = NULL;
+   int i,  fd = client->fd;
    unsigned int value = 0;
     
 #ifdef ARGUS_SASL
@@ -1441,147 +1443,194 @@ ArgusCheckClientMessage (struct ArgusOutputStruct *output, struct ArgusClientDat
    unsigned int outputlen = 0;
 #endif /* ARGUS_SASL */
 
-   bzero(buf, MAXSTRLEN);
-
-   if (value == 0)
+   if ((buf = ArgusCalloc (1, MAXSTRLEN)) != NULL) {
+      ptr = buf;
       value = MAXSTRLEN;
 
-   if ((cnt = recv (fd, buf, value, 0)) <= 0) {
-      if (cnt < 0) {
+      if ((cnt = recv (fd, buf, value, 0)) > 0) {
 #ifdef ARGUSDEBUG
-         ArgusDebug (5, "ArgusCheckClientMessage (%p, %p) recv(%d) returned error %s\n", output, client, fd, strerror(errno));
+         ArgusDebug (3, "ArgusCheckClientMessage (0x%x, %d) recv() returned %d bytes\n", client, fd, cnt);
 #endif
-         return (-1);
-
-      } else {
-#ifdef ARGUSDEBUG
-         ArgusDebug (5, "ArgusCheckClientMessage (%p, %p) recv(%d) returned %d bytes\n", output, client, fd, cnt);
-#endif
-         return(-3);
-      }
-
-   } else {
-#ifdef ARGUSDEBUG
-      ArgusDebug (6, "ArgusCheckClientMessage (%p, %p) recv(%d) returned %d bytes\n", output, client, fd, cnt);
-#endif
-   }
 
 #ifdef ARGUS_SASL
-   if ((client->sasl_conn)) {
-      const int *ssfp;
-      int result;
+         if ((client->sasl_conn)) {
+            const int *ssfp;
+            int result;
 
-      if ((result = sasl_getprop(client->sasl_conn, SASL_SSF, (const void **) &ssfp)) != SASL_OK)
-         ArgusLog (LOG_ERR, "sasl_getprop: error %s\n", sasl_errdetail(client->sasl_conn));
+            if ((result = sasl_getprop(client->sasl_conn, SASL_SSF, (const void **) &ssfp)) != SASL_OK)
+               ArgusLog (LOG_ERR, "sasl_getprop: error %s\n", sasl_errdetail(client->sasl_conn));
 
-      if (ssfp && (*ssfp > 0)) {
-         if (sasl_decode (client->sasl_conn, buf, cnt, &outputbuf, &outputlen) != SASL_OK) {
-            ArgusLog (LOG_WARNING, "ArgusCheckClientMessage(%p, %d) sasl_decode (%p, %p, %d, %p, %d) failed",
-                       client, fd, client->sasl_conn, buf, cnt, &outputbuf, outputlen);
-            return(-1);
-         } else {
+            if (ssfp && (*ssfp > 0)) {
+               if (sasl_decode (client->sasl_conn, buf, cnt, &outputbuf, &outputlen) != SASL_OK) {
+                  ArgusLog (LOG_WARNING, "ArgusCheckClientMessage(0x%x, %d) sasl_decode (0x%x, 0x%x, %d, 0x%x, %d) failed",
+                             client, fd, client->sasl_conn, buf, cnt, &outputbuf, outputlen);
+                  retn = -1;
+
+               } else {
 #ifdef ARGUSDEBUG
-            ArgusDebug (6, "ArgusCheckClientMessage (%p, %p) sasl_decode(%d) returned %d bytes\n", output, client, fd, outputlen);
+                  ArgusDebug (3, "ArgusCheckClientMessage (0x%x, %d) sasl_decode() returned %d bytes\n", client, fd, outputlen);
 #endif
+                  if (outputlen > 0) {
+                     if (outputlen < MAXSTRLEN) {
+                        memcpy (buf, outputbuf, outputlen);
+                        memset (&buf[outputlen], 0, MAXSTRLEN - outputlen);
+                        cnt = outputlen;
+                     } else {
+                        ArgusLog (LOG_ERR, "ArgusCheckClientMessage(0x%x, %d) sasl_decode returned %d bytes\n", client, fd, outputlen);
+                        retn = -1;
+                     }
+                  }
+               }
+            }
          }
-         if (outputlen > 0) {
-            if (outputlen < MAXSTRLEN) {
-               bzero (buf, MAXSTRLEN);
-               bcopy (outputbuf, buf, outputlen);
-               cnt = outputlen;
-            } else
-               ArgusLog (LOG_ERR, "ArgusCheckClientMessage(%p, %d) sasl_decode returned %d bytes\n", client, fd, outputlen);
-        
-         } else {
-            return (0);
-         }
-      }
-   }
 #endif /* ARGUS_SASL */
 
-#ifdef ARGUSDEBUG
-   ArgusDebug (2, "ArgusCheckClientMessage (%p, %p) read '%s' from remote\n", output, client, ptr);
-#endif
-
-   for (i = 0, found = 0; i < ARGUSMAXCLIENTCOMMANDS; i++) {
-      if (!(strncmp (ptr, ArgusClientCommands[i], strlen(ArgusClientCommands[i])))) {
-         found++;
-         switch (i) {
-            case RADIUM_START: client->ArgusClientStart++; retn = 0; break;
-            case RADIUM_DONE:  retn = -4; break; 
-            case RADIUM_FILTER: {
-               char *reply = NULL;
-               reply = ArgusFilterCompile (&client->ArgusNFFcode, &ptr[7], 1);
-               if (reply == NULL) {
-                  retn = -2;
-                  if ((cnt = send (fd, "ER", 2, 0)) != 2) {
-#ifdef ARGUSDEBUG
-                     ArgusDebug (4, "ArgusCheckClientMessage: send error %s\n", strerror(errno));
-#endif
-                  } 
-#ifdef ARGUSDEBUG
-                  ArgusDebug (3, "ArgusCheckClientMessage: ArgusFilter filter error: %s\n", &ptr[7]);
-#endif
-               } else 
-               if (strcmp(reply, "OK")) {
-                  retn = -3;
-                  if ((cnt = send (fd, reply, 2, 0)) != 2)  {
-#ifdef ARGUSDEBUG
-                     ArgusDebug (4, "ArgusCheckClientMessage: send error %s\n", strerror(errno));
-#endif
-                  }
-               } else {
-
-#ifdef ARGUSDEBUG
-                  char buf[MAXSTRLEN];
-                  bzero(buf, MAXSTRLEN);
-                  nff_dump(&client->ArgusNFFcode, buf, MAXSTRLEN, 1);
-                  ArgusDebug (3, "ArgusInitOutput: ArgusFilterCompile returned: \n%s\n", buf);
-#endif
-                  client->ArgusFilterInitialized++;
-                  if ((cnt = send (fd, "OK", 2, 0)) != 2) {
-                     retn = -3;
-#ifdef ARGUSDEBUG
-                     ArgusDebug (4, "ArgusCheckClientMessage: send error %s\n", strerror(errno));
-#endif
-                  } else {
-                     retn = 0;
-#ifdef ARGUSDEBUG
-                     ArgusDebug (4, "ArgusCheckClientMessage: ArgusFilter %s initialized.\n", &ptr[7]);
-#endif
-                  }
+         if (retn == 0) {
+            int isprintable = 1;
+            for (i = 0; i < cnt; i++) {
+               int c = ptr[i];
+               if (isprint(c) == 0) {
+                  isprintable = 0;
+                  break;
                }
-               break;
             }
 
-            case RADIUM_PROJECT: 
-            case RADIUM_MODEL: 
-               break;
+            if (isprintable) {
 
-            case RADIUM_FILE: {
 #ifdef ARGUSDEBUG
-                  ArgusDebug (6, "ArgusCheckClientMessage: ArgusFile %s initialized.\n", &ptr[6]);
+               ArgusDebug (2, "ArgusCheckClientMessage (%p, %p) read '%s' from remote\n", output, client, ptr);
 #endif
-                  retn = 0;
-               }
-               break;
 
-            default:
-               ArgusLog (LOG_WARNING, "ArgusCheckClientMessage: received %s",  ptr);
-               break;
+               for (i = 0, found = 0; i < ARGUSMAXCLIENTCOMMANDS; i++) {
+                  if (!(strncmp (ptr, ArgusClientCommands[i], strlen(ArgusClientCommands[i])))) {
+                     found++;
+                     switch (i) {
+                        case RADIUM_START: {
+                           client->ArgusClientStart++;
+                           retn = 0;
+                           break;
+                        }
+                        case RADIUM_DONE: {
+                           if (client->hostname != NULL)
+                              ArgusLog (LOG_INFO, "ArgusCheckClientMessage: client %s sent DONE", client->hostname);
+                           else
+                              ArgusLog (LOG_INFO, "ArgusCheckClientMessage: received DONE");
+                           retn = -4;
+                           break; 
+                        }
+                        case RADIUM_FILTER: {
+                           char *reply = NULL;
+                           if ((reply = ArgusFilterCompile (&client->ArgusNFFcode, &ptr[7], 1)) == NULL) {
+                              retn = -2;
+                              if ((cnt = send (fd, "ER", 2, 0)) != 2) {
+#ifdef ARGUSDEBUG
+                                 ArgusDebug (4, "ArgusCheckClientMessage: send error %s\n", strerror(errno));
+#endif
+                              } 
+#ifdef ARGUSDEBUG
+                              ArgusDebug (3, "ArgusCheckClientMessage: ArgusFilter filter error: %s\n", &ptr[7]);
+#endif
+                           } else {
+                              if (strcmp(reply, "OK")) {
+                                 retn = -3;
+                                 if ((cnt = send (fd, reply, 2, 0)) != 2)  {
+#ifdef ARGUSDEBUG
+                                    ArgusDebug (4, "ArgusCheckClientMessage: send error %s\n", strerror(errno));
+#endif
+                                 }
+                              } else {
+#ifdef ARGUSDEBUG
+                                 char *code = NULL;
+                                 if ((code = ArgusCalloc (1, MAXSTRLEN)) == NULL)
+                                    ArgusLog (LOG_ERR, "ArgusInitOutput:ArgusCalloc error %s\n", strerror(errno));
+                                 nff_dump(&client->ArgusNFFcode, code, MAXSTRLEN, 1);
+                                 ArgusDebug (5, "ArgusInitOutput: ArgusFilterCompile returned: \n%s\n", code);
+                                 ArgusFree (code);
+#endif
+                                 client->ArgusFilterInitialized++;
+                                 if ((cnt = send (fd, "OK", 2, 0)) != 2) {
+                                    retn = -3;
+#ifdef ARGUSDEBUG
+                                    ArgusDebug (4, "ArgusCheckClientMessage: send error %s\n", strerror(errno));
+#endif
+                                 } else {
+                                    retn = 0;
+#ifdef ARGUSDEBUG
+                                    ArgusDebug (4, "ArgusCheckClientMessage: ArgusFilter %s initialized.\n", &ptr[7]);
+#endif
+                                 }
+                              }
+                           }
+                           break;
+                        }
+
+                        case RADIUM_PROJECT: 
+                        case RADIUM_MODEL: 
+                           break;
+
+                        case RADIUM_FILE: {
+#ifdef ARGUSDEBUG
+                           ArgusDebug (6, "ArgusCheckClientMessage: ArgusFile %s initialized.\n", &ptr[6]);
+#endif
+                           retn = 0;
+                           break;
+                        }
+
+                        default:
+                           ArgusLog (LOG_WARNING, "ArgusCheckClientMessage: received %s",  ptr);
+                           break;
+                     }
+                  }
+               }
+
+               if (!found) {
+                  if (client->hostname)
+                     ArgusLog (LOG_INFO, "ArgusCheckClientMessage: client %s sent %s\n",  client->hostname, ptr);
+                  else
+                     ArgusLog (LOG_INFO, "ArgusCheckClientMessage: received %s\n",  ptr);
+               }
+
+            } else {
+               ArgusLog (LOG_INFO, "ArgusCheckClientMessage: client %s sent unprintable chars\n",  client->hostname);
+               retn = -1;
+            }
          }
 
-         break;
+      } else {
+         if (cnt == 0) {
+#ifdef ARGUSDEBUG
+            ArgusDebug (3, "%s (0x%x, %d) recv() found no connection\n", __func__, client, fd);
+#endif
+         } else {
+            switch(errno) {
+               default:
+               case EBADF:
+               case EINVAL:
+               case EIO:
+               case ENOMEM:
+               case ECONNREFUSED:
+#ifdef ARGUSDEBUG
+                  ArgusDebug (3, "ArgusCheckClientMessage (0x%x, %d) recv() returned error %s\n", client, fd, strerror(errno));
+#endif
+                  break;
+
+               case EINTR:
+               case ENOTSOCK:
+               case EWOULDBLOCK:
+                  break;
+            }
+         }
+         retn = -1;
       }
-   }
 
-   if (!found)
-      ArgusLog (LOG_WARNING, "ArgusCheckClientMessage: received %s",  ptr);
+      ArgusFree(buf);
 
+   } else
+     ArgusLog (LOG_ERR, "ArgusCheckClientMessage(%p, %p) ArgusCalloc error %s\n", output, client, strerror(errno));
+         
 #ifdef ARGUSDEBUG
    ArgusDebug (5, "ArgusCheckClientMessage: returning %d\n", retn);
 #endif
-
    return (retn);
 }
 
