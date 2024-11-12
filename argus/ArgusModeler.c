@@ -2294,7 +2294,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          if (model->ArgusEncapsCapture) {
             if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
                if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
-                  memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->dlen);
+                  memcpy(encaps->dbuf, model->ArgusThisPacket, encaps->dlen);
                }
             }
          }
