@@ -1,10 +1,10 @@
 .\"
-.\" Gargoyle Software
+.\" Argus Configuration Software
 .\" Copyright (c) 2000-2024 QoSient, LLC
 .\" All rights reserved.
 .\"
 .\"
-.TH ARGUS.CONF 5 "17 October 2024" "argus.conf 5.0.3"
+.TH ARGUS.CONF 5 "17 November 2024" "argus.conf 5.0.2"
 .SH NAME
 \fBargus.conf\fP \- \fBargus\fP resource file.
 .SH SYNOPSIS
@@ -29,11 +29,29 @@ and command-line order is very important.
 
 Variable assignments must be of the form:
 .nf
-  VARIABLE=
+  VARIABLE=value
+  VARIABLE="compound values"
 .fi
 with no white space between the VARIABLE and the '=' sign.
 Quotes are optional for string arguments, but if you want
 to embed comments, then quotes are required.
+
+.SH Comments
+
+Comments are supported using a '#' as the first character
+in the string, such as this string that you are reading.
+
+Embedded comments are supported preceeded by a " //" as you
+see in the C language.  The preceeding white space is very important.
+The space or tab is absolutely required to delimit the end of the 
+variable values and the beginning of the comment.  Without the space,
+the comment will be included as a part of the configuration variable.
+
+.nf
+   VARIABLE=value // comment
+   VARIABLE="compound values" // comment
+.fi
+
 
 .SH ARGUS_FLOW_TYPE / ARGUS_FLOW_KEY
 
@@ -103,13 +121,17 @@ have some understanding how a FQDN, or the special keyword  `hostname`
 will be resolved by the nameserver before commiting to this strategy
 completely.
 
-For convenience, argus supports the notion of "`hostname`" for assigning
-the probe's id.  This is a pre-V5 strategy is to support management of large
-deployments, so you can have one argus.conf file that works for a lot of probes.
+For convenience, argus supports the notion of "`hostname`" and
+"`hostuuid`" for assigning the probe's id.  This is to support 
+general management of larger deployments, so you can have one
+argus.conf file that works for a lot of probes.
+
+The use of `hostuuid` is targeted at Windows, Linux and Apple computers,
+that have a UUID assigned to the machine.
 
 With Argus V5 (gargoyle), the srcid formats are extended to include
 128-bit values, designed primarily to support host UUIDs, and to add
-4 bytes interface identifiers, to create a compount source identifier.
+4 bytes interface identifiers, to create a compound source identifier.
 
 The actual interface name, reduced to a 4 byte string, can be added to the
 srcid, through static specification, or automatically, when the keyword "inf"
@@ -146,6 +168,7 @@ Commandline equivalent   -e
 \fBARGUS_MONITOR_ID\fP=5E487EDE-B311-5E80-B69F-967E5E6C7A9F            // UUID
 \fBARGUS_MONITOR_ID\fP=uuid:/5E487EDE-B311-5E80-B69F-967E5E6C7A9F      // type:UUID
 \fBARGUS_MONITOR_ID\fP=uuid:/5E487EDE-B311-5E80-B69F-967E5E6C7A9F/en0  // type:UUID/inf
+\fBARGUS_MONITOR_ID\fP=`hostuuid`                                      // UUID
 \fBARGUS_MONITOR_ID\fP=`hostname`                                      // IPv4 address returned
 \fBARGUS_MONITOR_ID\fP=10.2.45.3                                       // IPv4 address
 \fBARGUS_MONITOR_ID\fP=ipv4:/10.2.45.3                                 // IPv4 address
@@ -191,6 +214,9 @@ as all ra* clients are configured to try this port by default.
 Commandline equivalent  -P
 
 \fBARGUS_ACCESS_PORT=\fP561
+
+Another port, such as 562 would be used, if \fBradium.1\fP is used to
+provide argus data access on port 561.
 
 
 .SH ARGUS_BIND_IP
@@ -518,6 +544,31 @@ Commandline equivalent  -M
 \fBARGUS_MAR_STATUS_INTERVAL=\fP300
 
 
+.SH ARGUS_FLOW_TIMEOUTs
+
+Argus has a number of flow state timers that specify how long argus 
+will 'remember' the caches of specific flows after they have gone
+idle.  
+
+The default values have been chosen to aggresively timeout flow
+caches to conserve memory utilization.  Increasing values can have
+an impact on argus memory use, so take care when modifying values.
+
+The maxium value for any timeout is 65534 seconds.
+
+If you think there is a flow type that doesn't have appropriate
+timeout support, send email to the developer's list, we'll add one
+for you.
+
+\fBARGUS_IP_TIMEOUT=\fP30 
+\fBARGUS_TCP_TIMEOUT=\fP60
+\fBARGUS_ICMP_TIMEOUT=\fP5
+\fBARGUS_IGMP_TIMEOUT=\fP30
+\fBARGUS_FRAG_TIMEOUT=\fP5
+\fBARGUS_ARP_TIMEOUT=\fP5 
+\fBARGUS_OTHER_TIMEOUT=\fP30
+
+
 .SH ARGUS_DEBUG_LEVEL
 
 If compiled to support this option, Argus is capable of
@@ -528,6 +579,21 @@ The default value is zero (0).
 Commandline equivalent  -D
 
 \fBARGUS_DEBUG_LEVEL=\fP0
+
+
+.SH ARGUS_GENERATE_RESPONSE_TIME_DATA
+
+Argus can be configured to report on flows in a manner than
+provides the best information for calculating application
+reponse times and network round trip times.
+
+# The default value is to not generate this data.
+#
+# Commandline equivalent   -R
+#
+
+#ARGUS_GENERATE_RESPONSE_TIME_DATA=no
+
 
 
 .SH ARGUS_GENERATE_PACKET_SIZE
@@ -799,6 +865,37 @@ length to 300MB, if your system supports this feature.
 .fi
 
 
+.SH ARGUS_TUNNEL_PARSING
+
+How Argus processes tunnel headers is configurable.
+ default Argus will parse any tunnel header that it
+encounters, and continue until it reaches an outermost
+L4 header, the end-to-end headers.
+
+Some users may need argus to stop at the first tunnel, or
+a specific, tunnel protocol. This option if set to "no",
+will stop processing at the first tunnel protocol header
+encountered.
+
+The default is to turn this feature on.
+
+\fBARGUS_TUNNEL_PARSING=\fP"yes"
+
+
+.SH ARGUS_TUNNEL_INFORMATION
+
+When Argus is configured to parser through tunnels, it
+can be configured to capture tunnel features, such as L3
+addresses.  When this is set to "yes", argus will formulate
+a flow spec for each tunnel encountered, and store it in
+a tunnel specific DSR.
+
+The default is to not turn this feature on.
+
+\fBARGUS_TUNNEL_INFORMATION=\fP"no"
+
+
+
 .SH ARGUS_TUNNEL_DISCOVERY
 
 Argus can be configured to discover tunneling protocols
@@ -812,6 +909,34 @@ The default is to not turn this feature on.
 .nf
 \fBARGUS_TUNNEL_DISCOVERY=\fPno
 .fi
+
+
+.SH ARGUS_TRACK_DUPLICATES
+
+Argus can be configured to identify and track duplicate
+packets as a separate metric.  While the algorithms are
+traffic type specific, you can use this strategy to
+identify problems within your packet collection infrastructure.
+
+The default is to not turn this feature on, but for some
+this feature is invaluable.
+
+\fBARGUS_TRACK_DUPLICATES=\fP"no"
+
+
+.SH ARGUS_SELF_SYNCHRONIZE
+
+Argus can be configured to be self synchronizing with other
+argi.  This involves using state from packets contents to
+synchronize the flow reporting.
+
+# This adds additional complexity for deciding when to export
+flow records, and could unnecessarily increase the number
+of argus records generated.  We recommend that you use this
+feature when you really need to.
+
+\fBARGUS_SELF_SYNCHRONIZE=\fPyes
+
 
 
 .SH ARGUS_EVENT_DATA
@@ -908,6 +1033,27 @@ to fingerprint using pf.os or nmap like algorithms.
 .nf
 \fBARGUS_OS_FINGERPRINTING=\fP"no"
 .fi
+
+
+.SH ARGUS_GENERATE_HASH_METRICS
+
+This version of Argus supports exporting hash values for each flow.
+
+\fBARGUS_GENERATE_HASH_METRICS=\fP"yes"
+
+
+.SH ARGUS_HASHTABLE_SIZE
+
+This version of Argus supports modifing the default flow classification
+hash table size using this configuration file.  Larger hash table sizes will
+improve sensor performance by reducing the 'big O' complexity of looking
+up cached flow records.  
+
+The default value of 4096 is designed for endpoint sensing, where the number
+of flows should be < 1M per day.  For high performance sensors (40-100G) we
+recommend > 10M (0x1000000) for the hash table.
+
+\fBARGUS_HASHTABLE_SIZE=\fP4096
 
 .RE
 .SH SEE ALSO
