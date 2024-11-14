@@ -26,15 +26,19 @@ CREDITS
 This list of people are just some of the people that contributed
 significantly to the Argus Project, over its 30 years.
 
+Little QoSient, LLC which made Argus the core of its business
+   Carter Bullard
+   Eric Kinzie
+
 The individuals that have contributed the most to the theory 
 of Argus and its applications in networking and computer science
-have been:
-   Dr. Tony Przygienda
+are:
+   Dr. Tony Przygienda - Juniper
    Rob Coltun
-   Lou Berger
+   Lou Berger - LabN
 
 The great people at Carenegie Mellon Univeristy who provided
-great support with all things, emotion, time and resources:
+support with all things, emotion, time and resources:
    Mark Poepping
    Chas DiFatta
 
@@ -46,14 +50,14 @@ The amazing group at Georgia Tech, where Argus got it start.
 
 The Stanford group that have provided the richest source
 for Argus innovation in the areas of behavior and dynamism
-over the last 10 years
+over the last 20 years
    John Gerth
    MN
    Joseph Little
    Johan van Reijendam
 
-The group at GLORIAD that have implemented the largest
-geographic area covered by Argus ... the entire Planet !!
+The group at GLORIAD that implemented the largest geographic area
+covered by Argus ... the entire Planet !!
    Greg Cole
    Harika Tandra
 
@@ -63,8 +67,7 @@ written about Argus in their research, books, and work !!
    CS Lee
    Doug Burk
  
-
-With the greatest thanks to the late Dr. Hank Dardy, Cheif
+With the greatest thanks to the late Dr. Hank Dardy, Chief
 Scientist of the U.S. Naval Research Laboratory for his amazing
 visonary support of flow monitoring and his group at NRL
 that provided support, opinions, suggestions, criticisms
@@ -74,6 +77,7 @@ and/or attitude about flows:
    Eric Kinzie 
    Heidi Hornstein
    Dharmesh Shah
+
 
 
 Much of the work on argus has been done by the members of the
@@ -149,6 +153,7 @@ Here is the remaining, very distinguished list, in alphabetical order.
    Estuardo Gamarro
    Fabrice Fothe Fopa
    Florenzi Alessandro
+   Florian Weimer
    Fyodor
    George Jones
    George Nychis
@@ -208,6 +213,7 @@ Here is the remaining, very distinguished list, in alphabetical order.
    Laird Anglesey
    Lee Zelyck
    Lei Wei
+   Luke Whitworth
    Makatesi
    Manaf Gharalbeh
    Mark Bartlett
@@ -227,11 +233,13 @@ Here is the remaining, very distinguished list, in alphabetical order.
    Michael Sandee
    Michael Sanderson
    Michal Purzynaski
+   Miel Verkerken
    Mike Iglesias
    Mike Patterson
    Mike Slifcak
    Mike Tancsa
    miodek (Michael)
+   Ming Fu
    modversion
    morfoh (Chris)
    Morgan DeRodeff
@@ -267,6 +275,7 @@ Here is the remaining, very distinguished list, in alphabetical order.
    Prashanth Prahalad
    Rafael Barbosa
    Raphael Campos Silva
+   Raphael Isemann
    Raffael Marty
    Rahimeh Kodadadi
    Ralf Spenneberg
@@ -333,3 +342,4 @@ Here is the remaining, very distinguished list, in alphabetical order.
    Wolfgang Barth
    Yotam Rubin
    Zi Hu
+
