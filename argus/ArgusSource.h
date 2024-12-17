@@ -864,7 +864,7 @@ int getArgusMoatTshFile (struct ArgusSourceStruct *);
 
 void setArgusWriteOutPacketFile (struct ArgusDumpStruct *, char *);
 
-
+int ArgusCloseDump (struct ArgusDumpStruct *);
 
 unsigned char getArgusInterfaceType(struct ArgusSourceStruct *);
 void setArgusInterfaceType(struct ArgusSourceStruct *, unsigned char);

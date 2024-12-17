@@ -930,6 +930,11 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
             pcap_close(src->ArgusInterface[j].ArgusPd);
             src->ArgusInterface[j].ArgusPd = NULL;
          }
+         if (src->ArgusInterface[j].ArgusDump) {
+            struct ArgusDumpStruct *dump = src->ArgusInterface[j].ArgusDump;
+            src->ArgusInterface[j].ArgusDump = NULL;
+            ArgusCloseDump(dump);
+         }
       }
 
       if (src->ArgusInputFilter) {
@@ -2368,6 +2373,30 @@ ArgusNewDump (struct ArgusSourceStruct *src, struct ArgusInterfaceStruct *inf)
 
    return retn;
 }
+
+int
+ArgusCloseDump (struct ArgusDumpStruct *dump) 
+{     
+   int retn = 0;
+         
+#if defined(ARGUS_THREADS)
+   pthread_mutex_destroy(&dump->lock);
+#endif   
+
+   if (dump->ppc != NULL)
+      free (dump->ppc);
+      
+   if (dump->ArgusWriteOutPacketFile != NULL)
+      free (dump->ArgusWriteOutPacketFile);
+
+   if (dump->ArgusPcapOutFile != NULL) {
+      pcap_dump_close(dump->ArgusPcapOutFile);
+      dump->ArgusPcapOutFile = NULL;
+   }
+   
+   ArgusFree(dump);
+   return retn;
+}  
 
 void
 setArgusPacketCaptureProtocols(struct ArgusDumpStruct *dump, char *optarg)
