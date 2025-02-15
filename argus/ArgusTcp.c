@@ -155,6 +155,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                   ArgusThisTCPsrc->seq      = tcp->th_seq; 
                   ArgusThisTCPsrc->win      = tcp->th_win;
                   ArgusThisTCPsrc->flags   |= flags; 
+                  ArgusThisTCPsrc->status  |= ARGUS_SAW_SYN;
       
                   if ((flags & (TH_ECE|TH_CWR)) == (TH_ECE|TH_CWR))
                      tcpExt->options |= ARGUS_TCP_SRC_ECN;
@@ -170,6 +171,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                   ArgusThisTCPsrc->seq      = tcp->th_seq;
                   ArgusThisTCPsrc->win      = tcp->th_win;
                   ArgusThisTCPsrc->flags   |= flags; 
+                  ArgusThisTCPsrc->status  |= ARGUS_SAW_SYN_SENT;
 
                   ArgusThisTCPdst->ack      = tcp->th_ack - 1;
 
@@ -195,6 +197,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
 
                   ArgusThisTCPsrc->seq      = tcp->th_seq + model->ArgusThisLength;
                   ArgusThisTCPsrc->win      = tcp->th_win;
+                  ArgusThisTCPsrc->status  |= ARGUS_CON_ESTABLISHED;
                   break;
       
                case (TH_FIN):
@@ -210,6 +213,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
 
                   ArgusThisTCPsrc->seq      = tcp->th_seq + model->ArgusThisLength;
                   ArgusThisTCPsrc->win      = tcp->th_win;
+                  ArgusThisTCPsrc->status  |= ARGUS_FIN;
                   break;
       
                default:
@@ -223,6 +227,8 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                   
                   if (!(flags & TH_RST))
                      ArgusThisTCPsrc->win      = tcp->th_win;
+
+                  ArgusThisTCPsrc->status  |= ARGUS_CON_ESTABLISHED;
                   break;
             }
 
@@ -250,7 +256,7 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
             case TCPS_FIN_WAIT_2:
             case TCPS_TIME_WAIT:
             case TCPS_LISTEN: {
-               if (flags & TH_SYN) {
+               if (flags == TH_SYN) {
                   ArgusSendFlowRecord (model, flowstr, ARGUS_STOP);
                   ArgusZeroRecord (flowstr);
                   ArgusRemoveFromQueue(flowstr->qhdr.queue, &flowstr->qhdr, ARGUS_LOCK);
@@ -260,9 +266,6 @@ ArgusUpdateTCPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
 
                   ArgusPushQueue(model->ArgusStatusQueue, &flowstr->qhdr, ARGUS_LOCK);
                   return;
-                  
-//                ArgusUpdateBasicFlow (model, flowstr, ARGUS_START);
-//                ArgusUpdateTCPState (model, flowstr, state);
                }
             }
 
@@ -459,10 +462,21 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                }
 
             } else {
+               if ((flags & TH_ACK) && (tcpExt->status & ARGUS_SAW_SYN)) {
+                  ArgusThisTCPsrc->status |= ARGUS_PKTS_RETRANS;
+	       } else {
+                  ArgusThisTCPsrc->status |= ARGUS_OUTOFORDER;
+                  if (tcpExt->status & ARGUS_SAW_SYN_SENT) {
+                     struct ArgusSystemFlow *fdsr = (struct ArgusSystemFlow *)flowstr->dsrs[ARGUS_FLOW_INDEX];
+                     if (fdsr != NULL) {
+//                      fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
+//                      fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
+                     }
+	          }
+	       }
                tcpExt->status |= ARGUS_SAW_SYN;
-               ArgusThisTCPsrc->status |= ARGUS_PKTS_RETRANS;
+               ArgusThisTCPsrc->status |= ARGUS_SAW_SYN;
             }
-
             break;
          }
     
