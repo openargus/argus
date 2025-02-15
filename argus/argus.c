@@ -1059,7 +1059,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				67
+#define ARGUS_RCITEMS				68
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1086,48 +1086,49 @@ getArguspidflag ()
 #define ARGUS_MIN_SSF				22
 #define ARGUS_MAX_SSF				23
 #define ARGUS_COLLECTOR				24
-#define ARGUS_FLOW_TYPE				25
-#define ARGUS_FLOW_KEY				26
-#define ARGUS_GENERATE_APPBYTE_METRIC		27
-#define ARGUS_CHROOT_DIR			28
-#define ARGUS_SETUSER_ID			29
-#define ARGUS_SETGROUP_ID			30
-#define ARGUS_GENERATE_TCP_PERF_METRIC		31
-#define ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS 32
-#define ARGUS_GENERATE_PACKET_SIZE		33
-#define ARGUS_ENV				34
-#define ARGUS_CAPTURE_FULL_CONTROL_DATA         35
-#define ARGUS_SELF_SYNCHRONIZE                  36
-#define ARGUS_EVENT_DATA                        37
-#define ARGUS_JITTER_HISTOGRAM                  38
-#define ARGUS_OUTPUT_STREAM                     39
-#define ARGUS_KEYSTROKE				40
-#define ARGUS_KEYSTROKE_CONF			41
-#define ARGUS_TUNNEL_DISCOVERY			42
-#define ARGUS_IP_TIMEOUT			43
-#define ARGUS_TCP_TIMEOUT			44
-#define ARGUS_ICMP_TIMEOUT			45
-#define ARGUS_IGMP_TIMEOUT			46
-#define ARGUS_FRAG_TIMEOUT			47
-#define ARGUS_ARP_TIMEOUT			48
-#define ARGUS_OTHER_TIMEOUT			49
-#define ARGUS_TRACK_DUPLICATES			50
-#define ARGUS_PCAP_BUF_SIZE			51
-#define ARGUS_OS_FINGERPRINTING			52
-#define ARGUS_CONTROLPLANE_PROTO		53
-#define ARGUS_PCAP_DISPATCH_NUM			54
-#define ARGUS_HASHTABLE_SIZE			55
-#define ARGUS_GENERATE_HASH_METRICS		56
-#define ARGUS_INTERFACE_SCAN_INTERVAL		57
-#define ARGUS_LOG_DISPLAY_PRIORITY		58
-#define ARGUS_MAR_INTERFACE_INTERVAL		59
-#define ARGUS_TIMESTAMP_TYPE			60
-#define ARGUS_DEDUP				61
-#define ARGUS_PACKET_SIZE_HISTOGRAM		62
-#define ARGUS_TUNNEL_PARSING			63
-#define ARGUS_TUNNEL_INFORMATION		64
-#define ARGUS_BIND_IP				65
-#define ARGUS_ENCAPS_CAPTURE			66
+#define ARGUS_FLOW_START			25
+#define ARGUS_FLOW_TYPE				26
+#define ARGUS_FLOW_KEY				27
+#define ARGUS_GENERATE_APPBYTE_METRIC		28
+#define ARGUS_CHROOT_DIR			29
+#define ARGUS_SETUSER_ID			30
+#define ARGUS_SETGROUP_ID			31
+#define ARGUS_GENERATE_TCP_PERF_METRIC		32
+#define ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS 33
+#define ARGUS_GENERATE_PACKET_SIZE		34
+#define ARGUS_ENV				35
+#define ARGUS_CAPTURE_FULL_CONTROL_DATA         36
+#define ARGUS_SELF_SYNCHRONIZE                  37
+#define ARGUS_EVENT_DATA                        38
+#define ARGUS_JITTER_HISTOGRAM                  39
+#define ARGUS_OUTPUT_STREAM                     40
+#define ARGUS_KEYSTROKE				41
+#define ARGUS_KEYSTROKE_CONF			42
+#define ARGUS_TUNNEL_DISCOVERY			43
+#define ARGUS_IP_TIMEOUT			44
+#define ARGUS_TCP_TIMEOUT			45
+#define ARGUS_ICMP_TIMEOUT			46
+#define ARGUS_IGMP_TIMEOUT			47
+#define ARGUS_FRAG_TIMEOUT			48
+#define ARGUS_ARP_TIMEOUT			49
+#define ARGUS_OTHER_TIMEOUT			50
+#define ARGUS_TRACK_DUPLICATES			51
+#define ARGUS_PCAP_BUF_SIZE			52
+#define ARGUS_OS_FINGERPRINTING			53
+#define ARGUS_CONTROLPLANE_PROTO		54
+#define ARGUS_PCAP_DISPATCH_NUM			55
+#define ARGUS_HASHTABLE_SIZE			56
+#define ARGUS_GENERATE_HASH_METRICS		57
+#define ARGUS_INTERFACE_SCAN_INTERVAL		58
+#define ARGUS_LOG_DISPLAY_PRIORITY		59
+#define ARGUS_MAR_INTERFACE_INTERVAL		60
+#define ARGUS_TIMESTAMP_TYPE			61
+#define ARGUS_DEDUP				62
+#define ARGUS_PACKET_SIZE_HISTOGRAM		63
+#define ARGUS_TUNNEL_PARSING			64
+#define ARGUS_TUNNEL_INFORMATION		65
+#define ARGUS_BIND_IP				66
+#define ARGUS_ENCAPS_CAPTURE			67
 
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
@@ -1156,6 +1157,7 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MIN_SSF=",
    "ARGUS_MAX_SSF=",
    "ARGUS_COLLECTOR=",
+   "ARGUS_FLOW_START=",
    "ARGUS_FLOW_TYPE=",
    "ARGUS_FLOW_KEY=",
    "ARGUS_GENERATE_APPBYTE_METRIC=",
@@ -1677,6 +1679,27 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_COLLECTOR:
                            break;
+
+                        case ARGUS_FLOW_START: {
+                           char *ptr = optarg;
+                           int i = 0, status = 0;
+                           if ((ptr = strchr(optarg, ':')) != NULL) {
+                              if (!(strncasecmp(optarg, "Pre:", 4)))
+                                 status = ARGUS_START_PRE_PROTO;
+
+                              if (!(strncasecmp(optarg, "Post:", 5)))
+                                 status = ARGUS_START_PRE_PROTO;
+                              ptr++;
+			   }
+
+			   while (argus_encapsulations[i].label != NULL) {
+			      if (strcasecmp(ptr, argus_encapsulations[i].label) == 0) {
+			         model->ArgusStartEncaps = argus_encapsulations[i].code;
+			      }
+			      i++;
+			   }
+                           break;
+                        }
 
                         case ARGUS_FLOW_TYPE:
                            if (!(strncasecmp(optarg, "Uni", 3)))

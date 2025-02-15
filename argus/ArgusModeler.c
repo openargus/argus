@@ -1700,6 +1700,10 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
       model->ArgusThisUpHdr = (unsigned char *)p;
       model->ArgusThisBytes = length;
 
+      if (model->ArgusFlowOffset > 0) {
+         ptr += model->ArgusFlowOffset;
+      }
+
       while (type > 0) {
          if (type < 512) {
             if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[type]))
@@ -1707,6 +1711,11 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
 	 }
          if ((type = ArgusProcessPacketHdrs (model, ptr, model->ArgusThisLength, type)) >= 0)
             ptr = (char *)model->ArgusThisUpHdr;
+
+         if (model->ArgusThisEncaps & ARGUS_ENCAPS_VXLAN) {
+            if (model->ArgusFlowOffset == 0) 
+               model->ArgusFlowOffset = (int)(ptr - p);
+         }
       }
 
       model->ArgusThisPacket = (unsigned char *) p;

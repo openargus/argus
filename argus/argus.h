@@ -76,6 +76,8 @@
 #define VERSION_MAJOR      MAJOR_VERSION_5
 #define VERSION_MINOR      MINOR_VERSION_0
 
+#define ARGUS_START_PRE_PROTO      1
+#define ARGUS_START_POST_PROTO     2
 
 #if defined(Argus)
 

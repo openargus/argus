@@ -241,6 +241,8 @@ struct ArgusModelerStruct {
    unsigned int ArgusTransactionNum;
 
    unsigned int ArgusThisInterface;
+   unsigned int ArgusStartEncaps;
+   unsigned int ArgusFlowOffset;
    unsigned int ArgusThisEncaps;
    unsigned int ArgusThisEncapsLength;
    unsigned int ArgusThisNetworkFlowType;
