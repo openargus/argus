@@ -2125,7 +2125,7 @@ int ArgusGenerateStartRecords = 0;
 struct ArgusFlowStruct *
 ArgusNewFlow (struct ArgusModelerStruct *model, struct ArgusSystemFlow *flow, struct ArgusHashStruct *hstruct, struct ArgusQueueStruct *queue)
 {
-   struct ArgusFlowStruct *retn = NULL;
+   struct ArgusFlowStruct *flowstr = NULL;
    int timeout = ARGUS_OTHERTIMEOUT, userlen = 0;
    int len = flow->hdr.argus_dsrvl8.len;
 
@@ -2133,45 +2133,45 @@ ArgusNewFlow (struct ArgusModelerStruct *model, struct ArgusSystemFlow *flow, st
       model->ArgusTotalNewFlows++;
       userlen = getArgusUserDataLen(model);
 
-      retn = (struct ArgusFlowStruct *) ArgusMallocAligned(sizeof(*retn), 64);
-      if (retn != NULL) {
+      flowstr = (struct ArgusFlowStruct *) ArgusMallocAligned(sizeof(*flowstr), 64);
+      if (flowstr != NULL) {
          int value;
 
-         memset(retn, 0, sizeof(*retn));
-         retn->status          = ARGUS_START;
-         retn->state           = model->state & ARGUS_DIRECTION;
-         retn->trans           = model->ArgusTransactionNum++;
-         retn->userlen         = userlen;
+         memset(flowstr, 0, sizeof(*flowstr));
+         flowstr->status          = ARGUS_START;
+         flowstr->state           = model->state & ARGUS_DIRECTION;
+         flowstr->trans           = model->ArgusTransactionNum++;
+         flowstr->userlen         = userlen;
 
-         retn->srcint          = -1;
-         retn->dstint          = -1;
+         flowstr->srcint          = -1;
+         flowstr->dstint          = -1;
 
          if (queue != NULL) {
-            retn->qhdr.lasttime.tv_sec  = model->ArgusGlobalTime.tv_sec;
-            retn->qhdr.lasttime.tv_usec = model->ArgusGlobalTime.tv_usec;
+            flowstr->qhdr.lasttime.tv_sec  = model->ArgusGlobalTime.tv_sec;
+            flowstr->qhdr.lasttime.tv_usec = model->ArgusGlobalTime.tv_usec;
          }
 
-         retn->dsrs[ARGUS_FLOW_INDEX] = (struct ArgusDSRHeader *) &retn->canon.flow.hdr;
-         retn->canon.flow.hdr = flow->hdr;
+         flowstr->dsrs[ARGUS_FLOW_INDEX] = (struct ArgusDSRHeader *) &flowstr->canon.flow.hdr;
+         flowstr->canon.flow.hdr = flow->hdr;
 
-         bcopy ((char *)&flow->flow_un, (char *)&retn->canon.flow.flow_un, (flow->hdr.argus_dsrvl8.len - 1) * 4);
-         retn->dsrindex |= 1 << ARGUS_FLOW_INDEX;
+         bcopy ((char *)&flow->flow_un, (char *)&flowstr->canon.flow.flow_un, (flow->hdr.argus_dsrvl8.len - 1) * 4);
+         flowstr->dsrindex |= 1 << ARGUS_FLOW_INDEX;
 
-         if (retn->state & ARGUS_DIRECTION)
-            retn->dsrs[ARGUS_FLOW_INDEX]->subtype |= ARGUS_REVERSE;
+         if (flowstr->state & ARGUS_DIRECTION)
+            flowstr->dsrs[ARGUS_FLOW_INDEX]->subtype |= ARGUS_REVERSE;
 
          if (hstruct != NULL) {
-            if ((retn->htblhdr = ArgusAddHashEntry (model->ArgusHashTable, retn, hstruct)) != NULL) {
+            if ((flowstr->htblhdr = ArgusAddHashEntry (model->ArgusHashTable, flowstr, hstruct)) != NULL) {
                if (queue != NULL)
-                  ArgusPushQueue(queue, &retn->qhdr, ARGUS_LOCK);
+                  ArgusPushQueue(queue, &flowstr->qhdr, ARGUS_LOCK);
             } else
                ArgusLog (LOG_ERR, "ArgusNewFlow() ArgusAddHashEntry error %s.\n", strerror(errno));
          }
 
          if ((value = getArgusKeystroke(model)) > 0) {
             if (value & ARGUS_SSH_KEYSTROKE)
-               retn->status |= ARGUS_SSH_MONITOR;
-            retn->skey.prev_pno = 0 - model->ArgusKeyStroke.gpc_max;
+               flowstr->status |= ARGUS_SSH_MONITOR;
+            flowstr->skey.prev_pno = 0 - model->ArgusKeyStroke.gpc_max;
          }
 
       } else
@@ -2182,8 +2182,8 @@ ArgusNewFlow (struct ArgusModelerStruct *model, struct ArgusSystemFlow *flow, st
          case ETHERTYPE_IP:
             timeout = model->ArgusIPTimeout;
             model->ArgusTotalIPFlows++;
-            if (ArgusControlPlaneProtocol(model, retn))
-               retn->userlen = ARGUS_MAXSNAPLEN;
+            if (ArgusControlPlaneProtocol(model, flowstr))
+               flowstr->userlen = ARGUS_MAXSNAPLEN;
             break;
  
          case ETHERTYPE_ARP:
@@ -2191,14 +2191,14 @@ ArgusNewFlow (struct ArgusModelerStruct *model, struct ArgusSystemFlow *flow, st
             timeout = model->ArgusARPTimeout;
             model->ArgusTotalNonIPFlows++;
             if (getArgusControlMonitor(model))
-               retn->userlen = ARGUS_MAXSNAPLEN;
+               flowstr->userlen = ARGUS_MAXSNAPLEN;
             break;
  
          case ARGUS_ISIS:
             timeout = ARGUS_OTHERTIMEOUT;
             model->ArgusTotalNonIPFlows++;
             if (getArgusControlMonitor(model))
-               retn->userlen = ARGUS_MAXSNAPLEN;
+               flowstr->userlen = ARGUS_MAXSNAPLEN;
             break;
  
          default:
@@ -2207,16 +2207,16 @@ ArgusNewFlow (struct ArgusModelerStruct *model, struct ArgusSystemFlow *flow, st
             break;
       }
 
-      retn->timeout         = timeout;
+      flowstr->timeout         = timeout;
 
    } else
       ArgusLog (LOG_WARNING, "ArgusNewFlow() flow key is not correct len equals zero\n");
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (8, "ArgusNewFlow() returning %p\n", retn);
+   ArgusDebug (8, "ArgusNewFlow() returning %p\n", flowstr);
 #endif 
 
-   return (retn);
+   return (flowstr);
 }
 
 

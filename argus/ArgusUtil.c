@@ -1179,7 +1179,6 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
                               tcp->dst.ackbytes = 0;
                               tcp->src.seqbase  = tcp->src.seq;
                               tcp->dst.seqbase  = tcp->dst.seq;
-
                               break;
                            }
 
