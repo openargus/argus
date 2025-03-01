@@ -57,6 +57,7 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 
 #if defined(HAVE_XDR)
 #include <rpc/types.h>
@@ -188,10 +189,10 @@ ArgusAdjustGlobalTime (struct timeval *global, struct timeval *now)
 extern char *print_time(struct timeval *);
 
 
+#define ARGUSLOGBUFLEN	1024
+
 #ifdef ARGUSDEBUG
 void ArgusDebug (int d, char *fmt, ...);
-
-#include <sys/time.h>
 
 void
 ArgusDebug (int d, char *fmt, ...)
@@ -199,13 +200,14 @@ ArgusDebug (int d, char *fmt, ...)
    struct timeval now;
    extern int Argusdflag, daemonflag;
    char *buf = NULL, *ptr;
+   int len = 0;
    va_list ap;
 
    if (d <= Argusdflag) {
       va_start (ap, fmt);
 
       if ((buf = ArgusCalloc (1, MAXSTRLEN)) == NULL)
-         ArgusLog (LOG_ERR, "ArgusNewDump: ArgusCalloc error %s\n", strerror(errno));
+         ArgusLog (LOG_ERR, "ArgusDebug: ArgusCalloc error %s\n", strerror(errno));
       ptr = buf;
 
       gettimeofday (&now, 0L);
@@ -213,24 +215,33 @@ ArgusDebug (int d, char *fmt, ...)
 #if defined(ARGUS_THREADS)
       {
          pthread_t ptid;
-         char pbuf[128];
+         char *pbuf = NULL;
          int i;
 
-         bzero(pbuf, sizeof(pbuf));
+         if ((pbuf = ArgusCalloc(1, 128)) == NULL)
+            exit(-1);
+
          ptid = pthread_self();
          for (i = 0; i < sizeof(ptid); i++) {
             snprintf (&pbuf[i*2], 3, "%02hhx", ((char *)&ptid)[i]);
          }
          (void) snprintf (buf, MAXSTRLEN, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
+         ArgusFree(pbuf);
       }
-      ptr = &buf[strlen(buf)];
 
-      (void) vsnprintf (ptr, 1024, fmt, ap);
-      ptr = &buf[strlen(buf)];
-      if (*fmt) {
-         fmt += (int) strlen (fmt);
-         if (fmt[-1] != '\n')
-            snprintf (ptr, 2, "\n");
+      len = strlen(buf);
+      if (len < (MAXSTRLEN - ARGUSLOGBUFLEN)) {
+         ptr = &buf[len];
+         (void) vsnprintf (ptr, ARGUSLOGBUFLEN, fmt, ap);
+      }
+      len = strlen(buf);
+      if (len < (MAXSTRLEN - 2)) {
+         ptr = &buf[len];
+         if (*fmt) {
+            fmt += (int) strlen (fmt);
+            if (fmt[-1] != '\n')
+               snprintf (ptr, 2, "\n");
+         }
       }
 
       if (daemonflag) {
@@ -240,15 +251,22 @@ ArgusDebug (int d, char *fmt, ...)
       } else
          fprintf (stderr, "%s", buf);
 #else
+      bzero(buf, MAXSTRLEN);
       (void) snprintf (buf, MAXSTRLEN, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
-      ptr = &buf[strlen(buf)];
 
-      (void) vsnprintf (ptr, 1024, fmt, ap);
-      ptr = &buf[strlen(buf)];
-      if (*fmt) {
-         fmt += (int) strlen (fmt);
-         if (fmt[-1] != '\n')
-            snprintf (ptr, 2, "\n");
+      len = strlen(buf);
+      if (len < (MAXSTRLEN - ARGUSLOGBUFLEN)) {
+         ptr = &buf[len];
+         (void) vsnprintf (ptr, ARGUSLOGBUFLEN, fmt, ap);
+      }
+      len = strlen(buf);
+      if (len < (MAXSTRLEN - 2)) {
+         ptr = &buf[len];
+         if (*fmt) {
+            fmt += (int) strlen (fmt);
+            if (fmt[-1] != '\n')
+               snprintf (ptr, 2, "\n");
+         }
       }
 
       if (daemonflag) {
@@ -259,10 +277,10 @@ ArgusDebug (int d, char *fmt, ...)
          fprintf (stderr, "%s", buf);
 #endif
 
+      va_end (ap);
+
       if (buf != NULL)
          ArgusFree(buf);
-
-      va_end (ap);
    }
 }
 #endif
@@ -1541,57 +1559,69 @@ void setArgusLogDisplayPriority(int prio)
    ArgusLogDisplayPriority = prio;
 }
 
-#include <sys/time.h>
 
 void
 ArgusLog (int priority, char *fmt, ...)
 {
-   va_list ap;
-   char buf[1024], *ptr;
    struct timeval now;
-
-   gettimeofday (&now, 0L);
-   buf[0] = 0;
-   ptr = &buf[0];
+   extern int Argusdflag, daemonflag;
+   char *buf = NULL, *ptr;
+   int len = 0;
+   va_list ap;
 
    if (priority == LOG_NOTICE)
       return;
 
+   gettimeofday (&now, 0L);
+   if ((buf = ArgusCalloc (1, MAXSTRLEN)) == NULL)
+      exit(-1);
+   ptr = buf;
+
    if (!daemonflag) {
 #if defined(ARGUS_THREADS)
       pthread_t ptid;
-      char pbuf[128];
+      char *pbuf = NULL;
       int i;
 
-      bzero(pbuf, sizeof(pbuf));
+      if ((pbuf = ArgusCalloc(1, 128)) == NULL)
+         exit(-1);
+
       ptid = pthread_self();
       for (i = 0; i < sizeof(ptid); i++) {
          snprintf (&pbuf[i*2], 3, "%02hhx", ((char *)&ptid)[i]);
       }
-      (void) snprintf (buf, 1024, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
+      (void) snprintf (buf, ARGUSLOGBUFLEN, "%s[%d.%s]: %s ", ArgusProgramName, (int)getpid(), pbuf, print_time(&now));
+      ArgusFree(pbuf);
 #else
-      (void) snprintf (buf, 1024, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
+      (void) snprintf (buf, ARGUSLOGBUFLEN, "%s[%d]: %s ", ArgusProgramName, (int)getpid(), print_time(&now));
 #endif
       ptr = &buf[strlen(buf)];
    }
 
    va_start (ap, fmt);
-   (void) vsnprintf (ptr, 1024, fmt, ap);
-   ptr = &buf[strlen(buf)];
-   va_end (ap);
+   len = strlen(buf);
+   if (len < (MAXSTRLEN - ARGUSLOGBUFLEN)) {
+      ptr = &buf[len];
+      (void) vsnprintf (ptr, ARGUSLOGBUFLEN, fmt, ap);
+   }
 
-   if (daemonflag) {
-#ifdef HAVE_SYSLOG
-      syslog (priority, "%s", buf);
-#endif
-   } else if (priority <= ArgusLogDisplayPriority) {
-      char *label = NULL;
-      int i;
+   len = strlen(buf);
+   if (len < (MAXSTRLEN - 2)) {
+      ptr = &buf[len];
       if (*fmt) {
          fmt += (int) strlen (fmt);
          if (fmt[-1] != '\n')
             snprintf (ptr, 2, "\n");
       }
+   }
+
+   if (daemonflag) {
+#ifdef HAVE_SYSLOG
+      syslog (LOG_ALERT, "%s", buf);
+#endif
+   } else if (priority <= ArgusLogDisplayPriority) {
+      char *label = NULL;
+      int i;
 
       for (i = 0; i < ARGUSPRIORITYSTR; i++)
          if (ArgusPriorityStr[i].priority == priority) {
@@ -1601,6 +1631,11 @@ ArgusLog (int priority, char *fmt, ...)
 
       fprintf (stderr, "%s: %s", label, buf);
    }
+   
+   va_end (ap);
+
+   if (buf != NULL)
+      ArgusFree(buf);
 
    switch (priority) {
       case LOG_ERR:
@@ -1608,7 +1643,7 @@ ArgusLog (int priority, char *fmt, ...)
           ArgusBacktrace();
 #endif
           exit(1);
-
+ 
       default: break;
    }
 }
