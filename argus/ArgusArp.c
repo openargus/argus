@@ -322,7 +322,7 @@ ArgusUpdateArpState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
             net->hdr.type              = ARGUS_NETWORK_DSR;
             net->hdr.subtype           = ARGUS_NETWORK_SUBTYPE_ARP;
             net->hdr.argus_dsrvl8.qual = 0;
-            net->hdr.argus_dsrvl8.len  = ((sizeof(struct ArgusUDTObject) + 3)/4) + 1;
+            net->hdr.argus_dsrvl8.len  = ((sizeof(struct ArgusARPObject) + 3)/4) + 1;
 
             arpobj = &net->net_union.arp;
 
