@@ -4853,14 +4853,14 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
          tts->tv_sec  = tvp->tv_sec + 0;
          tts->tv_nsec = (tvp->tv_usec * 1000) + 250000000;
-         if (tts->tv_nsec > 1000000000) {
+         if (tts->tv_nsec >= 1000000000) {
             tts->tv_sec++;
             tts->tv_nsec -= 1000000000;
          }
          if ((retn = pthread_cond_timedwait(&stask->cond, &stask->lock, tts))) {
             switch (retn) {
                case EINVAL:
-                  ArgusLog(LOG_ERR, "ArgusSourceProcess: pthread_cond_timedwait() error EINVAL\n");
+                  ArgusLog(LOG_WARNING, "ArgusSourceProcess: pthread_cond_timedwait() error EINVAL\n");
                   break;
                case ETIMEDOUT:
                   break;
