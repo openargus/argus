@@ -158,6 +158,7 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 #define ARGUSMOATTSHPKTFILE	3
 #define ARGUSDAGLINK            4
 #define ARGUSERFPKTFILE		5
+#define ARGUSSFLOWPKTFILE	6
 
 #define ARGUS_FILE_DEVICE	1
 #define ARGUS_LIVE_DEVICE	2
@@ -174,6 +175,14 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 #define ARGUS_COMPLETE          0x04
 #define ARGUS_NOSOURCES         0x08
 #define ARGUS_DONT_OPEN		0x10
+
+#define ARGUS_MAX_STREAM        0x400000
+#define ARGUS_MAX_BUFFER_READ   0x100000
+
+#define ARGUS_READINGPREHDR     1
+#define ARGUS_READINGHDR        2
+#define ARGUS_READINGBLOCK      4
+#define ARGUS_READINGDATAGRAM   8
 
 struct ArgusDeviceStruct {
    struct ArgusListObjectStruct *nxt;
@@ -268,12 +277,34 @@ struct ArgusInterfaceStruct {
    struct bpf_program ArgusFilter;
    int state, index, ArgusInterfaceType;
    pcap_handler ArgusCallBack;
+   struct arguspcap ArgusPcap;
+   struct pcap_stat ArgusStat;
+
+   unsigned int status, offset;
+   int type, mode;
+   int fd, in, out;
+ 
+#if defined(HAVE_GETADDRINFO) 
+   struct addrinfo *host;
+#else
+   struct hostent *host;
+#endif
+   struct in_addr addr;
+   unsigned short portnum;
+   int proto;
+   char *hostname, *servname;
+   char *user, *pass;
+
    struct ifreq ifr;
 
-   struct arguspcap ArgusPcap;
-
    unsigned int ArgusLocalNet, ArgusNetMask;
-   struct pcap_stat ArgusStat;
+
+   int ArgusReadDone, ArgusBufferLen;
+   unsigned char *ArgusReadBuffer, *ArgusConvBuffer;
+   unsigned char *ArgusReadPtr, *ArgusConvPtr, *ArgusReadBlockPtr;
+   int ArgusReadSocketCnt, ArgusReadSocketSize;
+   int ArgusReadSocketState, ArgusReadCiscoVersion;
+   int ArgusReadSocketNum, ArgusReadSize;
 
    long ArgusPacketOffset;
    long long ArgusTotalPkts;
@@ -833,6 +864,7 @@ void ArgusIpNetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *
 void ArgusPflogPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusNullPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 
+void ArgusSflowPacket (struct ArgusSourceStruct *, struct timeval *, const u_char *p, int);
 
 struct callback {
    pcap_handler function;

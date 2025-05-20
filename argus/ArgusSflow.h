@@ -35,8 +35,81 @@
 #define ArgusSflow_h
 
 #include <ArgusModeler.h>
+#include <argus/sflow.h>
+
+
+static void SFLengthCheck(SFSample *, u_char *, int);
+
+void SFParseFlowSample_header(struct ArgusSourceStruct *, struct timeval *, SFSample *);
+void SFParseFlowSample_ethernet(SFSample *);
+void SFParseFlowSample_IPv4(SFSample *);
+void SFParseFlowSample_IPv6(SFSample *);
+void SFParseFlowSample_memcache(SFSample *);
+void SFParseFlowSample_http(SFSample *);
+void SFParseFlowSample_CAL(SFSample *);
+void SFParseExtendedSwitch(SFSample *);
+void SFParseExtendedRouter(SFSample *);
+void SFParseExtendedGateway(SFSample *);
+void SFParseExtendedUser(SFSample *);
+void SFParseExtendedUrl(SFSample *);
+void SFParseExtendedMpls(SFSample *);
+void SFParseExtendedNat(SFSample *);
+void SFParseExtendedMplsTunnel(SFSample *);
+void SFParseExtendedMplsVC(SFSample *);
+void SFParseExtendedMplsFTN(SFSample *);
+void SFParseExtendedMplsLDP_FEC(SFSample *);
+void SFParseExtendedVlanTunnel(SFSample *);
+void SFParseExtendedWifiPayload(struct ArgusSourceStruct *, struct timeval *, SFSample *);
+void SFParseExtendedWifiRx(SFSample *);
+void SFParseExtendedWifiTx(SFSample *);
+void SFParseExtendedAggregation(SFSample *);
+void SFParseExtendedSocket4(SFSample *);
+void SFParseExtendedSocket6(SFSample *);
+
+void SFParseCounters_generic (SFSample *sptr);
+void SFParseCounters_ethernet (SFSample *sptr);
+void SFParseCounters_tokenring (SFSample *sptr);
+void SFParseCounters_vg (SFSample *sptr);
+void SFParseCounters_vlan (SFSample *sptr);
+void SFParseCounters_80211 (SFSample *sptr);
+void SFParseCounters_processor (SFSample *sptr);
+void SFParseCounters_radio (SFSample *sptr);
+void SFParseCounters_host_hid (SFSample *sptr);
+void SFParseCounters_adaptors (SFSample *sptr);
+void SFParseCounters_host_parent (SFSample *sptr);
+void SFParseCounters_host_cpu (SFSample *sptr);
+void SFParseCounters_host_mem (SFSample *sptr);
+void SFParseCounters_host_dsk (SFSample *sptr);
+void SFParseCounters_host_nio (SFSample *sptr);
+void SFParseCounters_host_vnode (SFSample *sptr);
+void SFParseCounters_host_vcpu (SFSample *sptr);
+void SFParseCounters_host_vmem (SFSample *sptr);
+void SFParseCounters_host_vdsk (SFSample *sptr);
+void SFParseCounters_host_vnio (SFSample *sptr);
+void SFParseCounters_memcache (SFSample *sptr);
+void SFParseCounters_http (SFSample *sptr);
+void SFParseCounters_CAL (SFSample *sptr);
+
+static void SFDecodeLinkLayer(SFSample *);
+static void SFDecode80211MAC(SFSample *);
+
+static void SFDecodeIPV4(SFSample *);
+static void SFDecodeIPV6(SFSample *);
+static void SFDecodeIPLayer4(SFSample *, u_char *);
+
+
+#define ARGUS_FALSE   0
+#define ARGUS_TRUE   1
+
+int ArgusProcessSflowDatagram (struct ArgusSourceStruct *, struct ArgusInterfaceStruct *, int);
+
+static void ArgusParseSFFlowSample(struct ArgusSourceStruct *, SFSample *, int);
+static void ArgusParseSFCountersSample(struct ArgusSourceStruct *, SFSample *, int);
 
 void ArgusParseSflowRecord (struct ArgusModelerStruct *, void *);
+/*
+struct ArgusRecord *ArgusParseSFlowRecord (struct ArgusModelerStruct *, struct ArgusInput *, SFSample *, int *);
+*/
 
 #else
 extern void ArgusParseSflowRecord (struct ArgusModelerStruct *, void *);

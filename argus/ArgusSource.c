@@ -103,8 +103,11 @@
 void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
+int ArgusGetServerSocket (struct ArgusDeviceStruct *, struct ArgusInterfaceStruct *, int);
 
 int ArgusGetInterfaceFD = -1;
+char *ArgusRecordType = NULL;
+
 
 extern int ArgusShutDownFlag;
 
@@ -574,8 +577,19 @@ setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
 int
 ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device, struct ArgusInterfaceStruct *inf)
 {
+   static char *str, *strbuf = NULL, *msgbuf = NULL;
    int type, retn = 0;
    char *errbuf;
+            
+   static char *protoStr, portbuf[16];
+   char *hostname = NULL, *servname = NULL;
+   char *fptr = NULL, *tptr = NULL, *sptr = NULL;
+   char *aptr = NULL, *uptr = NULL, *pptr = NULL;
+   char *ptr = NULL, *endptr = NULL;
+   char *hptr = NULL, *file = NULL;
+   struct ArgusInput *addr = NULL;
+   long int portnum = 0;
+   int proto = 0;
 
    if (ArgusShutDownFlag)
       return retn;
@@ -587,175 +601,358 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
          return retn;
    }
 
-   if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) == NULL)
-      ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
+   switch (device->mode) {
+      case ARGUS_SFLOW_DATA_SOURCE: {
 
-   inf->ArgusDevice = device;
-   src->timeStampType = ARGUS_TYPE_UTC_MICROSECONDS;
+         inf->ArgusDevice = device;
+         src->timeStampType = ARGUS_TYPE_UTC_MICROSECONDS;
+         inf->hostname = device->name;
+         inf->mode = device->mode;
+         hostname = inf->hostname;
 
-   if ((inf->ArgusPd = pcap_create(device->name, errbuf)) != NULL) {
-      pcap_set_snaplen(inf->ArgusPd, src->ArgusSnapLen);
-      pcap_set_promisc(inf->ArgusPd, src->Arguspflag);
-      pcap_set_timeout(inf->ArgusPd, 100);
+         while ((sptr = strtok(hostname, " ")) != NULL) {
+            tptr = sptr;
+            if ((ptr = strstr(tptr, "://")) != NULL) {
+               ptr = &ptr[3];
+               if (!(strncmp("argus-tcp:", tptr, 9)) || (!(strncmp("argus:", tptr, 9)))) {
+                  protoStr = "tcp";
+                  proto = IPPROTO_TCP;
+               } else
+               if (!(strncmp("argus-udp:", tptr, 9))) {
+                  protoStr = "udp";
+                  proto = IPPROTO_UDP;
+               } else
+               if (!(strncmp("sflow:", tptr, 6))) {
+                  protoStr = "udp";
+                  type = ARGUS_SFLOW_DATA_SOURCE;
+                  proto = IPPROTO_UDP;
+                  ArgusRecordType = "Sflow";
+               } else
+/*
+               if (!(strncmp("jflow:", tptr, 6))) {
+                  protoStr = "udp";
+                  type = ARGUS_JFLOW_DATA_SOURCE;
+                  proto = IPPROTO_UDP;
+               } else
+               if (!(strncmp("cisco:", tptr, 6))) {
+                  protoStr = "udp";
+                  type = ARGUS_CISCO_DATA_SOURCE;
+                  proto = IPPROTO_UDP;
+               } else
+               if (!(strncmp("ipfix-sctp:", tptr, 6))) {
+                  protoStr = "sctp";
+                  type = ARGUS_IPFIX_DATA_SOURCE;
+                  proto = IPPROTO_SCTP;
+               } else
+               if (!(strncmp("ipfix-tcp:", tptr, 6))) {
+                  protoStr = "tcp";
+                  type = ARGUS_IPFIX_DATA_SOURCE;
+                  proto = IPPROTO_TCP;
+               } else
+               if (!(strncmp("ipfix-udp:", tptr, 6))) {
+                  protoStr = "udp";
+                  type = ARGUS_IPFIX_DATA_SOURCE;
+                  proto = IPPROTO_UDP;
+               } else
+               if (!(strncmp("ipfix:", tptr, 6))) {
+                  protoStr = "tcp";
+                  type = ARGUS_IPFIX_DATA_SOURCE;
+                  proto = IPPROTO_TCP;
+               } else
+*/
+               if (!(strncmp("domain:", tptr, 7))) {
+                  protoStr = "domain";
+                  type = ARGUS_DOMAIN_SOURCE;
+                  proto = 0;
+                  portnum = -1;
+                  ptr--;
+               }
+            } else {
+               ptr = sptr;
+               tptr = NULL;
+            }
 
-#if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
-      {
-         int *tstamp_types = NULL, cnt, i;
-         if ((cnt = pcap_list_tstamp_types(inf->ArgusPd, &tstamp_types)) > 0) {
-            int hiprec = 0, lowprec = 0, adapter = 0, adapterUnsync = 0;
-            int type = 0;
-            for (i = 0; i < cnt; i++) {
-               if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER) {
-                  adapter = 1;
-               } else
-               if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER_UNSYNCED) {
-                  adapterUnsync = 1;
-               } else
-               if (tstamp_types[i] == PCAP_TSTAMP_HOST_HIPREC) {
-                  hiprec = 1;
-               } else
-               if (tstamp_types[i] == PCAP_TSTAMP_HOST_LOWPREC) {
-                  lowprec = 1;
+            if ((aptr = strchr (ptr, (int)'@')) != NULL) {
+               *aptr++ = '\0';
+               uptr = strdup(ptr);
+               ptr = aptr;
+               if ((aptr = strchr (uptr, (int)':')) != NULL) {
+                  *aptr++ = '\0';
+                  pptr = strdup(aptr);
                }
             }
-            pcap_free_tstamp_types(tstamp_types);
 
-            if (hiprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_HIPREC)) {
-               type = PCAP_TSTAMP_HOST_HIPREC;
-            } else
-            if (adapter && (ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER)) {
-               type = PCAP_TSTAMP_ADAPTER;
-            } else
-            if (lowprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_LOWPREC)) {
-               type = PCAP_TSTAMP_HOST_LOWPREC;
-            } else
-            if (adapterUnsync  && ((ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER) &&
-                                   (ArgusTimeStampType & ARGUS_TIMESTAMP_UNSYNCH))) {
-               type = PCAP_TSTAMP_ADAPTER_UNSYNCED;
+            if ((fptr = strchr (ptr, (int)'/')) != NULL) {
+               file = strdup(fptr);
+               *fptr = '\0';
             }
 
-            if (type != 0) {
-               pcap_set_tstamp_type(inf->ArgusPd, type);
-#ifdef ARGUSDEBUG
-               ArgusDebug(4, "pcap_set_tstamp_type: set to %s\n", pcap_tstamp_type_val_to_name(type));
-#endif
+            if ((tptr = strchr (ptr, (int)'[')) != NULL) {
+               hptr = tptr + 1;
+               if ((tptr = strchr (ptr, (int)']')) != NULL) {
+                  *tptr++ = '\0';
+                  if ((tptr = strchr (tptr, (int)':')) != NULL) {
+                     *tptr++ = '\0';
+                     portnum = strtol(tptr, &endptr, 10);
+                     if (endptr != &tptr[strlen(tptr)]) {
+                        ArgusLog (LOG_ALERT, "ArgusAddServerList(%s) format error %s is not a port number", tptr);
+                     } else
+                        servname = tptr;
+                  }
+               } else {
+                  ArgusLog (LOG_ALERT, "ArgusAddServerList(%s) literal ipv6 format error %s: no terminating ']'", hostname, ptr);
+               }
+
+            } else {
+               char *cptr = ptr;
+               int cnt = 0;
+               tptr = NULL;
+
+               while (*cptr != '\0') if (*cptr++ == ':') { cnt++; tptr = cptr;}
+
+               if ((cnt == 1) && (tptr != NULL)) {
+                  hptr = ptr;
+                  if ((cptr = strrchr(ptr, ':')) != NULL)
+                     *cptr = '\0';
+
+                  portnum = strtol(tptr, &endptr, 10);
+                  if (endptr == tptr) {
+                     ArgusLog (LOG_ALERT, "ArgusAddServerList(%s) format error %s is not a port number", hostname, tptr);
+                  } else
+                     servname = tptr;
+
+               } else {
+                  if ((cnt > 1) && (tptr != NULL)) {  // IPv6 address, should we look for a port?  No.
+                     portnum = 0;
+                     hptr = ptr;
+                  } else
+                  if (cnt == 0) {
+                     if (strchr (ptr, (int)'.')) {
+                        portnum = 0;
+                        hptr = ptr;
+                     } else
+                     if (isdigit((int)*ptr)) {
+                        portnum = strtol(ptr, &endptr, 10);
+                        if (endptr == ptr) {
+                           portnum = 0;
+                           hptr = ptr;
+                        } else {
+                           hptr = NULL;
+                        }
+                     } else
+                        hptr = ptr;
+                  }
+               }
             }
-         } else {
-            if (cnt < 0) {
-               ArgusLog (LOG_INFO, "ArgusOpenInterface pcap_list_tstamp_types: %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
+
+            if (((proto == IPPROTO_TCP) || (proto == IPPROTO_UDP)) && (portnum == 0)) {
             }
+            hostname = NULL;
          }
+
+         inf->portnum = portnum;
+         inf->servname = strdup(servname);
+         inf->hostname = strdup(hptr);
+
+         if ((inf->ArgusReadBuffer = (u_char *)ArgusCalloc (1, ARGUS_MAX_STREAM)) == NULL)
+            ArgusLog (LOG_ERR, "ArgusCalloc error %s", strerror(errno));
+
+         inf->ArgusReadPtr = inf->ArgusReadBuffer;
+
+         inf->ArgusBufferLen = ARGUS_MAX_STREAM;
+         inf->ArgusReadSocketState = ARGUS_READINGDATAGRAM;
+         inf->ArgusReadSize = MAXARGUSRECORD;
+         inf->ArgusReadSocketSize  = MAXARGUSRECORD;
+         inf->ArgusReadSocketState = ARGUS_READINGPREHDR;
+         inf->ArgusReadSize = 4;
+
+         if ((inf->ArgusConvBuffer = (u_char *)ArgusCalloc (1, MAXARGUSRECORD)) == NULL)
+            ArgusLog (LOG_ERR, "ArgusCalloc error %s", strerror(errno));
+
+         if ((inf->fd = ArgusGetServerSocket (device, inf, 1)) > 0) {
+#ifdef ARGUSDEBUG
+            ArgusDebug(2, "ArgusOpenInterface: ArgusGetServerSocket returns %d\n", inf->fd);
+#endif
+            retn = 1;
+	 }
+
+         break;
       }
+
+      default: {
+         if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) == NULL)
+            ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
+
+         inf->ArgusDevice = device;
+         src->timeStampType = ARGUS_TYPE_UTC_MICROSECONDS;
+
+         if ((inf->ArgusPd = pcap_create(device->name, errbuf)) != NULL) {
+            pcap_set_snaplen(inf->ArgusPd, src->ArgusSnapLen);
+            pcap_set_promisc(inf->ArgusPd, src->Arguspflag);
+            pcap_set_timeout(inf->ArgusPd, 100);
+
+#if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
+            {
+               int *tstamp_types = NULL, cnt, i;
+               if ((cnt = pcap_list_tstamp_types(inf->ArgusPd, &tstamp_types)) > 0) {
+                  int hiprec = 0, lowprec = 0, adapter = 0, adapterUnsync = 0;
+                  int type = 0;
+                  for (i = 0; i < cnt; i++) {
+                     if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER) {
+                        adapter = 1;
+                     } else
+                     if (tstamp_types[i] == PCAP_TSTAMP_ADAPTER_UNSYNCED) {
+                        adapterUnsync = 1;
+                     } else
+                     if (tstamp_types[i] == PCAP_TSTAMP_HOST_HIPREC) {
+                        hiprec = 1;
+                     } else
+                     if (tstamp_types[i] == PCAP_TSTAMP_HOST_LOWPREC) {
+                        lowprec = 1;
+                     }
+                  }
+                  pcap_free_tstamp_types(tstamp_types);
+
+                  if (hiprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_HIPREC)) {
+                     type = PCAP_TSTAMP_HOST_HIPREC;
+                  } else
+                  if (adapter && (ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER)) {
+                     type = PCAP_TSTAMP_ADAPTER;
+                  } else
+                  if (lowprec  && (ArgusTimeStampType & ARGUS_TIMESTAMP_LOWPREC)) {
+                     type = PCAP_TSTAMP_HOST_LOWPREC;
+                  } else
+                  if (adapterUnsync  && ((ArgusTimeStampType & ARGUS_TIMESTAMP_ADAPTER) &&
+                                         (ArgusTimeStampType & ARGUS_TIMESTAMP_UNSYNCH))) {
+                     type = PCAP_TSTAMP_ADAPTER_UNSYNCED;
+                  }
+
+                  if (type != 0) {
+                     pcap_set_tstamp_type(inf->ArgusPd, type);
+#ifdef ARGUSDEBUG
+                     ArgusDebug(4, "pcap_set_tstamp_type: set to %s\n", pcap_tstamp_type_val_to_name(type));
+#endif
+                  }
+               } else {
+                  if (cnt < 0) {
+                     ArgusLog (LOG_INFO, "ArgusOpenInterface pcap_list_tstamp_types: %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
+                  }
+               }
+            }
 #endif
 
 #if defined(ARGUS_NANOSECONDS) && defined(HAVE_PCAP_SET_TSTAMP_PRECISION)
-      switch (pcap_set_tstamp_precision(inf->ArgusPd, PCAP_TSTAMP_PRECISION_NANO)) {
-         case PCAP_ERROR_TSTAMP_PRECISION_NOTSUP:
-         case PCAP_ERROR_ACTIVATED:
+            switch (pcap_set_tstamp_precision(inf->ArgusPd, PCAP_TSTAMP_PRECISION_NANO)) {
+               case PCAP_ERROR_TSTAMP_PRECISION_NOTSUP:
+               case PCAP_ERROR_ACTIVATED:
 #ifdef ARGUSDEBUG
-            ArgusDebug(4, "Cannot set pcap timestamp precision to nanoseconds for %s\n", device->name);
+                  ArgusDebug(4, "Cannot set pcap timestamp precision to nanoseconds for %s\n", device->name);
 #endif
-            break;
-         case 0:
-            src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
-            break;
-      }
+                  break;
+               case 0:
+                  src->timeStampType = ARGUS_TYPE_UTC_NANOSECONDS;
+                  break;
+            }
 #endif
 
 #ifdef HAVE_PCAP_SET_BUFFER_SIZE
-      if (src->ArgusPcapBufSize > 0) {
-         pcap_set_buffer_size(inf->ArgusPd, src->ArgusPcapBufSize);
+            if (src->ArgusPcapBufSize > 0) {
+               pcap_set_buffer_size(inf->ArgusPd, src->ArgusPcapBufSize);
 #ifdef ARGUSDEBUG
-         ArgusDebug (4, "ArgusOpenInterface() pcap_set_buffer_size(%p, %d)\n", src, src->ArgusPcapBufSize);
+               ArgusDebug (4, "ArgusOpenInterface() pcap_set_buffer_size(%p, %d)\n", src, src->ArgusPcapBufSize);
 #endif
-      }
+            }
 #endif
 
-      switch (retn = pcap_activate(inf->ArgusPd)) {
-         case PCAP_ERROR_ACTIVATED:
-         case PCAP_ERROR_NO_SUCH_DEVICE:
-         case PCAP_ERROR_PERM_DENIED:
+            switch (retn = pcap_activate(inf->ArgusPd)) {
+               case PCAP_ERROR_ACTIVATED:
+               case PCAP_ERROR_NO_SUCH_DEVICE:
+               case PCAP_ERROR_PERM_DENIED:
 #if defined(PCAP_ERROR_PROMISC_PERM_DENIED)
-         case PCAP_ERROR_PROMISC_PERM_DENIED:
+               case PCAP_ERROR_PROMISC_PERM_DENIED:
 #endif
-         case PCAP_ERROR:  {
-            ArgusLog (LOG_INFO, "ArgusOpenInterface %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
-            pcap_close(inf->ArgusPd);
-            inf->ArgusPd = NULL;
-            retn = 0;
-            break;
-         }
+               case PCAP_ERROR:  {
+                  ArgusLog (LOG_INFO, "ArgusOpenInterface %s: %s\n", device->name, pcap_geterr(inf->ArgusPd));
+                  pcap_close(inf->ArgusPd);
+                  inf->ArgusPd = NULL;
+                  retn = 0;
+                  break;
+               }
 
-         case PCAP_ERROR_IFACE_NOT_UP:
-         case PCAP_WARNING_PROMISC_NOTSUP:
+               case PCAP_ERROR_IFACE_NOT_UP:
+               case PCAP_WARNING_PROMISC_NOTSUP:
 #if defined(PCAP_WARNING_TSTAMP_TYPE_NOTSUP)
-         case PCAP_WARNING_TSTAMP_TYPE_NOTSUP:
+               case PCAP_WARNING_TSTAMP_TYPE_NOTSUP:
 #endif
-         case PCAP_WARNING:
-         default:
-            retn = 1;
-      }
+               case PCAP_WARNING:
+               default:
+                  retn = 1;
+            }
 
-      if (inf->ArgusPd != NULL) {
-         pcap_setnonblock(inf->ArgusPd, 1, errbuf);
+            if (inf->ArgusPd != NULL) {
+               pcap_setnonblock(inf->ArgusPd, 1, errbuf);
 
-         if (device->dltname != NULL) {
+               if (device->dltname != NULL) {
 #ifdef HAVE_PCAP_SET_DATALINK
-            if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
-               ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
+                  if (pcap_set_datalink(inf->ArgusPd, device->dlt) < 0)
+                     ArgusLog(LOG_ERR, "%s: %s", __func__, pcap_geterr(inf->ArgusPd));
 #else
-            /*
-             * We don't actually support changing the
-             * data link type, so we only let them
-             * set it to what it already is.
-             */
+                  /*
+                   * We don't actually support changing the
+                   * data link type, so we only let them
+                   * set it to what it already is.
+                   */
 
-            if (device->dlt != pcap_datalink(inf->ArgusPd))
-               ArgusLog(LOG_ERR, "%s: %s is not one of the DLTs supported by this device\n",
-                           __func__, device->dltname);
+                  if (device->dlt != pcap_datalink(inf->ArgusPd))
+                     ArgusLog(LOG_ERR, "%s: %s is not one of the DLTs supported by this device\n",
+                                 __func__, device->dltname);
 #endif
-         }
+               }
 
 #if defined(__APPLE_CC__) || defined(__APPLE__)
 #if !defined(HAVE_PCAP_FINDALLDEVS_NOCHECKS)
 #if defined(BIOCIMMEDIATE)
-         {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
+               {   int v = 1; ioctl(pcap_fileno(inf->ArgusPd), BIOCIMMEDIATE, &v);  }
 #endif
 #endif
 #endif
-         src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
-         inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
-         memset((char *)&inf->ifr, 0, sizeof(inf->ifr));
-         strncpy(inf->ifr.ifr_name, device->name, sizeof(inf->ifr.ifr_name));
-         if (!((pcap_lookupnet (device->name, (u_int *)&inf->ArgusLocalNet,
-                                                 (u_int *)&inf->ArgusNetMask, errbuf)) < 0)) {
+               src->ArgusInputPacketFileType = ARGUSLIBPPKTFILE;
+               inf->ArgusInterfaceType = ARGUSLIBPPKTFILE;
+               memset((char *)&inf->ifr, 0, sizeof(inf->ifr));
+               strncpy(inf->ifr.ifr_name, device->name, sizeof(inf->ifr.ifr_name));
+               if (!((pcap_lookupnet (device->name, (u_int *)&inf->ArgusLocalNet,
+                                                       (u_int *)&inf->ArgusNetMask, errbuf)) < 0)) {
 #if defined(_LITTLE_ENDIAN)
-            inf->ArgusLocalNet = ntohl(inf->ArgusLocalNet);
-            inf->ArgusNetMask  = ntohl(inf->ArgusNetMask);
+                  inf->ArgusLocalNet = ntohl(inf->ArgusLocalNet);
+                  inf->ArgusNetMask  = ntohl(inf->ArgusNetMask);
 #endif
-         }
+               }
 
-         if ((type = pcap_datalink(inf->ArgusPd)) >= 0) 
-            inf->ArgusCallBack = Arguslookup_pcap_callback(type);
+               if ((type = pcap_datalink(inf->ArgusPd)) >= 0) 
+                  inf->ArgusCallBack = Arguslookup_pcap_callback(type);
 
-         if (inf->ArgusCallBack == NULL) {
-            if (type > 0) {
+               if (inf->ArgusCallBack == NULL) {
+                  if (type > 0) {
 #ifdef ARGUSDEBUG
-                  ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
+                        ArgusDebug (1, "ArgusOpenInterface(%p, '%s') unsupported device type %d\n", src, inf->ArgusDevice->name, type);
 #endif
-            }
-            device->status |= ARGUS_DONT_OPEN;
-            pcap_close(inf->ArgusPd);
-            inf->ArgusPd = NULL;
-            retn = 0;
-         } else
-            retn = 1;
+                  }
+                  device->status |= ARGUS_DONT_OPEN;
+                  pcap_close(inf->ArgusPd);
+                  inf->ArgusPd = NULL;
+                  retn = 0;
+               } else
+                  retn = 1;
 
-	 if (inf->ArgusPd != NULL)
-	    inf->ArgusDump = ArgusNewDump(src, inf);
+	       if (inf->ArgusPd != NULL)
+	          inf->ArgusDump = ArgusNewDump(src, inf);
+            }
+         }
+         ArgusFree(errbuf);
+         break;
       }
    }
-   ArgusFree(errbuf);
+
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusOpenInterface(%p, '%s') returning %d\n", src, inf->ArgusDevice->name, retn);
 #endif
@@ -1471,6 +1668,9 @@ struct ArgusAddressStruct {
 //    -i dup:[bond:en0,en1],en2/srcid
 //    -i en0/srcid -i en1/srcid  (equivalent '-i ind:en0/srcid,en1/srcid')
 //    -i en0 en1     (equivalent '-i bond:en0,en1')
+//
+//    -i sflow://host:port
+//    -i ebpf://host:port
 
 //  [{ind,dup,bond,dup}:]inf[/srcid]
 
@@ -1503,202 +1703,215 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
          src->ArgusDeviceStr = NULL;
       }
 
-      if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
-         if (type == ARGUS_LIVE_DEVICE) {
-            src->ArgusDeviceStr = strdup(cmd);
-            if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
-               ArgusLog (LOG_INFO, "setArgusDevice: __pcap_findalldevs %s\n", errbuf);
-         } else {
-            /* forward slashes cause confusion later since they are assumed
-             * to separate srcid and inf.  Remove directory path elements.
-             */
-            src->ArgusDeviceStr = strdup(basename(cmd));
+      if ((strstr (cmd, "sflow:")) || (strstr (cmd, "ebpf:"))) {
+         if (device == NULL) {
+            if ((device = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
+               ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
+            device->name = strdup(cmd);
+            device->status = status;
+            device->type = type;
+            device->mode = ARGUS_SFLOW_DATA_SOURCE;
+//          device->list = ArgusNewList();
          }
-         ArgusFree(errbuf);
-      }
+         ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+      } else {
+         if ((errbuf = (char *) ArgusMalloc (PCAP_ERRBUF_SIZE+1)) != NULL) {
+            if (type == ARGUS_LIVE_DEVICE) {
+               src->ArgusDeviceStr = strdup(cmd);
+               if (__pcap_findalldevs(&alldevs, errbuf, __func__) == -1)
+                  ArgusLog (LOG_INFO, "setArgusDevice: __pcap_findalldevs %s\n", errbuf);
+            } else {
+               /* forward slashes cause confusion later since they are assumed
+                * to separate srcid and inf.  Remove directory path elements.
+                */
+               src->ArgusDeviceStr = strdup(basename(cmd));
+            }
+            ArgusFree(errbuf);
+         }
 
 // we need to parse this bad thing and construct the devices struct
 
-      if (!(strncmp("ind:", params, 4))) {
-         ptr = &params[4];
-         status = ARGUS_TYPE_IND;
-      } else
-      if (!(strncmp("dup:", params, 4))) {
-         ptr = &params[4];
-         status = ARGUS_TYPE_DUPLEX;
-      } else
-      if (!(strncmp("bond:", params, 5))) {
-         ptr = &params[5];
-         status = ARGUS_TYPE_BOND;
-      } else {
-         ptr = params;
-         status = ARGUS_TYPE_IND;
-      }
+         if (!(strncmp("ind:", params, 4))) {
+            ptr = &params[4];
+            status = ARGUS_TYPE_IND;
+         } else
+         if (!(strncmp("dup:", params, 4))) {
+            ptr = &params[4];
+            status = ARGUS_TYPE_DUPLEX;
+         } else
+         if (!(strncmp("bond:", params, 5))) {
+            ptr = &params[5];
+            status = ARGUS_TYPE_BOND;
+         } else {
+            ptr = params;
+            status = ARGUS_TYPE_IND;
+         }
 
-      while ((tok = strtok(ptr, " ")) != NULL) {
-         char *srcid = NULL, *dlt = NULL, *sptr = NULL;
+         while ((tok = strtok(ptr, " ")) != NULL) {
+            char *srcid = NULL, *dlt = NULL, *sptr = NULL;
 
-         switch (type) {
-            case ARGUS_LIVE_DEVICE: {
-               if ((sptr = strchr (tok, '/')) != NULL) {
-                  srcid = strdup(sptr);
-                  *sptr = '\0';
-               }
-
-               if ((sptr = strchr (tok, '(')) != NULL) {
-                  *sptr++ = '\0';
-                  dlt = sptr;
-                  if ((sptr = strchr (dlt, ')')) != NULL)
+            switch (type) {
+               case ARGUS_LIVE_DEVICE: {
+                  if ((sptr = strchr (tok, '/')) != NULL) {
+                     srcid = strdup(sptr);
                      *sptr = '\0';
-               }
+                  }
 
-               if (!(strncmp("any", tok, 3))) {
-                  setArgusDevice (src, alldevs->name, ARGUS_LIVE_DEVICE, 0);
-                  break;
-               } else
-               if (!(strncmp("all", tok, 3))) {
-                  if (alldevs != NULL) {
-                     for (d = alldevs; d != NULL; d = d->next) {
-                        if (!(d->flags & PCAP_IF_LOOPBACK)) {
-                           if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
-                              ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
+                  if ((sptr = strchr (tok, '(')) != NULL) {
+                     *sptr++ = '\0';
+                     dlt = sptr;
+                     if ((sptr = strchr (dlt, ')')) != NULL)
+                        *sptr = '\0';
+                  }
 
-                           dev->name = strdup(d->name);
-                           dev->status = status;
-                           dev->type = type;
-                           dev->mode = mode;
+                  if (!(strncmp("any", tok, 3))) {
+                     setArgusDevice (src, alldevs->name, ARGUS_LIVE_DEVICE, 0);
+                     break;
+                  } else
+                  if (!(strncmp("all", tok, 3))) {
+                     if (alldevs != NULL) {
+                        for (d = alldevs; d != NULL; d = d->next) {
+                           if (!(d->flags & PCAP_IF_LOOPBACK)) {
+                              if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
+                                 ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
 
-                           if (dlt != NULL) {
+                              dev->name = strdup(d->name);
+                              dev->status = status;
+                              dev->type = type;
+                              dev->mode = mode;
+
+                              if (dlt != NULL) {
 #if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
-                              dev->dlt = pcap_datalink_name_to_val(dlt);
+                                 dev->dlt = pcap_datalink_name_to_val(dlt);
 #endif
-                              dev->dltname = strdup(dlt);
-                           }
-
-                           if (dev != NULL) {
-                              if (srcid != NULL) {
-                                 int type = ArgusSourceTask->type;
-
-                                 ArgusParseSourceID (ArgusSourceTask, dev, srcid);
-                                 dev->trans   = ArgusSourceTask->trans;
-                                 dev->idtype  = ArgusSourceTask->type;
-
-                                 ArgusSourceTask->type = type;
-
-                              } else {
-                                 char inf[5] = {0,};
-                                 dev->trans   = ArgusSourceTask->trans;
-                                 dev->idtype  = ArgusSourceTask->type | ARGUS_TYPE_INTERFACE;
-                                 if (dev && (dev->name != NULL)) {
-                                    char buffer[128];
-                                    shortname_ethdev_unique(dev->name, inf, sizeof(inf), src->ArgusDeviceList);
-                                    bcopy(inf, dev->trans.srcid.inf, 4);
-                                    dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
-                                    snprintf(buffer, 128, "mapping interface name %s -> %s\n", dev->name, inf);
-                                    ArgusLog(LOG_INFO, "%s\n", buffer);
-                                 }
+                                 dev->dltname = strdup(dlt);
                               }
-                              dev->inf = ArgusGenerateMarInfStruct(dev, d);
-                           }
 
-                           switch (status) {
-                              case ARGUS_TYPE_IND:
-                                 ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                                 break;
+                              if (dev != NULL) {
+                                 if (srcid != NULL) {
+                                    int type = ArgusSourceTask->type;
 
-                              case ARGUS_TYPE_BOND:
-                              case ARGUS_TYPE_DUPLEX:
-                                 if (device == NULL) {
-                                    if ((device = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
-                                       ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
-                                    device->name = strdup(cmd);
-                                    device->status = status;
-                                    device->type = type;
-                                    device->trans = dev->trans;
-                                    device->list = ArgusNewList();
+                                    ArgusParseSourceID (ArgusSourceTask, dev, srcid);
+                                    dev->trans   = ArgusSourceTask->trans;
+                                    dev->idtype  = ArgusSourceTask->type;
+
+                                    ArgusSourceTask->type = type;
+
+                                 } else {
+                                    char inf[5] = {0,};
+                                    dev->trans   = ArgusSourceTask->trans;
+                                    dev->idtype  = ArgusSourceTask->type | ARGUS_TYPE_INTERFACE;
+                                    if (dev && (dev->name != NULL)) {
+                                       char buffer[128];
+                                       shortname_ethdev_unique(dev->name, inf, sizeof(inf), src->ArgusDeviceList);
+                                       bcopy(inf, dev->trans.srcid.inf, 4);
+                                       dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+                                       snprintf(buffer, 128, "mapping interface name %s -> %s\n", dev->name, inf);
+                                       ArgusLog(LOG_INFO, "%s\n", buffer);
+                                    }
                                  }
-                                 ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                                 break;
-                           }
+                                 dev->inf = ArgusGenerateMarInfStruct(dev, d);
+                              }
 
-                           if (!(strcmp(dev->name, "any")))
-                              dev->status |= ARGUS_DONT_OPEN;
+                              switch (status) {
+                                 case ARGUS_TYPE_IND:
+                                    ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                                    break;
+
+                                 case ARGUS_TYPE_BOND:
+                                 case ARGUS_TYPE_DUPLEX:
+                                    if (device == NULL) {
+                                       if ((device = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
+                                          ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
+                                       device->name = strdup(cmd);
+                                       device->status = status;
+                                       device->type = type;
+                                       device->trans = dev->trans;
+                                       device->list = ArgusNewList();
+                                    }
+                                    ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                                    break;
+                              }
+
+                              if (!(strcmp(dev->name, "any")))
+                                 dev->status |= ARGUS_DONT_OPEN;
+                           }
                         }
                      }
+                     break;
+                  }
+                  // Deliberate fall through to process specific interface name
+               }
+
+               case ARGUS_FILE_DEVICE: {
+                  while ((stok = strtok(tok, ",")) != NULL) {
+                     if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
+                              ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
+
+                     dev->name = strdup(stok);
+                     dev->status = status;
+                     dev->type = type;
+                     dev->mode = mode;
+                     if (dlt != NULL) {
+#if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
+                        dev->dlt = pcap_datalink_name_to_val(dlt);
+#endif
+                        dev->dltname = strdup(dlt);
+                     }
+
+                     if (dev != NULL) {
+                        if (srcid != NULL) {
+                           int type = ArgusSourceTask->type;
+
+                           ArgusParseSourceID (ArgusSourceTask, dev, srcid);
+                           dev->trans   = ArgusSourceTask->trans;
+                           dev->idtype  = ArgusSourceTask->type;
+
+                           ArgusSourceTask->type = type;
+
+                        } else {
+                           char inf[5] = {0,};
+                           dev->trans   = ArgusSourceTask->trans;
+                           dev->idtype  = ArgusSourceTask->type | ARGUS_TYPE_INTERFACE;
+                           if (dev && (dev->name != NULL)) {
+                              shortname_ethdev_unique(dev->name, inf, sizeof(inf), src->ArgusDeviceList);
+                              bcopy(inf, dev->trans.srcid.inf, 4);
+                              dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+                              ArgusLog(LOG_INFO, "mapping interface name %s -> %s\n", dev->name, inf);
+                           }
+                        }
+                     }
+
+                     switch (status) {
+                        case ARGUS_TYPE_IND:
+                           ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                           break;
+
+                        case ARGUS_TYPE_BOND:
+                        case ARGUS_TYPE_DUPLEX:
+                           if (device == NULL) {
+                              if ((device = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
+                                 ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
+                              device->name = strdup(cmd);
+                              device->status = status;
+                              device->type = type;
+                              device->list = ArgusNewList();
+                           }
+                           ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
+                           break;
+                     }
+                     tok = NULL;
                   }
                   break;
                }
-               // Deliberate fall through to process specific interface name
             }
 
-            case ARGUS_FILE_DEVICE: {
-               while ((stok = strtok(tok, ",")) != NULL) {
-                  if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
-                           ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
-
-                  dev->name = strdup(stok);
-                  dev->status = status;
-                  dev->type = type;
-                  dev->mode = mode;
-                  if (dlt != NULL) {
-#if defined(HAVE_PCAP_DATALINK_NAME_TO_VAL)
-                     dev->dlt = pcap_datalink_name_to_val(dlt);
-#endif
-                     dev->dltname = strdup(dlt);
-                  }
-
-                  if (dev != NULL) {
-                     if (srcid != NULL) {
-                        int type = ArgusSourceTask->type;
-
-                        ArgusParseSourceID (ArgusSourceTask, dev, srcid);
-                        dev->trans   = ArgusSourceTask->trans;
-                        dev->idtype  = ArgusSourceTask->type;
-
-                        ArgusSourceTask->type = type;
-
-                     } else {
-                        char inf[5] = {0,};
-                        dev->trans   = ArgusSourceTask->trans;
-                        dev->idtype  = ArgusSourceTask->type | ARGUS_TYPE_INTERFACE;
-                        if (dev && (dev->name != NULL)) {
-                           shortname_ethdev_unique(dev->name, inf, sizeof(inf), src->ArgusDeviceList);
-                           bcopy(inf, dev->trans.srcid.inf, 4);
-                           dev->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
-                           ArgusLog(LOG_INFO, "mapping interface name %s -> %s\n", dev->name, inf);
-                        }
-                     }
-                  }
-
-                  switch (status) {
-                     case ARGUS_TYPE_IND:
-                        ArgusPushFrontList(src->ArgusDeviceList, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                        break;
-
-                     case ARGUS_TYPE_BOND:
-                     case ARGUS_TYPE_DUPLEX:
-                        if (device == NULL) {
-                           if ((device = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
-                              ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
-                           device->name = strdup(cmd);
-                           device->status = status;
-                           device->type = type;
-                           device->list = ArgusNewList();
-                        }
-                        ArgusPushFrontList(device->list, (struct ArgusListRecord *) dev, ARGUS_LOCK);
-                        break;
-                  }
-                  tok = NULL;
-               }
-               break;
+            if (srcid != NULL) {
+               free(srcid);
+               srcid = NULL;
             }
+            ptr = NULL;
          }
-
-         if (srcid != NULL) {
-            free(srcid);
-            srcid = NULL;
-         }
-         ptr = NULL;
       }
 
       if (device != NULL)
@@ -4962,6 +5175,8 @@ ArgusGetPackets (void *arg)
 {
    void *retn = NULL;
    struct ArgusSourceStruct *src = arg;
+   struct ArgusInterfaceStruct *inf = NULL;
+
    fd_set ArgusReadMask, ArgusWriteMask, ArgusExceptMask;
    int noerror = 1;
 
@@ -5269,6 +5484,29 @@ ArgusGetPackets (void *arg)
 #endif
                         }
                      }
+                  }
+               }
+            }
+         }
+      } else
+      if (src->ArgusInterface[0].fd > 0) {
+         inf = &src->ArgusInterface[0];
+
+	 while (!inf->ArgusReadDone) {
+            int width = -1;
+            fd_set readmask;
+            FD_ZERO(&readmask);
+            FD_SET(inf->fd, &readmask);
+            width = (width < inf->fd) ? inf->fd : width;
+
+            if (width >= 0) {
+               width++;
+               wait.tv_sec = 0;
+               wait.tv_usec = 500000;
+      
+               if ((retn = select (width, &readmask, NULL, NULL, &wait)) >= 0) {
+                  if ((ArgusReadSflowDatagramSocket(src, inf) < 0)) {
+                     inf->ArgusReadDone = 1;
                   }
                }
             }
@@ -5791,6 +6029,59 @@ struct ieee80211_radiotap {
    return 0;
 }
 
+void
+ArgusSflowPacket (struct ArgusSourceStruct *src, struct timeval *tvp, const u_char *p, int len)
+{
+   int ind = src->ArgusThisIndex;
+   unsigned int caplen = 1548;
+   unsigned int length = len;
+
+/*
+   if (ArgusDumpTask->ArgusDumpPacket)
+      ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
+*/
+
+   if (p != NULL) {
+      unsigned int ind = src->ArgusThisIndex;
+
+      if (src->ArgusReadingOffLine)
+         src->ArgusInputOffset = ftell(src->ArgusPacketInput);
+
+      ArgusModel->ArgusGlobalTime = *tvp;
+      src->ArgusModel->ArgusGlobalTime  = *tvp;
+      src->lasttime = *tvp;
+
+      src->ArgusModel->ArgusMatchProtocol = 0;
+
+      if (p && (length >= sizeof(struct ether_header))) {
+         struct ether_header *ep;
+ 
+         src->ArgusInterface[ind].ArgusTotalPkts++;
+         src->ArgusInterface[ind].ArgusTotalBytes += length;
+         src->ArgusInterface[ind].ArgusPacketBuffer = (u_char *) p;
+         ep = (struct ether_header *) p;
+
+         src->ArgusModel->ArgusThisLength  = length;
+         src->ArgusModel->ArgusSnapLength  = caplen;
+         src->ArgusModel->ArgusThisSnapEnd = ((u_char *)ep) + caplen;
+         src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_ETHER;
+/*
+         if (ArgusProcessPacket (src, (char *)ep, length, tvp, ARGUS_ETHER_HDR)) {
+            if (ArgusDumpTask->ArgusDumpPacketOnError)
+               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
+         } else
+            if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
+*/
+         ArgusProcessPacket (src, (char *)ep, length, tvp, ARGUS_ETHER_HDR);
+      }
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (8, "ArgusSflowPacket (%p, %p, %p, %d) returning\n", src, tvp, p, len);
+#endif
+}
+
 /*-
  * Copyright (c) 2003, 2004 David Young.  All rights reserved.
  *
@@ -5926,4 +6217,452 @@ cpack_uint8(struct cpack_state *cs, u_int8_t *u)
    /* Move pointer past the u_int8_t. */
    cs->c_next++;
    return 0;
+}
+
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+int
+ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStruct *inf, int timeout)
+{
+#if HAVE_GETADDRINFO
+   struct addrinfo **host = &inf->host;
+#else
+   struct hostent **host = &inf->host;
+   int type = SOCK_DGRAM;
+#endif
+   struct servent *sp;
+   int s, retn = -1;
+   u_short portnum = 0;
+
+#if HAVE_GETADDRINFO
+   char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+   int optval = 1;
+#endif
+
+   if (inf != NULL) {
+   switch (device->mode) {
+      case ARGUS_SFLOW_DATA_SOURCE: {
+           char *hptr = inf->hostname;
+#if HAVE_GETADDRINFO
+            struct addrinfo hints;
+#endif
+            if ((hptr != NULL) && (strlen(hptr) > 0)) {
+               char msgbuf[1024];
+               int rval;
+
+#if HAVE_GETADDRINFO
+               memset(&hints, 0, sizeof(hints));
+               hints.ai_family   = AF_INET;
+               if ((inf->mode == ARGUS_SFLOW_DATA_SOURCE)) {
+                  hints.ai_socktype = SOCK_DGRAM;
+                  hints.ai_protocol = IPPROTO_UDP;
+                  hints.ai_family   = AF_INET;
+               } else
+                  hints.ai_socktype = SOCK_STREAM;
+       
+               if (!(strncasecmp("any", hptr, 3))) {
+                  hptr = NULL;
+                  hints.ai_flags = AI_PASSIVE;
+               }
+               if ((rval = getaddrinfo(hptr, inf->servname, &hints, host)) != 0) {
+                  switch (rval) {
+                     case EAI_AGAIN: 
+                        sprintf (msgbuf, "dns server not available");
+                        break;
+                     case EAI_NONAME:
+                        sprintf (msgbuf, "host %s unknown", hptr);
+                        break;
+#if defined(EAI_ADDRFAMILY)
+                     case EAI_ADDRFAMILY:
+                        sprintf (msgbuf, "host %s has no IP address", hptr);
+                        break;
+#endif
+                     case EAI_SYSTEM:
+                     default:
+                        sprintf (msgbuf, "host '%s' %s", hptr, gai_strerror(rval));
+                        break;
+                  }
+               }
+#else
+               if ((hp = gethostbyname(hptr)) != NULL) {
+                  u_int **p;
+                  for (p = (u_int **)hp->h_addr_list; *p; ++p)
+                     **p = ntohl(**p);
+               } else {
+                  switch (h_errno) {
+                     case TRY_AGAIN:
+                        sprintf (msgbuf, "dns server not available");
+                        break;
+                     case HOST_NOT_FOUND:
+                        sprintf (msgbuf, "host %s unknown", hptr);
+                        break;
+                     case NO_ADDRESS:
+                        sprintf (msgbuf, "host %s has no IP address", hptr);
+                        break;
+                     case NO_RECOVERY:
+                        sprintf (msgbuf, "host %s name server error", hptr);
+                        break;
+                  }
+               }
+#endif
+            }
+         }
+         break;
+      }
+
+/*
+
+         bzero ((char *)&argus, sizeof(argus));
+         argus.hdr.type          = ARGUS_MAR | ARGUS_NETFLOW | ARGUS_VERSION;
+         argus.hdr.cause         = ARGUS_START;
+         argus.hdr.len           = sizeof (argus) / 4;
+         argus.argus_mar.argusid = ARGUS_COOKIE;
+
+         if (inf->addr.s_addr != 0)
+            argus.argus_mar.thisid = inf->addr.s_addr;
+
+         argus.argus_mar.startime.tv_sec = ArgusParser->ArgusGlobalTime.tv_sec;
+         argus.argus_mar.now.tv_sec      = ArgusParser->ArgusGlobalTime.tv_sec;
+         argus.argus_mar.major_version   = VERSION_MAJOR;
+         argus.argus_mar.minor_version   = VERSION_MINOR;
+         argus.argus_mar.record_len      = -1;
+
+#if defined(_LITTLE_ENDIAN)
+         ArgusHtoN(&argus);
+#endif
+         bcopy ((char *) &argus, (char *)&device->ArgusInitCon, sizeof (argus));
+*/
+
+   }
+
+   switch (device->mode) {
+      case ARGUS_SFLOW_DATA_SOURCE: {
+         struct addrinfo *hp = *host;
+         if (hp != NULL) {
+#if HAVE_GETADDRINFO
+            do {
+               if (getnameinfo(hp->ai_addr, hp->ai_addrlen, hbuf, sizeof(hbuf), sbuf, sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV))
+                  ArgusLog(LOG_ERR, "could not get numeric hostname");
+               
+               if (hp->ai_canonname) {
+                  if (inf->hostname)
+                     free(inf->hostname);
+                  inf->hostname = strdup(hp->ai_canonname);
+               } else {
+                  if (inf->hostname)
+                     free(inf->hostname);
+                  inf->hostname = strdup(hbuf);
+               }
+
+               if ((s = socket (hp->ai_family, hp->ai_socktype, hp->ai_protocol)) >= 0) {
+                  if (hp->ai_socktype == SOCK_DGRAM) {
+                     if (hp->ai_addr->sa_family == PF_INET) {
+                        struct sockaddr_in *sinaddr = (struct sockaddr_in *)hp->ai_addr;
+                        struct in_addr ia;
+
+                        bcopy(&sinaddr->sin_addr, &ia, sizeof(ia));
+
+                        if (IN_MULTICAST(ntohl(ia.s_addr))) {
+                           struct ip_mreq mreq;
+                           bcopy(&ia, &mreq.imr_multiaddr.s_addr, sizeof(struct in_addr));
+  // set interface
+                           mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+
+  // do membership call
+                           if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(struct ip_mreq)) == -1)
+                              ArgusLog (LOG_ERR, "ArgusGetServerSocket: setsockopt() join multicast failed. %s", strerror(errno));
+
+//                         if (setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1)
+//                            ArgusLog (LOG_ERR, "ArgusGetServerSocket: setsockopt() reuse port failed. %s", strerror(errno));
+                        }
+
+                     } else if (hp->ai_addr->sa_family == PF_INET6) {
+//                      if (IN6_IS_ADDR_MULTICAST(hp->ai_addr->sa_data)) {
+//                      }
+                     }
+
+#ifdef ARGUSDEBUG
+                     ArgusDebug (1, "Binding %s:%s Expecting %s records", inf->hostname, sbuf, ArgusRecordType); 
+#endif
+                     if ((retn = bind (s, hp->ai_addr, hp->ai_addrlen)) < 0) {
+#ifdef ARGUSDEBUG
+                        ArgusDebug(1, "connect to %s:%s failed '%s'", inf->hostname, sbuf, strerror(errno));
+#endif
+                        hp = hp->ai_next;
+                     } else {
+                        retn = s;
+                        inf->fd = s;
+                     }
+
+                  } else {
+/*
+                     if (ArgusParser->ArgusSourcePort) {
+                        struct sockaddr_in server;
+                        bzero(&server, sizeof(server));
+                        server.sin_family = AF_INET;
+                        server.sin_addr.s_addr = INADDR_ANY;
+                        server.sin_port = htons(ArgusParser->ArgusSourcePort);
+#ifdef ARGUSDEBUG
+                        ArgusDebug (1, "Binding TCP to source INADDR_ANY:%d Expecting %s records", ArgusParser->ArgusSourcePort, ArgusRecordType);
+#endif
+                        if ((bind (s, (struct sockaddr *)&server, sizeof(server))) < 0)
+                           ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %d) failed '%s'", s, "INADDR_ANY",
+                                                          ntohs(server.sin_port), sizeof(server), strerror(errno));
+
+                        if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&optval, sizeof(int)) < 0) {
+#ifdef ARGUSDEBUG
+                           ArgusDebug (1, "setsockopt(%d, SOL_SOCKET, SO_REUSEADDR, x%x, %d) failed:", s, optval, sizeof(int));
+#endif
+                        }
+                     }
+
+                     if (setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (char *)&optval, sizeof(int)) < 0) {
+#ifdef ARGUSDEBUG
+                        ArgusDebug (1, "setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE, 0x%x, %d) failed:", s, optval, sizeof(int));
+#endif
+                     }
+#ifdef ARGUSDEBUG
+                     ArgusDebug (1, "Trying %s port %s Expecting %s records\n", inf->hostname, sbuf, ArgusRecordType); 
+#endif
+                     if ((retn = ArgusConnect (s, hp->ai_addr, hp->ai_addrlen, timeout)) < 0) {
+#ifdef ARGUSDEBUG
+                        ArgusDebug(1, "connect to %s:%s failed '%s'", inf->hostname, sbuf, strerror(errno));
+#endif
+                        hp = hp->ai_next;
+                     } else {
+                        retn = s;
+                        inf->fd = s;
+                     }
+*/
+                  }
+
+                  if (retn < 0)
+                     close(s);
+#ifdef ARGUSDEBUG
+                  else {
+                     if (hp->ai_socktype == SOCK_DGRAM)
+                        ArgusDebug (1, "receiving\n");
+                     else
+                        ArgusDebug (1, "connected\n");
+
+                     device->status &= ~ARGUS_CLOSED;
+                  }
+#endif
+               } else
+                  ArgusLog (LOG_ERR, "ArgusGetServerSocket: socket() failed. errno %d: %s", errno, strerror(errno));
+
+            } while (hp && (retn < 0));
+#endif
+         } else {
+#if !HAVE_GETADDRINFO
+            struct sockaddr_in server;
+
+            bzero ((char *) &server, sizeof (server));
+
+            if ((s = socket (PF_INET, type, 0)) >= 0) {
+               if (type == SOCK_DGRAM) {
+                  if (inf->addr.s_addr != 0)
+                     server.sin_addr.s_addr = htonl(inf->addr.s_addr);
+                  else
+                     server.sin_addr.s_addr = INADDR_ANY;
+
+                  server.sin_family = AF_INET;
+                  server.sin_port = portnum;
+
+#ifdef ARGUSDEBUG
+                  ArgusLog (1, "Binding %s:%d Expecting %s records", 
+                       ArgusGetName(ArgusParser, (unsigned char *)&inf->addr.s_addr), ntohs(portnum), ArgusRecordType); 
+#endif
+                  if ((bind (s, (struct sockaddr *)&server, sizeof(server))) < 0)
+                     ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %d) failed '%s'", s, inet_ntoa(server.sin_addr),
+                                                    server.sin_port, sizeof(server), strerror(errno));
+                  retn = s;
+                  inf->fd = s;
+
+               } else {
+                  in_addr_t saddr;
+                  int optval = 1;
+
+                  if (setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (char *)&optval, sizeof(int)) < 0) {
+#ifdef ARGUSDEBUG
+                     ArgusDebug (1, "setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE, 0x%x, %d) failed:", s, optval, sizeof(int));
+#endif
+                  }
+
+                  if (ArgusParser->ArgusSourcePort) {
+                     server.sin_family = AF_INET;
+                     server.sin_addr.s_addr = INADDR_ANY;
+                     server.sin_port = htons(ArgusParser->ArgusSourcePort);
+
+#ifdef ARGUSDEBUG
+                     ArgusDebug (1, "Binding TCP to source INADDR_ANY:%d Expecting %s records",
+                          ArgusGetName(ArgusParser, ArgusParser->ArgusSourcePort, ArgusRecordType));
+#endif
+                     if ((bind (s, (struct sockaddr *)&server, sizeof(server))) < 0)
+                        ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %d) failed '%s'", s, "INADDR_ANY",
+                                                       ntohs(server.sin_port), sizeof(server), strerror(errno));
+                  }
+
+                  saddr = htonl(inf->addr.s_addr);
+                  if ((hp = gethostbyaddr ((char *)&saddr, sizeof (saddr), AF_INET)) != NULL) {
+                     inf->hostname = strdup(hp->h_name);
+                     bcopy ((char *) hp->h_addr, (char *)&server.sin_addr, hp->h_length);
+                     server.sin_family = hp->h_addrtype;
+                     server.sin_port = portnum;
+#ifdef ARGUSDEBUG
+                     ArgusDebug (1, "Trying %s port %d Expecting %s records\n", (hp->h_name) ?
+                                 (hp->h_name) : intoa (saddr), ntohs(portnum), ArgusRecordType); 
+#endif
+                 } else {
+                     server.sin_addr.s_addr = saddr;
+                     server.sin_family = AF_INET;
+                     server.sin_port = portnum;
+#ifdef ARGUSDEBUG
+                     ArgusDebug (1, "Trying %s port %d Expecting %s records\n", 
+                                   intoa (saddr), ntohs(portnum), ArgusRecordType); 
+#endif
+                  }
+
+                  if ((retn = ArgusConnect (s, (struct sockaddr *)&server, sizeof(server), timeout)) < 0) {
+#ifdef ARGUSDEBUG
+                     ArgusDebug(1, "connect to %s:%hu failed '%s'", inet_ntoa(server.sin_addr), 
+                         ntohs(server.sin_port), strerror(errno));
+#endif
+                     close(s);
+
+                  } else {
+                     retn = s;
+                     inf->fd = s;
+
+#ifdef ARGUSDEBUG
+                     if (type == SOCK_DGRAM)
+                        ArgusDebug (1, "receiving\n");
+                     else
+                        ArgusDebug (1, "connected\n");
+#endif
+                  }
+               }
+
+            } else {
+               ArgusLog (LOG_ERR, "ArgusGetServerSocket: socket() failed. errno %d: %s", errno, strerror(errno));
+            }
+#endif
+         }
+         break;
+      }
+
+/*
+      case ARGUS_SFLOW_DATA_SOURCE: 
+      case ARGUS_JFLOW_DATA_SOURCE: 
+      case ARGUS_CISCO_DATA_SOURCE: {
+#if HAVE_GETADDRINFO
+         if (hp != NULL)
+            s = socket (hp->ai_family, hp->ai_socktype, hp->ai_protocol);
+         else
+#endif
+            s = socket (AF_INET, SOCK_DGRAM, 0);
+
+         if (s >= 0) {
+            if (hp != NULL) {
+#if HAVE_GETADDRINFO
+               if (getnameinfo(hp->ai_addr, hp->ai_addrlen, hbuf, sizeof(hbuf), sbuf, sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV))
+                  ArgusLog(LOG_ERR, "could not get numeric hostname");
+
+               if (hp->ai_canonname) {
+                  if (device->hostname)
+                     free(device->hostname);
+                  device->hostname = strdup(hp->ai_canonname);
+               } else {
+                  if (device->hostname)
+                     free(device->hostname);
+                  device->hostname = strdup(hbuf);
+               }
+
+               if (hp->ai_socktype == SOCK_DGRAM) {
+#ifdef ARGUSDEBUG
+                  char *name = device->hostname;
+                  if (!(strncmp(name, "0.0.0.0", 7))) name = "AF_ANY";
+                  ArgusLog (1, "Binding %s:%s Expecting %s records", name, sbuf, ArgusRecordType);
+#endif
+                  if ((retn = bind (s, hp->ai_addr, hp->ai_addrlen)) < 0) {
+#ifdef ARGUSDEBUG
+                        ArgusDebug(1, "connect to %s:%s failed '%s'", device->hostname, sbuf, strerror(errno));
+#endif
+                     hp = hp->ai_next;
+                  } else {
+                     retn = s;
+                     device->fd = s;
+                  }
+
+               } else {
+                  if (setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (char *)&optval, sizeof(int)) < 0) {
+#ifdef ARGUSDEBUG
+                     ArgusDebug (1, "setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE, 0x%x, %d) failed:", s, optval, sizeof(int));
+#endif
+                  }
+#ifdef ARGUSDEBUG
+                  ArgusDebug (1, "Trying %s port %s Expecting %s records\n", device->hostname, sbuf, ArgusRecordType);
+#endif
+                  if ((retn = ArgusConnect (s, hp->ai_addr, hp->ai_addrlen, timeout)) < 0) {
+                     ArgusLog(LOG_WARNING, "connect to %s:%s failed '%s'", device->hostname, sbuf, strerror(errno));
+                     hp = hp->ai_next;
+                  } else {
+                     retn = s;
+                     device->fd = s;
+                  }
+               }
+
+               if (retn < 0)
+                  close(s);
+#ifdef ARGUSDEBUG
+               else {
+                  if (hp->ai_socktype == SOCK_DGRAM)
+                     ArgusDebug (1, "receiving\n");
+                  else
+                     ArgusDebug (1, "connected\n");
+               }
+#endif
+#endif
+            } else {
+               struct sockaddr_in server;
+               bzero(&server, sizeof(server));
+
+               if (device->addr.s_addr != 0)
+                  server.sin_addr.s_addr = htonl(device->addr.s_addr);
+               else
+                  server.sin_addr.s_addr = INADDR_ANY;
+
+               server.sin_family = AF_INET;
+               server.sin_port   = htons(device->portnum);
+#ifdef ARGUSDEBUG
+               if ((server.sin_addr.s_addr == INADDR_ANY) || (!(strncmp((char *)&device->addr.s_addr, "0.0.0.0", 7)))) 
+                  ArgusLog (1, "Binding %s:%d Expecting %s records", "AF_ANY", device->portnum, ArgusRecordType);
+               else {
+                  ArgusLog (1, "Binding %s:%d Expecting %s records", (unsigned char *)&device->addr.s_addr, device->portnum, ArgusRecordType);
+               }
+#endif
+               if ((retn = bind (s, (struct sockaddr *)&server, sizeof(server))) < 0) {
+                  ArgusLog(LOG_WARNING, "connect to %s:%d failed '%s'", inet_ntoa(server.sin_addr),
+                                              ntohs(server.sin_port), strerror(errno)); 
+                  close(s);
+
+               } else {
+                  retn = s;
+                  device->fd = s;
+               }
+            }
+         } else
+            ArgusLog (LOG_ERR, "ArgusGetServerSocket: socket() failed. errno %d: %s", errno, strerror(errno));
+         break;
+      }
+*/
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (1, "ArgusGetServerSocket (%p, %p, %d) returning %d", device, inf, timeout, retn);
+#endif
+
+   return (retn);
 }
