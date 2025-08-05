@@ -127,13 +127,15 @@ ArgusParseSFFlowSample(struct ArgusSourceStruct *src, SFSample *sptr, int state)
 
    if (sptr->datagramVersion >= 5) {
       int i, len, num;
-      u_char *start, *pkt = NULL;
-      unsigned int seq;
+      u_char *start;
+//    u_char *pkt = NULL;
+//    unsigned int seq;
   
       len = SFGetData32 (sptr);
       start = (u_char *)sptr->datap;
 
-      seq = SFGetData32 (sptr);
+//    seq = SFGetData32 (sptr);
+      SFGetData32 (sptr);
 
       if (state) {
          sptr->ds_class = SFGetData32 (sptr);
@@ -421,7 +423,7 @@ SFParseFlowSample_header(struct ArgusSourceStruct *src, struct timeval *tvp, SFS
    sptr->headerLen  = SFGetData32 (sptr);
    sptr->header     = (u_char *)sptr->datap;
 
-   ArgusSflowPacket (src, tvp, sptr->datap, sptr->headerLen);
+   ArgusSflowPacket (src, tvp, (const u_char *)sptr->datap, sptr->headerLen);
 
    SFSkipBytes(sptr, sptr->headerLen);
    

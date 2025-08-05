@@ -104,6 +104,8 @@ void ArgusGetInterfaceStatus (struct ArgusSourceStruct *src);
 void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
 int ArgusGetServerSocket (struct ArgusDeviceStruct *, struct ArgusInterfaceStruct *, int);
+int ArgusReadSflowDatagramSocket (struct ArgusSourceStruct *, struct ArgusInterfaceStruct *);
+
 
 int ArgusGetInterfaceFD = -1;
 char *ArgusRecordType = NULL;
@@ -577,17 +579,18 @@ setArgusListInterfaces (struct ArgusSourceStruct *src, int status)
 int
 ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *device, struct ArgusInterfaceStruct *inf)
 {
-   static char *str, *strbuf = NULL, *msgbuf = NULL;
    int type, retn = 0;
    char *errbuf;
             
-   static char *protoStr, portbuf[16];
+   static char *protoStr;
    char *hostname = NULL, *servname = NULL;
    char *fptr = NULL, *tptr = NULL, *sptr = NULL;
-   char *aptr = NULL, *uptr = NULL, *pptr = NULL;
+   char *aptr = NULL, *uptr = NULL;
+// char *pptr = NULL;
    char *ptr = NULL, *endptr = NULL;
-   char *hptr = NULL, *file = NULL;
-   struct ArgusInput *addr = NULL;
+   char *hptr = NULL;
+// char *file = NULL;
+// struct ArgusInput *addr = NULL;
    long int portnum = 0;
    int proto = 0;
 
@@ -628,7 +631,6 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                   proto = IPPROTO_UDP;
                   ArgusRecordType = "Sflow";
                } else
-/*
                if (!(strncmp("jflow:", tptr, 6))) {
                   protoStr = "udp";
                   type = ARGUS_JFLOW_DATA_SOURCE;
@@ -659,7 +661,6 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                   type = ARGUS_IPFIX_DATA_SOURCE;
                   proto = IPPROTO_TCP;
                } else
-*/
                if (!(strncmp("domain:", tptr, 7))) {
                   protoStr = "domain";
                   type = ARGUS_DOMAIN_SOURCE;
@@ -678,12 +679,12 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                ptr = aptr;
                if ((aptr = strchr (uptr, (int)':')) != NULL) {
                   *aptr++ = '\0';
-                  pptr = strdup(aptr);
+//                pptr = strdup(aptr);
                }
             }
 
             if ((fptr = strchr (ptr, (int)'/')) != NULL) {
-               file = strdup(fptr);
+//             file = strdup(fptr);
                *fptr = '\0';
             }
 
@@ -954,7 +955,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (1, "ArgusOpenInterface(%p, '%s') returning %d\n", src, inf->ArgusDevice->name, retn);
+   ArgusDebug (1, "ArgusOpenInterface(%p, '%s') type %s returning %d\n", src, inf->ArgusDevice->name, protoStr, retn);
 #endif
    return retn;
 }
@@ -5493,7 +5494,7 @@ ArgusGetPackets (void *arg)
          inf = &src->ArgusInterface[0];
 
 	 while (!inf->ArgusReadDone) {
-            int width = -1;
+            int width = -1, retn = 0;
             fd_set readmask;
             FD_ZERO(&readmask);
             FD_SET(inf->fd, &readmask);
@@ -6032,7 +6033,7 @@ struct ieee80211_radiotap {
 void
 ArgusSflowPacket (struct ArgusSourceStruct *src, struct timeval *tvp, const u_char *p, int len)
 {
-   int ind = src->ArgusThisIndex;
+// int ind = src->ArgusThisIndex;
    unsigned int caplen = 1548;
    unsigned int length = len;
 
@@ -6226,19 +6227,20 @@ cpack_uint8(struct cpack_state *cs, u_int8_t *u)
 int
 ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStruct *inf, int timeout)
 {
+   int s, retn = -1;
+
 #if HAVE_GETADDRINFO
    struct addrinfo **host = &inf->host;
 #else
    struct hostent **host = &inf->host;
    int type = SOCK_DGRAM;
 #endif
-   struct servent *sp;
-   int s, retn = -1;
-   u_short portnum = 0;
+// struct servent *sp;
+// u_short portnum = 0;
 
 #if HAVE_GETADDRINFO
    char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
-   int optval = 1;
+//   int optval = 1;
 #endif
 
    if (inf != NULL) {
