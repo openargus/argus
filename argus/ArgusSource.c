@@ -347,8 +347,11 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
    retn->ArgusThisIndex = src->ArgusThisIndex;
    retn->ArgusInterfaces = src->ArgusInterfaces;
 
-   for (i = 0; i < src->ArgusInterfaceIndex; i++)
-      bcopy(&src->ArgusInterface[i], &retn->ArgusInterface[i], sizeof(src->ArgusInterface[i]));
+   if (src->ArgusInterfaceIndex == 0)
+      bcopy(&src->ArgusInterface[0], &retn->ArgusInterface[0], sizeof(src->ArgusInterface[0]));
+   else
+      for (i = 0; i < src->ArgusInterfaceIndex; i++)
+         bcopy(&src->ArgusInterface[i], &retn->ArgusInterface[i], sizeof(src->ArgusInterface[i]));
 
    retn->ArgusInputPacketFileType = src->ArgusInputPacketFileType;
    retn->ArgusReadingOffLine = src->ArgusReadingOffLine;
@@ -1997,7 +2000,11 @@ setArgusrfile (struct ArgusSourceStruct *src, char *value)
                tok = tptr + 6;
             } else
             if ((tptr = strstr (tok, "sflow:")) != NULL) {
+               if ((ArgusSflowModel = ArgusNewModeler()) == NULL)
+                  ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
+
                mode = ARGUS_SFLOW_DATA_SOURCE;
+
                tok = tptr + 6;
             }
             if (stat(tok, &statbuf) < 0)
@@ -4678,6 +4685,7 @@ extern char *ArgusPidPath;
 #define ARGUS_INITED      0x02
 #define ARGUS_COMPLETE      0x04
 
+unsigned ArgusSourceCount = 0;
 
 void
 ArgusSourceProcess (struct ArgusSourceStruct *stask)
@@ -4687,7 +4695,6 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
    struct timespec ttsbuf, *tts = &ttsbuf;
 
    if (stask != NULL) {
-      unsigned ArgusSourceCount = 0;
 #if defined(ARGUS_THREADS)
       int ArgusThreadCount = 0;
 #endif
@@ -6045,9 +6052,11 @@ ArgusSflowPacket (struct ArgusSourceStruct *src, struct timeval *tvp, const u_ch
    if (p != NULL) {
       unsigned int ind = src->ArgusThisIndex;
 
+/*
       if (src->ArgusReadingOffLine)
-         src->ArgusInputOffset = ftell(src->ArgusPacketInput);
-
+         if (src->ArgusPacketInput) 
+            src->ArgusInputOffset = ftell(src->ArgusPacketInput);
+*/
       ArgusModel->ArgusGlobalTime = *tvp;
       src->ArgusModel->ArgusGlobalTime  = *tvp;
       src->lasttime = *tvp;

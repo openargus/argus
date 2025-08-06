@@ -164,7 +164,7 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 #define ARGUS_LIVE_DEVICE	2
 
 
-#define ARGUS_MAXINTERFACE	64
+#define ARGUS_MAXINTERFACE	128
 
 #define ARGUS_TYPE_IND		0x01
 #define ARGUS_TYPE_BOND		0x02

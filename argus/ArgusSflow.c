@@ -126,10 +126,8 @@ ArgusParseSFFlowSample(struct ArgusSourceStruct *src, SFSample *sptr, int state)
    gettimeofday(tvp, 0L);
 
    if (sptr->datagramVersion >= 5) {
-      int i, len, num;
       u_char *start;
-//    u_char *pkt = NULL;
-//    unsigned int seq;
+      int i, len, num;
   
       len = SFGetData32 (sptr);
       start = (u_char *)sptr->datap;
@@ -267,6 +265,158 @@ ArgusParseSFCountersSample(struct ArgusSourceStruct *src, SFSample *sptr, int st
    }
 }
 
+extern unsigned int ArgusSourceCount;
+
+void
+ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
+{
+   struct ArgusSourceStruct *stask = model->ArgusSrc, *src = NULL;
+   SFSample sample, *sptr = &sample;
+   uint32_t count, cnt, srcid;
+   int i;
+
+/*
+   if (ArgusSflowModel == NULL)
+      if ((ArgusSflowModel = ArgusNewModeler()) == NULL)
+         ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
+
+   bcopy(model, ArgusSflowModel, sizeof(*model));
+*/
+
+   cnt = model->ArgusThisSnapEnd - (u_char *)ptr;
+
+   bzero(sptr, sizeof (sample));
+   sptr->rawSample = ptr;
+   sptr->rawSampleLen = cnt;
+
+   sptr->datap = (uint32_t *) ptr;
+   sptr->endp  = model->ArgusThisSnapEnd;
+
+   sptr->datagramVersion = SFGetData32 (sptr);
+
+   switch (sptr->datagramVersion) {
+      case 2:
+      case 4:
+      case 5:
+         break;
+      default: {
+#ifdef ARGUSDEBUG
+         ArgusDebug (5, "ArgusParseSflowRecord (%p, %p) bad version  %d\n", model, ptr);
+#endif
+
+         return;
+      }
+   }
+
+   SFGetAddress(sptr, &sptr->agent_addr);
+   if (sptr->datagramVersion >= 5) {
+      sptr->agentSubId = SFGetData32 (sptr);
+   }
+
+   srcid = sptr->agent_addr.address.ip_v4.addr;
+/*
+  if(address->type == SFLADDRESSTYPE_IP_V4)
+    address->address.ip_v4.addr = SFGetData32_nobswap(sample);
+  else {
+    memcpy(&address->address.ip_v6.addr, sample->datap, 16);
+    SFSkipBytes(sample, 16);
+  } 
+*/
+   for (i = 1; i < ArgusSourceCount; i++) {
+      struct ArgusSourceStruct *st = stask->srcs[i];
+      if (st != NULL) {
+         if (sptr->agent_addr.type == SFLADDRESSTYPE_IP_V4) {
+            if (st->trans.srcid.a_un.ipv4 == ntohl(srcid)) {
+               src = st;
+               break;
+	    }
+	 }
+      } else
+         break;
+   }
+
+   if (src == NULL) {
+#ifdef ARGUSDEBUG
+      ArgusDebug (1, "ArgusProcessSflowDatagram (%p, %p) Sflow srcid '%s' not found.\n", model, ptr, inet_ntoa(*(struct in_addr *)&srcid));
+#endif
+      if (ArgusSourceCount < ARGUS_MAXINTERFACE) {
+         struct ArgusDeviceStruct *device = NULL;
+         unsigned char buf[32];
+         int slen = 0;
+
+         bzero(buf, 32);
+         src = ArgusCloneSource(stask);
+         if ((src->ArgusModel = ArgusNewModeler()) == NULL)
+            ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
+
+         src->ArgusModel->ArgusSrc = src;
+         src->ArgusThisIndex = 0;
+         ArgusInitModeler(src->ArgusModel);
+
+         if (sptr->agent_addr.type == SFLADDRESSTYPE_IP_V4)
+            src->trans.srcid.a_un.ipv4 = ntohl(srcid);
+
+         pthread_mutex_lock(&stask->lock);
+         stask->srcs[ArgusSourceCount++] = src;
+         pthread_mutex_unlock(&stask->lock);
+
+         slen = sizeof(src->trans.srcid.a_un.ipv4);
+         bcopy(&srcid, buf, slen);
+         setArgusID (src, buf, slen, ARGUS_TYPE_IPV4);
+         device = src->ArgusInterface[0].ArgusDevice;
+         device->trans = src->trans;
+
+      } else {
+         ArgusLog (LOG_ERR, "ArgusParseSflowRecord: Too many Sflow Source Id's\n");
+      }
+   }
+
+   sptr->sequenceNo = SFGetData32 (sptr);
+   sptr->sysUpTime = SFGetData32 (sptr);
+   count = SFGetData32 (sptr);
+
+   for (i = 0; i < count; i++) {
+      if ((u_char *)sptr->datap < sptr->endp) {
+         sptr->sampleType = SFGetData32 (sptr);
+         if (sptr->datagramVersion >= 5) {
+            switch (sptr->sampleType) {
+               case SFLFLOW_SAMPLE:
+                  ArgusParseSFFlowSample(src, sptr, ARGUS_FALSE);
+                  break;
+               case SFLCOUNTERS_SAMPLE:
+                  ArgusParseSFCountersSample(src, sptr, ARGUS_FALSE);
+                  break;
+               case SFLFLOW_SAMPLE_EXPANDED:
+                  ArgusParseSFFlowSample(src, sptr, ARGUS_TRUE);
+                  break;
+               case SFLCOUNTERS_SAMPLE_EXPANDED:
+                  ArgusParseSFCountersSample(src, sptr, ARGUS_TRUE);
+                  break;
+               default:
+                  SFSkipBytes(sptr, SFGetData32 (sptr));
+                  break;
+            }
+         } else {
+            switch (sptr->sampleType) {
+               case FLOWSAMPLE:
+                  ArgusParseSFFlowSample(src, sptr, ARGUS_FALSE);
+                  break;
+               case COUNTERSSAMPLE:
+                  ArgusParseSFCountersSample(src, sptr, ARGUS_FALSE);
+                  break;
+            }
+         }
+
+      } else
+         break;
+   }
+
+#ifdef ARGUSDEBUG
+   ArgusDebug (5, "ArgusProcessSflowDatagram (%p, %p) returning\n", model, ptr);
+#endif
+
+   return;
+}
 
 int
 ArgusProcessSflowDatagram (struct ArgusSourceStruct *src, struct ArgusInterfaceStruct *inf, int cnt)

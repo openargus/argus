@@ -441,6 +441,7 @@ unsigned char ArgusAlignBuffer[ARGUS_MAXALIGNBUF], *ArgusAlignBuf = ArgusAlignBu
 #endif
 
 struct ArgusModelerStruct *ArgusModel = NULL;
+struct ArgusModelerStruct *ArgusSflowModel = NULL;
 
 struct argus_llc ArgusThisLLCBuffer;
 
@@ -872,4 +873,7 @@ extern struct ArgusRecordStruct *ArgusCopyRecordStruct (struct ArgusRecordStruct
 
 
 #endif /* #if defined(ArgusModeler) else */
+
+extern struct ArgusModelerStruct *ArgusSflowModel;
+
 #endif /* #ifndef ArgusModeler_h */

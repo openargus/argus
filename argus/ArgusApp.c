@@ -54,6 +54,8 @@
 #define ARGUS_AFS_PORT_MAX      7010
 #define ARGUS_UDT_PORT          9000
 
+extern void ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr);
+
 int ArgusControlPlaneProtocol (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 
 u_char ArgusUpdateHTTPState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char);
@@ -233,6 +235,13 @@ ArgusUpdateAppState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                   switch (ip_p) {
                      case IPPROTO_UDP: {
                         switch (mode) {
+                           case ARGUS_SFLOW_DATA_SOURCE:
+                              int tmode = model->ArgusSrc->mode;
+                              model->ArgusSrc->mode = 0;
+                              ArgusParseSflowRecord(model, model->ArgusThisUpHdr);
+                              model->ArgusSrc->mode = tmode;
+                              break;
+
                            case ARGUS_CISCO_DATA_SOURCE:
                               ArgusParseCiscoRecord(model, model->ArgusThisUpHdr);
                               break;
