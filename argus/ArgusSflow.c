@@ -363,6 +363,9 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
          slen = sizeof(src->trans.srcid.a_un.ipv4);
          bcopy(&srcid, buf, slen);
          setArgusID (src, buf, slen, ARGUS_TYPE_IPV4);
+	 bcopy("sfl0", src->trans.srcid.inf, 4);
+	 src->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+
          device = src->ArgusInterface[0].ArgusDevice;
          device->trans = src->trans;
 
