@@ -6266,7 +6266,7 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
 #if HAVE_GETADDRINFO
                memset(&hints, 0, sizeof(hints));
                hints.ai_family   = AF_INET;
-               if ((inf->mode == ARGUS_SFLOW_DATA_SOURCE)) {
+               if (inf->mode == ARGUS_SFLOW_DATA_SOURCE) {
                   hints.ai_socktype = SOCK_DGRAM;
                   hints.ai_protocol = IPPROTO_UDP;
                   hints.ai_family   = AF_INET;
