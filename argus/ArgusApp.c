@@ -235,12 +235,13 @@ ArgusUpdateAppState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                   switch (ip_p) {
                      case IPPROTO_UDP: {
                         switch (mode) {
-                           case ARGUS_SFLOW_DATA_SOURCE:
+                           case ARGUS_SFLOW_DATA_SOURCE: {
                               int tmode = model->ArgusSrc->mode;
                               model->ArgusSrc->mode = 0;
                               ArgusParseSflowRecord(model, model->ArgusThisUpHdr);
                               model->ArgusSrc->mode = tmode;
                               break;
+                           }
 
                            case ARGUS_CISCO_DATA_SOURCE:
                               ArgusParseCiscoRecord(model, model->ArgusThisUpHdr);
