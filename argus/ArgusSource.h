@@ -975,6 +975,9 @@ static struct callback ArgusSourceCallbacks[] = {
 #ifdef DLT_JUNIPER_ETHER
    { ArgusJuniperPacket,   DLT_JUNIPER_ETHER,  "ArgusJuniperPacket()" },
 #endif
+#ifdef DLT_IPV4
+   { ArgusIpPacket,   DLT_IPV4,  "ArgusIpPacket()" },
+#endif
 #ifdef DLT_IPNET
    { ArgusIpNetPacket,   DLT_IPNET,  "ArgusIpNetPacket()" },
 #endif
