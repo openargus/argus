@@ -4523,6 +4523,7 @@ ArgusSlipPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #define ETHER_ADDR_LEN  6
 #endif
 
+unsigned char ArgusSllPkt[0x10000];
 
 void
 ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
@@ -4535,8 +4536,7 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    const struct sll_header *sllp = NULL;
    struct timeval tvpbuf, *tvp = &tvpbuf;
 
-   unsigned char buf[2048];
-   struct ether_header *ep = (struct ether_header *)buf;
+   struct ether_header *ep = (struct ether_header *)ArgusSllPkt;
    u_short pkttype;
 
    tvp->tv_sec  = h->ts.tv_sec;
