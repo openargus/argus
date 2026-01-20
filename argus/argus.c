@@ -323,6 +323,7 @@ main (int argc, char *argv[])
 #endif
 #endif
    int status;
+   size_t stacksize;
 #endif
 
 #if defined(ARGUS_FLEXLM)
@@ -738,6 +739,27 @@ main (int argc, char *argv[])
 #endif
 
    pthread_attr_setdetachstate(ArgusAttr, PTHREAD_CREATE_JOINABLE);
+#endif
+
+#if defined(_POSIX_THREAD_ATTR_STACKSIZE)
+#define ARGUS_MIN_STACKSIZE     0x10000000
+ 
+   if (pthread_attr_getstacksize(ArgusAttr, &stacksize))
+      ArgusLog (LOG_ERR, "pthreads get stacksize error");
+ 
+   if (stacksize < ARGUS_MIN_STACKSIZE) {
+      size_t nstacksize;
+ 
+      if (pthread_attr_setstacksize(ArgusAttr, ARGUS_MIN_STACKSIZE))
+         ArgusLog (LOG_ERR, "pthreads set stacksize error");
+ 
+      if (pthread_attr_getstacksize(ArgusAttr, &nstacksize))
+         ArgusLog (LOG_ERR, "pthreads get stacksize error");
+ 
+#ifdef ARGUSDEBUG
+      ArgusDebug (1, "stacksize from %d to %d", stacksize, nstacksize);
+#endif                
+   }                  
 #endif
 
    ArgusInitOutput (ArgusOutputTask);
