@@ -4523,7 +4523,7 @@ ArgusSlipPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #define ETHER_ADDR_LEN  6
 #endif
 
-unsigned char ArgusSllPkt[0x10000];
+unsigned char ArgusSllPkt[0x20000];
 
 void
 ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
