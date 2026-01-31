@@ -339,8 +339,8 @@ ArgusInitializeTCP (struct ArgusModelerStruct *model, struct ArgusFlowStruct *fl
 
    if (fdsr) {
       if (!(model->ArgusThisDir)) {
-//       fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
-//       fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
+         fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
+         fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
       }
    }
 
@@ -469,8 +469,8 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                   if (tcpExt->status & ARGUS_SAW_SYN_SENT) {
                      struct ArgusSystemFlow *fdsr = (struct ArgusSystemFlow *)flowstr->dsrs[ARGUS_FLOW_INDEX];
                      if (fdsr != NULL) {
-//                      fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
-//                      fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
+                        fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
+                        fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
                      }
 	          }
 	       }
