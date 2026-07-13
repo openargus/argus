@@ -2007,8 +2007,10 @@ setArgusrfile (struct ArgusSourceStruct *src, char *value)
 
                tok = tptr + 6;
             }
-            if (stat(tok, &statbuf) < 0)
-               ArgusLog (LOG_ERR, "input file '%s': %s", tok, strerror(errno));
+            if (stat(tok, &statbuf) < 0) {
+               fprintf (stderr, "file '%s': %s\n", tok, strerror(errno));
+               exit(-1);
+            }
          }
 
          if ((rfile = (struct ArgusRfileStruct *) ArgusCalloc(1, sizeof(*rfile))) == NULL)
