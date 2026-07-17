@@ -46,6 +46,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 
 #if defined(HAVE_SYS_VFS_H)
 #include <sys/vfs.h>
@@ -1221,10 +1222,10 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
    memset(&flow->dtime.act,  0, sizeof(flow->dtime.act));
    memset(&flow->dtime.idle, 0, sizeof(flow->dtime.idle));
 
-   flow->stime.act.minval  = 0xffffffff;
-   flow->stime.idle.minval = 0xffffffff;
-   flow->dtime.act.minval  = 0xffffffff;
-   flow->dtime.idle.minval = 0xffffffff;
+   flow->stime.act.minval  = FLT_MAX;
+   flow->stime.idle.minval = FLT_MAX;
+   flow->dtime.act.minval  = FLT_MAX;
+   flow->dtime.idle.minval = FLT_MAX;
 
    flow->sipid = 0;
    flow->dipid = 0;
