@@ -4928,6 +4928,14 @@ setArgusTcpTimeout (struct ArgusModelerStruct *model, int value)
 }
 
 void
+setArgusTcpFallowTimeout (struct ArgusModelerStruct *model, int value)
+{
+   if (model != NULL) {
+      model->ArgusTCPFallowTimeout = value;
+   }
+}
+
+void
 setArgusIcmpTimeout (struct ArgusModelerStruct *model, int value)
 {
    if (model != NULL) {

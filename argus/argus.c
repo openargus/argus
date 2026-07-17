@@ -1081,7 +1081,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				67
+#define ARGUS_RCITEMS				68
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1150,7 +1150,7 @@ getArguspidflag ()
 #define ARGUS_TUNNEL_INFORMATION		64
 #define ARGUS_BIND_IP				65
 #define ARGUS_ENCAPS_CAPTURE			66
-
+#define ARGUS_TCP_FALLOW_TIMEOUT		67
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MONITOR_ID=",
@@ -1219,7 +1219,8 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_TUNNEL_PARSING=",
    "ARGUS_TUNNEL_INFORMATION=",
    "ARGUS_BIND_IP=",
-   "ARGUS_ENCAPS_CAPTURE="
+   "ARGUS_ENCAPS_CAPTURE=",
+   "ARGUS_TCP_FALLOW_TIMEOUT="
 };
 
 
@@ -1893,6 +1894,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
                         case ARGUS_TCP_TIMEOUT: {
                            setArgusTcpTimeout (model, atoi(optarg));
+                           break;
+                        }
+                        case ARGUS_TCP_FALLOW_TIMEOUT: {
+                           setArgusTcpFallowTimeout (model, atoi(optarg));
                            break;
                         }
                         case ARGUS_ICMP_TIMEOUT: {

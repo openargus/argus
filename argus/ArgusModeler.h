@@ -341,6 +341,7 @@ struct ArgusModelerStruct {
 
    int ArgusIPTimeout;
    int ArgusTCPTimeout;
+   int ArgusTCPFallowTimeout;
    int ArgusICMPTimeout;
    int ArgusIGMPTimeout;
    int ArgusFRAGTimeout;
@@ -486,6 +487,7 @@ unsigned short ArgusParseIPOptions (unsigned char *, int);
 void setArgusHashTableSize (struct ArgusModelerStruct *model, int value);
 void setArgusIpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusTcpTimeout (struct ArgusModelerStruct *model, int value);
+void setArgusTcpFallowTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusIcmpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusIgmpTimeout (struct ArgusModelerStruct *model, int value);
 void setArgusFragTimeout (struct ArgusModelerStruct *model, int value);
@@ -609,6 +611,7 @@ void setArgusIpTimeout(struct ArgusModelerStruct *, int);
 
 int getArgusTcpTimeout(struct ArgusModelerStruct *);
 void setArgusTcpTimeout(struct ArgusModelerStruct *, int);
+void setArgusTcpFallowTimeout(struct ArgusModelerStruct *, int);
 
 int getArgusIcmpTimeout(struct ArgusModelerStruct *);
 void setArgusIcmpTimeout(struct ArgusModelerStruct *, int);
@@ -712,6 +715,7 @@ extern unsigned short ArgusParseIPOptions (unsigned char *, int);
 
 extern void setArgusIpTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusTcpTimeout (struct ArgusModelerStruct *model, int value);
+extern void setArgusTcpFallowTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusIcmpTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusIgmpTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusFragTimeout (struct ArgusModelerStruct *model, int value);
@@ -849,6 +853,8 @@ extern void setArgusIPTimeout(struct ArgusModelerStruct *, int);
 
 extern int getArgusTCPTimeout(struct ArgusModelerStruct *);
 extern void setArgusTCPTimeout(struct ArgusModelerStruct *, int);
+extern int getArgusTCPFallowTimeout(struct ArgusModelerStruct *);
+extern void setArgusTCPFallowTimeout(struct ArgusModelerStruct *, int);
 
 extern int getArgusICMPTimeout(struct ArgusModelerStruct *);
 extern void setArgusICMPTimeout(struct ArgusModelerStruct *, int);
