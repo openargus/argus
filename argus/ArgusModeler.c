@@ -59,6 +59,9 @@
 
 #include <netdb.h>
 #include <net/ppp.h>
+
+#include <netinet/tcp.h>
+#include <netinet/tcp_fsm.h>
 #include <argus/extract.h>
 
 #include <argus_ethertype.h>
@@ -262,13 +265,13 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusQueueInterval.tv_usec  = 250000;
    model->ArgusListenInterval.tv_usec = 250000;
 
-   model->ArgusIPTimeout    = (model->ArgusIPTimeout == 0) ? ARGUS_IPTIMEOUT : model->ArgusIPTimeout;
-   model->ArgusTCPTimeout   = (model->ArgusTCPTimeout == 0) ? ARGUS_TCPTIMEOUT : model->ArgusTCPTimeout;
-   model->ArgusICMPTimeout  = (model->ArgusICMPTimeout == 0) ? ARGUS_ICMPTIMEOUT : model->ArgusICMPTimeout;
-   model->ArgusIGMPTimeout  = (model->ArgusIGMPTimeout == 0) ? ARGUS_IGMPTIMEOUT : model->ArgusIGMPTimeout;
-   model->ArgusFRAGTimeout  = (model->ArgusFRAGTimeout == 0) ? ARGUS_FRAGTIMEOUT : model->ArgusFRAGTimeout;
-   model->ArgusARPTimeout   = (model->ArgusARPTimeout == 0) ? ARGUS_ARPTIMEOUT : model->ArgusARPTimeout;
-   model->ArgusOtherTimeout = (model->ArgusOtherTimeout == 0) ? ARGUS_OTHERTIMEOUT : model->ArgusOtherTimeout;
+   model->ArgusIPTimeout        = (model->ArgusIPTimeout == 0) ? ARGUS_IPTIMEOUT : model->ArgusIPTimeout;
+   model->ArgusTCPTimeout       = (model->ArgusTCPTimeout == 0) ? ARGUS_TCPTIMEOUT : model->ArgusTCPTimeout;
+   model->ArgusICMPTimeout      = (model->ArgusICMPTimeout == 0) ? ARGUS_ICMPTIMEOUT : model->ArgusICMPTimeout;
+   model->ArgusIGMPTimeout      = (model->ArgusIGMPTimeout == 0) ? ARGUS_IGMPTIMEOUT : model->ArgusIGMPTimeout;
+   model->ArgusFRAGTimeout      = (model->ArgusFRAGTimeout == 0) ? ARGUS_FRAGTIMEOUT : model->ArgusFRAGTimeout;
+   model->ArgusARPTimeout       = (model->ArgusARPTimeout == 0) ? ARGUS_ARPTIMEOUT : model->ArgusARPTimeout;
+   model->ArgusOtherTimeout     = (model->ArgusOtherTimeout == 0) ? ARGUS_OTHERTIMEOUT : model->ArgusOtherTimeout;
 
    if ((tvp = getArgusFarReportInterval(model)) != NULL)
       model->ArgusStatusQueue->timeout = tvp->tv_sec;
@@ -550,11 +553,28 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 
             } else {
                struct timeval timeout = {0,0};
+               int tcpFallow = 0;
                timeout.tv_sec = queue->timeout;
 
                if (ArgusCheckTimeout(model, &last->qhdr.qtime, now, &timeout)) {
                   ArgusRemoveFromQueue(queue, &last->qhdr, ARGUS_NOLOCK);
-                  ArgusDeleteObject(last);
+                  if (last->timeout == ARGUS_TCPTIMEOUT) {
+                     if (model->ArgusTCPFallowTimeout != 0) {
+                        struct ArgusTCPObject *tcpExt = (struct ArgusTCPObject *)&last->canon.net.net_union.tcp;
+                        unsigned int state = tcpExt->state;
+
+                        if ((state != TCPS_LISTEN) && (state != TCPS_CLOSED) && (state != TCPS_CLOSING)) {
+                           last->timeout = model->ArgusTCPFallowTimeout;
+                           tcpFallow = 1;
+                        }
+                     }
+                  }
+
+                  if (tcpFallow) {
+                     ArgusPushQueue(model->ArgusTimeOutQueue[last->timeout], &last->qhdr, ARGUS_LOCK);
+                  } else 
+                     ArgusDeleteObject(last);
+
                } else {
                   done++;
                }
