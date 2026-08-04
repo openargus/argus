@@ -363,6 +363,7 @@ struct ArgusModelerStruct {
 
    struct ArgusQueueStruct *ArgusTimeOutQueues;
    struct ArgusQueueStruct *ArgusTimeOutQueue[ARGUSTIMEOUTQS];
+   struct ArgusQueueStruct *ArgusFallowQueue;
 };
 
 

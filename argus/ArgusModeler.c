@@ -574,6 +574,8 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                      if (model->ArgusTimeOutQueue[last->timeout] == NULL) {
                         model->ArgusTimeOutQueue[last->timeout] = ArgusNewQueue();
                         model->ArgusTimeOutQueue[last->timeout]->timeout = last->timeout;
+                        ArgusPushQueue(model->ArgusTimeOutQueues, &model->ArgusTimeOutQueue[last->timeout]->qhdr, ARGUS_LOCK);
+                        model->ArgusFallowQueue = model->ArgusTimeOutQueue[last->timeout];
                      }
                      ArgusPushQueue(model->ArgusTimeOutQueue[last->timeout], &last->qhdr, ARGUS_LOCK);
                   } else 

@@ -1982,13 +1982,14 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
 
                   if (model->ArgusStatusQueue)
                      rec->argus_mar.queue += model->ArgusStatusQueue->count;
+
+                  if (model->ArgusFallowQueue)
+                     rec->argus_mar.fallow += model->ArgusFallowQueue->count;
                }
             }
          }
       }
 
-//    rec->argus_mar.interfaces = 
-//    rec->argus_mar.fallow = 
 
       rec->argus_mar.records = output->ArgusTotalRecords - output->ArgusLastRecords;
       output->ArgusLastRecords = output->ArgusTotalRecords;
