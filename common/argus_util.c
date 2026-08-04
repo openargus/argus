@@ -1098,11 +1098,8 @@ ArgusPrintDirection (char *buf, struct ArgusRecordStruct *argus, int len)
 }
 
 
-#if defined(ARGUSMEMDEBUG)
 long long ArgusAllocMax   = 0;
 long long ArgusAllocBytes = 0;
-#endif
-
 long long ArgusAllocTotal = 0;
 long long ArgusFreeTotal  = 0;
 
@@ -1126,8 +1123,9 @@ __argus_malloc (int bytes, allocator_func alloc, void *aux)
       pthread_mutex_lock(&memory.lock);
 #endif
       ArgusAllocTotal++;
-#if defined(ARGUSMEMDEBUG)
       ArgusAllocBytes += bytes;
+
+#if defined(ARGUSMEMDEBUG)
       if (ArgusAllocMax < ArgusAllocBytes)
          ArgusAllocMax = ArgusAllocBytes;
 #endif
@@ -1148,8 +1146,10 @@ __argus_malloc (int bytes, allocator_func alloc, void *aux)
          mem->offset = offset;
 #if defined(__GNUC__)
          mem->frame[0] = __builtin_return_address(0);
+/*
          mem->frame[1] = __builtin_return_address(1);
          mem->frame[2] = __builtin_return_address(2);
+*/
 #endif
          if (memory.start) {
             mem->nxt = memory.start;
@@ -1290,13 +1290,12 @@ ArgusFree (void *buf)
 #endif
 #endif
       free (ptr);
-      if (ArgusAllocTotal > 0)
-         ArgusAllocTotal--;
    }
 #if defined(ARGUS_THREADS)
       pthread_mutex_unlock(&memory.lock);
 #endif
 }
+
 /* 
    the argus malloc list is the list of free MallocLists for the system.
    these are blocks that are used to convey flow data from the modeler

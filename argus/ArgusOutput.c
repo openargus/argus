@@ -1868,7 +1868,8 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
    }
 
    if (retn) {
-      extern int ArgusAllocTotal, ArgusFreeTotal;
+      extern long long ArgusAllocTotal, ArgusFreeTotal;
+      extern long long ArgusAllocBytes;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
       struct ArgusSourceStruct *aSrc = NULL;
       struct timeval now;
@@ -1939,12 +1940,16 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       if (ArgusSourceTask != NULL) {
          int x;
 
-         rec->argus_mar.pktsRcvd  = 0;
-         rec->argus_mar.bytesRcvd = 0;
-         rec->argus_mar.dropped   = 0;
+         rec->argus_mar.pktsRcvd   = 0;
+         rec->argus_mar.bytesRcvd  = 0;
+         rec->argus_mar.dropped    = 0;
+         rec->argus_mar.interfaces = 0;
+         rec->argus_mar.flows      = 0;
 
          for (x = 0; x < ARGUS_MAXINTERFACE; x++) {
             if ((aSrc = ArgusSourceTask->srcs[x]) != NULL) {
+               struct ArgusModelerStruct *model = aSrc->ArgusModel;
+
                if (aSrc->ArgusInterface[0].ArgusPd != NULL) {
                   int i;
                   rec->argus_mar.interfaceType = pcap_datalink(aSrc->ArgusInterface[0].ArgusPd);
@@ -1952,6 +1957,9 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
 
                   for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
                      if (aSrc->ArgusInterface[i].ArgusPd != NULL) {
+
+                        rec->argus_mar.interfaces++;
+
                         rec->argus_mar.pktsRcvd  += aSrc->ArgusInterface[i].ArgusTotalPkts - 
                                                     aSrc->ArgusInterface[i].ArgusLastPkts;
                         rec->argus_mar.bytesRcvd += aSrc->ArgusInterface[i].ArgusTotalBytes -
@@ -1966,6 +1974,16 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
                         break;
                   }
                }
+
+               if (model != NULL) {
+                  rec->argus_mar.flows += model->ArgusTotalNewFlows - model->ArgusLastNewFlows;
+                  model->ArgusLastNewFlows = model->ArgusTotalNewFlows;
+
+                  if (model->ArgusStatusQueue)
+                     rec->argus_mar.queue = model->ArgusStatusQueue->count;
+                  else
+                     rec->argus_mar.queue = 0;
+               }
             }
          }
       }
@@ -1976,13 +1994,6 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.records = output->ArgusTotalRecords - output->ArgusLastRecords;
       output->ArgusLastRecords = output->ArgusTotalRecords;
 
-      rec->argus_mar.flows = output->ArgusModel->ArgusTotalNewFlows - output->ArgusModel->ArgusLastNewFlows;
-      output->ArgusModel->ArgusLastNewFlows = output->ArgusModel->ArgusTotalNewFlows;
-
-      if (output->ArgusModel && output->ArgusModel->ArgusStatusQueue)
-         rec->argus_mar.queue   = output->ArgusModel->ArgusStatusQueue->count;
-      else
-         rec->argus_mar.queue   = 0;
 
       if (output->ArgusOutputList)
          rec->argus_mar.output  = output->ArgusOutputList->count;
@@ -1992,6 +2003,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.clients = output->ArgusClients->count;
 
       rec->argus_mar.bufs     = ArgusAllocTotal - ArgusFreeTotal;
+      rec->argus_mar.bytes    = ArgusAllocBytes;
 
       rec->argus_mar.suserlen = getArgusUserDataLen(ArgusModel);
       rec->argus_mar.duserlen = getArgusUserDataLen(ArgusModel);
