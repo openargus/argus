@@ -1945,6 +1945,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
          rec->argus_mar.dropped    = 0;
          rec->argus_mar.interfaces = 0;
          rec->argus_mar.flows      = 0;
+         rec->argus_mar.queue      = 0;
 
          for (x = 0; x < ARGUS_MAXINTERFACE; x++) {
             if ((aSrc = ArgusSourceTask->srcs[x]) != NULL) {
@@ -1980,9 +1981,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
                   model->ArgusLastNewFlows = model->ArgusTotalNewFlows;
 
                   if (model->ArgusStatusQueue)
-                     rec->argus_mar.queue = model->ArgusStatusQueue->count;
-                  else
-                     rec->argus_mar.queue = 0;
+                     rec->argus_mar.queue += model->ArgusStatusQueue->count;
                }
             }
          }
