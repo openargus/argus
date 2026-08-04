@@ -373,7 +373,9 @@ ArgusHtoN (struct ArgusRecord *argus)
 
          argus->argus_mar.pktsRcvd          = htonll(argus->argus_mar.pktsRcvd);
          argus->argus_mar.bytesRcvd         = htonll(argus->argus_mar.bytesRcvd);
-         argus->argus_mar.drift             = htonll(argus->argus_mar.drift);
+
+         argus->argus_mar.interfaces        = htonl(argus->argus_mar.interfaces);
+         argus->argus_mar.fallow            = htonl(argus->argus_mar.fallow);
 
          argus->argus_mar.records           = htonl(argus->argus_mar.records);
          argus->argus_mar.flows             = htonl(argus->argus_mar.flows);

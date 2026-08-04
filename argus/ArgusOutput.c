@@ -1970,6 +1970,9 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
          }
       }
 
+//    rec->argus_mar.interfaces = 
+//    rec->argus_mar.fallow = 
+
       rec->argus_mar.records = output->ArgusTotalRecords - output->ArgusLastRecords;
       output->ArgusLastRecords = output->ArgusTotalRecords;
 
@@ -1989,6 +1992,7 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.clients = output->ArgusClients->count;
 
       rec->argus_mar.bufs     = ArgusAllocTotal - ArgusFreeTotal;
+
       rec->argus_mar.suserlen = getArgusUserDataLen(ArgusModel);
       rec->argus_mar.duserlen = getArgusUserDataLen(ArgusModel);
 
