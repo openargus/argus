@@ -848,41 +848,39 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
       case ETHERTYPE_IP: {
          struct ip *ip = (struct ip *) p;
 
-         if (ip->ip_v == 4) {
-            if (STRUCTCAPTURED(model,*ip)) {
-               model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
+         if (STRUCTCAPTURED(model,*ip) && (ip->ip_v == 4)) {
+            model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
 
-               if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[0] == 1))
+            if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[0] == 1))
+               model->ArgusMatchProtocol++;
+
+            if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
+               model->ArgusThisIpHdr = (void *)ip;
+
+               if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[ip->ip_p] == 1))
                   model->ArgusMatchProtocol++;
 
-               if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
-                  model->ArgusThisIpHdr = (void *)ip;
-
-                  if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[ip->ip_p] == 1))
-                     model->ArgusMatchProtocol++;
-
-                  switch (ip->ip_p) {
-                     case IPPROTO_TTP: { /* Preparation for Juniper TTP */
-                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                        retn = ArgusProcessTtpHdr(model, ip, length);
-                        break;
-                     }
-                     case IPPROTO_UDP: { /* RCP 4380 */
-                        if (getArgusTunnelDiscovery(model)) {
-                           model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                           retn = ArgusProcessUdpHdr(model, ip, length);
-		        }
-                        break;
-                     }
-                     case IPPROTO_GRE: { /* RFC 2784 */
-                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                        retn = ArgusProcessGreHdr(model, ip, length);
-                        break;
-                     }
-                     default:
-                        retn = 0;
-                        break;
+               switch (ip->ip_p) {
+                  case IPPROTO_TTP: { /* Preparation for Juniper TTP */
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
+                     retn = ArgusProcessTtpHdr(model, ip, length);
+                     break;
                   }
+                  case IPPROTO_UDP: { /* RCP 4380 */
+                     if (getArgusTunnelDiscovery(model)) {
+                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
+                        retn = ArgusProcessUdpHdr(model, ip, length);
+                     }
+                     break;
+                  }
+                  case IPPROTO_GRE: { /* RFC 2784 */
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
+                     retn = ArgusProcessGreHdr(model, ip, length);
+                     break;
+                  }
+                  default:
+                     retn = 0;
+                     break;
                }
             }
             break;
@@ -892,6 +890,11 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
 
       case ETHERTYPE_IPV6: {
          struct ip6_hdr *ipv6 = (struct ip6_hdr *) p;
+
+         /* Confirm the full IPv6 header is captured before reading ip6_nxt below --
+          * mirrors the equivalent IPv4 check added at the ETHERTYPE_IP case above. */
+         if (!STRUCTCAPTURED(model, *ipv6))
+            break;
 
          model->ArgusThisNetworkFlowType = type;
          model->ArgusThisIpHdr = (void *)p;
@@ -1126,6 +1129,12 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
    unsigned char *ptr;
    int retn = 0;
 
+   /* Several real dispatch call sites (ArgusSource.c) do not consistently verify
+    * length >= sizeof(struct ether_header) before calling this function -- confirm here,
+    * defensively, before reading ep->ether_type below. */
+   if (!STRUCTCAPTURED(model, *ep))
+      return (retn);
+
    length -= len;
    model->ArgusThisEpHdr           = ep;
    model->ArgusThisUpHdr           = (unsigned char *) (ep + 1);
@@ -1141,7 +1150,10 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
       unsigned short ether_type = 0;
 
       ptr = (unsigned char *) ep;
-      if (ptr[0] == 0x01 && ptr[1] == 0x00 &&
+      /* ISL magic-number check reads 5 bytes (ptr[0..4]) -- confirm they are actually
+       * captured before reading, rather than trusting the Ethernet header length alone. */
+      if (BYTESCAPTURED(model, *ptr, 5) &&
+          ptr[0] == 0x01 && ptr[1] == 0x00 &&
           ptr[2] == 0x0C && ptr[3] == 0x00 && ptr[4] == 0x00) {
           return (ArgusProcessISLHdr (model, ep, length));
       }
@@ -1149,7 +1161,10 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
       ptr = (unsigned char *) model->ArgusThisUpHdr;
       llc = (struct argus_llc *) ptr;
 
-      if (BYTESCAPTURED(model,*llc, 3) && ((llc = model->ArgusThisLLC) != NULL)) {
+      /* Check that the full struct argus_llc is captured, not just 3 bytes -- the
+       * bcopy() below copies sizeof(struct argus_llc) (8 bytes), and later code reads
+       * fields (e.g. llc->ethertype) at offsets beyond byte 3. */
+      if (STRUCTCAPTURED(model,*llc) && ((llc = model->ArgusThisLLC) != NULL)) {
          model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
          bcopy((char *) ptr, (char *) llc, sizeof (struct argus_llc));
@@ -1222,6 +1237,12 @@ ArgusProcess80211Hdr (struct ArgusModelerStruct *model, char *p, int length)
 
    u_int16_t fc;
 
+   /* EXTRACT_LE_16BITS(p) below reads the 2-byte frame-control field -- confirm it is
+    * actually captured before reading, rather than trusting the caller's length
+    * accounting alone (see F-13 in security-review/findings-log.md). */
+   if (!BYTESCAPTURED(model, *p, 2))
+      return (retn);
+
    fc = EXTRACT_LE_16BITS(p);
    hdrlen = ArgusExtract802_11HeaderLength(fc);
 
@@ -1264,7 +1285,10 @@ ArgusProcessLLCHdr (struct ArgusModelerStruct *model, char *p, int length)
 */
    llc = (struct argus_llc *) ptr;
 
-   if (BYTESCAPTURED(model,*llc,3)) {
+   /* Check that the full struct argus_llc is captured, not just 3 bytes -- the bcopy()
+    * below copies sizeof(struct argus_llc) (8 bytes), and later code reads fields (e.g.
+    * llc->ethertype) at offsets beyond byte 3. */
+   if (STRUCTCAPTURED(model,*llc)) {
       model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
       llc = model->ArgusThisLLC;
@@ -2072,7 +2096,11 @@ ArgusCreateFlow (struct ArgusModelerStruct *model, void *ptr, int length)
 
 /* drop through to here if above protocols didn't do it */
             case ARGUS_FLOW_KEY_LAYER_2_MATRIX:
-               if (ep != NULL) {
+               /* ep may point at a too-short captured buffer (e.g. when
+                * ArgusProcessEtherHdr rejected it for insufficient length) --
+                * ep != NULL alone doesn't guarantee sizeof(struct ether_header)
+                * bytes are actually available before reading ether_shost/ether_dhost. */
+               if (ep != NULL && STRUCTCAPTURED(model, *ep)) {
                   int dstgteq = 1, i;
                   model->ArgusThisLength = length;
                   model->ArgusThisFlow->hdr.type            = ARGUS_FLOW_DSR;
@@ -2823,11 +2851,22 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
 
          case ETHERTYPE_IPV6: {
             struct ip6_hdr *iphdr  = (struct ip6_hdr *) model->ArgusThisIpHdr;
-            unsigned int flowid    = iphdr->ip6_flow;
-            unsigned short ftos    = (flowid >> 16);
-            unsigned char tos      = ((ntohs(ftos) >> 4) & 0x00FF);
-            unsigned char ttl      = iphdr->ip6_hlim;
+            unsigned int flowid;
+            unsigned short ftos;
+            unsigned char tos;
+            unsigned char ttl;
             struct ip6_frag *tfrag = NULL;
+
+            /* model->ArgusThisIpHdr for IPv6 may point past the captured buffer after
+             * walking a chain of extension headers (see ArgusCreateIPv6Flow) -- confirm
+             * the header is actually captured before reading ip6_flow/ip6_hlim. */
+            if (!STRUCTCAPTURED(model, *iphdr))
+               break;
+
+            flowid = iphdr->ip6_flow;
+            ftos   = (flowid >> 16);
+            tos    = ((ntohs(ftos) >> 4) & 0x00FF);
+            ttl    = iphdr->ip6_hlim;
 
             if (model->ArgusThisDir) {
                if (!(attr->hdr.argus_dsrvl8.qual & ARGUS_IPATTR_SRC)) {
@@ -4547,6 +4586,12 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
       while (!done) {
          switch (nxt) {
             case IPPROTO_FRAGMENT: {
+               /* ip6h_len is read from the extension header itself, which must be
+                * confirmed captured before dereferencing it. */
+               if (!STRUCTCAPTURED(model, *(struct ip6_hbh *)ip)) {
+                  done++;
+                  break;
+               }
                int offset = ((((struct ip6_hbh *)ip)->ip6h_len + 1) << 3);
                struct ip6_frag *tfrag = (struct ip6_frag *) ip;
 
@@ -4566,6 +4611,12 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
             case IPPROTO_HOPOPTS:
             case IPPROTO_DSTOPTS:
             case IPPROTO_ROUTING: {
+               /* ip6h_len is read from the extension header itself, which must be
+                * confirmed captured before dereferencing it. */
+               if (!STRUCTCAPTURED(model, *(struct ip6_hbh *)ip)) {
+                  done++;
+                  break;
+               }
                int offset = ((((struct ip6_hbh *)ip)->ip6h_len + 1) << 3);
                nxt = *(char *)ip;
                ip = (struct ip6_hdr *)((char *)ip + offset);
@@ -4611,16 +4662,27 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
             switch (nxt) {
                case IPPROTO_TCP: {
                   struct tcphdr *tp = (struct tcphdr *) model->ArgusThisUpHdr;
-                  sport = ntohs(tp->th_sport);
-                  dport = ntohs(tp->th_dport);
+                  /* unlike the equivalent IPv4 path (ArgusTcp.c:82, STRUCTCAPTURED(model,
+                   * *thdr)), this IPv6 path had no check that the TCP header is actually
+                   * captured before reading th_sport/th_dport. */
+                  if (BYTESCAPTURED(model, *tp, 4)) {
+                     sport = ntohs(tp->th_sport);
+                     dport = ntohs(tp->th_dport);
+                  }
                   break;
                }
 
                case IPPROTO_UDP: {
                   struct udphdr *up = (struct udphdr *) model->ArgusThisUpHdr;
-                  sport = ntohs(up->uh_sport);
-                  dport = ntohs(up->uh_dport);
-                  if ((sport == 53) || (dport == 53)) {
+                  if (BYTESCAPTURED(model, *up, 4)) {
+                     sport = ntohs(up->uh_sport);
+                     dport = ntohs(up->uh_dport);
+                  }
+                  /* confirm the 2 padding bytes immediately after the UDP header are
+                   * within the captured snapshot before reading them (see IPv4 equivalent
+                   * fix above). */
+                  if (((sport == 53) || (dport == 53)) &&
+                      BYTESCAPTURED(model, *up, sizeof(struct udphdr) + 2)) {
                      unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
                      bcopy(&pad, &model->ArgusThisFlow->ipv6_flow.smask, 2);
                   }
@@ -4737,9 +4799,13 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
       len = (tip->ip_len - hlen);
 
       model->ArgusOptionIndicator = '\0';
-      if ((ArgusOptionLen = (hlen - sizeof (struct ip))) > 0)
-         model->ArgusOptionIndicator = ArgusParseIPOptions ((unsigned char *) (ip + 1), ArgusOptionLen);
-      else
+      if ((ArgusOptionLen = (hlen - sizeof (struct ip))) > 0) {
+         /* hlen (and thus ArgusOptionLen) is derived from the attacker-controlled
+          * ip_hl field (0-15, up to 60 bytes total header) -- confirm the options
+          * region is actually captured before parsing it. */
+         if (BYTESCAPTURED(model, *ip, hlen))
+            model->ArgusOptionIndicator = ArgusParseIPOptions ((unsigned char *) (ip + 1), ArgusOptionLen);
+      } else
          model->ArgusOptionIndicator = 0;
 
       model->ArgusThisLength  = len;
@@ -4781,21 +4847,26 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                   }
                   break;
                } 
-               case IPPROTO_UDP: {
-                  model->ArgusThisFlow->ip_flow.smask = 0;
-                  model->ArgusThisFlow->ip_flow.dmask = 0;
-                  if (len >= sizeof (struct udphdr)) {
-                     struct udphdr *up = (struct udphdr *) nxtHdr;
-                     if (BYTESCAPTURED(model, *up, 4)) {
-                        sport = ntohs(up->uh_sport);
-                        dport = ntohs(up->uh_dport);
-                     }
-                     if ((sport == 53) || (dport == 53)) {
-                        unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
-                        bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
-                     }
-                  }
-                  break;
+                case IPPROTO_UDP: {
+                   model->ArgusThisFlow->ip_flow.smask = 0;
+                   model->ArgusThisFlow->ip_flow.dmask = 0;
+                   if (len >= sizeof (struct udphdr)) {
+                      struct udphdr *up = (struct udphdr *) nxtHdr;
+                      if (BYTESCAPTURED(model, *up, 4)) {
+                         sport = ntohs(up->uh_sport);
+                         dport = ntohs(up->uh_dport);
+                      }
+                      /* "len" is derived from the IP header's ip_len field, not the actual
+                       * number of captured bytes -- must separately confirm the 2 padding
+                       * bytes immediately after the UDP header are within the captured
+                       * snapshot before reading them. */
+                      if (((sport == 53) || (dport == 53)) &&
+                          BYTESCAPTURED(model, *up, sizeof(struct udphdr) + 2)) {
+                         unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
+                         bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
+                      }
+                   }
+                   break;
                }
 
                case IPPROTO_ESP:

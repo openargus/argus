@@ -186,8 +186,13 @@ ArgusCreateICMPFlow (struct ArgusModelerStruct *model, struct ip *ip)
                            int hlen = oip->ip_hl << 2;
 
                            ouh = (struct udphdr *) (((u_char *) oip) + hlen);
-                           icmpFlow->tp_p = oip->ip_p;
-                           icmpFlow->id = ntohs((unsigned short) ouh->uh_dport);
+                           /* hlen comes from the attacker-controlled embedded IP header's
+                            * ip_hl field (0-60 bytes); confirm the UDP header at that offset
+                            * is actually captured before dereferencing ouh->uh_dport. */
+                           if (BYTESCAPTURED(model, *ouh, sizeof(*ouh))) {
+                              icmpFlow->tp_p = oip->ip_p;
+                              icmpFlow->id = ntohs((unsigned short) ouh->uh_dport);
+                           }
                            break;
                         }
 

@@ -1032,11 +1032,23 @@ ArgusParseTCPOptions(struct ArgusModelerStruct *model, struct tcphdr *tcp, int l
       cp = (const u_char *)tcp + sizeof(*tcp);
 
       while (len > 0) {
+         /* "len" is derived from the TCP header's th_off field (attacker-controlled),
+          * not from the number of bytes actually captured -- confirm at least 1 byte
+          * remains in the captured snapshot before reading *cp below. The LENCHECK()
+          * calls further down only validate specific options' data lengths, not this
+          * initial per-iteration option-type byte read. */
+         if (!BYTESCAPTURED(model, *cp, 1))
+            goto trunc;
+
          opt = *cp++;
          if (ZEROLENOPT(opt))
             alen = 1;
 
          else {
+            /* second per-option byte read (the option's length field) -- also needs an
+             * explicit captured-length check, same rationale as above. */
+            if (!BYTESCAPTURED(model, *cp, 1))
+               goto trunc;
             alen = *cp++;   /* total including type, len */
             if (alen < 2 || alen > len)
                goto bad;

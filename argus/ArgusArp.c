@@ -145,6 +145,14 @@ ArgusCreateArpFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
    unsigned int arp_tpa, arp_spa;
 
    if (STRUCTCAPTURED(model, *ahdr)) {
+      /* SHA/SPA/THA/TPA offsets (see argus_ar_sha/spa/tha/tpa macros above) are computed
+       * from ar_hln and ar_pln, both attacker-controlled bytes in the ARP header itself.
+       * Validate that the full variable-length ARP packet (fixed header + 2*hln + 2*pln)
+       * is actually captured before any SHA/SPA/THA/TPA access below -- otherwise HLN(ahdr)
+       * bytes could be copied from well past the end of the captured buffer. */
+      if (!BYTESCAPTURED(model, *ahdr, sizeof(*ahdr) + 2*(unsigned int)HLN(ahdr) + 2*(unsigned int)PLN(ahdr)))
+         goto out;
+
       retn = model->ArgusThisFlow;
 
       switch (OP(ahdr)) {

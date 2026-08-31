@@ -1127,7 +1127,17 @@ ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModel
                            break;
                         }
                         case k_CiscoV9SrcMask: {
-                           uint32_t mask = 0xffffffff << (32 - value.val8[0]);
+                           /* value.val8[0] is an attacker-controlled mask length (0-255) taken
+                            * directly from the NetFlow v9 record. A shift amount of 32 or a
+                            * negative amount (mask length > 32) is undefined behavior in C, so
+                            * clamp explicitly: 0 => no mask bits, >=32 => full mask. */
+                           uint32_t mask;
+                           if (value.val8[0] == 0)
+                              mask = 0;
+                           else if (value.val8[0] >= 32)
+                              mask = 0xffffffff;
+                           else
+                              mask = 0xffffffff << (32 - value.val8[0]);
                            flow->canon.flow.flow_un.ipv6.ip_src[3] = mask;
                            flow->dsrindex |= 1 << ARGUS_FLOW_INDEX;
                            flow->dsrs[ARGUS_FLOW_INDEX] = &flow->canon.flow.hdr;
@@ -1149,7 +1159,14 @@ ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModel
                            break;
                         }
                         case k_CiscoV9DstMask: {
-                           uint32_t mask = 0xffffffff << (32 - value.val8[0]);
+                           /* see k_CiscoV9SrcMask above for rationale */
+                           uint32_t mask;
+                           if (value.val8[0] == 0)
+                              mask = 0;
+                           else if (value.val8[0] >= 32)
+                              mask = 0xffffffff;
+                           else
+                              mask = 0xffffffff << (32 - value.val8[0]);
                            flow->canon.flow.flow_un.ipv6.ip_dst[3] = mask;
                            flow->dsrindex |= 1 << ARGUS_FLOW_INDEX;
                            flow->dsrs[ARGUS_FLOW_INDEX] = &flow->canon.flow.hdr;
