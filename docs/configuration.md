@@ -1,654 +1,318 @@
-# Argus Configuration Guide
+# Argus Sensor Configuration Guide
 
-This guide provides a comprehensive overview of Argus configuration options and best practices.
-
-## Table of Contents
-
-- [Configuration File Format](#configuration-file-format)
-- [Configuration Hierarchy](#configuration-hierarchy)
-- [Core Configuration Variables](#core-configuration-variables)
-- [Interface Configuration](#interface-configuration)
-- [Flow Configuration](#flow-configuration)
-- [Output Configuration](#output-configuration)
-- [Security Configuration](#security-configuration)
-- [Performance Tuning](#performance-tuning)
-- [Example Configurations](#example-configurations)
+**Status:** Verified against source.
+**Scope:** Argus sensor only (`~/Saber/argus/argus`). Every variable below is confirmed present in the
+sensor's config-variable table (`ArgusResourceFileStr[]`, `argus/argus.c:1155`) and cross-checked against
+its handling logic in `main()` and against `man/man5/argus.conf.5`, which is itself accurate and detailed
+— it was used as the primary source for variable semantics, with source code used to verify claims and
+resolve ambiguity.
+**Supersedes:** the previous version of this document, which invented dozens of configuration variables
+that do not exist anywhere in source (`ARGUS_MAX_FLOWS`, `ARGUS_COMPRESS`, `ARGUS_CPU_AFFINITY`,
+`ARGUS_ALERT_ON_SYN_FLOOD`, `ARGUS_OUTPUT_MAX_SIZE`, and about 30 others), described a 5-tier
+environment-variable-inclusive precedence order that doesn't exist, and gave an incorrect example for
+socket output. Every specific correction is called out inline below.
 
 ---
 
-## Configuration File Format
+## 1. Configuration file format
 
-### Syntax
-
-Configuration files use a simple key=value format:
+Confirmed in `man/man5/argus.conf.5` and `ArgusParseResourceFile()` (`argus/argus.c:1319`):
 
 ```conf
-# Comments start with #
 VARIABLE=value
+VARIABLE="compound value with spaces"
 
-# Embedded comments use //
-VARIABLE=value // inline comment
-
-# Quoted values for strings with spaces
-VARIABLE="value with spaces"
+# Comment on its own line
+VARIABLE=value // inline comment (space or tab before // is required)
 ```
 
-### Rules
+Rules:
+- No whitespace around `=`.
+- Quotes are optional for simple values, required if the value needs an embedded comment or contains
+  spaces.
+- A config file is a flat list of `VARIABLE=value` lines — there is no nesting, sectioning, or includes
+  beyond the `-F` command-line mechanism described next.
 
-1. No spaces around the `=` sign
-2. Comments must be on their own line or after a space/tab
-3. Values can be:
-   - Numbers: `12345`
-   - Strings: `"mystring"` or `mystring`
-   - IP addresses: `192.168.1.1`
-   - Booleans: `yes`/`no` or `true`/`false`
+## 2. Configuration precedence — corrected
 
----
+**This is the most significant correction in this document.** The sensor's actual configuration model is
+a simple two-step, single-pass process — not a multi-tier hierarchy with environment variables and
+multiple auto-searched paths.
 
-## Configuration Hierarchy
+Verified directly from `main()` (`argus/argus.c:300` onward):
 
-Argus reads configuration in this order (later overrides earlier):
-
-1. **Compiled-in defaults**
-2. **Environment variables** (`ARGUS_*`)
-3. **Default config files** searched in order:
-   - `/etc/argus.conf`
-   - `$ARGUSPATH/argus.conf`
-   - `$ARGUSHOME/argus.conf`
-   - `$HOME/argus.conf`
-4. **Explicit config files** (`-F` option, in order specified)
-5. **Command-line options** (highest priority)
-
-### Example Priority
+1. **`/etc/argus.conf` loads first, unconditionally, if it exists** — checked with `stat()` before command
+   line parsing begins. This is the *only* automatically-searched config file.
+2. **Command-line arguments are then parsed once, left to right**, via a single `getopt()` loop. `-F <file>`
+   loads an additional config file at exactly the point it appears in the argument list. Any flag appearing
+   later on the command line overrides a value set earlier (by `/etc/argus.conf` or an earlier `-F` file).
 
 ```bash
-# Command line overrides file
-argus -F /etc/argus.conf -i eth0
-
-# If eth0 is also in /etc/argus.conf, command line wins
+# /etc/argus.conf loads first (if present), then this -F file, then -i overrides
+# whatever interface either config file set, because it comes last on the command line
+argus -F /etc/argus/site.conf -i eth0
 ```
 
----
+**There is no environment-variable configuration layer.** Confirmed by the complete absence of any
+`getenv()` call in `argus.c`, `ArgusSource.c`, or `ArgusUtil.c`. The `ARGUS_*` names are config-file
+variable names, not shell environment variables — do not `export ARGUS_MONITOR_ID=...` expecting it to
+have any effect; it won't.
 
-## Core Configuration Variables
+One variable is easy to confuse with this: **`ARGUS_ENV`** is a real config-file directive, but it does the
+opposite of what it sounds like — it calls `putenv()` to set an OS/library-level environment variable
+*for other software* (documented use case: PF_RING support in libpcap), and explicitly does **not** affect
+any internal Argus variable (`man/man5/argus.conf.5` says so directly: *"you can't set ARGUS_PATH using
+this feature"*).
 
-### ARGUS_MONITOR_ID
+**There is no `$ARGUSPATH`/`$ARGUSHOME`/`$HOME` auto-search** for a config file in this version. The man
+page for `argus.conf` documents this search as deprecated from earlier versions, and no such search code
+exists in `argus.c`.
 
-**Purpose:** Unique identifier for this Argus probe
+## 3. Complete list of configuration variables
 
-**Values:**
-- Integer: `12345`
-- IPv4 address: `192.168.1.1`
-- IPv6 address: `fe80::1`
-- String (4 chars): `"probe1"`
-- UUID: `5E487EDE-B311-5E80-B69F-967E5E6C7A9F`
-- Special: `hostname` or `hostuuid`
+This is the full, verified set — every one of the following appears in `ArgusResourceFileStr[]`
+(`argus/argus.c:1155-1223`), the sensor's exhaustive list of recognized config-file variables. **If a
+variable is not in this list, the sensor's config-file parser does not recognize it at all** — it will be
+silently ignored or (depending on parser state) may produce a syntax-error log line, not applied as
+configuration.
 
-**Format:** `[type:/]sid[/inf]`
+### Identity
 
-**Examples:**
-```conf
-# Simple hostname
-ARGUS_MONITOR_ID=hostname
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_MONITOR_ID` | `-e <id>` | Source identifier embedded in every output record. v5 supports 128-bit values: unsigned int, IPv4/IPv6 address, 4-byte string, or UUID. Special values `` `hostname` `` and `` `hostuuid` `` resolve at runtime. Syntax: `[type:/]sid[/inf]` where `type` is `int`\|`str`\|`ipv4`\|`ipv6`\|`uuid`. |
+| `ARGUS_MONITOR_ID_INCLUDE_INF` | none | If `yes`, folds the monitored interface name into the 160-bit srcid (sid + inf). Default `no`. |
 
-# UUID with interface
-ARGUS_MONITOR_ID=uuid:/5E487EDE-B311-5E80-B69F-967E5E6C7A9F/en0
+### Daemon / process control
 
-# Static IP
-ARGUS_MONITOR_ID=192.168.1.100
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_DAEMON` | `-d` | Run as background daemon. |
+| `ARGUS_SET_PID` | none | Whether to write a pid file (default: yes). |
+| `ARGUS_PID_PATH` | none | Directory for the pid file (default `/var/run`). |
+| `ARGUS_CHROOT_DIR` | `-c <dir>` | `chroot(2)` after startup — **note: output file paths become relative to this directory afterward.** |
+| `ARGUS_SETUSER_ID` | `-u <user>` | `setuid()` after privileged resources are opened. |
+| `ARGUS_SETGROUP_ID` | `-g <group>` | `setgid()` after privileged resources are opened. |
 
-# Custom name
-ARGUS_MONITOR_ID="prod-core-01"
+*(Corrected: previous doc used `ARGUS_USER`/`ARGUS_GROUP`. The real names are `ARGUS_SETUSER_ID`/
+`ARGUS_SETGROUP_ID`.)*
+
+### Interfaces / capture
+
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_INTERFACE` | `-i <interface>` | Interface(s) to capture from. Supports rich syntax: `ind:` (independent tracking per interface), `dup:` (treat 2 interfaces as one half-duplex link), `bond:` (treat multiple interfaces as one source), grouping with `[...]`, and per-interface srcid override — see §4 below. |
+| `ARGUS_INTERFACE_SCAN_INTERVAL` | none | Seconds between checks for new/changed interfaces (1–60, default 1). |
+| `ARGUS_GO_PROMISCUOUS` | (inverse of `-p`) | Whether to open interfaces in promiscuous mode. |
+| `ARGUS_BIND_IP` | `-B` | Restrict the *remote access* listening socket (see `ARGUS_ACCESS_PORT`) to specific local IP(s), comma-separated. |
+| `ARGUS_PCAP_BUF_SIZE` | none | libpcap capture buffer size; accepts `K`/`M`/`G` suffixes, e.g. `1G`. |
+| `ARGUS_PCAP_DISPATCH_NUM` | none | Packets requested per `pcap_dispatch()` call; `-1` = full buffer. Default `1`. |
+| `ARGUS_FILTER` | none | A BPF filter expression, max 2K. |
+| `ARGUS_FILTER_OPTIMIZER` | `-O` (inverted) | Whether libpcap's filter optimizer is used. Default yes. |
+| `ARGUS_PACKET_CAPTURE_FILE` | none | Write raw captured packets to a file in addition to generating flow records. |
+| `ARGUS_PACKET_CAPTURE_ON_PROTO` | none | Limit raw packet capture to specific protocols. |
+| `ARGUS_PACKET_CAPTURE_ON_ERROR` | none | Trigger raw packet capture on error conditions. |
+
+*(Corrected: previous doc's `ARGUS_INTERFACE=dup:en0,en1/"ap01"` example syntax happens to be close to
+real syntax — `dup:` is genuine — but the doc's invented "SPAN/Mirror," "Bonded," and "VLAN subinterface"
+usage tips implied plain interface names like `bond0`/`eth0.100` are Argus-level concepts; they are not —
+`bond`/`dup`/`ind` are Argus's own interface-combination keywords, unrelated to OS-level bonding/VLAN
+subinterfaces, which Argus treats as ordinary interface names if the OS exposes them that way.)*
+
+### Flow model
+
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_FLOW_TYPE` | none | `Uni` or `Bi` (case-insensitive prefix match — `"Uni..."` / `"Bi..."`), i.e. unidirectional or bidirectional flow tracking. |
+| `ARGUS_FLOW_KEY` | none | Space/`+`-separated combination of: `CLASSIC_5_TUPLE`, `LAYER_2`, `LOCAL_MPLS`, `COMPLETE_MPLS`, `VLAN`, `LAYER_2_MATRIX`, `LAYER_3_MATRIX`. Default is `CLASSIC_5_TUPLE` if unset. |
+| `ARGUS_IP_TIMEOUT`, `ARGUS_TCP_TIMEOUT`, `ARGUS_ICMP_TIMEOUT`, `ARGUS_IGMP_TIMEOUT`, `ARGUS_FRAG_TIMEOUT`, `ARGUS_ARP_TIMEOUT`, `ARGUS_OTHER_TIMEOUT` | none | Per-protocol flow-cache idle timeout in seconds. Defaults: IP 30, TCP 60, ICMP 5, IGMP 30, Frag 5, ARP 5, Other 30. Max 65534. |
+| `ARGUS_TCP_FALLOW_TIMEOUT` | none | Timeout for "fallow" TCP flow tracking (recent feature — see git log). |
+| `ARGUS_HASHTABLE_SIZE` | none | Flow classification hash table size. Default 4096 (suited to <1M flows/day). For 40–100G sensors, the man page recommends >10M (`0x1000000`). |
+| `ARGUS_TRACK_DUPLICATES` / `ARGUS_DEDUP` | none | Duplicate packet detection/handling. |
+| `ARGUS_GENERATE_HASH_METRICS` | none | Export the flow hash value as a DSR (`ARGUS_FLOW_HASH_DSR` — see `docs/data-model.md`). |
+
+*(Corrected: previous doc's `MPLS` value is not valid on its own — the real tokens are `LOCAL_MPLS` and
+`COMPLETE_MPLS`. There is no `ARGUS_MAX_FLOWS` variable; flow-table sizing is controlled indirectly via
+`ARGUS_HASHTABLE_SIZE`, not a flow-count cap.)*
+
+### Metrics / feature toggles
+
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_GENERATE_RESPONSE_TIME_DATA` | `-R` | Report data suited to app-response-time / RTT calculation. |
+| `ARGUS_GENERATE_PACKET_SIZE` | `-Z` | Generate packet-size data. |
+| `ARGUS_PACKET_SIZE_HISTOGRAM` | none | Enable packet-size histogram DSR. |
+| `ARGUS_GENERATE_JITTER_DATA` | none | Generate jitter metrics (`ARGUS_JITTER_DSR`). |
+| `ARGUS_JITTER_HISTOGRAM` | none | Jitter histogram variant. |
+| `ARGUS_GENERATE_MAC_DATA` | none | Include L2 MAC DSR. |
+| `ARGUS_GENERATE_APPBYTE_METRIC` | none | Application-byte counting. |
+| `ARGUS_GENERATE_TCP_PERF_METRIC` | none | TCP performance metrics. |
+| `ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS` | none | Separate src/dst timestamps. |
+| `ARGUS_GENERATE_START_RECORDS` | none | Emit an explicit record at flow start (in addition to status/stop). |
+| `ARGUS_CAPTURE_DATA_LEN` | `-U <bytes>` | Number of user/application payload bytes to capture (`ARGUS_DATA_DSR` — see `docs/data-model.md` §4). **Data-sensitivity implication: nonzero here means raw payload bytes, not just metadata, are captured.** |
+| `ARGUS_ENCAPS_CAPTURE` | none | Capture encapsulation headers for debugging unknown tunnel types. Default `no`. |
+| `ARGUS_CAPTURE_FULL_CONTROL_DATA` | `-C` | Full packet capture for specified control-plane protocols (`ARGUS_CONTROLPLANE_PROTO`). Performance-impacting above 100G per the man page. |
+| `ARGUS_CONTROLPLANE_PROTO` | none | Protocol list (from `/etc/services` names) treated as control-plane when the above is enabled. |
+| `ARGUS_KEYSTROKE` / `ARGUS_KEYSTROKE_CONF` | none | TCP/SSH keystroke-timing detection (`ARGUS_BEHAVIOR_DSR`) and its tunable thresholds (`DC_MIN`, `DC_MAX`, `GS_MAX`, `DS_MIN`, `DS_MAX`, `IC_MIN`, `LCS_MAX`, `GPC_MAX`, `ICR_MIN`, `ICR_MAX`). |
+| `ARGUS_OS_FINGERPRINTING` | none | Includes `ARGUS_TCP_INIT` DSR data; **the sensor does not do the fingerprinting itself** — this only tags data that `ra*` clients use for pf.os/nmap-style fingerprinting. Consistent with the sensor/client boundary described in `docs/data-model.md`. |
+| `ARGUS_TUNNEL_PARSING` / `ARGUS_TUNNEL_INFORMATION` / `ARGUS_TUNNEL_DISCOVERY` | none | Tunnel (GRE/VXLAN/Geneve/etc.) parsing behavior. |
+| `ARGUS_SELF_SYNCHRONIZE` | none | Sensor self-synchronization behavior. |
+| `ARGUS_EVENT_DATA` | none | Event-record generation/capture settings. |
+
+*(Corrected: previous doc's `ARGUS_ENABLE_JITTER_METRICS`, `ARGUS_ENABLE_APP_METRICS`,
+`ARGUS_ALERT_ON_SYN_FLOOD`, `ARGUS_ALERT_ON_PORT_SCAN` do not exist. The sensor has no alerting concept at
+all — it emits flow records; alerting on patterns like SYN floods or port scans would be client/analyst
+tooling built on top of the record stream, not a sensor feature.)*
+
+### Output
+
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_OUTPUT_FILE` | `-w <file>` | Write to file. Supports up to 5 concurrent files, each with its own optional filter: `ARGUS_OUTPUT_FILE=/path/to/file "filter expr"`. |
+| `ARGUS_OUTPUT_STREAM` | `-w argus-udp://host:port` | Write to a remote host over UDP (unregistered/unsolicited push), up to 5 concurrent streams, each with its own optional filter: `ARGUS_OUTPUT_STREAM="argus-udp://224.0.20.21:561 'filter'"`. |
+| `ARGUS_ACCESS_PORT` | `-P <port>` | Enables a **listening** TCP port (default 561) for remote clients to pull data — this is the "collector connects to sensor" model, distinct from `ARGUS_OUTPUT_STREAM`'s "sensor pushes to collector" model. Disabled by setting to `0`. Man page notes: if `radium.1` (a client-side relay) is also using port 561, use a different port here, e.g. 562, to avoid conflict. |
+| `ARGUS_FLOW_STATUS_INTERVAL` | `-S <secs>` | How often a status record is emitted for ongoing flows. |
+| `ARGUS_MAR_STATUS_INTERVAL` | none | MAR (management/health) record interval — see `docs/data-model.md` §6 for what's in a MAR. |
+| `ARGUS_MAR_INTERFACE_INTERVAL` | none | Interface-specific MAR interval. |
+
+*(Corrected — this is the most operationally important fix: previous doc's `-S <host:port>` and
+`ARGUS_OUTPUT=collector.example.com:5100`/`ARGUS_OUTPUT=siem.example.com:5100` examples are wrong on two
+counts: (1) there is no plain `ARGUS_OUTPUT` variable — file output is `ARGUS_OUTPUT_FILE`, remote output
+is `ARGUS_OUTPUT_STREAM`, and they are not interchangeable via a single `host:port` string; (2) `-S` sets
+the flow-status **report interval in seconds**, confirmed both in source (`argus.c:150,578`,
+`setArgusFarReportInterval`) and the man page — it has never been a socket/host:port option. There is also
+no general "output to SIEM" variable — a SIEM integration would consume the sensor's native binary output
+via a client-side converter, not a sensor-level config option.)*
+
+**There is no file-rotation-by-size/time, no output buffer-size tuning, and no output compression variable**
+in the sensor's config system (`ARGUS_OUTPUT_MAX_SIZE`, `ARGUS_OUTPUT_MAX_TIME`, `ARGUS_OUTPUT_BUFFER`,
+`ARGUS_COMPRESS`, `ARGUS_COMPRESS_LEVEL` in the previous doc do not exist). See `docs/architecture.md` §6
+for the corrected output-capability description.
+
+### Security / access control
+
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_BIND_IP` | `-B` | (see Interfaces table above) restricts the `ARGUS_ACCESS_PORT` listener to specific local addresses. |
+
+TCP-wrapper (`hosts.allow`/`hosts.deny`) and SASL authentication are real (confirmed in
+`docs/architecture.md` §8), but are **not controlled via `argus.conf` variables** — they're compiled-in
+behavior (`#include <tcpd.h>`, `#ifdef ARGUS_SASL`) configured through the standard system files
+(`/etc/hosts.allow`, `/etc/hosts.deny`) or SASL's own configuration, not through Argus-specific config
+variables.
+
+*(Corrected: previous doc's `ARGUS_SASL`, `ARGUS_SASL_MECH` variables do not exist in
+`ArgusResourceFileStr[]`.)*
+
+### Debug / logging
+
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_DEBUG_LEVEL` | `-D <n>` | Debug verbosity (requires debug-enabled build). Default 0. |
+| `ARGUS_LOG_DISPLAY_PRIORITY` | none | Controls which syslog priority levels are shown. |
+
+*(Corrected: previous doc's `ARGUS_LOG_SYSLOG` and `ARGUS_LOG_LEVEL=debug` don't exist as such — use
+`ARGUS_DEBUG_LEVEL` and `-D`.)*
+
+### Miscellaneous
+
+| Variable | CLI equiv. | Purpose |
+|---|---|---|
+| `ARGUS_ENV` | none | Sets an OS/library-level environment variable via `putenv()` for dependencies like PF_RING — **does not configure Argus itself.** See §2 above. |
+| `ARGUS_TIMESTAMP_TYPE` | none | Packet timestamp source/type selection. |
+| `ARGUS_MIN_SSF` / `ARGUS_MAX_SSF` | none | Sampling/subsampling-factor bounds. |
+
+## 4. Interface specification syntax (detail)
+
+Since `ARGUS_INTERFACE` syntax is unusually rich and easy to get wrong, quoting the man page's own grammar
+directly (confirmed matches `ArgusParseSourceID`/interface-parsing logic):
+
+```
+-i ind:all
+-i ind:any/srcid
+-i dup:en0,en1/srcid
+-i bond:en0,en1/srcid
+-i dup:[bond:en0,en1],en2/srcid
+-i en0/srcid -i en1/srcid       (equivalent to '-i ind:en0/srcid,en1/srcid')
+-i en0 en1                       (equivalent to '-i bond:en0,en1')
 ```
 
-**Command-line:** `-e <id>`
+- `ind:` — track each listed interface independently (separate flow state per interface).
+- `dup:` — treat two interfaces as the two halves of one full-duplex link.
+- `bond:` — treat multiple interfaces as a single combined packet source.
+- Groups can nest with `[...]`.
+- Per-interface `srcid` can override the global `ARGUS_MONITOR_ID`; an empty srcid (`//`) falls back to
+  the global `ARGUS_MONITOR_ID`. The `inf` keyword substitutes the actual interface name into the srcid.
 
----
+## 5. Example: minimal working sensor config
 
-### ARGUS_DAEMON
+Built entirely from variables confirmed in §3 — this replaces the previous doc's example configs, which
+mixed real and fabricated variables:
 
-**Purpose:** Run Argus as a daemon process
-
-**Values:** `yes` | `no`
-
-**Examples:**
 ```conf
-# Run as daemon (for init scripts)
+# /etc/argus.conf
+
+ARGUS_MONITOR_ID=`hostname`
 ARGUS_DAEMON=yes
-
-# Run in foreground (for debugging)
-ARGUS_DAEMON=no
-```
-
-**Command-line:** `-d` (enables daemon mode)
-
----
-
-### ARGUS_FLOW_TYPE
-
-**Purpose:** Directionality of flow tracking
-
-**Values:**
-- `Bidirectional`: Combine src→dst and dst→src (default)
-- `Unidirectional`: Track each direction separately
-
-**Examples:**
-```conf
-# Default - bidirectional flows
-ARGUS_FLOW_TYPE=Bidirectional
-
-# Unidirectional for specific analysis
-ARGUS_FLOW_TYPE=Unidirectional
-```
-
-**Impact:** 
-- Bidirectional: Half the flow records, combined metrics
-- Unidirectional: More records, separate direction metrics
-
----
-
-### ARGUS_FLOW_KEY
-
-**Purpose:** Strategy for aggregating packets into flows
-
-**Values:**
-- `CLASSIC_5_TUPLE`: src_ip, dst_ip, src_port, dst_port, proto
-- `LAYER_2_MATRIX`: Include MAC addresses
-- `LAYER_3_MATRIX`: Include IP + ports
-- `MPLS`: Include MPLS labels
-- `VLAN`: Include VLAN tags
-- Custom combinations
-
-**Examples:**
-```conf
-# Standard 5-tuple (default)
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE
-
-# Include Layer 2 information
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE+LAYER_2
-
-# VLAN-aware flows
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE+VLAN
-```
-
----
-
-## Interface Configuration
-
-### ARGUS_INTERFACE
-
-**Purpose:** Specify network interfaces to monitor
-
-**Syntax:** `interface[/srcid]`
-
-**Examples:**
-```conf
-# Single interface
 ARGUS_INTERFACE=eth0
-
-# Multiple interfaces
-ARGUS_INTERFACE=eth0
-ARGUS_INTERFACE=eth1
-ARGUS_INTERFACE=eth2
-
-# Interface with custom source ID
-ARGUS_INTERFACE=eth0/monitor1
-
-# All interfaces
-ARGUS_INTERFACE=all
-
-# Interface pairs (ingress/egress)
-ARGUS_INTERFACE=dup:en0,en1/"ap01"
+ARGUS_OUTPUT_FILE=/var/log/argus/argus.out
+ARGUS_FLOW_STATUS_INTERVAL=60
 ```
 
-**Command-line:** `-i <interface>`
-
----
-
-### Interface Selection Tips
-
-**For SPAN/Mirror Ports:**
-```conf
-# Single interface receiving mirrored traffic
-ARGUS_INTERFACE=span0
-```
-
-**For Multi-Homed Systems:**
-```conf
-# Monitor multiple interfaces separately
-ARGUS_INTERFACE=eth0
-ARGUS_INTERFACE=eth1
-ARGUS_INTERFACE=eth2
-```
-
-**For Bonded/Aggregated Interfaces:**
-```conf
-# Monitor the bond interface
-ARGUS_INTERFACE=bond0
-```
-
-**For VLAN Tagged Traffic:**
-```conf
-# Monitor VLAN subinterface
-ARGUS_INTERFACE=eth0.100
-```
-
----
-
-## Output Configuration
-
-### ARGUS_OUTPUT
-
-**Purpose:** Output destination for flow records
-
-**Values:**
-- File path: `/var/log/argus/data.argus`
-- Socket: `host:port`
-- Stdout: `-`
-
-**Examples:**
-```conf
-# Write to file
-ARGUS_OUTPUT=/var/log/argus/data.argus
-
-# Write to socket (for remote collection)
-ARGUS_OUTPUT=collector.example.com:5100
-
-# Write to stdout (for piping)
-ARGUS_OUTPUT=-
-```
-
-**Command-line:** `-w <file>` or `-S <host:port>`
-
----
-
-### Output Options
-
-**File Rotation:**
-```conf
-# Rotate files based on size
-ARGUS_OUTPUT_MAX_SIZE=104857600  # 100MB
-
-# Rotate files based on time
-ARGUS_OUTPUT_MAX_TIME=86400      # 24 hours
-```
-
-**Compression:**
-```conf
-# Enable gzip compression
-ARGUS_COMPRESS=yes
-
-# Compression level (1-9)
-ARGUS_COMPRESS_LEVEL=6
-```
-
-**Buffer Size:**
-```conf
-# Output buffer size in bytes
-ARGUS_OUTPUT_BUFFER=1048576  # 1MB
-```
-
----
-
-## Security Configuration
-
-### Authentication
-
-**TCP Wrappers:**
-```conf
-# Edit /etc/hosts.allow and /etc/hosts.deny
-# Allow specific hosts
-echo "argus: 192.168.1.0/24" >> /etc/hosts.allow
-
-# Deny all others
-echo "argus: ALL" >> /etc/hosts.deny
-```
-
-**SASL Authentication:**
-```conf
-# Enable SASL
-ARGUS_SASL=yes
-
-# SASL mechanism
-ARGUS_SASL_MECH=PLAIN
-```
-
-### Privilege Separation
+For a sensor that also allows a client to pull data live (in addition to writing to a local file):
 
 ```conf
-# Drop to user after startup
-ARGUS_USER=argus
-
-# Drop to group
-ARGUS_GROUP=argus
-
-# Chroot after startup
-ARGUS_CHROOT=/var/argus
-```
-
----
-
-## Performance Tuning
-
-### Flow Table Management
-
-```conf
-# Maximum number of concurrent flows
-ARGUS_MAX_FLOWS=1000000
-
-# Flow timeout (active flows)
-ARGUS_FLOW_TIMEOUT=300
-
-# Flow timeout (inactive flows)
-ARGUS_FLOW_TIMEOUT_INACTIVE=60
-
-# Flow expiration check interval
-ARGUS_FLOW_EXPIRE_INTERVAL=30
-```
-
-### Memory Management
-
-```conf
-# Pre-allocate flow cache
-ARGUS_FLOW_CACHE_SIZE=2097152
-
-# Memory pool size
-ARGUS_MEMORY_POOL_SIZE=134217728
-```
-
-### CPU Optimization
-
-```conf
-# Limit to specific CPU cores (Linux)
-ARGUS_CPU_AFFINITY=0,1
-
-# Thread count (if threaded build)
-ARGUS_THREAD_COUNT=4
-```
-
-### Packet Capture Tuning
-
-```conf
-# Packet buffer size
-ARGUS_PACKET_BUFFER_SIZE=262144
-
-# Packet snapshot length
-ARGUS_SNAPLEN=65535
-
-# Promiscuous mode
-ARGUS_PROMISC=yes
-```
-
----
-
-## Example Configurations
-
-### Basic Production Setup
-
-```conf
-# /etc/argus.conf - Basic Production Configuration
-
-# Identify this probe
-ARGUS_MONITOR_ID=hostname
-
-# Flow settings
-ARGUS_FLOW_TYPE=Bidirectional
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE
-
-# Interfaces
-ARGUS_INTERFACE=eth0
-ARGUS_INTERFACE=eth1
-
-# Output
-ARGUS_OUTPUT=/var/log/argus/data.argus
-ARGUS_OUTPUT_MAX_SIZE=536870912  # 512MB
-
-# Daemon mode
+ARGUS_MONITOR_ID=`hostname`
 ARGUS_DAEMON=yes
-
-# Logging
-ARGUS_LOG_SYSLOG=yes
+ARGUS_INTERFACE=eth0
+ARGUS_OUTPUT_FILE=/var/log/argus/argus.out
+ARGUS_ACCESS_PORT=561
+ARGUS_BIND_IP="127.0.0.1,10.0.0.5"
 ```
 
-### High-Performance Core Network
+For a sensor pushing directly to a remote collector instead of (or in addition to) writing locally:
 
 ```conf
-# /etc/argus.conf - High Performance Core Network
-
-# Unique identifier
-ARGUS_MONITOR_ID=uuid:/$(cat /etc/machine-id)/core01
-
-# Aggressive flow settings
-ARGUS_FLOW_TYPE=Bidirectional
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE
-ARGUS_MAX_FLOWS=10000000
-ARGUS_FLOW_TIMEOUT=600
-ARGUS_FLOW_TIMEOUT_INACTIVE=120
-
-# Multiple interfaces
-ARGUS_INTERFACE=eth0
-ARGUS_INTERFACE=eth1
-ARGUS_INTERFACE=eth2
-ARGUS_INTERFACE=eth3
-
-# High-performance output
-ARGUS_OUTPUT=/mnt/raid/argus/data.argus
-ARGUS_OUTPUT_BUFFER=4194304  # 4MB buffer
-ARGUS_COMPRESS=yes
-ARGUS_COMPRESS_LEVEL=1
-
-# CPU optimization
-ARGUS_CPU_AFFINITY=0,1,2,3
-
-# Daemon mode
+ARGUS_MONITOR_ID=`hostname`
 ARGUS_DAEMON=yes
-
-# Resource limits
-ARGUS_FLOW_CACHE_SIZE=16777216
-```
-
-### Security Monitoring (NIDS Integration)
-
-```conf
-# /etc/argus.conf - Security Monitoring
-
-# Identify probe
-ARGUS_MONITOR_ID=security-probe-01
-
-# Detailed flow tracking
-ARGUS_FLOW_TYPE=Unidirectional
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE+LAYER_2
-
-# SPAN port for traffic mirror
-ARGUS_INTERFACE=span0
-
-# Enable detailed metrics
-ARGUS_ENABLE_JITTER_METRICS=yes
-ARGUS_ENABLE_APP_METRICS=yes
-
-# Output to SIEM
-ARGUS_OUTPUT=siem.example.com:5100
-
-# Alert on suspicious activity
-ARGUS_ALERT_ON_SYN_FLOOD=yes
-ARGUS_ALERT_ON_PORT_SCAN=yes
-
-# Daemon mode
-ARGUS_DAEMON=yes
-```
-
-### Development/Testing
-
-```conf
-# /etc/argus.conf - Development Configuration
-
-# Debug settings
-ARGUS_MONITOR_ID="dev-probe"
-
-# Simple flow tracking
-ARGUS_FLOW_TYPE=Bidirectional
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE
-
-# Test interface
 ARGUS_INTERFACE=eth0
-
-# Output to file for analysis
-ARGUS_OUTPUT=/tmp/argus-test.argus
-
-# No daemon (foreground for debugging)
-ARGUS_DAEMON=no
-
-# Verbose logging
-ARGUS_LOG_LEVEL=debug
+ARGUS_OUTPUT_STREAM="argus-udp://collector.example.com:561"
 ```
 
-### Container Deployment
+## 6. Validating configuration
 
-```conf
-# /etc/argus.conf - Docker/Kubernetes
-
-# Use environment variable for ID
-ARGUS_MONITOR_ID=${POD_IP}
-
-# Single interface
-ARGUS_INTERFACE=eth0
-
-# Output to stdout for logging
-ARGUS_OUTPUT=-
-
-# Non-daemon mode for container
-ARGUS_DAEMON=no
-
-# Minimal flow tracking
-ARGUS_FLOW_TYPE=Bidirectional
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE
-ARGUS_MAX_FLOWS=100000
-```
-
----
-
-## Environment Variables
-
-Argus can be configured via environment variables:
+Confirmed CLI mechanisms (there is no `-V` "validate only" flag in this version — check with `-h`/`usage()`
+if relying on this for a specific build):
 
 ```bash
-# Set before running argus
-export ARGUS_MONITOR_ID="my-probe"
-export ARGUS_INTERFACE=eth0
-export ARGUS_OUTPUT=/var/log/argus/data.argus
-
-# Or in /etc/default/argus (systemd)
-# /etc/systemd/system/argus.service.d/env.conf
-Environment="ARGUS_MONITOR_ID=prod-01"
-Environment="ARGUS_INTERFACE=eth0,eth1"
-```
-
----
-
-## Configuration Validation
-
-### Check Configuration Syntax
-
-```bash
-# Validate config file
-argus -F /etc/argus.conf -V
-
-# Test with debug output
+# Run in foreground with debug output to see what's being parsed/applied
 argus -F /etc/argus.conf -D 1 -d
+
+# Short capture test, then inspect with a client program
+timeout 60 argus -F /etc/argus.conf -i eth0 -w /tmp/test.argus
+# (radump/ra are client-repo tools, not part of this sensor — see docs/data-model.md scope note)
 ```
 
-### Test Configuration
+## 7. Related documentation
 
-```bash
-# Run in foreground with test config
-argus -F /test.conf -i eth0 -w /tmp/test.argus
-
-# Capture for 60 seconds then stop
-timeout 60 argus -F /test.conf -i eth0 -w /tmp/test.argus
-
-# Verify output
-radump -r /tmp/test.argus | head
-```
+- [`man/man5/argus.conf.5`](../man/man5/argus.conf.5) — the primary authoritative reference; this document
+  is a curated/cross-referenced summary of it, not a replacement.
+- [`docs/architecture.md`](architecture.md) — sensor process/component architecture.
+- [`docs/data-model.md`](data-model.md) — wire format and DSR reference; several config variables above
+  directly control which DSRs get populated (jitter, packet-size histogram, MAC, hash metrics, keystroke,
+  data-capture length).
 
 ---
 
-## Best Practices
+## Open items / follow-up verification
 
-### 1. Use Consistent Monitor IDs
-```conf
-# In production, use stable identifiers
-ARGUS_MONITOR_ID=uuid:/$(cat /etc/machine-id)
-```
-
-### 2. Plan Output Storage
-```conf
-# Calculate storage needs
-# 1 Gbps ≈ 1.5GB/hour at full packet rate
-# Set appropriate rotation
-ARGUS_OUTPUT_MAX_SIZE=1073741824  # 1GB
-```
-
-### 3. Secure Configuration Files
-```bash
-# Restrict config file access
-sudo chmod 600 /etc/argus.conf
-sudo chown root:argus /etc/argus.conf
-```
-
-### 4. Monitor Resource Usage
-```conf
-# Set reasonable limits
-ARGUS_MAX_FLOWS=1000000
-ARGUS_FLOW_TIMEOUT=300
-```
-
-### 5. Document Custom Configurations
-```conf
-# Add comments to explain custom settings
-ARGUS_FLOW_KEY=CLASSIC_5_TUPLE+LAYER_2  # Required for MAC-based analysis
-```
-
----
-
-## Troubleshooting Configuration
-
-### Config Not Being Read
-
-```bash
-# Check which config files exist
-ls -la /etc/argus.conf
-ls -la $HOME/argus.conf
-
-# See what Argus is using
-argus -V -F /path/to/config.conf
-```
-
-### Variable Not Applied
-
-```bash
-# Verify variable name
-grep -i "variable_name" /usr/local/share/doc/argus.conf
-
-# Check for typos in config
-cat /etc/argus.conf | grep VARIABLE
-```
-
-### Multiple Config Files
-
-```bash
-# List all config files being read
-argus -F /etc/argus.conf -F /etc/argus-custom.conf -D 2
-```
-
----
-
-## Related Documentation
-
-- [argus.conf.5](../man/man5/argus.conf.5) - Complete configuration reference
-- [Getting Started](getting-started.md) - Basic setup guide
-- [Architecture](architecture.md) - System design overview
-- [Troubleshooting](troubleshooting.md) - Common issues
-
----
-
-For the complete list of configuration options, see the `argus.conf.5` man page.
+1. `ARGUS_COLLECTOR` appears in `ArgusResourceFileStr[]` and is parsed (`argus.c:1701`) but its `case`
+   body is empty (`break;` with no action) — likely a legacy or reserved variable. Confirm intended
+   behavior (or lack thereof) before documenting it as functional.
+2. This document has not yet been reconciled against `docs/getting-started.md` or
+   `docs/troubleshooting.md`, which may still contain the same class of fabricated variables/examples as
+   this file did — recommend the same source-verification pass be applied to those next.
+3. Default values quoted above are transcribed from the man page; a handful were not independently
+   re-derived from source defaults in this pass (e.g. `ARGUS_HASHTABLE_SIZE=4096`,
+   `ARGUS_MIN_SSF`/`ARGUS_MAX_SSF` bounds) — low risk given the man page's overall accuracy so far, but
+   flagged per the verification standard used throughout this doc set.

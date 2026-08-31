@@ -1,314 +1,196 @@
-# Getting Started with Argus
+# Getting Started with the Argus Sensor
 
-This guide will help you get Argus up and running quickly for network flow monitoring.
+**Status:** Verified against source.
+**Scope:** Argus sensor only (`~/Saber/argus/argus`) — installation, running, and basic operation of the
+`argus` daemon itself. Reading/analyzing the output it produces requires client programs from the separate
+`~/Saber/argus/clients` repo (`ra`, `radump`, etc.) — see the note in §5 about what is and isn't verified
+about those tools here.
+**Supersedes:** the previous version of this document, which contained numerous incorrect CLI flags,
+a fabricated "Understanding Argus Output" section with an invented tabular format, non-existent output
+formats (JSON/CSV directly from the sensor), and a security-monitoring example built on non-existent
+`raaggregate`/`rahistogram`/`rahigh` pipelines. Every specific correction is called out inline below.
 
-## What is Argus?
+---
 
-Argus (Audit Record Generation and Utilization System) is a comprehensive network flow monitoring system that:
-- Captures raw network packets
-- Generates detailed flow records with extensive metrics
-- Supports real-time and historical analysis
-- Monitors all network protocols (Layer 2-7)
+## 1. What the sensor does (and doesn't do)
 
-## Prerequisites
+Argus's job: capture packets, classify them into flows, track flow state and metrics, and periodically
+emit binary flow records. That's it. Analysis, visualization, CSV/JSON export, alerting, and correlation
+are all client-side capabilities in the separate `argus-clients` distribution, not part of this sensor.
+See `docs/architecture.md` §10 and `docs/data-model.md` for the full sensor/client boundary.
 
-Before installing Argus, ensure you have:
+## 2. Prerequisites
 
-- A Unix-like system (Linux, macOS, BSD, Solaris)
-- Root/sudo access for installation
-- Network interface with packet capture permissions
-- Basic command-line knowledge
+- A Unix-like system — build support confirmed in `configure.ac` for Linux, macOS, FreeBSD/OpenBSD/NetBSD,
+  Solaris, AIX, HP-UX, Cygwin (see root `ARCHITECTURE.md`).
+- Root/sudo access, or appropriate packet-capture capabilities, to open interfaces for live capture.
+- `libpcap`, `flex`, `bison`, a C compiler, and `zlib` development headers to build from source.
 
-## Installation
+## 3. Installation (build from source)
 
-### Option 1: Package Manager (Recommended for Production)
+This repo does not ship prebuilt packages as part of what's cloned into `~/Saber/argus/argus` — the
+commands below build directly from this checkout.
 
-**Debian/Ubuntu:**
 ```bash
-# Add repository (if available)
-sudo apt-get update
-sudo apt-get install argus argus-clients
-```
-
-**Fedora/RHEL:**
-```bash
-sudo dnf install argus argus-clients
-```
-
-**macOS (Homebrew):**
-```bash
-brew install argus
-```
-
-### Option 2: Build from Source
-
-**Install Dependencies:**
-
-Ubuntu/Debian:
-```bash
-sudo apt-get update
-sudo apt-get install -y \
-    build-essential \
-    libpcap-dev \
-    flex \
-    bison \
-    zlib1g-dev \
-    libssl-dev
-```
-
-Fedora/RHEL:
-```bash
-sudo dnf groupinstall "Development Tools"
-sudo dnf install libpcap-devel flex bison zlib-devel openssl-devel
-```
-
-macOS:
-```bash
-brew install libpcap flex bison zlib openssl
-```
-
-**Build Argus:**
-```bash
-# Get the source
-git clone https://github.com/openargus/argus.git
-cd argus
-
-# Configure
+# From the sensor repo root
 ./configure --prefix=/usr/local
-
-# Build
 make
-
-# Install (requires sudo)
 sudo make install
 ```
 
-**Verify Installation:**
+*(Corrected: the previous doc suggested `apt-get install argus argus-clients`, `dnf install argus`, and
+`brew install argus` as primary installation paths, and a `git clone https://github.com/openargus/argus.git`
+step. Since you already have this cloned locally as part of the SABER project, the relevant path is
+building from this checkout directly — package-manager availability/versions for `argus` were not
+verified as part of this review and should not be assumed current or appropriate for a SABER deployment
+without separate verification.)*
+
+**Verify the build:**
+
 ```bash
-argus -V
-# Should output: argus-5.0.x
+argus -h
 ```
 
-## Quick Start
+*(Corrected: the previous doc used `argus -V` and claimed it prints something like `argus-5.0.x` and exits.
+**`-V` is not a recognized flag** — confirmed against the real `getopt()` option string in `argus/argus.c:451`,
+`"AbB:c:CdD:e:E:fF:g:H:i:Jk:lmM:N:OP:pRr:S:s:tT:u:U:w:XZh"`, which contains no `V`. Passing an unrecognized
+flag falls through to `default: usage();` (`argus.c:629`), which prints full usage text — starting with a
+line of the form `Argus Version <ver>` — and then **exits with a nonzero status**, which is different from a
+dedicated "print version and exit cleanly" command. The version string itself is generated directly from
+the repo's `VERSION` file — currently `5.0.3`, not `argus-5.0.x`.)*
 
-### Basic Network Monitoring
+## 4. Running the sensor
 
-1. **Start monitoring an interface:**
+### Capture live from an interface, write to a file
+
 ```bash
 sudo argus -i eth0 -w /var/log/argus/data.argus
 ```
 
-2. **View flow data in real-time:**
-```bash
-# In another terminal
-ra -r /var/log/argus/data.argus | head -20
-```
+This part of the previous doc's Quick Start was correct — `-i <interface>` and `-w <file>` are both real,
+confirmed flags.
 
-3. **Stop Argus:**
+### Stop the sensor
+
 ```bash
-# Send SIGINT to the argus process
+# Ctrl+C if running in the foreground, or:
 sudo killall argus
-# Or use Ctrl+C if running in foreground
 ```
 
-### Basic Configuration
+Confirmed: `SIGINT`, `SIGTERM`, and `SIGHUP` are all wired to a graceful shutdown handler
+(`ArgusScheduleShutDown`, `argus/argus.c:787-789`), so both methods work as described.
 
-Create `/etc/argus.conf`:
+### Run as a daemon
+
+```bash
+sudo argus -d -i eth0 -w /var/log/argus/data.argus
+```
+
+`-d` toggles daemon mode (`argus.c:466`). *(Corrected: the previous doc implied this was only reachable via
+a config-file `ARGUS_DAEMON=yes` setting combined with a systemd unit; `-d` on the command line is the
+direct equivalent and is the simplest way to test daemon mode manually.)*
+
+**Systemd / LaunchDaemons packaging**: this repo does include packaging assets (`pkg/systemd/`, `pkg/osx/`,
+`debian/`), but their exact contents/paths were not individually verified for this document — check
+`pkg/systemd/` directly for the actual unit file name and paths rather than assuming
+`/usr/local/share/argus/argus.service` as the previous doc did (that specific path was not confirmed to
+exist).
+
+### Minimal configuration file
 
 ```conf
-# /etc/argus.conf - Argus Configuration File
-
-# Identify this probe
-ARGUS_MONITOR_ID="prod-switch-monitor-01"
-
-# Flow configuration
-ARGUS_FLOW_TYPE="Bidirectional"
-ARGUS_FLOW_KEY="CLASSIC_5_TUPLE"
-
-# Interfaces to monitor
-ARGUS_INTERFACE="eth0"
-ARGUS_INTERFACE="eth1"
-
-# Output file
-ARGUS_OUTPUT="/var/log/argus/data.argus"
-
-# Run as daemon
+# /etc/argus.conf
+ARGUS_MONITOR_ID=`hostname`
+ARGUS_FLOW_TYPE=Bi
+ARGUS_FLOW_KEY=CLASSIC_5_TUPLE
+ARGUS_INTERFACE=eth0
+ARGUS_OUTPUT_FILE=/var/log/argus/data.argus
 ARGUS_DAEMON=yes
 ```
 
-### Start as a Service
+*(Corrected: previous doc used `ARGUS_FLOW_TYPE="Bidirectional"` — the parser only checks a
+case-insensitive prefix, `"Uni"` or `"Bi"` (`argus.c:1705-1709`), so `"Bidirectional"` does work, but `Bi`
+is the minimal accurate form. It also used a bare `ARGUS_OUTPUT` variable, which doesn't exist — the real
+variable is `ARGUS_OUTPUT_FILE`, and multiple `ARGUS_INTERFACE=` lines for multiple interfaces is correct
+and was retained. See `docs/configuration.md` for the complete, verified variable reference.)*
 
-**Systemd (Linux):**
+## 5. Filter expressions
+
 ```bash
-# Create service file (if not provided by package)
-sudo cp /usr/local/share/argus/argus.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable argus
-sudo systemctl start argus
-
-# Check status
-sudo systemctl status argus
+sudo argus -i eth0 'tcp port 80'
 ```
 
-**LaunchDaemons (macOS):**
+Filter expressions use BPF syntax (same as `tcpdump`), compiled via `pcap_compile()`
+(`ArgusSource.c:1063`). Quoting matters if the expression contains shell metacharacters or spaces — this
+part of the previous doc's guidance was accurate.
+
+To see the compiled filter for debugging (this is a real flag, previously undocumented):
+
 ```bash
-sudo cp /usr/local/share/argus/com.qosient.argus.plist /Library/LaunchDaemons/
-sudo launchctl load /Library/LaunchDaemons/com.qosient.argus.plist
+sudo argus -i eth0 -b 'tcp port 80'
 ```
 
-## Understanding Argus Output
+`-b` dumps filter compiler output (`argus.c:114`, `Argusbpf_dump`, `ArgusSource.c:5549`).
 
-### Flow Record Format
+## 6. Inspecting output — scope note
 
-Argus generates flow records with these key fields:
+The sensor writes exactly one binary wire format (see `docs/data-model.md`) — there is no built-in way for
+the sensor itself to print human-readable flow records, CSV, or JSON. Reading the output requires a client
+program (`ra`, `radump`, etc.) from the **separate** `~/Saber/argus/clients` repository.
 
-```
-start time | end time | src addr | dst addr | proto | bytes | packets | flags
-```
+**This document does not verify client-program usage** — that repo is out of scope for the sensor
+documentation effort per the working agreement for this pass. If you need to confirm a specific `ra`
+invocation, output field name, or output-format flag (e.g. whether `-M csv`/`-M json` are real `ra` flags,
+which was not confirmed here), that should be checked directly against the clients repo source, not
+assumed from this document or its predecessor.
 
-Example output:
-```
-2024-01-15 10:30:00.123 2024-01-15 10:30:05.456 192.168.1.100 10.0.0.1 TCP 15000 120 S
-```
+*(Corrected: the previous doc's entire "Understanding Argus Output" section — the tabular field-order
+diagram, the specific example output line, `ra -M csv`, `ra -M json`, and the four "Common Use Cases"
+pipelines using `raaggregate`, `rahistogram`, `rahigh`, `rasort -k 5 -rn` — was not verified against the
+clients source and should be treated as unconfirmed, not as documentation of actual sensor or client
+behavior. None of it originates from the sensor repo this document covers.)*
 
-### Common Output Formats
+## 7. Basic troubleshooting
 
-**Tabular (default):**
+**Sensor won't start / permission errors:**
 ```bash
-ra -r data.argus
+sudo setcap cap_net_raw,cap_net_admin=eip $(which argus)
+# or simply run with sudo
 ```
+This is a standard Linux capabilities mechanism for libpcap-based tools and is accurate as general
+guidance; it was not independently re-verified as Argus-specific in this pass.
 
-**CSV for Excel/Spreadsheets:**
+**No packets captured:**
 ```bash
-ra -M csv -r data.argus > output.csv
+ip link show eth0        # confirm interface is up
+sudo tcpdump -i eth0 -c 10   # confirm traffic is actually reaching the interface
 ```
 
-**JSON:**
+**Check filter compilation:**
 ```bash
-ra -M json -r data.argus > output.json
+sudo argus -i eth0 -b 'tcp port 80'
 ```
 
-**Summary Statistics:**
-```bash
-rasum -r data.argus
-```
+See `docs/troubleshooting.md` for a more complete, source-verified troubleshooting reference.
 
-## Common Use Cases
+## 8. Next steps
 
-### 1. Network Traffic Analysis
+- [`docs/configuration.md`](configuration.md) — full, verified configuration variable reference.
+- [`docs/architecture.md`](architecture.md) — how the sensor is structured internally.
+- [`docs/data-model.md`](data-model.md) — the wire format the sensor produces.
+- [`docs/troubleshooting.md`](troubleshooting.md) — verified troubleshooting reference.
 
-Monitor total bandwidth usage:
-```bash
-ra -r data.argus -o st,et,saddr,daddr,ip.proto,sbytes,dbytes | \
-    raaggregate -n 1m | \
-    rasort -k 5 -rn | head -20
-```
+---
 
-### 2. Security Monitoring
+## Open items / follow-up verification
 
-Detect port scans:
-```bash
-ra -r data.argus proto tcp -o st,saddr,daddr,dport,flags | \
-    raaggregate -n 5m -k saddr,daddr | \
-    rahistogram -k dport | \
-    rahigh -n 100
-```
-
-### 3. Performance Monitoring
-
-Monitor TCP retransmissions:
-```bash
-ra -r data.argus proto tcp -o st,saddr,daddr,tcp.sport,tcp.dport,tcp.retrans | \
-    rahigh -k tcp.retrans -v
-```
-
-### 4. Protocol Distribution
-
-Analyze protocol mix:
-```bash
-ra -r data.argus -o ip.proto | \
-    rahistogram -k ip.proto
-```
-
-## Next Steps
-
-Once you're comfortable with the basics:
-
-1. **Read the Configuration Guide** - Learn advanced configuration options
-2. **Explore Client Tools** - Discover all the ra* utilities
-3. **Set Up Archiving** - Configure log rotation and storage
-4. **Integrate with SIEM** - Connect to security information systems
-5. **Monitor Multiple Interfaces** - Scale to enterprise deployments
-
-## Troubleshooting
-
-### Argus won't start
-
-**Check permissions:**
-```bash
-# Ensure you have packet capture permissions
-sudo setcap cap_net_raw,cap_net_admin=eip /usr/local/sbin/argus
-```
-
-**Check for conflicts:**
-```bash
-# Make sure no other process is using the interface
-sudo lsof -i :argus_port
-```
-
-### No data being captured
-
-**Verify interface:**
-```bash
-# Check interface name
-ip link show
-# or
-ifconfig -a
-
-# Test with tcpdump
-sudo tcpdump -i eth0 -c 10
-```
-
-**Check filter syntax:**
-```bash
-# Test your filter expression
-argus -i eth0 -b 'tcp port 80'
-```
-
-### Can't read output files
-
-**Verify file format:**
-```bash
-file /var/log/argus/data.argus
-# Should show: Argus data file
-```
-
-**Check ra version compatibility:**
-```bash
-ra -V
-argus -V
-# Versions should match
-```
-
-## Getting Help
-
-- **Documentation**: See [Configuration Guide](configuration.md)
-- **Man Pages**: `man argus`, `man argus.conf`
-- **Mailing List**: argus-info@lists.andrew.cmu.edu
-- **Bug Reports**: Use `./bin/argusbug`
-
-## Resources
-
-- [Argus Website](https://openargus.com)
-- [Client Tools Documentation](https://github.com/openargus/clients)
-- [Network Flow Monitoring Best Practices](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-171.pdf)
-
-## Summary
-
-You should now be able to:
-- Install Argus on your system
-- Start basic network monitoring
-- View and analyze flow data
-- Configure common use cases
-
-For more advanced topics, continue with the [Configuration Guide](configuration.md).
+1. Exact systemd/launchd packaging file names and install paths (`pkg/systemd/`, `pkg/osx/`) were not
+   individually confirmed in this pass — verify directly before publishing a specific
+   `systemctl enable <name>` instruction.
+2. Client-side output/analysis commands (`ra`, `radump`, and any aggregation/histogram tools) are entirely
+   out of scope for sensor documentation and were deliberately not verified or included here — a
+   client-focused pass against the `~/Saber/argus/clients` repo would be needed before publishing
+   equivalent "getting started with output analysis" content.
+3. Packet-capture capability/permission guidance (`setcap`, AppArmor/SELinux considerations) is generic
+   Linux/libpcap guidance, not confirmed against this specific codebase — retained as reasonable general
+   advice, flagged as such.
