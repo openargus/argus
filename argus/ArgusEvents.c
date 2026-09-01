@@ -324,7 +324,14 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
             snprintf(buf, ARGUS_MAX_OS_STATUS - 1, "file=%s\n", evt->filename);
             strcpy(rec->argus_event.data.array, buf);
             tcnt = strlen(rec->argus_event.data.array);
-            cnt = read(fd, &rec->argus_event.data.array[tcnt], len - tcnt);
+            /* Security review Open Item #1 follow-up: `len` here is ARGUS_MAX_OS_BUF (65536), the
+             * size of the *whole* allocated record (`retn`), not the space remaining in
+             * data.array once its ~408-byte struct-header offset within that allocation is
+             * accounted for. Using `len - tcnt` as the read() bound overflows the allocation by
+             * ~408 bytes for a sufficiently large source file. The zlib-compressed sibling branch
+             * above already uses the correct, smaller ARGUS_MAX_OS_STATUS bound -- use the same
+             * constant here for consistency and correctness. */
+            cnt = read(fd, &rec->argus_event.data.array[tcnt], ARGUS_MAX_OS_STATUS - tcnt);
             ocnt = cnt;
 #if defined(HAVE_ZLIB_H)
          }
