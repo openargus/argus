@@ -533,8 +533,11 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                   }
 
                   if (last->timeout > 0) {
-                     if (last->timeout > ARGUSTIMEOUTQS)
-                        last->timeout = ARGUSTIMEOUTQS;
+                     /* F-1 fix: ArgusTimeOutQueue[] has ARGUSTIMEOUTQS elements, valid indices
+                      * 0..ARGUSTIMEOUTQS-1. Clamping to ARGUSTIMEOUTQS itself is an off-by-one --
+                      * that value is one past the end of the array. */
+                     if (last->timeout > ARGUSTIMEOUTQS - 1)
+                        last->timeout = ARGUSTIMEOUTQS - 1;
 
                      if (model->ArgusTimeOutQueue[last->timeout] == NULL) {
                         model->ArgusTimeOutQueue[last->timeout] = ArgusNewQueue();
@@ -5090,6 +5093,15 @@ void
 setArgusTcpFallowTimeout (struct ArgusModelerStruct *model, int value)
 {
    if (model != NULL) {
+      /* F-2 fix: ARGUS_TCP_FALLOW_TIMEOUT (this value) is later used unchecked as an index into
+       * ArgusTimeOutQueue[ARGUSTIMEOUTQS] (ArgusModeler.c, TCP fallow-timeout path). Validate the
+       * range here, at the point the config value enters the model, rather than trusting the
+       * config file / CLI value all the way through to the array-index use. */
+      if ((value < 0) || (value > ARGUSTIMEOUTQS - 1)) {
+         ArgusLog (LOG_ERR, "setArgusTcpFallowTimeout: value %d out of range [0, %d]\n",
+                   value, ARGUSTIMEOUTQS - 1);
+         return;
+      }
       model->ArgusTCPFallowTimeout = value;
    }
 }
@@ -5354,9 +5366,9 @@ setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)
 
    if (optarg && strlen(optarg)) {
       char *str = strdup(optarg);
-      char *sptr = str, *tok;
+      char *sptr = str, *tok, *saveptr = NULL;
 
-      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
+      while ((tok = strtok_r(sptr, ",\t\n", &saveptr)) != NULL) {
          char *proto = NULL;
          int port = 0;
          char *ptr;

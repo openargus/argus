@@ -1002,7 +1002,6 @@ struct ArgusAsnStruct {
    uint32_t inode_as;      /* originating AS of intermediate node address, if present */
 };
 
-
 struct ArgusNetworkStruct {
    struct ArgusDSRHeader hdr;
    union {

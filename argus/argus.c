@@ -1032,9 +1032,9 @@ setArgusBindAddr (struct ArgusOutputStruct *output, char *value)
          output->ArgusBindAddrs = ArgusNewList();
 
       struct ArgusBindAddrStruct *baddr;
-      char *tok, *ptr = value;
+      char *tok, *ptr = value, *saveptr = NULL;
 
-      while ((tok = strtok (ptr, ", \t")) != NULL) {
+      while ((tok = strtok_r (ptr, ", \t", &saveptr)) != NULL) {
 
          if ((baddr = (struct ArgusBindAddrStruct *) ArgusCalloc(1, sizeof(*baddr))) == NULL)
             ArgusLog (LOG_ERR, "setArgusBindAddr ArgusCalloc %s\n", strerror(errno));
@@ -1710,11 +1710,11 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                            break;
 
                         case ARGUS_FLOW_KEY: {
-                           char *tok = NULL;
+                           char *tok = NULL, *saveptr = NULL;
 
                            setArgusFlowKey (model, 0);
 
-                           while ((tok = strtok(optarg, " +\t")) != NULL) {
+                           while ((tok = strtok_r(optarg, " +\t", &saveptr)) != NULL) {
                               if (!(strncasecmp(tok, "CLASSIC_5_TUPLE", 14)))
                                  setArgusFlowKey (model, ARGUS_FLOW_KEY_CLASSIC5TUPLE);
                               else
@@ -2185,7 +2185,7 @@ setArgusEventDataRecord (char *ptr)
 {
    struct ArgusEventRecordStruct *event = NULL;
    char *sptr = NULL, *method = NULL, *file = NULL;
-   char *tok = NULL, *pp = NULL, *tptr = NULL;
+   char *tok = NULL, *pp = NULL, *tptr = NULL, *saveptr = NULL;
    int ind = 0, interval = 0, elem = 0;
 
    if (ArgusEventsTask == NULL)
@@ -2198,7 +2198,7 @@ setArgusEventDataRecord (char *ptr)
       int i;
 
       if ((sptr = strdup(ptr)) != NULL)
-         tok = strtok(sptr, ":");
+         tok = strtok_r(sptr, ":", &saveptr);
 
       while (tok != NULL) {
          switch (ind++) {
@@ -2239,7 +2239,7 @@ setArgusEventDataRecord (char *ptr)
                ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
                break;
          }
-         tok = strtok(NULL, ":");
+         tok = strtok_r(NULL, ":", &saveptr);
       }
 
       if (elem < 3)
@@ -2262,8 +2262,18 @@ setArgusEventDataRecord (char *ptr)
   
          ArgusPushFrontList(ArgusEventsTask->ArgusEventsList, (struct ArgusListRecord *) event, ARGUS_LOCK);
 
-      } else
+      } else {
+         /* F-8 fix: method/file are strdup'd above and normally handed off to `event` (freed
+          * later via ArgusDeleteList's ARGUS_EVENT_LIST case). If ArgusCalloc fails here,
+          * `event` stays NULL and that handoff never happens -- free them explicitly before
+          * ArgusLog(LOG_ERR, ...) below exits, for correctness/hygiene even though the process
+          * exit would otherwise reclaim them anyway. */
+         if (method != NULL)
+            free(method);
+         if (file != NULL)
+            free(file);
          ArgusLog (LOG_ERR, "setArgusEventDataRecord, ArgusCalloc %s\n", strerror(errno));
+      }
 
       free(pp);
    } else

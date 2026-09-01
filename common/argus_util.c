@@ -2409,7 +2409,13 @@ argus_ether_aton(char *s)
 
    e = ep = (u_char *)malloc(6);
 
-   while (*s) {
+   /* F-3 fix: the write loop below was previously bounded only by the input string's length,
+    * with no check against the 6-byte allocation. The current sole caller (the BPF filter-
+    * expression lexer, scanner.l's {B}:{B}:{B}:{B}:{B}:{B} rule) always supplies exactly 6
+    * groups, but this function has no defensive check of its own -- any other/future caller,
+    * or a lexer-bypassing malformed token, would overflow the allocation. Bound the loop to 6
+    * bytes regardless of caller. */
+   while (*s && ((ep - e) < 6)) {
       if (*s == ':')
          s += 1;
       d = xdtoi(*s++);

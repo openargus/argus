@@ -488,14 +488,14 @@ int
 setArgusTimestampType(char *optarg)
 {
    int retn = 0;
-   char *str, *ptr, *tok;
+   char *str, *ptr, *tok, *saveptr = NULL;
 
    if (optarg && strlen(optarg)) {
       str = strdup(optarg);
       ptr = str;
 
 #if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
-      while ((tok = strtok(ptr, " ,\r\n")) != NULL) {
+      while ((tok = strtok_r(ptr, " ,\r\n", &saveptr)) != NULL) {
          if (!(strcasecmp(tok, "hiprec"))) {
             ArgusTimeStampType |= ARGUS_TIMESTAMP_HIPREC;
          } else if (!(strcasecmp(tok, "lowprec"))) {
@@ -596,6 +596,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 // struct ArgusInput *addr = NULL;
    long int portnum = 0;
    int proto = 0;
+   char *saveptr = NULL;
 
    if (ArgusShutDownFlag)
       return retn;
@@ -616,7 +617,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
          inf->mode = device->mode;
          hostname = inf->hostname;
 
-         while ((sptr = strtok(hostname, " ")) != NULL) {
+         while ((sptr = strtok_r(hostname, " ", &saveptr)) != NULL) {
             tptr = sptr;
             if ((ptr = strstr(tptr, "://")) != NULL) {
                ptr = &ptr[3];
@@ -684,6 +685,11 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                   *aptr++ = '\0';
 //                pptr = strdup(aptr);
                }
+               /* F-8 fix: uptr is only used above (as a scratch copy to locate ':' in the
+                * user-info portion of a user@host string); its contents aren't referenced
+                * again, so free it here rather than leaking it on every loop iteration. */
+               free(uptr);
+               uptr = NULL;
             }
 
             if ((fptr = strchr (ptr, (int)'/')) != NULL) {
@@ -1694,6 +1700,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
    if (cmd && (strlen(cmd) > 0)) {
       struct ArgusDeviceStruct *device = NULL;
       char *errbuf, *tok, *stok, *params = NULL;
+      char *saveptr = NULL, *ssaveptr = NULL;
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
       struct ArgusDeviceStruct *dev = NULL;
@@ -1751,7 +1758,14 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
             status = ARGUS_TYPE_IND;
          }
 
-         while ((tok = strtok(ptr, " ")) != NULL) {
+         /* F-5 fix: this outer strtok() and the inner strtok() at the ARGUS_FILE_DEVICE case
+          * below (tokenizing `tok` on ",") shared strtok's single static save-position state --
+          * a real, confirmed correctness bug, not just a hypothetical thread-safety one: any
+          * outer token containing a comma caused the inner loop's strtok(tok, ",") calls to
+          * clobber the outer loop's saved position in `ptr`, making the outer while-loop
+          * silently terminate early and skip remaining space-separated device groups. Using
+          * independent strtok_r() save pointers for the outer and inner loops fixes this. */
+         while ((tok = strtok_r(ptr, " ", &saveptr)) != NULL) {
             char *srcid = NULL, *dlt = NULL, *sptr = NULL;
 
             switch (type) {
@@ -1848,7 +1862,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                }
 
                case ARGUS_FILE_DEVICE: {
-                  while ((stok = strtok(tok, ",")) != NULL) {
+                  while ((stok = strtok_r(tok, ",", &ssaveptr)) != NULL) {
                      if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
                               ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
 
@@ -1916,6 +1930,13 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
             }
             ptr = NULL;
          }
+      }
+
+      /* F-8 fix: params (a strdup'd copy of cmd) is used above as the strtok() buffer but
+       * was never freed on any path through this function -- leaked on every call. */
+      if (params != NULL) {
+         free(params);
+         params = NULL;
       }
 
       if (device != NULL)
@@ -1989,9 +2010,9 @@ setArgusrfile (struct ArgusSourceStruct *src, char *value)
    if (value) {
       struct ArgusRfileStruct *rfile;
       struct stat statbuf;
-      char *tok, *ptr = value;
+      char *tok, *ptr = value, *saveptr = NULL;
 
-      while ((tok = strtok (ptr, " \t")) != NULL) {
+      while ((tok = strtok_r (ptr, " \t", &saveptr)) != NULL) {
          char *tptr;
          int mode = 0;
          if (strcmp("-", tok)) {
@@ -2606,9 +2627,9 @@ setArgusPacketCaptureProtocols(struct ArgusDumpStruct *dump, char *optarg)
 
    if (optarg && strlen(optarg)) {
       struct protoent *pent = NULL;
-      char *sptr = optarg, *tok;
+      char *sptr = optarg, *tok, *saveptr = NULL;
 
-      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
+      while ((tok = strtok_r(sptr, ",\t\n", &saveptr)) != NULL) {
          found = 0;
          if ((pent = getprotobyname(tok)) != NULL) {
             ppc[pent->p_proto] = 1;
