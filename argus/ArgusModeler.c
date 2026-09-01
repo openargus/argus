@@ -865,40 +865,46 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
       }
 
       case ETHERTYPE_IPV6: {
-         struct ip6_hdr *ipv6 = (struct ip6_hdr *) p;
+         struct ip *ip = (struct ip *) p;
 
-         model->ArgusThisNetworkFlowType = type;
-         model->ArgusThisIpHdr = (void *)p;
+         if (ip->ip_v == 6) {
+            struct ip6_hdr *ipv6 = (struct ip6_hdr *) p;
 
-         switch (ipv6->ip6_nxt) {
-            case IPPROTO_IPIP: {                         // IPNIP
-               model->ArgusThisUpHdr  += sizeof(*ipv6);
-               model->ArgusThisLength -= sizeof(*ipv6);
-               model->ArgusSnapLength -= sizeof(*ipv6);
-               model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
-               retn = ipv6->ip6_nxt;
-               break;
-            }
-            case IPPROTO_TTP: { /* Preparation for Juniper TTP */
-               model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
-               retn = ArgusProcessTtpHdr(model, (void *)p, length);
-               break;
-            }
-            case IPPROTO_UDP: { /* RCP 4380 */
-               if (getArgusTunnelDiscovery(model)) {
-                  model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
-                  retn = ArgusProcessUdpHdr(model, (void *)p, length);
-               }
-               break;
-            }
-            case IPPROTO_GRE: { /* RFC 2784 */
-               model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
-               retn = ArgusProcessGreHdr(model, (void *)p, length);
-               break;
-            }
-            default:
-               retn = 0;
-               break;
+            if (STRUCTCAPTURED(model,*ipv6)) {
+               model->ArgusThisNetworkFlowType = type;
+               model->ArgusThisIpHdr = (void *)p;
+
+               switch (ipv6->ip6_nxt) {
+                  case IPPROTO_IPIP: {                         // IPNIP
+                     model->ArgusThisUpHdr  += sizeof(*ipv6);
+                     model->ArgusThisLength -= sizeof(*ipv6);
+                     model->ArgusSnapLength -= sizeof(*ipv6);
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
+                     retn = ipv6->ip6_nxt;
+                     break;
+                  }
+                  case IPPROTO_TTP: { /* Preparation for Juniper TTP */
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
+                     retn = ArgusProcessTtpHdr(model, (void *)p, length);
+                     break;
+                  }
+                  case IPPROTO_UDP: { /* RCP 4380 */
+                     if (getArgusTunnelDiscovery(model)) {
+                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
+                        retn = ArgusProcessUdpHdr(model, (void *)p, length);
+                     }
+                     break;
+                  }
+                  case IPPROTO_GRE: { /* RFC 2784 */
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IPV6;
+                     retn = ArgusProcessGreHdr(model, (void *)p, length);
+                     break;
+                  }
+                  default:
+                     retn = 0;
+                     break;
+	       }
+	    }
 	 }
          break;
       }

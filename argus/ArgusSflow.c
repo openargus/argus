@@ -415,17 +415,18 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (5, "ArgusProcessSflowDatagram (%p, %p) returning\n", model, ptr);
+   ArgusDebug (5, "ArgusParseSflowRecord (%p, %p) returning\n", model, ptr);
 #endif
 
    return;
 }
 
 int
-ArgusProcessSflowDatagram (struct ArgusSourceStruct *src, struct ArgusInterfaceStruct *inf, int cnt)
+ArgusProcessSflowDatagram (struct ArgusSourceStruct *stask, struct ArgusInterfaceStruct *inf, int cnt)
 {
+   struct ArgusSourceStruct *src = NULL;
    SFSample sample, *sptr = &sample;
-   uint32_t count;
+   uint32_t count, srcid;
    int retn = 0, i;
 
    bzero(sptr, sizeof (sample));
@@ -445,7 +446,7 @@ ArgusProcessSflowDatagram (struct ArgusSourceStruct *src, struct ArgusInterfaceS
          break;
       default: {
 #ifdef ARGUSDEBUG
-         ArgusDebug (5, "ArgusReadSflowStreamSocket (%p, %p) bad version  %d\n", src, inf, sptr->datagramVersion);
+         ArgusDebug (5, "ArgusReadSflowStreamSocket (%p, %p) bad version  %d\n", stask, inf, sptr->datagramVersion);
 #endif
 
          return (1);
@@ -455,6 +456,67 @@ ArgusProcessSflowDatagram (struct ArgusSourceStruct *src, struct ArgusInterfaceS
    SFGetAddress(sptr, &sptr->agent_addr);
    if (sptr->datagramVersion >= 5) {
       sptr->agentSubId = SFGetData32 (sptr);
+   }
+
+   srcid = sptr->agent_addr.address.ip_v4.addr;
+/*
+  if(address->type == SFLADDRESSTYPE_IP_V4)
+    address->address.ip_v4.addr = SFGetData32_nobswap(sample);
+  else {
+    memcpy(&address->address.ip_v6.addr, sample->datap, 16);
+    SFSkipBytes(sample, 16);
+  } 
+*/
+   for (i = 1; i < ArgusSourceCount; i++) {
+      struct ArgusSourceStruct *st = stask->srcs[i];
+      if (st != NULL) {
+         if (sptr->agent_addr.type == SFLADDRESSTYPE_IP_V4) {
+            if (st->trans.srcid.a_un.ipv4 == ntohl(srcid)) {
+               src = st;
+               break;
+	    }
+	 }
+      } else
+         break;
+   }
+
+   if (src == NULL) {
+#ifdef ARGUSDEBUG
+      ArgusDebug (1, "ArgusProcessSflowDatagram (%p, %p, %d) Sflow srcid '%s' not found.\n", stask, inf, cnt, inet_ntoa(*(struct in_addr *)&srcid));
+#endif
+      if (ArgusSourceCount < ARGUS_MAXINTERFACE) {
+         struct ArgusDeviceStruct *device = NULL;
+         unsigned char buf[32];
+         int slen = 0;
+
+         bzero(buf, 32);
+         src = ArgusCloneSource(stask);
+         if ((src->ArgusModel = ArgusCloneModeler(ArgusModel)) == NULL)
+            ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
+
+         src->ArgusModel->ArgusSrc = src;
+         src->ArgusThisIndex = 0;
+         ArgusInitModeler(src->ArgusModel);
+
+         if (sptr->agent_addr.type == SFLADDRESSTYPE_IP_V4)
+            src->trans.srcid.a_un.ipv4 = ntohl(srcid);
+
+         pthread_mutex_lock(&stask->lock);
+         stask->srcs[ArgusSourceCount++] = src;
+         pthread_mutex_unlock(&stask->lock);
+
+         slen = sizeof(src->trans.srcid.a_un.ipv4);
+         bcopy(&srcid, buf, slen);
+         setArgusID (src, buf, slen, ARGUS_TYPE_IPV4);
+	 bcopy("sfl0", src->trans.srcid.inf, 4);
+	 src->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
+
+         device = src->ArgusInterface[0].ArgusDevice;
+         device->trans = src->trans;
+
+      } else {
+         ArgusLog (LOG_ERR, "ArgusParseSflowRecord: Too many Sflow Source Id's\n");
+      }
    }
 
    sptr->sequenceNo = SFGetData32 (sptr);
