@@ -484,7 +484,7 @@ extern struct ArgusFlowStruct *ArgusNewFragFlow (void);
 void ArgusTallyStats (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 void ArgusTallyTime (struct ArgusFlowStruct *, unsigned char);
 
-unsigned short ArgusParseIPOptions (unsigned char *, int);
+unsigned short ArgusParseIPOptions (struct ArgusModelerStruct *, unsigned char *, int);
 
 void setArgusHashTableSize (struct ArgusModelerStruct *model, int value);
 void setArgusIpTimeout (struct ArgusModelerStruct *model, int value);
@@ -713,7 +713,7 @@ extern struct ArgusFlowStruct *ArgusNewFragFlow (void);
 extern void ArgusTallyStats (struct ArgusModelerStruct *, struct ArgusFlowStruct *);
 extern void ArgusTallyTime (struct ArgusFlowStruct *, unsigned char);
 
-extern unsigned short ArgusParseIPOptions (unsigned char *, int);
+extern unsigned short ArgusParseIPOptions (struct ArgusModelerStruct *, unsigned char *, int);
 
 extern void setArgusIpTimeout (struct ArgusModelerStruct *model, int value);
 extern void setArgusTcpTimeout (struct ArgusModelerStruct *model, int value);

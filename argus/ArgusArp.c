@@ -153,6 +153,17 @@ ArgusCreateArpFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
       if (!BYTESCAPTURED(model, *ahdr, sizeof(*ahdr) + 2*(unsigned int)HLN(ahdr) + 2*(unsigned int)PLN(ahdr)))
          goto out;
 
+      /* Bug found during Tier 1b verification (destination-side overflow, distinct
+       * from the source-read F-10/F-21 checks above): HLN(ahdr) is also used
+       * unclamped as the length of every SHA/THA -> retn->{arp,rarp}_flow.*addr
+       * bcopy() below. Those destination fields are a fixed-size struct
+       * ArgusHAddr (max 32 bytes, see include/argus_out.h); ar_hln is a full
+       * attacker-controlled byte (0-255) with no relationship to that size, so a
+       * crafted large ar_hln overflows the destination struct regardless of how
+       * much of the source packet is captured. Reject any hln that would not fit. */
+      if (HLN(ahdr) > sizeof(struct ArgusHAddr))
+         goto out;
+
       retn = model->ArgusThisFlow;
 
       switch (OP(ahdr)) {
@@ -218,39 +229,49 @@ ArgusCreateArpFlow (struct ArgusModelerStruct *model, struct ether_header *ep)
             retn->hdr.argus_dsrvl8.len  = sizeof(struct ArgusRarpFlow)/4 + 1;
             retn->hdr.argus_dsrvl8.qual = ARGUS_TYPE_RARP;
 
-            bcopy (TPA(ahdr), &arp_tpa, sizeof(arp_tpa));
+            /* F-21 fix: the outer BYTESCAPTURED check above only guarantees
+             * 2*PLN(ahdr) bytes are captured at the SPA/TPA offsets, not a fixed
+             * 4 bytes -- mirror the PLN-size guard already used in the
+             * ARPOP_REQUEST/ARPOP_REPLY cases before this fixed-size bcopy. */
+            if (PLN(ahdr) == sizeof(arp_tpa)) {
+               bcopy (TPA(ahdr), &arp_tpa, sizeof(arp_tpa));
 
 #ifdef _LITTLE_ENDIAN
-            arp_tpa = ntohl(arp_tpa);
+               arp_tpa = ntohl(arp_tpa);
 #endif
-            retn->rarp_flow.hrd     = HRD(ahdr);
-            retn->rarp_flow.pro     = PRO(ahdr);
-            retn->rarp_flow.hln     = HLN(ahdr);
-            retn->rarp_flow.pln     = PLN(ahdr);
-            retn->rarp_flow.op      =  OP(ahdr);
+               retn->rarp_flow.hrd     = HRD(ahdr);
+               retn->rarp_flow.pro     = PRO(ahdr);
+               retn->rarp_flow.hln     = HLN(ahdr);
+               retn->rarp_flow.pln     = PLN(ahdr);
+               retn->rarp_flow.op      =  OP(ahdr);
 
-            bcopy (THA(ahdr), &retn->rarp_flow.shaddr, HLN(ahdr));
-            bcopy (SHA(ahdr), &retn->rarp_flow.dhaddr, HLN(ahdr));
+               bcopy (THA(ahdr), &retn->rarp_flow.shaddr, HLN(ahdr));
+               bcopy (SHA(ahdr), &retn->rarp_flow.dhaddr, HLN(ahdr));
+            }
             break;
          }
 
          case REVARP_REPLY: {
             retn->hdr.argus_dsrvl8.len  = sizeof(struct ArgusRarpFlow)/4 + 1;
             retn->hdr.argus_dsrvl8.qual = ARGUS_TYPE_RARP;
-            bcopy (TPA(ahdr), &arp_tpa, sizeof(arp_tpa));
+
+            /* F-21 fix: same PLN-size guard as REVARP_REQUEST above. */
+            if (PLN(ahdr) == sizeof(arp_tpa)) {
+               bcopy (TPA(ahdr), &arp_tpa, sizeof(arp_tpa));
 
 #ifdef _LITTLE_ENDIAN
-            arp_tpa = ntohl(arp_tpa);
+               arp_tpa = ntohl(arp_tpa);
 #endif
-            retn->rarp_flow.hrd     = HRD(ahdr);
-            retn->rarp_flow.pro     = PRO(ahdr);
-            retn->rarp_flow.hln     = HLN(ahdr);
-            retn->rarp_flow.pln     = PLN(ahdr);
-            retn->rarp_flow.op      = REVARP_REQUEST;
+               retn->rarp_flow.hrd     = HRD(ahdr);
+               retn->rarp_flow.pro     = PRO(ahdr);
+               retn->rarp_flow.hln     = HLN(ahdr);
+               retn->rarp_flow.pln     = PLN(ahdr);
+               retn->rarp_flow.op      = REVARP_REQUEST;
 
-            bcopy ((char *)&arp_tpa, &retn->rarp_flow.arp_tpa, sizeof(arp_tpa));
-            bcopy (SHA(ahdr), &retn->rarp_flow.shaddr, HLN(ahdr));
-            bcopy (THA(ahdr), &retn->rarp_flow.dhaddr, HLN(ahdr));
+               bcopy ((char *)&arp_tpa, &retn->rarp_flow.arp_tpa, sizeof(arp_tpa));
+               bcopy (SHA(ahdr), &retn->rarp_flow.shaddr, HLN(ahdr));
+               bcopy (THA(ahdr), &retn->rarp_flow.dhaddr, HLN(ahdr));
+            }
             break;
          }
 

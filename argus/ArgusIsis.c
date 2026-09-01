@@ -168,7 +168,13 @@ ArgusCreateIsisFlow (struct ArgusModelerStruct *model, struct isis_common_header
             case L1_LAN_IIH:
             case L2_LAN_IIH: {
                const struct isis_iih_lan_header *header_iih_lan = (const struct isis_iih_lan_header *)pptr;
-               if (header->fixed_len == (ISIS_COMMON_HEADER_SIZE+ISIS_IIH_LAN_HEADER_SIZE)) {
+               /* Bug found during Tier 1b verification (same root-cause class as
+                * F-17/L1_LSP fix below): header->fixed_len is checked only against
+                * another attacker-influenced constant, not the actual captured
+                * buffer -- confirm header_iih_lan itself is captured before
+                * dereferencing source_id/lan_id. */
+               if ((header->fixed_len == (ISIS_COMMON_HEADER_SIZE+ISIS_IIH_LAN_HEADER_SIZE)) &&
+                    STRUCTCAPTURED(ArgusModel, *header_iih_lan)) {
                   isis->pdu_type = pdu_type;
                   bzero ((char *)&isis->isis_un.hello.srcid, sizeof(isis->isis_un.hello.srcid));
                   bzero ((char *)&isis->isis_un.hello.lanid, sizeof(isis->isis_un.hello.lanid));
@@ -180,7 +186,14 @@ ArgusCreateIsisFlow (struct ArgusModelerStruct *model, struct isis_common_header
                      u_int16_t *ptr = (u_int16_t *) (((long)pptr & 0x01) ? (pptr - 1) : pptr);
                      int tlen = (length - ISIS_COMMON_HEADER_SIZE);
 
-                     if (BYTESCAPTURED(ArgusModel, ptr, tlen))
+                     /* F-17 fix (part 2): isis_cksum() internally rounds an odd tlen
+                      * up to the next even byte count ((len+1)/2 16-bit words), so it
+                      * can read one byte past what a bare `tlen`-byte check validates.
+                      * Round the checked length up to match what isis_cksum actually
+                      * reads. (Part 1 of this fix -- BYTESCAPTURED(ArgusModel, ptr, tlen)
+                      * missing the `*` on `ptr` -- was applied at all 4 occurrences of
+                      * this pattern in this function.) */
+                     if (BYTESCAPTURED(ArgusModel, *ptr, ((tlen + 1) & ~1)))
                         isis->chksum = isis_cksum(ptr, tlen);
                      else
                         isis->chksum =  0;
@@ -192,7 +205,13 @@ ArgusCreateIsisFlow (struct ArgusModelerStruct *model, struct isis_common_header
             case L1_LSP:
             case L2_LSP: {
                const struct isis_lsp_header *header_lsp = (const struct isis_lsp_header *)pptr;
-               if (header->fixed_len == (ISIS_COMMON_HEADER_SIZE+ISIS_LSP_HEADER_SIZE)) {
+               /* Bug found during Tier 1b verification (same root-cause class as
+                * F-17): header->fixed_len is an attacker-controlled byte checked
+                * only against another attacker-influenced constant, not against
+                * the actual captured buffer -- confirm header_lsp itself is
+                * captured before dereferencing lsp_id/sequence_number/checksum. */
+               if ((header->fixed_len == (ISIS_COMMON_HEADER_SIZE+ISIS_LSP_HEADER_SIZE)) &&
+                    STRUCTCAPTURED(ArgusModel, *header_lsp)) {
                   isis->pdu_type = pdu_type;
                   bcopy ((char *)&header_lsp->lsp_id, (char *)&isis->isis_un.lsp.lspid, LSP_ID_LEN);
                   isis->isis_un.lsp.seqnum = EXTRACT_32BITS(header_lsp->sequence_number);
@@ -206,7 +225,7 @@ ArgusCreateIsisFlow (struct ArgusModelerStruct *model, struct isis_common_header
                u_int16_t *ptr = (u_int16_t *) (((long)pptr & 0x01) ? (pptr - 1) : pptr);
                int tlen = (length - ISIS_COMMON_HEADER_SIZE);
 
-               if (BYTESCAPTURED(ArgusModel, ptr, tlen))
+               if (BYTESCAPTURED(ArgusModel, *ptr, ((tlen + 1) & ~1)))
                   isis->chksum = isis_cksum(ptr, tlen);
                else
                   isis->chksum =  0;
@@ -216,14 +235,16 @@ ArgusCreateIsisFlow (struct ArgusModelerStruct *model, struct isis_common_header
             case L1_CSNP:
             case L2_CSNP: {
                const struct isis_csnp_header *header_csnp = (const struct isis_csnp_header *)pptr;
-               if (header->fixed_len == (ISIS_COMMON_HEADER_SIZE+ISIS_CSNP_HEADER_SIZE)) {
+               /* Bug found during Tier 1b verification -- see L1_LSP fix above. */
+               if ((header->fixed_len == (ISIS_COMMON_HEADER_SIZE+ISIS_CSNP_HEADER_SIZE)) &&
+                    STRUCTCAPTURED(ArgusModel, *header_csnp)) {
                   isis->pdu_type = pdu_type;
                   bcopy ((char *)&header_csnp->source_id, (char *)&isis->isis_un.csnp.srcid, NODE_ID_LEN);
                   {
                      u_int16_t *ptr = (u_int16_t *) (((long)pptr & 0x01) ? (pptr - 1) : pptr);
                      int tlen = (length - ISIS_COMMON_HEADER_SIZE);
 
-                     if (BYTESCAPTURED(ArgusModel, ptr, tlen))
+                     if (BYTESCAPTURED(ArgusModel, *ptr, ((tlen + 1) & ~1)))
                         isis->chksum = isis_cksum(ptr, tlen);
                      else
                         isis->chksum =  0;
@@ -236,7 +257,9 @@ ArgusCreateIsisFlow (struct ArgusModelerStruct *model, struct isis_common_header
             case L1_PSNP:
             case L2_PSNP: {
                const struct isis_psnp_header *header_psnp = (const struct isis_psnp_header *)pptr;
-               if (header->fixed_len == (ISIS_COMMON_HEADER_SIZE+ISIS_PSNP_HEADER_SIZE)) {
+               /* Bug found during Tier 1b verification -- see L1_LSP fix above. */
+               if ((header->fixed_len == (ISIS_COMMON_HEADER_SIZE+ISIS_PSNP_HEADER_SIZE)) &&
+                    STRUCTCAPTURED(ArgusModel, *header_psnp)) {
                   isis->pdu_type = pdu_type;
                   bcopy ((char *)&header_psnp->source_id, (char *)&isis->isis_un.psnp.srcid, NODE_ID_LEN);
                   retn = model->ArgusThisFlow;
@@ -244,7 +267,7 @@ ArgusCreateIsisFlow (struct ArgusModelerStruct *model, struct isis_common_header
                      u_int16_t *ptr = (u_int16_t *) (((long)pptr & 0x01) ? (pptr - 1) : pptr);
                      int tlen = (length - ISIS_COMMON_HEADER_SIZE);
 
-                     if (BYTESCAPTURED(ArgusModel, ptr, tlen))
+                     if (BYTESCAPTURED(ArgusModel, *ptr, ((tlen + 1) & ~1)))
                         isis->chksum = isis_cksum(ptr, tlen);
                      else
                         isis->chksum =  0;

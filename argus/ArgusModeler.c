@@ -794,6 +794,14 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
 
       case ETHERTYPE_8021Q: {
          model->ArgusThisNetworkFlowType = type;
+
+         /* Bug found during Tier 1b verification (same root-cause class as F-9/
+          * F-16-22): this case unconditionally read up to 5 bytes (the two
+          * ntohs() reads below, plus p[0]-p[4] for the ISL magic-number check
+          * further down) with no captured-length check at all. */
+         if (!BYTESCAPTURED(model, *p, 5))
+            break;
+
          model->ArgusThisPacket8021QEncaps = ntohs(*(unsigned short *)(p));
          model->ArgusThisEncaps |= ARGUS_ENCAPS_8021Q;
 
@@ -828,6 +836,13 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
 
          model->ArgusThisNetworkFlowType = type;
          while (!(bos)) {
+            /* F-19 fix: the label-stack walk previously read 4 bytes per iteration
+             * with no check that they were actually captured -- since the loop only
+             * terminates on the attacker-controlled bottom-of-stack bit, a truncated
+             * capture or a crafted non-bottom-of-stack label sequence could walk the
+             * read pointer arbitrarily far past the captured buffer. */
+            if (!BYTESCAPTURED(model, *(unsigned int *)model->ArgusThisUpHdr, 4))
+               break;
             unsigned int tlabel = ntohl(*(unsigned int *)(model->ArgusThisUpHdr));
             if (!(model->ArgusThisMplsLabelIndex)) {
                model->ArgusThisMplsLabel = tlabel;
@@ -839,7 +854,13 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
             model->ArgusSnapLength -= 4;
             model->ArgusThisEncaps |= ARGUS_ENCAPS_MPLS;
 
-            retn = ArgusDiscoverNetworkProtocol(model->ArgusThisUpHdr);
+            /* ArgusDiscoverNetworkProtocol reads up to 6 bytes (struct ip6_hdr's
+             * ip6_plen field, at byte offset 4-5) from ArgusThisUpHdr -- confirm
+             * those bytes are captured before calling it (same F-19 root cause). */
+            if (BYTESCAPTURED(model, *model->ArgusThisUpHdr, 6))
+               retn = ArgusDiscoverNetworkProtocol(model->ArgusThisUpHdr);
+            else
+               break;
          }
          break;
       }
@@ -1355,7 +1376,12 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
    u_int proto = 0;
    int retn = 0, hdr_len = 0;
 
-   if (length >= PPP_HDRLEN) {
+   /* Bug found during Tier 1b verification (same class as the ArgusProcessPPPoEHdr
+    * F-22b fix): `length >= PPP_HDRLEN` only checks the packet's declared/remaining
+    * length, not the actual number of captured bytes -- confirm the captured buffer
+    * covers at least PPP_HDRLEN + 1 bytes (matching the minimum this function
+    * unconditionally reads via EXTRACT_16BITS(p) and the *p dereference below). */
+   if ((length >= PPP_HDRLEN) && BYTESCAPTURED(model, *p, PPP_HDRLEN + 1)) {
       model->ArgusThisEncaps |= ARGUS_ENCAPS_PPP;
       switch (EXTRACT_16BITS(p)) {
          case (PPP_WITHDIRECTION_IN  << 8 | PPP_CONTROL):
@@ -1377,6 +1403,11 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
         default:
             break;
       }
+
+      /* p's offset has grown by up to 2 bytes in the switch above -- re-check
+       * before dereferencing *p / EXTRACT_16BITS(p) below. */
+      if (!BYTESCAPTURED(model, *p, 2))
+         return (retn);
 
       if (*p % 2) {
          proto = *p;
@@ -1464,6 +1495,14 @@ ArgusProcessPPPoEHdr (struct ArgusModelerStruct *model, char *p, int length)
 
    model->ArgusThisEncaps |= ARGUS_ENCAPS_ETHER | ARGUS_ENCAPS_PPP;
 
+   /* F-22b fix: this function previously read p[1], EXTRACT_16BITS(p), *pload,
+    * and EXTRACT_16BITS(pload) unconditionally, with no check that any of those
+    * bytes were actually captured -- unlike every other protocol handler in this
+    * file. Require at least PPPOE_HDRLEN + 1 bytes captured before the first
+    * read (p[1]), matching the minimum this function unconditionally touches. */
+   if (!BYTESCAPTURED(model, *p, PPPOE_HDRLEN + 1))
+      return (retn);
+
    if (!p[1]) {
       switch(EXTRACT_16BITS(p)) {
          case (PPP_WITHDIRECTION_IN  << 8 | PPP_CONTROL):
@@ -1481,6 +1520,10 @@ ArgusProcessPPPoEHdr (struct ArgusModelerStruct *model, char *p, int length)
          default:
             break;
       }
+      /* pload's offset from p has grown by up to 2 bytes in the switch above --
+       * re-check before dereferencing *pload / EXTRACT_16BITS(pload) below. */
+      if (!BYTESCAPTURED(model, *pload, 2))
+         return (retn);
       if (*pload % 2) {
          proto = *pload;             /* PFC is used */
          pload++;
@@ -4586,9 +4629,12 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
       while (!done) {
          switch (nxt) {
             case IPPROTO_FRAGMENT: {
-               /* ip6h_len is read from the extension header itself, which must be
-                * confirmed captured before dereferencing it. */
-               if (!STRUCTCAPTURED(model, *(struct ip6_hbh *)ip)) {
+               /* F-22a fix: struct ip6_hbh is only 2 bytes (ip6h_nxt, ip6h_len), but
+                * this case reinterprets the same memory as struct ip6_frag (8 bytes:
+                * ip6f_nxt, ip6f_reserved, ip6f_offlg[2], ip6f_ident[4]) and dereferences
+                * tfrag->ip6f_offlg (bytes 2-3) below -- validate the full 8-byte
+                * ip6_frag struct, not just the 2-byte ip6_hbh alias. */
+               if (!STRUCTCAPTURED(model, *(struct ip6_frag *)ip)) {
                   done++;
                   break;
                }
@@ -4772,7 +4818,7 @@ void *
 ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 {
    void *retn = model->ArgusThisFlow;
-   unsigned char *nxtHdr = (unsigned char *)((char *)ip + (ip->ip_hl << 2));
+   unsigned char *nxtHdr;
    struct ip tipbuf, *tip = &tipbuf;
    arg_uint16 sport = 0, dport = 0;
    arg_uint8  proto, tp_p = 0;
@@ -4780,6 +4826,10 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
    int hlen, ArgusOptionLen;
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
+      /* F-16 fix: ip->ip_hl must not be read until after the NULL/STRUCTCAPTURED
+       * check above -- previously nxtHdr was computed from ip->ip_hl before this
+       * point, dereferencing ip unconditionally. */
+      nxtHdr = (unsigned char *)((char *)ip + (ip->ip_hl << 2));
       model->ArgusThisIpHdr = ip;
  
 #ifdef _LITTLE_ENDIAN
@@ -4804,7 +4854,7 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
           * ip_hl field (0-15, up to 60 bytes total header) -- confirm the options
           * region is actually captured before parsing it. */
          if (BYTESCAPTURED(model, *ip, hlen))
-            model->ArgusOptionIndicator = ArgusParseIPOptions ((unsigned char *) (ip + 1), ArgusOptionLen);
+            model->ArgusOptionIndicator = ArgusParseIPOptions (model, (unsigned char *) (ip + 1), ArgusOptionLen);
       } else
          model->ArgusOptionIndicator = 0;
 
@@ -4969,12 +5019,22 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 #endif
 
 unsigned short
-ArgusParseIPOptions (unsigned char *ptr, int len)
+ArgusParseIPOptions (struct ArgusModelerStruct *model, unsigned char *ptr, int len)
 {
    unsigned short retn = 0;
    int offset = 0;
 
+   /* F-18 fix: this function previously took only a raw pointer/length with no
+    * reference to the model/captured-buffer end, relying entirely on the
+    * caller's one-time BYTESCAPTURED(model, *ip, hlen) check. That check bounds
+    * the total options region assuming it's well-formed, but a crafted option's
+    * own length byte (ptr[1]) can still walk `ptr` past the actually-captured
+    * buffer while staying within `len`'s bookkeeping. Re-validate each byte
+    * access against the real captured end before reading it. */
    for (; len > 0; ptr += offset, len -= offset) {
+      if (!BYTESCAPTURED(model, *ptr, 1))
+         break;
+
       switch (*ptr) {
          case IPOPT_EOL:      break;
          case IPOPT_NOP:      break;
@@ -4991,6 +5051,8 @@ ArgusParseIPOptions (unsigned char *ptr, int len)
       if ((*ptr == IPOPT_EOL) || (*ptr == IPOPT_NOP))
          offset = 1;
       else {
+         if (!BYTESCAPTURED(model, *ptr, 2))
+            break;
          offset = ptr[1];
          if (!(offset && (offset <= len)))
             break;

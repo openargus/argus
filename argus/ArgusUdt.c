@@ -166,7 +166,11 @@ ArgusUpdateUDToEState (struct ArgusModelerStruct *model, struct ArgusFlowStruct 
                switch (type & UDTOE_CONTROL_TYPE_MASK) {
                   case UDTOE_CONTROL_HANDSHAKE: {
                      struct udt_control_handshake *hshake = (void *) (udtc + 1);
-                     if (ntohl(hshake->version) == 4) {
+                     /* F-20 fix: the outer STRUCTCAPTURED(model, *udt) check only
+                      * validates sizeof(struct udtoe_header); hshake is a separate,
+                      * larger struct starting right after it and must be checked on
+                      * its own before dereferencing hshake->version. */
+                     if (STRUCTCAPTURED(model, *hshake) && (ntohl(hshake->version) == 4)) {
                         ArgusThisUdtHshake = hshake;
                         hshake->version = ntohl(hshake->version);
                         hshake->socktype = ntohl(hshake->socktype);
@@ -280,7 +284,11 @@ ArgusUpdateUDToEState (struct ArgusModelerStruct *model, struct ArgusFlowStruct 
 
                   case UDTOE_CONTROL_DROPREQ: {
                      struct udt_control_dropreq *drop = (void *)(udtc + 1);
-                     if (drop->firstseqnum == 0)
+                     /* F-20b fix: drop is a separate struct past the already-checked
+                      * udt_header/udtoe_control_hdr and must be validated on its own
+                      * before dereferencing drop->firstseqnum (same pattern as the
+                      * udt_control_handshake fix above). */
+                     if (STRUCTCAPTURED(model, *drop) && (drop->firstseqnum == 0))
                         if (net != NULL)
                            net->net_union.udt.status |= ARGUS_UDT_FIRSTDROPZERO;
 #ifdef ARGUSDEBUG
@@ -421,7 +429,10 @@ ArgusUpdateUDTState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
                switch (type & UDT_CONTROL_TYPE_MASK) {
                   case UDT_CONTROL_HANDSHAKE: {
                      struct udt_control_handshake *hshake = (void *) (udtc + 1);
-                     if (ntohl(hshake->version) == 4) {
+                     /* F-20 fix: see ArgusUpdateUDToEState above -- hshake is a
+                      * separate struct past the already-checked udt_header and
+                      * needs its own captured-length check. */
+                     if (STRUCTCAPTURED(model, *hshake) && (ntohl(hshake->version) == 4)) {
                         ArgusThisUdtHshake = hshake;
                      } else {
                      }
@@ -530,7 +541,8 @@ ArgusUpdateUDTState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
 
                   case UDT_CONTROL_DROPREQ: {
                      struct udt_control_dropreq *drop = (void *)(udtc + 1);
-                     if (drop->firstseqnum == 0)
+                     /* F-20b fix: see ArgusUpdateUDToEState above. */
+                     if (STRUCTCAPTURED(model, *drop) && (drop->firstseqnum == 0))
                         if (net != NULL)
                            net->net_union.udt.status |= ARGUS_UDT_FIRSTDROPZERO;
 #ifdef ARGUSDEBUG
@@ -662,7 +674,9 @@ ArgusParseUDToEHeader (struct ArgusModelerStruct *model, struct udt_header *udt,
             switch ((udtc->type & 0x7F) >> 3) {
                case UDTOE_CONTROL_HANDSHAKE: {
                   struct udt_control_handshake *hshake = (void *) (udtc + 1);
-                  if (ntohl(hshake->version) == 4) {
+                  /* F-20 fix: check hshake's own captured length (separate struct
+                   * past the already-validated udt_header) before dereferencing. */
+                  if (STRUCTCAPTURED(model, *hshake) && (ntohl(hshake->version) == 4)) {
                      ArgusThisUdtHshake = hshake;
                      retn = 1;
                   } else
@@ -689,7 +703,8 @@ ArgusParseUDToEHeader (struct ArgusModelerStruct *model, struct udt_header *udt,
 
                case UDTOE_CONTROL_DROPREQ: {
                   struct udt_control_dropreq *drop = (void *)(udtc + 1);
-                  if (drop->firstseqnum == 0)
+                  /* F-20b fix: see ArgusUpdateUDToEState above. */
+                  if (STRUCTCAPTURED(model, *drop) && (drop->firstseqnum == 0))
                      *status |= ARGUS_UDT_FIRSTDROPZERO;
                   retn = 1;
                   break;
@@ -721,7 +736,9 @@ ArgusParseUDTHeader (struct ArgusModelerStruct *model, struct udt_header *udt, u
             switch ((ntohs(udtc->type) & 0x78) >> 3) {
                case UDT_CONTROL_HANDSHAKE: {
                   struct udt_control_handshake *hshake = (void *) (udt + 1);
-                  if (ntohl(hshake->version) == 4) {
+                  /* F-20 fix: check hshake's own captured length (separate struct
+                   * past the already-validated udt_header) before dereferencing. */
+                  if (STRUCTCAPTURED(model, *hshake) && (ntohl(hshake->version) == 4)) {
                      ArgusThisUdtHshake = hshake;
                      retn = 1;
                   } else 
@@ -751,7 +768,8 @@ ArgusParseUDTHeader (struct ArgusModelerStruct *model, struct udt_header *udt, u
 
                case UDT_CONTROL_DROPREQ: {
                   struct udt_control_dropreq *drop = (void *)(udt + 1);
-                  if (drop->firstseqnum == 0)
+                  /* F-20b fix: see ArgusUpdateUDToEState above. */
+                  if (STRUCTCAPTURED(model, *drop) && (drop->firstseqnum == 0))
                      *status |= ARGUS_UDT_FIRSTDROPZERO;
                   retn = 1;
                   break;
