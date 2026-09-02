@@ -156,7 +156,7 @@ ArgusInitializeAuthentication (struct ARGUS_INPUT *input)
    localhostname = ArgusCalloc (1, 1024);
    gethostname(localhostname, 1024);
    if (!strchr (localhostname, '.')) {
-      strcat (localhostname, ".");
+      strlcat (localhostname, ".", 1024);
       getdomainname (&localhostname[strlen(localhostname)], 1024 - strlen(localhostname));
    }
 

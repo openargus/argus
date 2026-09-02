@@ -1075,7 +1075,15 @@ ArgusParseTCPOptions(struct ArgusModelerStruct *model, struct tcphdr *tcp, int l
                *options |= ARGUS_TCP_WSCALE;
                datalen = 1;
                LENCHECK(model, datalen);
-               ArgusThisTCPsrc->winshift = *cp;
+               /* *cp is a raw, attacker-controlled byte (0-255). RFC 1323 sec 2.2 caps the
+                * legal window-scale shift count at 14; more importantly, winshift is later
+                * used unchecked as a shift exponent (ArgusThisTCPsrc->win >> winshift) in
+                * ArgusUpdateTCPState()/ArgusTcpMonitor() -- a value >= 32 is undefined
+                * behavior in C and, in practice, corrupts retransmission/window-close
+                * detection. Clamp to the RFC-legal maximum rather than silently truncating
+                * to the low 5 bits, so out-of-spec values are treated the same as the
+                * largest legal shift instead of wrapping to something small/misleading. */
+               ArgusThisTCPsrc->winshift = (*cp > 14) ? 14 : *cp;
                break;
 
             case TCPOPT_SACKOK:

@@ -3231,184 +3231,184 @@ nff_image(struct nff_insn *p, int n)
    switch (p->code) {
 
    default:
-      sprintf(op, "unimp");
+      snprintf(op, sizeof(op), "unimp");
       fmt = "0x%x";
       v = p->code;
       break;
 
    case NFF_RET|NFF_K:
-      sprintf(op, "ret");
+      snprintf(op, sizeof(op), "ret");
       fmt = " #%d";
       break;
 
    case NFF_RET|NFF_A:
-      sprintf(op, "ret");
+      snprintf(op, sizeof(op), "ret");
       fmt = " ";
       break;
 
    case NFF_LD|NFF_F|NFF_DSR:
       if (dsr < 0)
-         sprintf(op, "ldf      hdr");
+         snprintf(op, sizeof(op), "ldf      hdr");
       else
-         sprintf(op, "ldf      dsr[%d]", dsr);
+         snprintf(op, sizeof(op), "ldf      dsr[%d]", dsr);
       fmt = "[%d]";
       break;
 
    case NFF_LD|NFF_F|NFF_ABS:
-      sprintf(op, "ldf");
+      snprintf(op, sizeof(op), "ldf");
       fmt = "[%d]";
       break;
 
    case NFF_LD|NFF_L|NFF_DSR:
       if (dsr < 0)
-         sprintf(op, "ldll     hdr");
+         snprintf(op, sizeof(op), "ldll     hdr");
       else
-      sprintf(op, "ldll      dsr[%d]", dsr);
+      snprintf(op, sizeof(op), "ldll      dsr[%d]", dsr);
       fmt = "[%Ld]";
       break;
 
    case NFF_LD|NFF_L|NFF_ABS:
-      sprintf(op, "ldll");
+      snprintf(op, sizeof(op), "ldll");
       fmt = "[%Ld]";
       break;
 
    case NFF_LD|NFF_W|NFF_DSR:
       if (dsr < 0)
-         sprintf(op, "ld       hdr");
+         snprintf(op, sizeof(op), "ld       hdr");
       else
-         sprintf(op, "ld       dsr[%d]", dsr);
+         snprintf(op, sizeof(op), "ld       dsr[%d]", dsr);
       fmt = "[%d]";
       break;
 
    case NFF_LD|NFF_W|NFF_ABS:
-      sprintf(op, "ld");
+      snprintf(op, sizeof(op), "ld");
       fmt = "[%d]";
       break;
 
    case NFF_LD|NFF_H|NFF_DSR:
       if (dsr < 0)
-         sprintf(op, "ldh      hdr");
+         snprintf(op, sizeof(op), "ldh      hdr");
       else
-         sprintf(op, "ldh      dsr[%d]", dsr);
+         snprintf(op, sizeof(op), "ldh      dsr[%d]", dsr);
       fmt = "[%d]";
       break;
 
    case NFF_LD|NFF_H|NFF_ABS:
-      sprintf(op, "ldh");
+      snprintf(op, sizeof(op), "ldh");
       fmt = "[%d]";
       break;
 
    case NFF_LD|NFF_B|NFF_DSR:
       if (dsr < 0)
-         sprintf(op, "ldb      hdr");
+         snprintf(op, sizeof(op), "ldb      hdr");
       else
-         sprintf(op, "ldb      dsr[%d]", dsr);
+         snprintf(op, sizeof(op), "ldb      dsr[%d]", dsr);
       fmt = "[%d]";
       break;
 
    case NFF_LD|NFF_B|NFF_ABS:
-      sprintf(op, "ldb");
+      snprintf(op, sizeof(op), "ldb");
       fmt = "[%d]";
       break;
 
    case NFF_LD|NFF_W|NFF_LEN:
-      sprintf(op, "ld");
+      snprintf(op, sizeof(op), "ld");
       fmt = "#pktlen";
       break;
 
    case NFF_LD|NFF_F|NFF_IND:
-      sprintf(op, "ldf");
+      snprintf(op, sizeof(op), "ldf");
       fmt = "[x + %d]";
       break;
 
    case NFF_LD|NFF_L|NFF_IND:
-      sprintf(op, "ldll");
+      snprintf(op, sizeof(op), "ldll");
       fmt = "[x + %Ld]";
       break;
 
    case NFF_LD|NFF_W|NFF_IND:
-      sprintf(op, "ld");
+      snprintf(op, sizeof(op), "ld");
       fmt = "[x + %d]";
       break;
 
    case NFF_LD|NFF_H|NFF_IND:
-      sprintf(op, "ldh");
+      snprintf(op, sizeof(op), "ldh");
       fmt = "[x + %d]";
       break;
 
    case NFF_LD|NFF_B|NFF_IND:
-      sprintf(op, "ldb");
+      snprintf(op, sizeof(op), "ldb");
       fmt = "[x + %d]";
       break;
 
    case NFF_LD|NFF_IMM:
-      sprintf(op, "ld");
+      snprintf(op, sizeof(op), "ld");
       fmt = "#0x%x";
       break;
 
    case NFF_LDX|NFF_IMM:
-      sprintf(op, "ldx");
+      snprintf(op, sizeof(op), "ldx");
       fmt = "#0x%x";
       break;
 
    case NFF_LDX|NFF_MSH|NFF_B:
-      sprintf(op, "ldxb");
+      snprintf(op, sizeof(op), "ldxb");
       fmt = "4*([%d]&0xf)";
       break;
 
    case NFF_LD|NFF_MEM:
-      sprintf(op, "ld");
+      snprintf(op, sizeof(op), "ld");
       fmt = "M[%d]";
       break;
 
    case NFF_LDX|NFF_MEM:
-      sprintf(op, "ldx");
+      snprintf(op, sizeof(op), "ldx");
       fmt = "M[%d]";
       break;
 
    case NFF_ST:
-      sprintf(op, "st");
+      snprintf(op, sizeof(op), "st");
       fmt = "M[%d]";
       break;
 
    case NFF_STX:
-      sprintf(op, "stx");
+      snprintf(op, sizeof(op), "stx");
       fmt = "M[%d]";
       break;
 
    case NFF_JMP|NFF_JA:
-      sprintf(op, "ja");
+      snprintf(op, sizeof(op), "ja");
       fmt = "%d";
       v = n + p->data.k;
       break;
 
    case NFF_JMP|NFF_JGT|NFF_F:
-      sprintf(op, "jgt");
+      snprintf(op, sizeof(op), "jgt");
       fmt = "#%f";
       break;
 
    case NFF_JMP|NFF_JGE|NFF_F:
-      sprintf(op, "jge");
+      snprintf(op, sizeof(op), "jge");
       fmt = "#%f";
       break;
 
    case NFF_JMP|NFF_JEQ|NFF_F:
-      sprintf(op, "jeq");
+      snprintf(op, sizeof(op), "jeq");
       fmt = "#%f";
       break;
 
    case NFF_JMP|NFF_JGT|NFF_K:
-      sprintf(op, "jgt");
+      snprintf(op, sizeof(op), "jgt");
       fmt = "#0x%x";
       break;
 
    case NFF_JMP|NFF_JGE|NFF_K:
-      sprintf(op, "jge");
+      snprintf(op, sizeof(op), "jge");
       fmt = "#0x%x";
       break;
 
    case NFF_JMP|NFF_JEQ|NFF_K:
-      sprintf(op, "jeq");
+      snprintf(op, sizeof(op), "jeq");
       switch (p->type) {
          case Q_STRING:  fmt = "\"%s\""; break;
          case Q_DEFAULT: fmt = "#0x%x"; break;
@@ -3416,122 +3416,122 @@ nff_image(struct nff_insn *p, int n)
       break;
 
    case NFF_JMP|NFF_JSET|NFF_K:
-      sprintf(op, "jset");
+      snprintf(op, sizeof(op), "jset");
       fmt = "#0x%x";
       break;
 
    case NFF_JMP|NFF_JGT|NFF_X:
-      sprintf(op, "jgt");
+      snprintf(op, sizeof(op), "jgt");
       fmt = "x";
       break;
 
    case NFF_JMP|NFF_JGE|NFF_X:
-      sprintf(op, "jge");
+      snprintf(op, sizeof(op), "jge");
       fmt = "x";
       break;
 
    case NFF_JMP|NFF_JEQ|NFF_X:
-      sprintf(op, "jeq");
+      snprintf(op, sizeof(op), "jeq");
       fmt = "x";
       break;
 
    case NFF_JMP|NFF_JSET|NFF_X:
-      sprintf(op, "jset");
+      snprintf(op, sizeof(op), "jset");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_ADD|NFF_X:
-      sprintf(op, "add");
+      snprintf(op, sizeof(op), "add");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_SUB|NFF_X:
-      sprintf(op, "sub");
+      snprintf(op, sizeof(op), "sub");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_MUL|NFF_X:
-      sprintf(op, "mul");
+      snprintf(op, sizeof(op), "mul");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_DIV|NFF_X:
-      sprintf(op, "div");
+      snprintf(op, sizeof(op), "div");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_AND|NFF_X:
-      sprintf(op, "and");
+      snprintf(op, sizeof(op), "and");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_OR|NFF_X:
-      sprintf(op, "or");
+      snprintf(op, sizeof(op), "or");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_LSH|NFF_X:
-      sprintf(op, "lsh");
+      snprintf(op, sizeof(op), "lsh");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_RSH|NFF_X:
-      sprintf(op, "rsh");
+      snprintf(op, sizeof(op), "rsh");
       fmt = "x";
       break;
 
    case NFF_ALU|NFF_ADD|NFF_K:
-      sprintf(op, "add");
+      snprintf(op, sizeof(op), "add");
       fmt = " #%d";
       break;
 
    case NFF_ALU|NFF_SUB|NFF_K:
-      sprintf(op, "sub");
+      snprintf(op, sizeof(op), "sub");
       fmt = " #%d";
       break;
 
    case NFF_ALU|NFF_MUL|NFF_K:
-      sprintf(op, "mul");
+      snprintf(op, sizeof(op), "mul");
       fmt = " #%d";
       break;
 
    case NFF_ALU|NFF_DIV|NFF_K:
-      sprintf(op, "div");
+      snprintf(op, sizeof(op), "div");
       fmt = " #%d";
       break;
 
    case NFF_ALU|NFF_AND|NFF_K:
-      sprintf(op, "and");
+      snprintf(op, sizeof(op), "and");
       fmt = " #%d";
       break;
 
    case NFF_ALU|NFF_OR|NFF_K:
-      sprintf(op, "or");
+      snprintf(op, sizeof(op), "or");
       fmt = " #%d";
       break;
 
    case NFF_ALU|NFF_LSH|NFF_K:
-      sprintf(op, "lsh");
+      snprintf(op, sizeof(op), "lsh");
       fmt = " #%d";
       break;
 
    case NFF_ALU|NFF_RSH|NFF_K:
-      sprintf(op, "rsh");
+      snprintf(op, sizeof(op), "rsh");
       fmt = " #%d";
       break;
 
    case NFF_ALU|NFF_NEG:
-      sprintf(op, "neg");
+      snprintf(op, sizeof(op), "neg");
       fmt = "";
       break;
 
    case NFF_MISC|NFF_TAX:
-      sprintf(op, "tax");
+      snprintf(op, sizeof(op), "tax");
       fmt = "";
       break;
 
    case NFF_MISC|NFF_TXA:
-      sprintf(op, "txa");
+      snprintf(op, sizeof(op), "txa");
       fmt = "";
       break;
    }

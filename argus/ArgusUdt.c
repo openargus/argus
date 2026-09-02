@@ -230,23 +230,23 @@ ArgusUpdateUDToEState (struct ArgusModelerStruct *model, struct ArgusFlowStruct 
                            range = 1;
                         } else {
                            eseq = *sptr;
-                           if (range) {
+                            if (range) {
 #ifdef ARGUSDEBUG
-                              if (fitem++)
-                                 sprintf(&buf[strlen(buf)], ",0x%x-0x%x", sseq, eseq);
-                              else
-                                 sprintf(&buf[strlen(buf)], "0x%x-0x%x", sseq, eseq);
+                               if (fitem++)
+                                  snprintf(&buf[strlen(buf)], sizeof(buf) - strlen(buf), ",0x%x-0x%x", sseq, eseq);
+                               else
+                                  snprintf(&buf[strlen(buf)], sizeof(buf) - strlen(buf), "0x%x-0x%x", sseq, eseq);
 #endif
-                              num += (eseq - sseq) + 1;
-                              range = 0;
-                           } else {
+                               num += (eseq - sseq) + 1;
+                               range = 0;
+                            } else {
 #ifdef ARGUSDEBUG
-                              if (fitem++)
-                                 sprintf(&buf[strlen(buf)], ",0x%x", eseq);
-                              else
-                                 sprintf(&buf[strlen(buf)], "0x%x", eseq);
+                               if (fitem++)
+                                  snprintf(&buf[strlen(buf)], sizeof(buf) - strlen(buf), ",0x%x", eseq);
+                               else
+                                  snprintf(&buf[strlen(buf)], sizeof(buf) - strlen(buf), "0x%x", eseq);
 #endif
-                              fitem++;
+                               fitem++;
                               num++;
                            }
                         }

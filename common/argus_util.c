@@ -1006,10 +1006,10 @@ ArgusPrintDirection (char *buf, struct ArgusRecordStruct *argus, int len)
          int type, src_count = 0, dst_count = 0;
 
          if (metric == NULL) {
-            sprintf (buf, "%*.*s ", len, len, "   ");
+            snprintf (buf, len + 1, "%*.*s ", len, len, "   ");
          } else {
             char dirStr[16];
-            sprintf (dirStr, "%s", "<->");
+            snprintf (dirStr, sizeof(dirStr), "%s", "<->");
 
             if ((dst_count = metric->dst.pkts) == 0)
                dirStr[0] = ' ';
@@ -1070,18 +1070,18 @@ ArgusPrintDirection (char *buf, struct ArgusRecordStruct *argus, int len)
                            break;  
 
                         case ARGUS_TYPE_RARP:
-                           sprintf (dirStr, "%s", "tel");
+                           snprintf (dirStr, sizeof(dirStr), "%s", "tel");
                            break;
 
                         case ARGUS_TYPE_ARP:
-                           sprintf (dirStr, "%s", "who");
+                           snprintf (dirStr, sizeof(dirStr), "%s", "who");
                            break;
                      } 
                      break;
                   }
 
                   case ARGUS_FLOW_ARP: {
-                     sprintf (dirStr, "%s", "who");
+                     snprintf (dirStr, sizeof(dirStr), "%s", "who");
                      break;
                   }
                }

@@ -1653,7 +1653,7 @@ struct ArgusAddressStruct {
  
          fd = ArgusGetInterfaceFD;
 
-         strcpy(ifr.ifr_name, dev->name);
+         strlcpy(ifr.ifr_name, dev->name, sizeof(ifr.ifr_name));
 
          if ((ioctl(fd, SIOCGIFFLAGS, (char *)&ifr)) == 0) {
             retn->flags = ifr.ifr_flags;
@@ -6303,19 +6303,19 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
                if ((rval = getaddrinfo(hptr, inf->servname, &hints, host)) != 0) {
                   switch (rval) {
                      case EAI_AGAIN: 
-                        sprintf (msgbuf, "dns server not available");
+                        snprintf (msgbuf, sizeof(msgbuf), "dns server not available");
                         break;
                      case EAI_NONAME:
-                        sprintf (msgbuf, "host %s unknown", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s unknown", hptr);
                         break;
 #if defined(EAI_ADDRFAMILY)
                      case EAI_ADDRFAMILY:
-                        sprintf (msgbuf, "host %s has no IP address", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s has no IP address", hptr);
                         break;
 #endif
                      case EAI_SYSTEM:
                      default:
-                        sprintf (msgbuf, "host '%s' %s", hptr, gai_strerror(rval));
+                        snprintf (msgbuf, sizeof(msgbuf), "host '%s' %s", hptr, gai_strerror(rval));
                         break;
                   }
                }
@@ -6327,16 +6327,16 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
                } else {
                   switch (h_errno) {
                      case TRY_AGAIN:
-                        sprintf (msgbuf, "dns server not available");
+                        snprintf (msgbuf, sizeof(msgbuf), "dns server not available");
                         break;
                      case HOST_NOT_FOUND:
-                        sprintf (msgbuf, "host %s unknown", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s unknown", hptr);
                         break;
                      case NO_ADDRESS:
-                        sprintf (msgbuf, "host %s has no IP address", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s has no IP address", hptr);
                         break;
                      case NO_RECOVERY:
-                        sprintf (msgbuf, "host %s name server error", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s name server error", hptr);
                         break;
                   }
                }

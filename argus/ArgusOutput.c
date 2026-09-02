@@ -1167,7 +1167,7 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
          int flags = fcntl (s, F_GETFL, 0L);
          if ((fcntl (s, F_SETFL, flags | O_NDELAY)) >= 0) {
             server.sun_family = AF_UNIX;
-            strcpy(server.sun_path, ARGUS_SOCKET_PATH);
+            strlcpy(server.sun_path, ARGUS_SOCKET_PATH, sizeof(server.sun_path));
 
             if (!(bind (s, (struct sockaddr *) &server, sizeof(struct sockaddr_un)))) {
                if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
@@ -1295,7 +1295,7 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
                       if (getnameinfo((struct sockaddr *)&remoteaddr, salen, hbuf, sizeof(hbuf), NULL, 0, niflags) != 0)
                           strncpy(hbuf, "unknown", sizeof(hbuf));
 
-                      sprintf(&clienthost[strlen(clienthost)], "[%s]", hbuf);
+                      snprintf(&clienthost[strlen(clienthost)], sizeof(clienthost) - strlen(clienthost), "[%s]", hbuf);
 
                       salen = sizeof(localaddr);
                       if (getsockname(fd, (struct sockaddr *)&localaddr, &salen) == 0) {
@@ -1310,7 +1310,7 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
                gethostname(localhostname, 1024);
                if (!strchr (localhostname, '.')) {
                   char domainname[256];
-                  strcat (localhostname, ".");
+                  strlcat (localhostname, ".", sizeof(localhostname));
                   if (getdomainname (domainname, 256)) {
                      snprintf (&localhostname[strlen(localhostname)], 1024 - strlen(localhostname), "%s", domainname);
                   }

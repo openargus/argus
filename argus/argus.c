@@ -873,7 +873,7 @@ ArgusComplete ()
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       char sbuf[MAXSTRLEN];
       if (ArgusSourceTask->ArgusInterface[i].ArgusDevice != NULL) {
-         sprintf (sbuf, "%s\n    Total Pkts %8lld  Rate %f\n",
+         snprintf (sbuf, sizeof(sbuf), "%s\n    Total Pkts %8lld  Rate %f\n",
                      ArgusSourceTask->ArgusInterface[i].ArgusDevice->name, ArgusSourceTask->ArgusInterface[i].ArgusTotalPkts,
                      ArgusSourceTask->ArgusInterface[i].ArgusTotalPkts/totaltime);
          ArgusIntStr[i] = strdup(sbuf);
@@ -1403,9 +1403,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                           }
 
                                           if (appendInf)
-                                             sprintf(buf, "\"%s\"/inf",  ptr);
+                                             snprintf(buf, sizeof(buf), "\"%s\"/inf",  ptr);
                                           else
-                                             sprintf(buf, "\"%s\"",  ptr);
+                                             snprintf(buf, sizeof(buf), "\"%s\"",  ptr);
 
                                           optarg = strdup(buf);
 
@@ -1421,9 +1421,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                           uuid_unparse(id, sbuf);
 
                                           if (appendInf)
-                                             sprintf(buf, "%s/inf", sbuf);
+                                             snprintf(buf, sizeof(buf), "%s/inf", sbuf);
                                           else
-                                             sprintf(buf, "%s", sbuf);
+                                             snprintf(buf, sizeof(buf), "%s", sbuf);
                                           optarg = strdup(buf);
                                        } else
                                           ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: gethostuuid() %s\n", file, strerror(errno));
@@ -1435,9 +1435,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                        bzero(uuidstr, 64);
                                        if (__linux_get_machine_id_uuid(uuidstr, 37) == 0) {
                                           if (appendInf)
-                                             sprintf(buf, "%s/inf", uuidstr);
+                                             snprintf(buf, sizeof(buf), "%s/inf", uuidstr);
                                           else
-                                             sprintf(buf, "%s", uuidstr);
+                                             snprintf(buf, sizeof(buf), "%s", uuidstr);
                                           optarg = strdup(buf);
                                        } else {
                                           ArgusLog(LOG_ERR, "%s(%s) unable to "
@@ -1451,9 +1451,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                                        if (__wmic_get_uuid(uuidstr, 37) == 0) {
                                           if (appendInf)
-                                             sprintf(buf, "%s/inf", uuidstr);
+                                             snprintf(buf, sizeof(buf), "%s/inf", uuidstr);
                                           else
-                                             sprintf(buf, "%s", uuidstr);
+                                             snprintf(buf, sizeof(buf), "%s", uuidstr);
                                           optarg = strdup(buf);
                                        } else {
                                           ArgusLog(LOG_ERR, "%s(%s) unable to " "read system UUID\n", __func__, file);

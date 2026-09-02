@@ -2868,15 +2868,17 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
                   ArgusUpdateBasicFlow (model, frag, state);
 
                } else {
-                  struct ArgusNetworkStruct *net = (struct ArgusNetworkStruct *)frag->dsrs[ARGUS_FRAG_INDEX];
-                  struct ArgusFragObject *ofrag = &net->net_union.frag;
+                  if (frag->canon.net.hdr.subtype == ARGUS_NETWORK_SUBTYPE_FRAG) {
+                     struct ArgusNetworkStruct *net = (struct ArgusNetworkStruct *)frag->dsrs[ARGUS_FRAG_INDEX];
+                     struct ArgusFragObject *ofrag = &net->net_union.frag;
 
-                  net->hdr.argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
-                  if (ofrag->parent == NULL) {
-                     ofrag->parent = flow;
-                     if (frag->qhdr.queue != &flow->frag) {
-                        ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
-                        ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                     net->hdr.argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
+                     if (ofrag->parent == NULL) {
+                        ofrag->parent = flow;
+                        if (frag->qhdr.queue != &flow->frag) {
+                           ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
+                           ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                        }
                      }
                   }
                }
@@ -2965,8 +2967,10 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
                               
                            if ((frag = ArgusFindFlow (model, model->hstruct)) == NULL) {
 
-/* ok so here things are correct, we're going to schedule the expected frag struct
-            onto the parent flow, and proceed */
+/* 
+   Ok so here things are correct, we're going to schedule the expected frag struct
+   onto the parent flow, and proceed
+*/
 
                               if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
                                  ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
@@ -2984,16 +2988,22 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
 
                            } else {
 
-/* oops, here we've seen parts of the fragment and are just now seeing the 0 offset
-            fragment, so need to move the frag from the general run queue and put it on this
-            parent frag queue */
+/* 
+   oops, here we've seen parts of the fragment and are just now seeing the 0 offset
+   fragment, so need to move the frag from the general run queue and put it on this
+   parent frag queue.
 
-                              if (frag->dsrs[ARGUS_FRAG_INDEX] != NULL)
-                                 frag->dsrs[ARGUS_FRAG_INDEX]->argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
+   Make sure it conforms to being a frag, and then proceed.
+   If not just ignore.
+*/
+                              if (frag->canon.net.hdr.subtype == ARGUS_NETWORK_SUBTYPE_FRAG) {
+                                 if (frag->dsrs[ARGUS_FRAG_INDEX] != NULL)
+                                    frag->dsrs[ARGUS_FRAG_INDEX]->argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
 
-                              if (frag->qhdr.queue != &flow->frag) {
-                                 ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
-                                 ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                                 if (frag->qhdr.queue != &flow->frag) {
+                                    ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
+                                    ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                                 }
                               }
                            }
 
