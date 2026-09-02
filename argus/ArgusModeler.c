@@ -3348,6 +3348,9 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         int z, tlen = 0;
 
                         switch (trans->hdr.argus_dsrvl8.qual & ~ARGUS_TYPE_INTERFACE) {
+                           /* ARGUS_TYPE_STRING kept at 4 bytes intentionally,
+                            * for V3 wire compatibility -- see setArgusID() in
+                            * ArgusSource.c for the corresponding note. */
                            case ARGUS_TYPE_STRING: 
                            case ARGUS_TYPE_INT:    
                            case ARGUS_TYPE_IPV4:   

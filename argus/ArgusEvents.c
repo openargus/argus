@@ -465,6 +465,13 @@ struct ArgusRecord {
       trans->hdr.argus_dsrvl8.qual = src->type & ~ARGUS_TYPE_INTERFACE;
 
       switch (src->type & ~ARGUS_TYPE_INTERFACE) {
+         /* ARGUS_TYPE_STRING kept at 4 bytes intentionally, for V3 wire
+          * compatibility -- see setArgusID() in ArgusSource.c for the
+          * corresponding note. Safe to read via strlen() here because
+          * setArgusID() bzero()s the full struct ArgusTransportStruct
+          * before writing at most 4 bytes into a_un.str, leaving the
+          * rest of the 16-byte a_un union (and str's own unwritten tail,
+          * if the source string is under 4 bytes) zero-filled. */
          case ARGUS_TYPE_STRING: {
             tlen = strlen((const char *)&src->trans.srcid.a_un.str);
             bcopy(&src->trans.srcid.a_un.str, trans->srcid.a_un.str, tlen);

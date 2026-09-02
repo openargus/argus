@@ -1294,6 +1294,18 @@ setArgusID(struct ArgusSourceStruct *src, void *ptr, int len, unsigned int type)
 
       switch (type & ~ARGUS_TYPE_INTERFACE) {
          case ARGUS_TYPE_STRING: {
+            /* ARGUS_TYPE_STRING is intentionally kept at the V3 record srcid
+             * length (4 bytes) for backward/forward wire compatibility with
+             * V3 (struct ArgusV3AddrStruct.a_un.str[4]), even though this V5
+             * union has 16 bytes of storage available (shared with uuid/ipv6).
+             * Do not widen this without also updating the matching ARGUS_TYPE_STRING
+             * length assumptions in ArgusModeler.c:ArgusGenerateRecord,
+             * ArgusEvents.c:ArgusEventRecord, and ArgusOutput.c's two MAR-record
+             * srcid encoders (ArgusGenerateInitialMar / status MAR) -- planned
+             * together as part of a future V3-support-obsoletion release, not
+             * before. See ~/Saber/argus-security-review.2026.09.02/findings-log.md,
+             * F-32.
+             */
             size_t cplen = strlen((char *)ptr);
             if (cplen > sizeof(trans->srcid.a_un.str))
                cplen = sizeof(trans->srcid.a_un.str);
