@@ -1293,7 +1293,13 @@ setArgusID(struct ArgusSourceStruct *src, void *ptr, int len, unsigned int type)
       trans->hdr.argus_dsrvl8.qual = type;
 
       switch (type & ~ARGUS_TYPE_INTERFACE) {
-         case ARGUS_TYPE_STRING: bcopy((char *)ptr, &trans->srcid.a_un.str, strlen((char *)ptr)); break;
+         case ARGUS_TYPE_STRING: {
+            size_t cplen = strlen((char *)ptr);
+            if (cplen > sizeof(trans->srcid.a_un.str))
+               cplen = sizeof(trans->srcid.a_un.str);
+            bcopy((char *)ptr, &trans->srcid.a_un.str, cplen);
+            break;
+         }
          case ARGUS_TYPE_INT:    trans->srcid.a_un.value = *(unsigned int *)ptr; offset = sizeof(unsigned int); break;
          case ARGUS_TYPE_IPV4:   trans->srcid.a_un.ipv4 = ntohl(*(unsigned int *)ptr); offset = sizeof(unsigned int); break;
          case ARGUS_TYPE_IPV6:   bcopy((char *)ptr, &trans->srcid.a_un.ipv6, 16); offset = sizeof(trans->srcid.a_un.ipv6); break;
