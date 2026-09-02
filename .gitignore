@@ -53,6 +53,10 @@ include/argus_config.h
 /perllib/util.so
 /perllib/util.dylib
 
+# security-review fuzz harness build artifacts (rebuilt by build.sh / CI, not committed)
+/security-review/fuzz/build/
+/security-review/fuzz/fuzz_process_packet
+
 # rasql_udf_ intermediates
 /examples/rasql_udf_cidr/.libs/
 /examples/rasql_udf_cidr/.deps/

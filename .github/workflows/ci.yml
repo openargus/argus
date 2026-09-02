@@ -1,0 +1,75 @@
+name: CI
+
+# Runs on GitHub-hosted runners (not the local machine) on every push and
+# pull request against main. See security-review/fuzz/README.md for
+# background on the corpus used by the fuzz-regression job below.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev zlib1g-dev bison flex
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install libpcap zlib bison flex
+
+      - name: Configure
+        run: ./configure
+
+      - name: Build
+        run: make -j4
+
+  fuzz-regression:
+    name: Fuzz corpus regression
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install libpcap zlib bison flex
+
+      - name: Configure
+        run: ./configure
+
+      - name: Build ASan/UBSan instrumented sensor + harness
+        run: sh security-review/fuzz/build.sh plain
+
+      - name: Replay corpus and crash regression set
+        run: |
+          set -e
+          fail=0
+          total=0
+          for f in security-review/fuzz/corpus/* \
+                   security-review/fuzz/crashes/* \
+                   security-review/fuzz/regression-corpus/*; do
+            total=$((total + 1))
+            if ! ./security-review/fuzz/fuzz_process_packet "$f" > /tmp/harness_out.log 2>&1; then
+              echo "::error::Crash/sanitizer failure replaying $f"
+              cat /tmp/harness_out.log
+              fail=1
+            fi
+          done
+          echo "Replayed $total inputs."
+          if [ "$fail" -ne 0 ]; then
+            echo "One or more inputs triggered a crash or sanitizer error."
+            exit 1
+          fi
+          echo "All inputs replayed cleanly."
