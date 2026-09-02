@@ -1656,18 +1656,19 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
    if (getArgusID(ArgusSourceTask, asptr)) {
       switch (getArgusIDType(ArgusSourceTask) & ~ARGUS_TYPE_INTERFACE) {
          case ARGUS_TYPE_STRING: {
-            /* NOTE: strlen() here reads retn->argus_mar.str, the zero-filled
-             * DESTINATION (see ArgusCalloc above), not asptr->a_un.str (the
-             * populated source) -- this always evaluates to 0, so this bcopy
-             * always copies zero bytes and the MAR record's string source ID
-             * is silently empty. Likely should be
-             * strlen((const char *)asptr->a_un.str). Not fixed here (flagged
-             * during unrelated review of the ARGUS_TYPE_STRING length
-             * convention, see F-32 addendum in
-             * ~/Saber/argus-security-review.2026.09.02/findings-log.md) --
-             * left as-is pending confirmation of intended behavior. */
+            /* strlen() must read the populated SOURCE (asptr->a_un.str), not
+             * the zero-filled DESTINATION (retn->argus_mar.str) -- see
+             * setArgusID() in ArgusSource.c: the source is bzero()'d and then
+             * at most 4 bytes written, so a NUL is always present within
+             * a_un.str's 4-byte bound (or immediately after it, within the
+             * same zero-filled union), making this strlen() safely bounded.
+             * Previously read the destination here, which is always
+             * all-zero at this point, so the bcopy always copied zero bytes
+             * and the MAR record's string source ID was silently emitted
+             * empty -- see F-33 in
+             * ~/Saber/argus-security-review.2026.09.02/findings-log.md. */
             retn->argus_mar.status |= ARGUS_IDIS_STRING;
-            bcopy (&asptr->a_un.str, &retn->argus_mar.str, strlen((const char *)retn->argus_mar.str));
+            bcopy (&asptr->a_un.str, &retn->argus_mar.str, strlen((const char *)asptr->a_un.str));
             break;
          }
          case ARGUS_TYPE_INT: {
@@ -1899,10 +1900,11 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       if (getArgusID(ArgusSourceTask, asptr)) {
          switch (getArgusIDType(ArgusSourceTask) & ~ARGUS_TYPE_INTERFACE) {
             case ARGUS_TYPE_STRING: {
-               /* Same strlen()-on-destination note as ArgusGenerateInitialMar()
-                * above -- see that site's comment. */
+               /* strlen() must read the populated source (asptr->a_un.str),
+                * not the zero-filled destination -- see the fix note at
+                * ArgusGenerateInitialMar() above (F-33). */
                rec->argus_mar.status |= ARGUS_IDIS_STRING;
-               bcopy (&asptr->a_un.str, &rec->argus_mar.str, strlen((const char *)rec->argus_mar.str));
+               bcopy (&asptr->a_un.str, &rec->argus_mar.str, strlen((const char *)asptr->a_un.str));
                break;
             }
             case ARGUS_TYPE_INT: {
