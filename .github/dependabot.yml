@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Keep GitHub Actions used in .github/workflows/ up to date (e.g.
+  # actions/checkout). Dependabot opens a PR when a newer version is
+  # available; CI must pass before merging.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

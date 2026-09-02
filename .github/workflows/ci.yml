@@ -9,6 +9,13 @@ on:
   pull_request:
     branches: [main]
 
+# If new commits land on the same branch/PR while a run is still in
+# progress, cancel the older run instead of letting both finish --
+# avoids wasting Actions minutes on superseded commits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build (${{ matrix.os }})
