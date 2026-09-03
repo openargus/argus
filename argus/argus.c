@@ -1461,8 +1461,8 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 #  endif
 # endif
 #endif
-                                    } else
-                                       ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` line %d.\n", optarg, linenum);
+                                     } else
+                                        ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` line %d.\n", file, optarg, linenum);
                                  } else
                                     ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
                               }

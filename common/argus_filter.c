@@ -1358,7 +1358,7 @@ find_closure(struct ablock *root)
     * Initialize sets to contain no nodes.
     */
    memset((char *)all_closure_sets, 0,
-         n_blocks * nodewords * sizeof(*all_closure_sets));
+         (size_t)n_blocks * (size_t)nodewords * sizeof(*all_closure_sets));
 
    /* root->level is the highest level no found. */
    for (i = root->level; i >= 0; --i) {
@@ -2869,8 +2869,8 @@ opt_init(struct ablock *root)
    nodewords = n_blocks / (8 * sizeof(nff_u_int32)) + 1;
 
    /* XXX */
-   space = (nff_u_int32 *)malloc(2 * n_blocks * nodewords * sizeof(*space)
-             + n_edges * edgewords * sizeof(*space));
+   space = (nff_u_int32 *)malloc((size_t)2 * (size_t)n_blocks * (size_t)nodewords * sizeof(*space)
+             + (size_t)n_edges * (size_t)edgewords * sizeof(*space));
    p = space;
    all_dom_sets = p;
    for (i = 0; i < n; ++i) {
@@ -3008,7 +3008,7 @@ convert_code_r(struct ablock *p)
 #endif
 
       if (!src->s.jt || !src->s.jf) {
-         ArgusLog(LOG_ERR, "no jmp destination %d, %d", ljerr, off);
+         ArgusLog(LOG_ERR, ljerr, "no jmp destination", off);
          /*NOTREACHED*/
       }
 
@@ -3016,7 +3016,7 @@ convert_code_r(struct ablock *p)
       for (i = 0; i < slen; i++) {
          if (offset[i] == src->s.jt) {
             if (jt) {
-               ArgusLog(LOG_ERR, "multiple matches %d, %d", ljerr, off);
+               ArgusLog(LOG_ERR, ljerr, "multiple matches", off);
                /*NOTREACHED*/
             }
 
@@ -3025,7 +3025,7 @@ convert_code_r(struct ablock *p)
          }
          if (offset[i] == src->s.jf) {
             if (jf) {
-               ArgusLog(LOG_ERR, "multiple matches %d, %d", ljerr, off);
+               ArgusLog(LOG_ERR, ljerr, "multiple matches", off);
                /*NOTREACHED*/
             }
             dst->jf = i - off - 1;
@@ -3033,7 +3033,7 @@ convert_code_r(struct ablock *p)
          }
       }
       if (!jt || !jf) {
-         ArgusLog(LOG_ERR, "no destination found %d, %d", ljerr, off);
+         ArgusLog(LOG_ERR, ljerr, "no destination found", off);
          /*NOTREACHED*/
       }
        }
