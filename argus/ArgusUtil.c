@@ -759,7 +759,7 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
          model->ArgusUpdateTimer.tv_sec++; 
          model->ArgusUpdateTimer.tv_usec -= 1000000;
          if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
-            ArgusLog (LOG_ERR, "ArgusUpdateTime: usec still too big %d(using MICRO)\n", model->ArgusUpdateTimer.tv_usec);
+            ArgusLog (LOG_ERR, "ArgusUpdateTime: usec still too big %ld(using MICRO)\n", (long)model->ArgusUpdateTimer.tv_usec);
          }
       }
 #endif
@@ -804,7 +804,7 @@ ArgusNewHashTable (size_t size, int status)
    struct ArgusHashTable *retn = NULL;
 
    if ((retn = (struct ArgusHashTable *) ArgusCalloc (1, sizeof(*retn))) == NULL)
-      ArgusLog (LOG_ERR, "ArgusNewHashTable: ArgusCalloc(1, %d) error %s\n", size, strerror(errno));
+      ArgusLog (LOG_ERR, "ArgusNewHashTable: ArgusCalloc(1, %zu) error %s\n", sizeof(*retn), strerror(errno));
 
    if ((retn->array = (struct ArgusHashTableHeader **)
                       ArgusMallocAligned (size * sizeof(struct ArgusHashTableHeader *), 64)) == NULL)
