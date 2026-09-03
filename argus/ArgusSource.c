@@ -1303,8 +1303,7 @@ setArgusID(struct ArgusSourceStruct *src, void *ptr, int len, unsigned int type)
              * ArgusEvents.c:ArgusEventRecord, and ArgusOutput.c's two MAR-record
              * srcid encoders (ArgusGenerateInitialMar / status MAR) -- planned
              * together as part of a future V3-support-obsoletion release, not
-             * before. See ~/Saber/argus-security-review.2026.09.02/findings-log.md,
-             * F-32.
+             * before (security review finding F-32).
              */
             size_t cplen = strlen((char *)ptr);
             if (cplen > sizeof(trans->srcid.a_un.str))

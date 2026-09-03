@@ -1665,8 +1665,7 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
              * Previously read the destination here, which is always
              * all-zero at this point, so the bcopy always copied zero bytes
              * and the MAR record's string source ID was silently emitted
-             * empty -- see F-33 in
-             * ~/Saber/argus-security-review.2026.09.02/findings-log.md. */
+             * empty (security review finding F-33). */
             retn->argus_mar.status |= ARGUS_IDIS_STRING;
             bcopy (&asptr->a_un.str, &retn->argus_mar.str, strlen((const char *)asptr->a_un.str));
             break;
