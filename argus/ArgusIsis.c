@@ -924,7 +924,7 @@ char *
 bittok2str(const struct tok *lp, const char *fmt, int v)
 {
         static char buf[256]; /* our stringbuffer */
-        int buflen=0;
+        size_t buflen=0;
         register int rotbit; /* this is the bit we rotate through all bitpositions */
         register int tokval;
 
@@ -938,7 +938,25 @@ bittok2str(const struct tok *lp, const char *fmt, int v)
                  */
 		if (tokval == (v&rotbit)) {
                     /* ok we have found something */
-                    buflen+=snprintf(buf+buflen, sizeof(buf)-buflen, "%s, ",lp->s);
+                    if (buflen < sizeof(buf)) {
+                        int n = snprintf(buf+buflen, sizeof(buf)-buflen, "%s, ",lp->s);
+                        /* F-34: snprintf() returns the number of bytes that *would*
+                         * have been written if unbounded, not the number actually
+                         * written -- if we added n unconditionally, a sufficiently
+                         * long sequence of matched token strings could push buflen
+                         * past sizeof(buf), and the next iteration's
+                         * sizeof(buf)-buflen (both unsigned) would wrap around to a
+                         * huge value, making buf+buflen point past the end of the
+                         * buffer. Clamp buflen to never exceed sizeof(buf)-1 instead,
+                         * so this can never happen regardless of how many/how long
+                         * the matching token strings are. */
+                        if (n > 0) {
+                            if ((size_t)n >= sizeof(buf)-buflen)
+                                buflen = sizeof(buf)-1;
+                            else
+                                buflen += (size_t)n;
+                        }
+                    }
                     break;
                 }
                 rotbit=rotbit<<1; /* no match - lets shift and try again */
@@ -948,7 +966,10 @@ bittok2str(const struct tok *lp, const char *fmt, int v)
 
         if (buflen != 0) { /* did we find anything */
             /* yep, set the the trailing zero 2 bytes before to eliminate the last comma & whitespace */
-            buf[buflen-2] = '\0';
+            if (buflen >= 2)
+                buf[buflen-2] = '\0';
+            else
+                buf[0] = '\0';
             return (buf);
         }
         else {
