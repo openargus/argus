@@ -705,7 +705,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                      *tptr++ = '\0';
                      portnum = strtol(tptr, &endptr, 10);
                      if (endptr != &tptr[strlen(tptr)]) {
-                        ArgusLog (LOG_ALERT, "ArgusAddServerList(%s) format error %s is not a port number", tptr);
+                        ArgusLog (LOG_ALERT, "ArgusAddServerList(%s) format error %s is not a port number", hostname, tptr);
                      } else
                         servname = tptr;
                   }
@@ -3019,8 +3019,8 @@ ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    ArgusModel->ArgusGlobalTime = *tvp;
    src->ArgusModel->ArgusGlobalTime  = *tvp;
    if (src->ArgusModel->ArgusGlobalTime.tv_sec < 0) {
-      ArgusLog (LOG_ERR, "ArgusArcnetPacket (%p, %p, %p) libpcap timestamp out of range %d.%d\n",
-              user, h, p, src->ArgusModel->ArgusGlobalTime.tv_sec, src->ArgusModel->ArgusGlobalTime.tv_usec);
+      ArgusLog (LOG_ERR, "ArgusArcnetPacket (%p, %p, %p) libpcap timestamp out of range %ld.%ld\n",
+              user, h, p, (long)src->ArgusModel->ArgusGlobalTime.tv_sec, (long)src->ArgusModel->ArgusGlobalTime.tv_usec);
    }   
 
 
@@ -6528,7 +6528,7 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
                        ArgusGetName(ArgusParser, (unsigned char *)&inf->addr.s_addr), ntohs(portnum), ArgusRecordType); 
 #endif
                   if ((bind (s, (struct sockaddr *)&server, sizeof(server))) < 0)
-                     ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %d) failed '%s'", s, inet_ntoa(server.sin_addr),
+                     ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %zu) failed '%s'", s, inet_ntoa(server.sin_addr),
                                                     server.sin_port, sizeof(server), strerror(errno));
                   retn = s;
                   inf->fd = s;
@@ -6553,7 +6553,7 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
                           ArgusGetName(ArgusParser, ArgusParser->ArgusSourcePort, ArgusRecordType));
 #endif
                      if ((bind (s, (struct sockaddr *)&server, sizeof(server))) < 0)
-                        ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %d) failed '%s'", s, "INADDR_ANY",
+                        ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %zu) failed '%s'", s, "INADDR_ANY",
                                                        ntohs(server.sin_port), sizeof(server), strerror(errno));
                   }
 
