@@ -1,8 +1,10 @@
 # security-review/fuzz
 
-Fuzzing harness and regression corpus from the 2026-09-02 security review
-(see the review's own working docs, kept separately from this repo, for
-the full writeup of findings F-1 through F-33).
+Fuzzing harness and regression corpus from the 2026-09-02 security review.
+Findings F-1 through F-34 were fixed directly in the sensor source (see git
+log / commit messages for each fix); this directory holds the fuzzing
+harness and the regression corpus used to guard against those bugs
+reappearing.
 
 ## Contents
 
