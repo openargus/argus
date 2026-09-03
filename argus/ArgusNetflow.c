@@ -1716,7 +1716,7 @@ ArgusParseCiscoRecordV9Template (struct ArgusModelerStruct *model, struct ArgusQ
 
    if (templates == NULL) {
       if ((src = (struct ArgusCiscoSourceStruct *)ArgusCalloc (1, sizeof(*src))) == NULL)
-         ArgusLog(LOG_ERR, "ArgusParseCiscoRecordV9Template: ArgusCalloc(%d, %d) error %s\n", 1, sizeof(*src), strerror(errno));
+         ArgusLog(LOG_ERR, "ArgusParseCiscoRecordV9Template: ArgusCalloc(%d, %zu) error %s\n", 1, sizeof(*src), strerror(errno));
 
       src->srcid = ArgusCiscoSrcId;
       src->saddr = ArgusCiscoSrcAddr;
@@ -1764,7 +1764,7 @@ ArgusParseCiscoRecordV9Template (struct ArgusModelerStruct *model, struct ArgusQ
          }
 
          if ((dArray = ArgusCalloc(1, slen + 4)) == NULL)
-            ArgusLog(LOG_ERR, "ArgusCalloc(%d, %d) error %s\n", tHdr->count, sizeof(*tData), strerror(errno));
+            ArgusLog(LOG_ERR, "ArgusCalloc(%d, %zu) error %s\n", tHdr->count, sizeof(*tData), strerror(errno));
 
          for (i = 0; i < tHdr->count; i++) {
             tData->type   = ntohs(tData->type);
