@@ -9,6 +9,12 @@ on:
   pull_request:
     branches: [main]
 
+# Neither job needs to write anything (no releases, no PR comments, no
+# pushing tags) -- explicitly restrict the GITHUB_TOKEN to read-only
+# rather than relying on the repository's default token permissions.
+permissions:
+  contents: read
+
 # If new commits land on the same branch/PR while a run is still in
 # progress, cancel the older run instead of letting both finish --
 # avoids wasting Actions minutes on superseded commits.
