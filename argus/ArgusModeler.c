@@ -2380,11 +2380,30 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       encaps->hdr.argus_dsrvl8.len  = 3;
       flow->dsrindex |= 0x01 << ARGUS_ENCAPS_INDEX;
 
+      /*
+       * ArgusGenerateRecord() (below, ARGUS_ENCAPS_INDEX case) reads
+       * encaps->sbuf/dbuf back out in whole 4-byte units, using
+       * ((encaps->slen + 3) / 4) / ((encaps->dlen + 3) / 4) -- i.e. rounded
+       * UP to the next 4-byte boundary, the same convention every other
+       * variable-length DSR payload in this file uses (see, e.g.,
+       * ArgusFragObject/ArgusMetricStruct's "(sizeof(...) + 3) / 4" length
+       * fields elsewhere in this function). But encaps->slen/dlen is a raw
+       * captured-byte count (model->ArgusThisEncapsLength: an arbitrary
+       * ptr-difference through variable-length encapsulation headers, with
+       * no 4-byte-alignment guarantee), and the buffer below was allocated
+       * with exactly that many bytes -- not rounded up to match. Whenever
+       * slen/dlen is not itself already a multiple of 4, the rountripped
+       * read in ArgusGenerateRecord() reads past the end of this
+       * allocation. Fixed by rounding the allocation size up to the same
+       * 4-byte boundary the read side already assumes; ArgusCalloc()
+       * zero-fills the extra padding bytes, so the rounded-up read also
+       * can't leak adjacent heap contents into the generated record.
+       */
       if (model->ArgusThisDir) {
          encaps->src = model->ArgusThisEncaps;
          if (model->ArgusEncapsCapture) {
             if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
-               if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+               if ((encaps->sbuf = (void *) ArgusCalloc(1, ((encaps->slen + 3) / 4) * 4)) != NULL) {
                   memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
                }
             }
@@ -2393,7 +2412,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          encaps->dst = model->ArgusThisEncaps;
          if (model->ArgusEncapsCapture) {
             if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
-               if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+               if ((encaps->dbuf = (void *) ArgusCalloc(1, ((encaps->dlen + 3) / 4) * 4)) != NULL) {
                   memcpy(encaps->dbuf, model->ArgusThisPacket, encaps->dlen);
                }
             }
@@ -2410,7 +2429,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          if (model->ArgusEncapsCapture) {
             if (encaps->slen == 0) {
                if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
-                  if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+                  if ((encaps->sbuf = (void *) ArgusCalloc(1, ((encaps->slen + 3) / 4) * 4)) != NULL) {
                      memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
                   }
                }
@@ -2426,7 +2445,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          if (model->ArgusEncapsCapture) {
             if (encaps->dlen == 0) {
                if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
-                  if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+                  if ((encaps->dbuf = (void *) ArgusCalloc(1, ((encaps->dlen + 3) / 4) * 4)) != NULL) {
                      memcpy(encaps->dbuf, model->ArgusThisPacket, encaps->dlen);
                   }
                }  
@@ -4188,7 +4207,48 @@ ArgusCopyRecordStruct (struct ArgusRecordStruct *rec)
                            case ARGUS_IPATTR_INDEX:    retn->dsrs[i] = &retn->canon.attr.hdr; break;
                            case ARGUS_JITTER_INDEX:    retn->dsrs[i] = &retn->canon.jitter.hdr; break;
                            case ARGUS_ICMP_INDEX:      retn->dsrs[i] = &retn->canon.icmp.hdr; break;
-                           case ARGUS_ENCAPS_INDEX:    retn->dsrs[i] = &retn->canon.encaps.hdr; break;
+                            case ARGUS_ENCAPS_INDEX: {
+                               /*
+                                * rec->canon (bcopy()'d into retn->canon just
+                                * above, at the top of this ARGUS_FAR case)
+                                * includes struct ArgusEncapsStruct's sbuf/
+                                * dbuf raw heap pointers by value -- a
+                                * shallow copy. Left as-is, rec->canon.encaps
+                                * and retn->canon.encaps would share the same
+                                * sbuf/dbuf allocations, and both rec and
+                                * retn are independent ArgusRecordStruct
+                                * list records that each get released via
+                                * ArgusFreeListRecord() (which frees
+                                * dsrs[ARGUS_ENCAPS_INDEX]'s sbuf/dbuf) --
+                                * leading to a double-free/use-after-free
+                                * once either one is freed.
+                                *
+                                * Fixed the same way ARGUS_SRCUSERDATA_INDEX/
+                                * ARGUS_DSTUSERDATA_INDEX (immediately above)
+                                * already handle the identical shared-heap-
+                                * buffer problem: give retn its own,
+                                * independently-allocated copy of sbuf/dbuf,
+                                * rather than sharing rec's.
+                                */
+                               struct ArgusEncapsStruct *rencaps = &retn->canon.encaps;
+                               rencaps->sbuf = NULL;
+                               rencaps->dbuf = NULL;
+
+                               if (rencaps->slen > 0) {
+                                  if ((rencaps->sbuf = (char *) ArgusCalloc(1, ((rencaps->slen + 3) / 4) * 4)) != NULL) {
+                                     bcopy (((struct ArgusEncapsStruct *)rec->dsrs[i])->sbuf, rencaps->sbuf, rencaps->slen);
+                                  } else
+                                     rencaps->slen = 0;
+                               }
+                               if (rencaps->dlen > 0) {
+                                  if ((rencaps->dbuf = (char *) ArgusCalloc(1, ((rencaps->dlen + 3) / 4) * 4)) != NULL) {
+                                     bcopy (((struct ArgusEncapsStruct *)rec->dsrs[i])->dbuf, rencaps->dbuf, rencaps->dlen);
+                                  } else
+                                     rencaps->dlen = 0;
+                               }
+                               retn->dsrs[i] = &retn->canon.encaps.hdr;
+                               break;
+                            }
                            case ARGUS_PSIZE_INDEX:     retn->dsrs[i] = &retn->canon.psize.hdr; break;
                            case ARGUS_MAC_INDEX:       retn->dsrs[i] = &retn->canon.mac.hdr; break;
                            case ARGUS_VLAN_INDEX:      retn->dsrs[i] = &retn->canon.vlan.hdr; break;
@@ -4262,7 +4322,44 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                   switch (i) {
                      case ARGUS_TRANSPORT_INDEX:   retn->dsrs[i] = &retn->canon.trans.hdr; break;
                      case ARGUS_TIME_INDEX:        retn->dsrs[i] = &retn->canon.time.hdr; break;
-                     case ARGUS_ENCAPS_INDEX:      retn->dsrs[i] = &retn->canon.encaps.hdr; break;
+                     case ARGUS_ENCAPS_INDEX: {
+                        /*
+                         * flow->canon (bcopy()'d into retn->canon just above)
+                         * includes struct ArgusEncapsStruct's sbuf/dbuf raw
+                         * pointers by value -- a shallow copy. Left as-is,
+                         * both flow->canon.encaps and retn->canon.encaps end
+                         * up holding the exact same sbuf/dbuf pointers, with
+                         * two independent, unsynchronized owners and
+                         * lifetimes: retn is handed to the (separate,
+                         * concurrently-running) output thread for
+                         * asynchronous transmission via ArgusGenerateRecord()
+                         * (which reads sbuf/dbuf back out), while flow
+                         * continues on to ArgusDeleteObject() (called from
+                         * the modeler/capture thread, typically very soon
+                         * after, once the flow's timeout/close processing
+                         * finishes), which unconditionally ArgusFree()s
+                         * encaps->sbuf/dbuf. Whichever of those two threads
+                         * loses the race gets a use-after-free.
+                         *
+                         * Fixed the same way ARGUS_SRCUSERDATA_INDEX/
+                         * ARGUS_DSTUSERDATA_INDEX (immediately below) already
+                         * handle the identical shared-heap-buffer-ownership
+                         * problem for their own buffers: transfer ownership
+                         * of sbuf/dbuf to the list record being generated
+                         * (retn) and null out flow's copies, so
+                         * ArgusDeleteObject()'s free of flow->canon.encaps.*
+                         * becomes a no-op and retn is left as the buffers'
+                         * sole owner. ArgusFreeListRecord() (common/argus_util.c)
+                         * is extended alongside this fix to free
+                         * retn->canon.encaps.sbuf/dbuf when the list record
+                         * itself is finally released, mirroring exactly how
+                         * it already frees SRCUSERDATA/DSTUSERDATA today.
+                         */
+                        retn->dsrs[i] = &retn->canon.encaps.hdr;
+                        flow->canon.encaps.sbuf = NULL;
+                        flow->canon.encaps.dbuf = NULL;
+                        break;
+                     }
                      case ARGUS_FLOW_INDEX:        retn->dsrs[i] = &retn->canon.flow.hdr; break;
                      case ARGUS_FLOW_HASH_INDEX:   retn->dsrs[i] = &retn->canon.hash.hdr; break;
                      case ARGUS_METRIC_INDEX:      retn->dsrs[i] = &retn->canon.metric.hdr; break;

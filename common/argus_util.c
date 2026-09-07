@@ -1490,6 +1490,30 @@ ArgusFreeListRecord (void *buf)
          rec->dsrs[ARGUS_DSTUSERDATA_INDEX] = NULL;
       }
 
+      /*
+       * ArgusGenerateListRecord() (argus/ArgusModeler.c) transfers ownership
+       * of the ARGUS_ENCAPS_INDEX DSR's sbuf/dbuf capture buffers into this
+       * list record (nulling out the original flow object's copies of those
+       * same pointers, to avoid a double-free/use-after-free race between
+       * this record's eventual output and the flow object's own,
+       * independent teardown). This record is therefore now sbuf/dbuf's
+       * sole owner and must free them here, exactly as done above for
+       * SRCUSERDATA/DSTUSERDATA (the same shared-buffer-ownership-transfer
+       * pattern).
+       */
+      if (rec->dsrs[ARGUS_ENCAPS_INDEX] != NULL) {
+         struct ArgusEncapsStruct *encaps = (struct ArgusEncapsStruct *) rec->dsrs[ARGUS_ENCAPS_INDEX];
+
+         if (encaps->sbuf != NULL) {
+            ArgusFree(encaps->sbuf);
+            encaps->sbuf = NULL;
+         }
+         if (encaps->dbuf != NULL) {
+            ArgusFree(encaps->dbuf);
+            encaps->dbuf = NULL;
+         }
+      }
+
       mem = mem - 1;
 
       if ((ArgusMallocList == NULL) || (mem->len != ArgusMallocList->size)) {
