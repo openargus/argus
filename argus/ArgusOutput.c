@@ -352,8 +352,40 @@ ArgusInitOutput (struct ArgusOutputStruct *output)
             }
 
             if (wfile->filter != NULL) {
-               if (ArgusFilterCompile (&client->ArgusNFFcode, wfile->filter, 1) < 0) 
+               char *reply = NULL;
+               /*
+                * ArgusFilterCompile() returns char *, not an int status code,
+                * and its non-error return value is not a fixed sentinel:
+                *   - NULL on a hard failure (e.g. the compiler subprocess
+                *     died or the control pipe broke).
+                *   - The 2-byte strings "SY" (syntax error), "ER" (compiler
+                *     error) or "TI" (compiler timeout) when argus_parse()
+                *     rejected the filter expression.
+                *   - "OK" (or, in the non-forked code path, a pointer to
+                *     program->bf_len) on success.
+                * The original code compared this pointer with "< 0", which
+                * is always false, so no error here -- NULL or otherwise --
+                * was ever detected: client->ArgusFilterInitialized still got
+                * set even though client->ArgusNFFcode.bf_insns was left NULL
+                * (its zero-initialized default; ArgusFilterCompile() never
+                * populates it on any error path). Downstream,
+                * ArgusFilterRecord() treats a NULL instruction pointer as "no
+                * filter" and unconditionally passes every record through --
+                * i.e. a mistyped -w file:filter destination filter failed
+                * open, silently writing every record to that output instead
+                * of rejecting the malformed filter at startup.
+                *
+                * Fixed by checking both the NULL case and the "OK" string,
+                * matching the already-correct handling of this same
+                * ArgusFilterCompile() contract in the RADIUM_FILTER case
+                * below (this file).
+                */
+               if ((reply = ArgusFilterCompile (&client->ArgusNFFcode, wfile->filter, 1)) == NULL)
                   ArgusLog (LOG_ERR, "ArgusInitOutput: ArgusFilter syntax error: %s", wfile->filter);
+
+               if (strcmp(reply, "OK"))
+                  ArgusLog (LOG_ERR, "ArgusInitOutput: ArgusFilter syntax error: %s", wfile->filter);
+
                client->ArgusFilterInitialized++;
 #ifdef ARGUSDEBUG
                {
