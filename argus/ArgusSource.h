@@ -794,6 +794,21 @@ struct ArgusSourceStruct {
    int ArgusSnapLength, ArgusThisLength;
    unsigned char *ArgusThisSnapEnd;
 
+   /*
+    * Per-source scratch buffer used by ArgusSllPacket() (ArgusSource.c) to
+    * synthesize a fake Ethernet header in front of DLT_LINUX_SLL payloads
+    * before handing them to ArgusProcessPacket(). This used to be a single
+    * process-wide global (unsigned char ArgusSllPkt[0x20000]); with
+    * multiple concurrent SLL-capturing sources, each running its own
+    * ArgusGetPackets()/pcap_dispatch() thread, every source's
+    * ArgusSllPacket() call raced to write into that same shared buffer --
+    * an unsynchronized global with concurrent pthread writers. Moving it
+    * here gives every source (and every ArgusCloneSource() clone, which
+    * gets a fresh ArgusCalloc()'d copy of this whole struct) its own
+    * independent buffer, eliminating the race.
+    */
+   unsigned char ArgusSllPkt[0x20000];
+
    struct ieee80211_radiotap ArgusThisRadioTap;
 
    unsigned char ArgusInterfaceType;
