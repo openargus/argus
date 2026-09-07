@@ -964,6 +964,22 @@ ArgusScheduleShutDown (int sig)
 {
    ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
+   /*
+    * ArgusShutDownSig/ArgusShutDownFlag must always be set, in every build
+    * configuration -- they are the flag every capture/read loop actually
+    * polls to notice a requested shutdown (see e.g. ArgusModeler.c's
+    * ArgusProcessPacket() stall loop and ArgusSource.c's several capture
+    * read loops). Previously these two assignments were nested inside
+    * "#ifdef ARGUSDEBUG", which is only defined in local developer builds
+    * (via the gitignored ".debug" marker file, consumed by configure) and
+    * is NOT defined in normal production builds/packages. In production,
+    * this function was a no-op beyond setting ArgusSourceTask->status,
+    * which nothing polls in the same way -- SIGINT/SIGTERM/SIGHUP could
+    * not cleanly stop a running capture loop.
+    */
+   ArgusShutDownSig = sig;
+   ArgusShutDownFlag++;
+
 #ifdef ARGUSDEBUG
 #if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
@@ -972,8 +988,6 @@ ArgusScheduleShutDown (int sig)
    }
 #endif
 
-   ArgusShutDownSig = sig;
-   ArgusShutDownFlag++;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
 #endif 
 }
