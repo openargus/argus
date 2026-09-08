@@ -1105,6 +1105,43 @@ long long ArgusFreeTotal  = 0;
 
 struct ArgusMemoryList memory = {NULL, 0};
 
+#if defined(ARGUS_THREADS)
+/*
+ * memory.lock protects the global allocation-tracking list (memory.start/
+ * .end/.count, maintained by __argus_malloc()/ArgusFree() below whenever
+ * ARGUSMEMDEBUG is defined -- which it is by default, per ./configure).
+ * Unlike every other pthread_mutex_t in this codebase, memory is a plain
+ * static/global variable, never dynamically allocated, so nothing ever
+ * called pthread_mutex_init() on memory.lock: it relied on zero-
+ * initialization (struct ArgusMemoryList memory = {NULL, 0};, which
+ * zero-fills the rest of the struct including lock) being equivalent to
+ * PTHREAD_MUTEX_INITIALIZER. That assumption does not hold on all
+ * platforms -- confirmed on macOS/Darwin, where a statically
+ * zero-initialized pthread_mutex_t's internal signature bytes differ from
+ * PTHREAD_MUTEX_INITIALIZER's. The practical effect: pthread_mutex_lock()/
+ * unlock() on memory.lock provide no actual mutual exclusion between the
+ * many concurrent per-source modeler/capture threads (and the output
+ * thread) that all call ArgusMalloc()/ArgusCalloc()/ArgusFree(), so the
+ * shared memory.start/.end linked-list splicing in __argus_malloc() and
+ * ArgusFree() (both under ARGUSMEMDEBUG) races across threads with no
+ * synchronization at all -- corrupting the list and, from there, the heap
+ * allocator's own metadata (observed as intermittent SIGTRAP crashes deep
+ * inside malloc's internals, and as ASan-reported heap-use-after-free/
+ * double-free errors in ArgusFree() itself, under concurrent multi-source
+ * `-r file1 file2 ...` workloads). Fixed with a pthread_once()-guarded
+ * lazy initializer, called at the top of every entry point that touches
+ * memory.lock, so it is guaranteed properly initialized before first use
+ * regardless of ARGUSMEMDEBUG or which thread gets there first.
+ */
+static pthread_once_t ArgusMemoryLockOnce = PTHREAD_ONCE_INIT;
+
+static void
+ArgusMemoryLockInit(void)
+{
+   pthread_mutex_init(&memory.lock, NULL);
+}
+#endif
+
 #define ARGUS_ALLOC	0x45672381
 /*
 #define ARGUS_ALIGN	128
@@ -1120,6 +1157,7 @@ __argus_malloc (int bytes, allocator_func alloc, void *aux)
  
    if (bytes) {
 #if defined(ARGUS_THREADS)
+      pthread_once(&ArgusMemoryLockOnce, ArgusMemoryLockInit);
       pthread_mutex_lock(&memory.lock);
 #endif
       ArgusAllocTotal++;
@@ -1250,6 +1288,7 @@ ArgusFree (void *buf)
 
    if (ptr) {
 #if defined(ARGUS_THREADS)
+      pthread_once(&ArgusMemoryLockOnce, ArgusMemoryLockInit);
       pthread_mutex_lock(&memory.lock);
 #endif
       ArgusFreeTotal++;
@@ -1488,6 +1527,30 @@ ArgusFreeListRecord (void *buf)
       if (rec->dsrs[ARGUS_DSTUSERDATA_INDEX] != NULL) {
          ArgusFree(rec->dsrs[ARGUS_DSTUSERDATA_INDEX]);
          rec->dsrs[ARGUS_DSTUSERDATA_INDEX] = NULL;
+      }
+
+      /*
+       * ArgusGenerateListRecord() (argus/ArgusModeler.c) transfers ownership
+       * of the ARGUS_ENCAPS_INDEX DSR's sbuf/dbuf capture buffers into this
+       * list record (nulling out the original flow object's copies of those
+       * same pointers, to avoid a double-free/use-after-free race between
+       * this record's eventual output and the flow object's own,
+       * independent teardown). This record is therefore now sbuf/dbuf's
+       * sole owner and must free them here, exactly as done above for
+       * SRCUSERDATA/DSTUSERDATA (the same shared-buffer-ownership-transfer
+       * pattern).
+       */
+      if (rec->dsrs[ARGUS_ENCAPS_INDEX] != NULL) {
+         struct ArgusEncapsStruct *encaps = (struct ArgusEncapsStruct *) rec->dsrs[ARGUS_ENCAPS_INDEX];
+
+         if (encaps->sbuf != NULL) {
+            ArgusFree(encaps->sbuf);
+            encaps->sbuf = NULL;
+         }
+         if (encaps->dbuf != NULL) {
+            ArgusFree(encaps->dbuf);
+            encaps->dbuf = NULL;
+         }
       }
 
       mem = mem - 1;
