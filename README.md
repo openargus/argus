@@ -1,7 +1,7 @@
 # Argus - Network Flow Monitoring System
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Version](https://img.shields.io/badge/version-5.0.0-green.svg)](https://github.com/openargus/argus/releases)
+[![Version](https://img.shields.io/badge/version-5.0.4-green.svg)](https://github.com/openargus/argus/releases)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20BSD%20%7C%20Solaris-lightgrey.svg)](https://openargus.com)
 
 **Argus** (Audit Record Generation and Utilization System) is the original network flow monitoring technology, developed since 1984. It generates comprehensive network flow data from raw packet captures for network operations, security analysis, performance monitoring, and forensics.

@@ -31,7 +31,7 @@ To help us triage and fix the issue quickly, please include:
 - A clear description of the vulnerability and its potential impact
   (crash, memory disclosure, out-of-bounds read/write, infinite loop /
   resource exhaustion, etc.)
-- Argus version (`argus -V`) and platform (OS, architecture)
+- Argus version (first line of `argus -h`'s output) and platform (OS, architecture)
 - Steps to reproduce, ideally a minimal input (e.g., a crafted packet,
   pcap file, or config file) that triggers the issue
 - Any relevant crash output, sanitizer output (ASan/UBSan), or debugger

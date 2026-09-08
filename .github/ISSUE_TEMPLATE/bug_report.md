@@ -31,12 +31,12 @@ What actually happened instead.
 Please run the following and paste the output:
 
 ```bash
-argus -V
+argus -h
 uname -a
 cat /etc/os-release
 ```
 
-**Argus Version:** [e.g. 5.0.0]
+**Argus Version:** [e.g. 5.0.4 -- see the first line of `argus -h`'s output]
 **Operating System:** [e.g. Ubuntu 22.04, macOS 13.0]
 **Architecture:** [e.g. x86_64, aarch64]
 **libpcap Version:** [e.g. 1.10.4]
