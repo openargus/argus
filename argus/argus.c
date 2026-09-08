@@ -1329,7 +1329,20 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
    if (file) {
       if ((fd = fopen (file, "r")) != NULL) {
-         while ((fgets(str, MAXSTRLEN, fd)) != NULL)  {
+         while ((fgets(strbuf, MAXSTRLEN, fd)) != NULL)  {
+            /*
+             * Always read each line into the start of strbuf, and reset the
+             * working pointer str back to strbuf here, before any of this
+             * loop body's parsing gets a chance to advance it (e.g. the
+             * leading-whitespace skip below, or the ARGUS_FILTER case's
+             * "str = optarg" reassignment further down). Previously str was
+             * left wherever a prior iteration's parsing had advanced it to,
+             * and fgets() was called with that stale, already-advanced
+             * pointer as its destination -- writing up to MAXSTRLEN bytes
+             * starting from partway into strbuf can write past the end of
+             * the buffer, corrupting adjacent stack memory.
+             */
+            str = strbuf;
             done = 0;
             linenum++;
             while (*str && isspace((int)*str))
@@ -1598,19 +1611,36 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         case ARGUS_FILTER:
                            if ((ArgusSourceTask->ArgusInputFilter = ArgusCalloc (1, MAXSTRLEN)) != NULL) {
                               char *ptr = ArgusSourceTask->ArgusInputFilter;
+                              char *ptrend = ptr + MAXSTRLEN - 1;
+                              char contbuf[MAXSTRLEN];
                               str = optarg;
                               while (*str) {
                                  if ((*str == '\\') && (str[1] == '\n')) {
-                                    if (fgets(str, MAXSTRLEN, fd) != NULL)
+                                    /*
+                                     * Read a continuation line into its own buffer, not
+                                     * into str's current position (which points somewhere
+                                     * inside strbuf/optarg, not at its start) -- fgets()
+                                     * writing MAXSTRLEN bytes there would overwrite past
+                                     * the end of strbuf, the same class of bug as the
+                                     * caller's own fgets() call above this switch.
+                                     */
+                                    if (fgets(contbuf, MAXSTRLEN, fd) != NULL) {
+                                       str = contbuf;
                                        while (*str && (isspace((int)*str) && (str[1] && isspace((int)str[1]))))
                                           str++;
+                                    } else
+                                       break;
                                  }
-                                 
-                                 if ((*str != '\n') && (*str != '"'))
-                                    *ptr++ = *str++;
-                                 else
+
+                                 if ((*str != '\n') && (*str != '"')) {
+                                    if (ptr < ptrend)
+                                       *ptr++ = *str++;
+                                    else
+                                       str++;
+                                 } else
                                     str++;
                               }
+                              *ptr = '\0';
 #ifdef ARGUSDEBUG
                            ArgusDebug (1, "ArgusParseResourceFile: ArgusFilter \"%s\" \n", ArgusSourceTask->ArgusInputFilter);
 #endif 
