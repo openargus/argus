@@ -5578,8 +5578,28 @@ ArgusGetPackets (void *arg)
                width++;
                wait.tv_sec = 0;
                wait.tv_usec = 500000;
-      
-               if ((retn = select (width, &readmask, NULL, NULL, &wait)) >= 0) {
+
+               /*
+                * Only call ArgusReadSflowDatagramSocket() (which calls a
+                * blocking recvfrom()) when select() reports the socket is
+                * actually readable (retn > 0). select() returning 0 means
+                * the 500ms wait timed out with nothing ready -- that must
+                * fall through to the top of the loop so
+                * "!inf->ArgusReadDone && !ArgusShutDownFlag" gets
+                * re-evaluated on every iteration, rather than proceeding
+                * into a recvfrom() call that has no data to return.
+                * Previously this checked "retn >= 0", which is true for
+                * both the ready case (retn > 0) and the timeout case
+                * (retn == 0), so a source with no incoming sFlow traffic
+                * called recvfrom() on every 500ms tick regardless of
+                * readiness; the socket is now also set non-blocking
+                * (see ArgusGetServerSocket()'s ARGUS_SFLOW_DATA_SOURCE
+                * case) as defense-in-depth against any remaining
+                * spurious-wakeup/race window between select() and
+                * recvfrom(), so a call reached with nothing ready returns
+                * -1/EAGAIN immediately instead of blocking either way.
+                */
+               if ((retn = select (width, &readmask, NULL, NULL, &wait)) > 0) {
                   if ((ArgusReadSflowDatagramSocket(src, inf) < 0)) {
                      inf->ArgusReadDone = 1;
                   }
@@ -6470,6 +6490,26 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
 #endif
                         hp = hp->ai_next;
                      } else {
+                        /*
+                         * Set this datagram socket non-blocking so a
+                         * subsequent recvfrom() (in
+                         * ArgusReadSflowDatagramSocket(), ArgusSource.c's
+                         * ArgusGetPackets() read loop) can never block
+                         * indefinitely -- e.g. on a spurious/racy select()
+                         * wakeup, or if the sender stops transmitting
+                         * mid-stream. Belt-and-suspenders alongside the
+                         * caller's own select()-readiness check: with this
+                         * flag set, a recvfrom() reached without data ready
+                         * returns -1/EAGAIN immediately instead of blocking,
+                         * so the read loop's own
+                         * "!ArgusReadDone && !ArgusShutDownFlag" condition
+                         * always gets a chance to be re-evaluated.
+                         */
+                        {
+                           int flags = fcntl(s, F_GETFL, 0);
+                           if (flags >= 0)
+                              fcntl(s, F_SETFL, flags | O_NONBLOCK);
+                        }
                         retn = s;
                         inf->fd = s;
                      }
