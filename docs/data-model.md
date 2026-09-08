@@ -1,12 +1,7 @@
 # Argus Data Model & DSR Reference
 
-**Status:** Verified against source.
-**Source of truth:** `include/argus_out.h`, `include/argus_def.h` in the sensor repo (as of commit
-`a74b1239`, Aug 2026, VERSION 5.0.3), cross-checked against DSR-populating code in both the sensor repo
-(`~/Saber/argus/argus`) and the client repo (`~/Saber/argus/clients`).
-**Supersedes:** the "Data Structures" and "DSR (Destination Specific Record) System" sections previously
-found in `ARCHITECTURE.md` and `docs/architecture.md`, which described a simplified/inaccurate model
-(non-existent fields, wrong DSR names, wrong values). Those sections should be rewritten to point here.
+**Source of truth:** `include/argus_out.h`, `include/argus_def.h` in the sensor repo, cross-checked
+against DSR-populating code in both the sensor repo and the `argus-clients` repo.
 
 This document describes the actual on-disk/on-wire binary format Argus uses to encode flow, management,
 and event records, and the corresponding in-memory C structures. If you are building a downstream parser,
@@ -26,16 +21,16 @@ not an inconsistency:
 - **The clients** (`argus-clients` repo — `radium`, `racluster`, `ralabel`, `radns`, `rahisto`, etc.)
   operate on already-emitted flow records, often streams of them, and can therefore add DSRs that require
   either (a) cross-record correlation, (b) external reference data, or (c) aggregation across many records
-  — none of which a single-packet-at-a-time sensor can do. Examples confirmed directly in the clients
-  source: `ralabel`/`common/argus_label_geoip.c` (GeoIP city/country lookup — external database, not in
-  any packet), `common/argus_label.c` (record correlation/labeling), `racluster`/`racount`
-  (`ARGUS_AGR_DSR` — statistical aggregation across many records), `radns` (DNS name resolution/labeling).
+  — none of which a single-packet-at-a-time sensor can do. Examples: `ralabel`/`common/argus_label_geoip.c`
+  (GeoIP city/country lookup — external database, not in any packet), `common/argus_label.c` (record
+  correlation/labeling), `racluster`/`racount` (`ARGUS_AGR_DSR` — statistical aggregation across many
+  records), `radns` (DNS name resolution/labeling).
 
 This split is *why* several DSR array indices are "shared" between two differently-named DSRs in the
 header — the header defines one flat index space for both programs, but sensor and client each only ever
 populate one member of a given shared slot, so there's no actual runtime collision. Each entry in the table
-in §4 is now labeled **Sensor** or **Client** based on direct confirmation of where it's populated in source
-(searched for `dsrs[ARGUS_..._INDEX] = ` across both repos), rather than left as an open question.
+in §4 is labeled **Sensor** or **Client** based on where it's populated in source (searched for
+`dsrs[ARGUS_..._INDEX] = ` across both repos).
 
 ---
 
@@ -255,19 +250,18 @@ bytes to read without first inspecting bit 7 of subtype.
   struct, `mac->hdr.argus_dsrvl8.len = 5` (`ArgusModeler.c:2081`, `2457`). A DSR's length in bytes is
   therefore `len * 4`.
 
-This resolves what was previously an open question in this document (see §8 history) — **do not multiply
-or divide by anything other than 4** when converting between the on-wire `len` field and an actual byte
-count, at either the record or DSR level.
+**do not multiply or divide by anything other than 4** when converting between the on-wire `len` field
+and an actual byte count, at either the record or DSR level.
 
 ---
 
 ## 4. Complete DSR Type Table (v5, current)
 
 This is the authoritative list, cross-referenced from `include/argus_def.h` type/index `#define`s and
-confirmed against actual `dsrs[ARGUS_x_INDEX] = ...` assignments — searched across **both** the sensor
-repo (`~/Saber/argus/argus`) and the client repo (`~/Saber/argus/clients`) to determine, per DSR, whether
-it is produced by the sensor at capture time, by client-side post-processing, or both. See the "Sensor
-model vs. client model" note at the top of this document for why the split exists.
+`dsrs[ARGUS_x_INDEX] = ...` assignments — searched across **both** the sensor repo and the
+`argus-clients` repo to determine, per DSR, whether it is produced by the sensor at capture time, by
+client-side post-processing, or both. See the "Sensor model vs. client model" note at the top of this
+document for why the split exists.
 
 | Index | Type constant | Type code | Backing struct | Produced by | Purpose |
 |---|---|---|---|---|---|
@@ -308,13 +302,12 @@ this case, it is simply passing through a field that arrived pre-populated in an
 NetFlow record. When Argus itself is the flow generator (packets captured directly off the wire, not
 imported NetFlow), ASN population is exclusively a client-side (`ralabel`) operation.
 
-**Every index-sharing case above (5, 17, 18) is now resolved and explained** — each pair is either mutually
-exclusive within the sensor (index 5) or split cleanly along the sensor/client boundary (17, 18), so there
-is no genuine runtime ambiguity in the current codebase. This replaces the open question in the previous
-revision of this document.
+**Every index-sharing case above (5, 17, 18) is explained** — each pair is either mutually exclusive
+within the sensor (index 5) or split cleanly along the sensor/client boundary (17, 18), so there is no
+genuine runtime ambiguity in the current codebase.
 
-Additional type codes exist for less common protocols and were not individually re-verified for this
-revision — confirm current usage in source before relying on them: `ARGUS_IB_DSR (0x35)`,
+Additional type codes exist for less common protocols and were not individually verified here — confirm
+current usage in source before relying on them: `ARGUS_IB_DSR (0x35)`,
 `ARGUS_ISIS_DSR (0x36)`, `ARGUS_RSVP_DSR (0x37)`, `ARGUS_ESP_DSR (0x38)`, `ARGUS_LCP_DSR (0x39)`.
 
 ---
@@ -368,10 +361,10 @@ For **CONOPS / data handling** documentation:
   `argus_def.h` ~1770) is enabled, since that is raw payload capture, not metadata.
 - MAR records are the correct basis for sensor-health monitoring language in a CONOPS/runbook.
 - **The sensor/client split (see top of this document) should shape the CONOPS deployment model directly.**
-  If SABER's use case requires GeoIP labeling, ASN attribution, DNS labeling, cross-record correlation, or
-  flow aggregation/clustering, those are **not** sensor features — they require deploying and operating the
-  corresponding client-side tooling (`ralabel`, `radns`, `racluster`, `radium`, etc. from the clients repo)
-  downstream of the sensor. The CONOPS should describe this as a two-tier architecture (sensor tier +
+  If a downstream use case requires GeoIP labeling, ASN attribution, DNS labeling, cross-record correlation,
+  or flow aggregation/clustering, those are **not** sensor features — they require deploying and operating
+  the corresponding client-side tooling (`ralabel`, `radns`, `racluster`, `radium`, etc. from the clients
+  repo) downstream of the sensor. The CONOPS should describe this as a two-tier architecture (sensor tier +
   enrichment/correlation tier), not assume the sensor alone produces analyst-ready enriched records.
 - Conversely, anything the sensor *does* claim to produce (§4, "Sensor" column) is derivable purely from
   observed packet content/dynamics — useful for CONOPS language about what the sensor can attest to
@@ -388,25 +381,17 @@ For **security review**:
 - **Scoping note:** since this repo (the sensor) never parses or writes the client-only DSRs (`AGR`, `COR`,
   `HISTO`, `COCODE`, `LABEL`, and normally `ASN`), a security review of *this* codebase can exclude those
   code paths entirely — they don't exist here. They should instead be in scope for a separate review of the
-  `~/Saber/argus/clients` repo. This meaningfully narrows the sensor's attack surface to the DSRs marked
+  `argus-clients` repo. This meaningfully narrows the sensor's attack surface to the DSRs marked
   "Sensor" in §4, all of which are populated directly from untrusted packet bytes and are therefore the
   correct fuzzing/review priority for the sensor specifically.
 
 ---
 
-## 8. Open items / follow-up verification
+## 8. Known gaps
 
-Resolved in this revision (previously flagged as open): the shared-index ambiguity for indices 5, 17, and
-18 is now explained by the sensor/client split (§4); the client repo is available and was used to confirm
-attribution directly rather than by inference. The TLV/record length-unit question (bytes vs. words) is
-also resolved — confirmed to be 32-bit words at both the record and DSR level (§3).
-
-Still open:
-
-1. Confirm whether `ARGUS_ICMP_DSR` is ever written standalone vs. only ever nested inside
-   `ArgusNetworkStruct`'s `net_union` — the type constant exists independently but current call sites
-   (`ArgusIcmp.c:351`) suggest it may always be reached via the network-DSR union path.
+1. Whether `ARGUS_ICMP_DSR` is ever written standalone vs. only ever nested inside
+   `ArgusNetworkStruct`'s `net_union` is not fully confirmed — the type constant exists independently but
+   current call sites (`ArgusIcmp.c:351`) suggest it may always be reached via the network-DSR union path.
 2. `ARGUS_IB_DSR`, `ARGUS_ISIS_DSR`, `ARGUS_RSVP_DSR`, `ARGUS_ESP_DSR`, `ARGUS_LCP_DSR` were not
-   individually re-verified for sensor-vs-client attribution in this pass — do so before relying on them.
-3. This document has not yet been cross-checked against `man/man8/argus.8` for consistency — worth doing
-   as a final pass once the architecture doc rewrite is complete.
+   individually re-verified for sensor-vs-client attribution — do so before relying on them.
+3. This document has not been cross-checked against `man/man8/argus.8` for consistency.

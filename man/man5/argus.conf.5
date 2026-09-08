@@ -4,7 +4,7 @@
 .\" All rights reserved.
 .\"
 .\"
-.TH ARGUS.CONF 5 "17 November 2024" "argus.conf 5.0.2"
+.TH ARGUS.CONF 5 "3 September 2026" "argus.conf 5.0.4"
 .SH NAME
 \fBargus.conf\fP \- \fBargus\fP resource file.
 .SH SYNOPSIS
@@ -469,7 +469,7 @@ own independant filters.
 
 The format is:
      ARGUS_OUTPUT_STREAM="URI [filter]"
-     ARGUS_OUTPUT_STREAN="argus-udp://host:port 'tcp and not udp'"
+     ARGUS_OUTPUT_STREAM="argus-udp://host:port 'tcp and not udp'"
 
 Most sites will have argus listen() for remote sites to request
 argus data, but for some sites and applications sending records without
@@ -567,6 +567,30 @@ for you.
 \fBARGUS_FRAG_TIMEOUT=\fP5
 \fBARGUS_ARP_TIMEOUT=\fP5 
 \fBARGUS_OTHER_TIMEOUT=\fP30
+
+
+.SH ARGUS_TCP_FALLOW_TIMEOUT
+
+Argus supports an extended timeout queue for fallow TCP flows, in order
+to retain the knowledge of the syn/synack direction of a TCP connection
+that has gone idle, without holding it in the normal, much shorter,
+ARGUS_TCP_TIMEOUT cache.
+
+When a TCP flow ages out of the ARGUS_TCP_TIMEOUT queue, and its most
+recently observed state is not TCPS_LISTEN, TCPS_CLOSED, or TCPS_CLOSING,
+Argus will move the flow into a fallow queue with this timeout value,
+rather than deleting it immediately.  This is useful for long-lived,
+otherwise quiet, TCP sessions.
+
+This feature is disabled by default (a value of 0 turns it off).  When
+enabled, the value must be in the range 1 to 65533 seconds, consistent
+with the other flow timeout variables.
+
+No commandline equivalent
+
+.nf
+\fBARGUS_TCP_FALLOW_TIMEOUT=\fP7200
+.fi
 
 
 .SH ARGUS_DEBUG_LEVEL
