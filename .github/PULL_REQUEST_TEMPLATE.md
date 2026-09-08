@@ -35,7 +35,11 @@ Please describe the tests that you ran to verify your changes:
 # Commands you ran to test
 ./configure
 make
-make check
+# There is no `make check` target in this project. Instead, verify with a
+# functional smoke test against real capture data, e.g.:
+#   bin/argus -r <pcap> -w <out> && ra -r <out> -c ','
+# and, for packet-parsing changes, a replay of security-review/fuzz/'s
+# regression corpus if applicable.
 ```
 
 ## Checklist

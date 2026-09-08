@@ -71,12 +71,14 @@ cd argus
 # Build
 make
 
-# Run tests (if available)
-make check
-
 # Install locally for testing
 make install prefix=/usr/local
 ```
+
+There is currently no `make check` target — this project does not (yet) have an automated test
+suite runnable via the standard Autotools `check:` convention. See the "Testing" section below for
+how to exercise your changes manually, and `security-review/fuzz/` for the fuzz-regression corpus
+used to verify sensor-side packet-parsing changes.
 
 ## Coding Guidelines
 
