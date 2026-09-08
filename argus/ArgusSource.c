@@ -4643,13 +4643,13 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    caplen -= SLL_HDR_LEN;
    p += SLL_HDR_LEN;
 
-   if (caplen > (sizeof(ArgusSllPkt) - sizeof(*ep))) {
+   if (caplen > (sizeof(src->ArgusSllPkt) - sizeof(*ep))) {
       /*
        * Guard against overflowing the fixed-size ArgusSllPkt buffer.
        * This should not happen with a well-formed capture (caplen is
        * bounded by the interface snaplen), but a corrupted or crafted
        * capture file could otherwise drive an oversized memcpy() into
-       * a global buffer.
+       * this source's per-source scratch buffer.
        */
 #ifdef ARGUSDEBUG
       ArgusDebug (3, "ArgusSllPacket (%p, %p, %p) caplen %u exceeds ArgusSllPkt capacity\n",
