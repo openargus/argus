@@ -1303,8 +1303,7 @@ setArgusID(struct ArgusSourceStruct *src, void *ptr, int len, unsigned int type)
              * ArgusEvents.c:ArgusEventRecord, and ArgusOutput.c's two MAR-record
              * srcid encoders (ArgusGenerateInitialMar / status MAR) -- planned
              * together as part of a future V3-support-obsoletion release, not
-             * before. See ~/Saber/argus-security-review.2026.09.02/findings-log.md,
-             * F-32.
+             * before (security review finding F-32).
              */
             size_t cplen = strlen((char *)ptr);
             if (cplen > sizeof(trans->srcid.a_un.str))
@@ -4592,6 +4591,20 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    if (ArgusDumpTask->ArgusDumpPacket)
       ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
+   if ((caplen < SLL_HDR_LEN) || (length < SLL_HDR_LEN)) {
+      /*
+       * Truncated or malformed cooked-capture (DLT_LINUX_SLL) packet:
+       * there isn't even a complete SLL pseudo-header present.  Bail
+       * out before touching any SLL header fields or doing arithmetic
+       * on caplen/length, both of which would otherwise underflow.
+       */
+#ifdef ARGUSDEBUG
+      ArgusDebug (3, "ArgusSllPacket (%p, %p, %p) truncated SLL header: caplen %u length %u\n",
+                  user, h, p, caplen, length);
+#endif
+      return;
+   }
+
    sllp = (const struct sll_header *)p;
    memcpy((void *)&ep->ether_shost, sllp->sll_addr, ETHER_ADDR_LEN);
 
@@ -4631,12 +4644,27 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    length -= SLL_HDR_LEN;
    caplen -= SLL_HDR_LEN;
    p += SLL_HDR_LEN;
- 
+
+   if (caplen > (sizeof(ArgusSllPkt) - sizeof(*ep))) {
+      /*
+       * Guard against overflowing the fixed-size ArgusSllPkt buffer.
+       * This should not happen with a well-formed capture (caplen is
+       * bounded by the interface snaplen), but a corrupted or crafted
+       * capture file could otherwise drive an oversized memcpy() into
+       * a global buffer.
+       */
+#ifdef ARGUSDEBUG
+      ArgusDebug (3, "ArgusSllPacket (%p, %p, %p) caplen %u exceeds ArgusSllPkt capacity\n",
+                  user, h, p, caplen);
+#endif
+      return;
+   }
+
    ep->ether_type = sllp->sll_protocol;
- 
+
    memcpy((ep + 1), p, caplen);
 
-   model->ArgusThisSnapEnd = (unsigned char *)(ep + caplen);
+   model->ArgusThisSnapEnd = ((unsigned char *)ep) + sizeof(*ep) + caplen;
    model->ArgusThisLength  = length;
    model->ArgusSnapLength  = caplen;
    model->ArgusThisEncaps  = ARGUS_ENCAPS_SLL;
@@ -5541,7 +5569,7 @@ ArgusGetPackets (void *arg)
       if (src->ArgusInterface[0].fd > 0) {
          inf = &src->ArgusInterface[0];
 
-	 while (!inf->ArgusReadDone) {
+	 while (!inf->ArgusReadDone && !ArgusShutDownFlag) {
             int width = -1, retn = 0;
             fd_set readmask;
             FD_ZERO(&readmask);

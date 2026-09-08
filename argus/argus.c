@@ -126,6 +126,7 @@ usage(void)
    fprintf (stdout, "                                 packets to arrive in packet capture file.\n");
    fprintf (stdout, "         -F <conffile>           read configuration from <conffile>.\n");
    fprintf (stdout, "         -h                      print help.\n");
+   fprintf (stdout, "         -H <size>               specify flow hash table size (4096).\n");
    fprintf (stdout, "         -i <interface>          specify interface to use as a packet source.\n");
    fprintf (stdout, "             Supported formats:                                              \n");
    fprintf (stdout, "                -i ind:all                    open all as independent sources.\n");
@@ -135,6 +136,7 @@ usage(void)
    fprintf (stdout, "                -i en0/srcid -i en1/srcid     equivalent to '-i ind:en0/..'   \n");
    fprintf (stdout, "                -i en0 en1                     equivalent '-i bond:en0,en1')  \n");
    fprintf (stdout, "         -J                      generate packet performance data.\n");
+   fprintf (stdout, "         -l                      list available network interfaces and exit.\n");
    fprintf (stdout, "         -M <secs>               set MAR Status Report Time Interval (300s).\n");
    fprintf (stdout, "         -m                      turn on MAC Layer Reporting.\n");
    fprintf (stdout, "         -O                      turn off filter optimizer.\n");
@@ -964,6 +966,22 @@ ArgusScheduleShutDown (int sig)
 {
    ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
+   /*
+    * ArgusShutDownSig/ArgusShutDownFlag must always be set, in every build
+    * configuration -- they are the flag every capture/read loop actually
+    * polls to notice a requested shutdown (see e.g. ArgusModeler.c's
+    * ArgusProcessPacket() stall loop and ArgusSource.c's several capture
+    * read loops). Previously these two assignments were nested inside
+    * "#ifdef ARGUSDEBUG", which is only defined in local developer builds
+    * (via the gitignored ".debug" marker file, consumed by configure) and
+    * is NOT defined in normal production builds/packages. In production,
+    * this function was a no-op beyond setting ArgusSourceTask->status,
+    * which nothing polls in the same way -- SIGINT/SIGTERM/SIGHUP could
+    * not cleanly stop a running capture loop.
+    */
+   ArgusShutDownSig = sig;
+   ArgusShutDownFlag++;
+
 #ifdef ARGUSDEBUG
 #if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
@@ -972,8 +990,6 @@ ArgusScheduleShutDown (int sig)
    }
 #endif
 
-   ArgusShutDownSig = sig;
-   ArgusShutDownFlag++;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
 #endif 
 }
@@ -1327,7 +1343,20 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
    if (file) {
       if ((fd = fopen (file, "r")) != NULL) {
-         while ((fgets(str, MAXSTRLEN, fd)) != NULL)  {
+         while ((fgets(strbuf, MAXSTRLEN, fd)) != NULL)  {
+            /*
+             * Always read each line into the start of strbuf, and reset the
+             * working pointer str back to strbuf here, before any of this
+             * loop body's parsing gets a chance to advance it (e.g. the
+             * leading-whitespace skip below, or the ARGUS_FILTER case's
+             * "str = optarg" reassignment further down). Previously str was
+             * left wherever a prior iteration's parsing had advanced it to,
+             * and fgets() was called with that stale, already-advanced
+             * pointer as its destination -- writing up to MAXSTRLEN bytes
+             * starting from partway into strbuf can write past the end of
+             * the buffer, corrupting adjacent stack memory.
+             */
+            str = strbuf;
             done = 0;
             linenum++;
             while (*str && isspace((int)*str))
@@ -1596,19 +1625,36 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         case ARGUS_FILTER:
                            if ((ArgusSourceTask->ArgusInputFilter = ArgusCalloc (1, MAXSTRLEN)) != NULL) {
                               char *ptr = ArgusSourceTask->ArgusInputFilter;
+                              char *ptrend = ptr + MAXSTRLEN - 1;
+                              char contbuf[MAXSTRLEN];
                               str = optarg;
                               while (*str) {
                                  if ((*str == '\\') && (str[1] == '\n')) {
-                                    if (fgets(str, MAXSTRLEN, fd) != NULL)
+                                    /*
+                                     * Read a continuation line into its own buffer, not
+                                     * into str's current position (which points somewhere
+                                     * inside strbuf/optarg, not at its start) -- fgets()
+                                     * writing MAXSTRLEN bytes there would overwrite past
+                                     * the end of strbuf, the same class of bug as the
+                                     * caller's own fgets() call above this switch.
+                                     */
+                                    if (fgets(contbuf, MAXSTRLEN, fd) != NULL) {
+                                       str = contbuf;
                                        while (*str && (isspace((int)*str) && (str[1] && isspace((int)str[1]))))
                                           str++;
+                                    } else
+                                       break;
                                  }
-                                 
-                                 if ((*str != '\n') && (*str != '"'))
-                                    *ptr++ = *str++;
-                                 else
+
+                                 if ((*str != '\n') && (*str != '"')) {
+                                    if (ptr < ptrend)
+                                       *ptr++ = *str++;
+                                    else
+                                       str++;
+                                 } else
                                     str++;
                               }
+                              *ptr = '\0';
 #ifdef ARGUSDEBUG
                            ArgusDebug (1, "ArgusParseResourceFile: ArgusFilter \"%s\" \n", ArgusSourceTask->ArgusInputFilter);
 #endif 
