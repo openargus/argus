@@ -2,7 +2,9 @@ name: CI
 
 # Runs on GitHub-hosted runners (not the local machine) on every push and
 # pull request against main. See security-review/fuzz/README.md for
-# background on the corpus used by the fuzz-regression job below.
+# background on the corpus used by the fuzz-regression job below, and
+# security-review/regression-tests/README.md for the security-regression-tests
+# job below that.
 on:
   push:
     branches: [main]
@@ -86,3 +88,21 @@ jobs:
             exit 1
           fi
           echo "All inputs replayed cleanly."
+
+  security-regression-tests:
+    name: Security-review regression tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: brew install libpcap zlib bison flex
+
+      - name: Configure
+        run: ./configure
+
+      - name: Build
+        run: make -j4
+
+      - name: Run security-review regression tests
+        run: sh security-review/regression-tests/run_all.sh
