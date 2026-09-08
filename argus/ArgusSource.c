@@ -4563,8 +4563,6 @@ ArgusSlipPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #define ETHER_ADDR_LEN  6
 #endif
 
-unsigned char ArgusSllPkt[0x20000];
-
 void
 ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
@@ -4576,7 +4574,7 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    const struct sll_header *sllp = NULL;
    struct timeval tvpbuf, *tvp = &tvpbuf;
 
-   struct ether_header *ep = (struct ether_header *)ArgusSllPkt;
+   struct ether_header *ep = (struct ether_header *)src->ArgusSllPkt;
    u_short pkttype;
 
    tvp->tv_sec  = h->ts.tv_sec;
@@ -4645,13 +4643,13 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    caplen -= SLL_HDR_LEN;
    p += SLL_HDR_LEN;
 
-   if (caplen > (sizeof(ArgusSllPkt) - sizeof(*ep))) {
+   if (caplen > (sizeof(src->ArgusSllPkt) - sizeof(*ep))) {
       /*
        * Guard against overflowing the fixed-size ArgusSllPkt buffer.
        * This should not happen with a well-formed capture (caplen is
        * bounded by the interface snaplen), but a corrupted or crafted
        * capture file could otherwise drive an oversized memcpy() into
-       * a global buffer.
+       * this source's per-source scratch buffer.
        */
 #ifdef ARGUSDEBUG
       ArgusDebug (3, "ArgusSllPacket (%p, %p, %p) caplen %u exceeds ArgusSllPkt capacity\n",
