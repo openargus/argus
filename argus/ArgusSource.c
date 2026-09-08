@@ -5569,7 +5569,7 @@ ArgusGetPackets (void *arg)
       if (src->ArgusInterface[0].fd > 0) {
          inf = &src->ArgusInterface[0];
 
-	 while (!inf->ArgusReadDone) {
+	 while (!inf->ArgusReadDone && !ArgusShutDownFlag) {
             int width = -1, retn = 0;
             fd_set readmask;
             FD_ZERO(&readmask);
