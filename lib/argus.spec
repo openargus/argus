@@ -1,4 +1,4 @@
-%define ver 5.0.0
+%define ver 5.0.4
 %if %{?rel:0}%{!?rel:1}
 %define rel 3.8
 %endif
