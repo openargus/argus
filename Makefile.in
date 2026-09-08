@@ -63,11 +63,11 @@ DISTFILES = AUTHORS INSTALL MANIFEST CREDITS README VERSION Makefile.in \
 .PHONY: install installdirs all
 
 all: force
-	@-for d in $(DIRS);\
+	@for d in $(DIRS);\
 	do \
-		(cd $$d; echo "### Making in" `pwd`;\
-			$(MAKE) $(MFLAGS) ;\
-			echo "### Done with" `pwd`);\
+		(cd $$d && echo "### Making in" `pwd` &&\
+			$(MAKE) $(MFLAGS) &&\
+			echo "### Done with" `pwd`) || exit 1;\
 	done
 
 install:  force
@@ -83,11 +83,11 @@ install:  force
 	[ -d $(DESTDIR)$(exec_prefix)/argus/archive ] || \
 		(mkdir -p $(DESTDIR)$(exec_prefix)/argus/archive; chmod 755 $(DESTDIR)$(exec_prefix)/argus/archive)
 
-	@-for d in $(DIRS); \
+	@for d in $(DIRS); \
 	do \
-		(cd $$d; echo "### Make install in" `pwd`;    \
-			$(MAKE) $(MFLAGS) install;    \
-			echo "### Done with" `pwd`);            \
+		(cd $$d && echo "### Make install in" `pwd` &&    \
+			$(MAKE) $(MFLAGS) install &&    \
+			echo "### Done with" `pwd`) || exit 1;            \
 	done
 
 	$(INSTALL) -m 0755 $(srcdir)/bin/argusbug $(DESTDIR)@bindir@/argusbug
