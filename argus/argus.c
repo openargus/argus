@@ -126,6 +126,7 @@ usage(void)
    fprintf (stdout, "                                 packets to arrive in packet capture file.\n");
    fprintf (stdout, "         -F <conffile>           read configuration from <conffile>.\n");
    fprintf (stdout, "         -h                      print help.\n");
+   fprintf (stdout, "         -H <size>               specify flow hash table size (4096).\n");
    fprintf (stdout, "         -i <interface>          specify interface to use as a packet source.\n");
    fprintf (stdout, "             Supported formats:                                              \n");
    fprintf (stdout, "                -i ind:all                    open all as independent sources.\n");
@@ -135,6 +136,7 @@ usage(void)
    fprintf (stdout, "                -i en0/srcid -i en1/srcid     equivalent to '-i ind:en0/..'   \n");
    fprintf (stdout, "                -i en0 en1                     equivalent '-i bond:en0,en1')  \n");
    fprintf (stdout, "         -J                      generate packet performance data.\n");
+   fprintf (stdout, "         -l                      list available network interfaces and exit.\n");
    fprintf (stdout, "         -M <secs>               set MAR Status Report Time Interval (300s).\n");
    fprintf (stdout, "         -m                      turn on MAC Layer Reporting.\n");
    fprintf (stdout, "         -O                      turn off filter optimizer.\n");

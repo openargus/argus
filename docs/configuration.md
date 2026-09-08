@@ -1,22 +1,14 @@
 # Argus Sensor Configuration Guide
 
-**Status:** Verified against source.
-**Scope:** Argus sensor only (`~/Saber/argus/argus`). Every variable below is confirmed present in the
-sensor's config-variable table (`ArgusResourceFileStr[]`, `argus/argus.c:1155`) and cross-checked against
-its handling logic in `main()` and against `man/man5/argus.conf.5`, which is itself accurate and detailed
-— it was used as the primary source for variable semantics, with source code used to verify claims and
-resolve ambiguity.
-**Supersedes:** the previous version of this document, which invented dozens of configuration variables
-that do not exist anywhere in source (`ARGUS_MAX_FLOWS`, `ARGUS_COMPRESS`, `ARGUS_CPU_AFFINITY`,
-`ARGUS_ALERT_ON_SYN_FLOOD`, `ARGUS_OUTPUT_MAX_SIZE`, and about 30 others), described a 5-tier
-environment-variable-inclusive precedence order that doesn't exist, and gave an incorrect example for
-socket output. Every specific correction is called out inline below.
+**Scope:** Argus sensor only. Every variable below appears in the sensor's config-variable table
+(`ArgusResourceFileStr[]` in `argus/argus.c`) and is cross-checked against `man/man5/argus.conf.5`, which
+is the primary authoritative reference for variable semantics.
 
 ---
 
 ## 1. Configuration file format
 
-Confirmed in `man/man5/argus.conf.5` and `ArgusParseResourceFile()` (`argus/argus.c:1319`):
+See `man/man5/argus.conf.5` and `ArgusParseResourceFile()` in `argus/argus.c`:
 
 ```conf
 VARIABLE=value
@@ -33,13 +25,9 @@ Rules:
 - A config file is a flat list of `VARIABLE=value` lines — there is no nesting, sectioning, or includes
   beyond the `-F` command-line mechanism described next.
 
-## 2. Configuration precedence — corrected
+## 2. Configuration precedence
 
-**This is the most significant correction in this document.** The sensor's actual configuration model is
-a simple two-step, single-pass process — not a multi-tier hierarchy with environment variables and
-multiple auto-searched paths.
-
-Verified directly from `main()` (`argus/argus.c:300` onward):
+The sensor's configuration model is a simple two-step, single-pass process, from `main()`:
 
 1. **`/etc/argus.conf` loads first, unconditionally, if it exists** — checked with `stat()` before command
    line parsing begins. This is the *only* automatically-searched config file.
@@ -53,10 +41,8 @@ Verified directly from `main()` (`argus/argus.c:300` onward):
 argus -F /etc/argus/site.conf -i eth0
 ```
 
-**There is no environment-variable configuration layer.** Confirmed by the complete absence of any
-`getenv()` call in `argus.c`, `ArgusSource.c`, or `ArgusUtil.c`. The `ARGUS_*` names are config-file
-variable names, not shell environment variables — do not `export ARGUS_MONITOR_ID=...` expecting it to
-have any effect; it won't.
+**There is no environment-variable configuration layer.** The `ARGUS_*` names are config-file variable
+names, not shell environment variables — `export ARGUS_MONITOR_ID=...` has no effect.
 
 One variable is easy to confuse with this: **`ARGUS_ENV`** is a real config-file directive, but it does the
 opposite of what it sounds like — it calls `putenv()` to set an OS/library-level environment variable
@@ -65,16 +51,13 @@ any internal Argus variable (`man/man5/argus.conf.5` says so directly: *"you can
 this feature"*).
 
 **There is no `$ARGUSPATH`/`$ARGUSHOME`/`$HOME` auto-search** for a config file in this version. The man
-page for `argus.conf` documents this search as deprecated from earlier versions, and no such search code
-exists in `argus.c`.
+page for `argus.conf` documents this search as deprecated from earlier versions.
 
 ## 3. Complete list of configuration variables
 
-This is the full, verified set — every one of the following appears in `ArgusResourceFileStr[]`
-(`argus/argus.c:1155-1223`), the sensor's exhaustive list of recognized config-file variables. **If a
-variable is not in this list, the sensor's config-file parser does not recognize it at all** — it will be
-silently ignored or (depending on parser state) may produce a syntax-error log line, not applied as
-configuration.
+This is the full set — every one of the following appears in `ArgusResourceFileStr[]`
+(`argus/argus.c`), the sensor's exhaustive list of recognized config-file variables. **If a
+variable is not in this list, the sensor's config-file parser does not recognize it at all.**
 
 ### Identity
 
@@ -94,9 +77,6 @@ configuration.
 | `ARGUS_SETUSER_ID` | `-u <user>` | `setuid()` after privileged resources are opened. |
 | `ARGUS_SETGROUP_ID` | `-g <group>` | `setgid()` after privileged resources are opened. |
 
-*(Corrected: previous doc used `ARGUS_USER`/`ARGUS_GROUP`. The real names are `ARGUS_SETUSER_ID`/
-`ARGUS_SETGROUP_ID`.)*
-
 ### Interfaces / capture
 
 | Variable | CLI equiv. | Purpose |
@@ -113,11 +93,9 @@ configuration.
 | `ARGUS_PACKET_CAPTURE_ON_PROTO` | none | Limit raw packet capture to specific protocols. |
 | `ARGUS_PACKET_CAPTURE_ON_ERROR` | none | Trigger raw packet capture on error conditions. |
 
-*(Corrected: previous doc's `ARGUS_INTERFACE=dup:en0,en1/"ap01"` example syntax happens to be close to
-real syntax — `dup:` is genuine — but the doc's invented "SPAN/Mirror," "Bonded," and "VLAN subinterface"
-usage tips implied plain interface names like `bond0`/`eth0.100` are Argus-level concepts; they are not —
-`bond`/`dup`/`ind` are Argus's own interface-combination keywords, unrelated to OS-level bonding/VLAN
-subinterfaces, which Argus treats as ordinary interface names if the OS exposes them that way.)*
+`bond`/`dup`/`ind` are Argus's own interface-combination keywords — they are unrelated to OS-level
+bonding or VLAN subinterfaces, which Argus treats as ordinary interface names if the OS exposes them
+that way.
 
 ### Flow model
 
@@ -126,14 +104,10 @@ subinterfaces, which Argus treats as ordinary interface names if the OS exposes 
 | `ARGUS_FLOW_TYPE` | none | `Uni` or `Bi` (case-insensitive prefix match — `"Uni..."` / `"Bi..."`), i.e. unidirectional or bidirectional flow tracking. |
 | `ARGUS_FLOW_KEY` | none | Space/`+`-separated combination of: `CLASSIC_5_TUPLE`, `LAYER_2`, `LOCAL_MPLS`, `COMPLETE_MPLS`, `VLAN`, `LAYER_2_MATRIX`, `LAYER_3_MATRIX`. Default is `CLASSIC_5_TUPLE` if unset. |
 | `ARGUS_IP_TIMEOUT`, `ARGUS_TCP_TIMEOUT`, `ARGUS_ICMP_TIMEOUT`, `ARGUS_IGMP_TIMEOUT`, `ARGUS_FRAG_TIMEOUT`, `ARGUS_ARP_TIMEOUT`, `ARGUS_OTHER_TIMEOUT` | none | Per-protocol flow-cache idle timeout in seconds. Defaults: IP 30, TCP 60, ICMP 5, IGMP 30, Frag 5, ARP 5, Other 30. Max 65534. |
-| `ARGUS_TCP_FALLOW_TIMEOUT` | none | Timeout for "fallow" TCP flow tracking (recent feature — see git log). |
+| `ARGUS_TCP_FALLOW_TIMEOUT` | none | Moves an idle TCP flow into an extended "fallow" timeout queue (instead of deleting it) when its last observed state was not LISTEN/CLOSED/CLOSING, to retain syn/synack-direction knowledge for long-lived, otherwise-quiet sessions. `0` (default) disables the feature; valid range when enabled is 1–65533 seconds. |
 | `ARGUS_HASHTABLE_SIZE` | none | Flow classification hash table size. Default 4096 (suited to <1M flows/day). For 40–100G sensors, the man page recommends >10M (`0x1000000`). |
 | `ARGUS_TRACK_DUPLICATES` / `ARGUS_DEDUP` | none | Duplicate packet detection/handling. |
 | `ARGUS_GENERATE_HASH_METRICS` | none | Export the flow hash value as a DSR (`ARGUS_FLOW_HASH_DSR` — see `docs/data-model.md`). |
-
-*(Corrected: previous doc's `MPLS` value is not valid on its own — the real tokens are `LOCAL_MPLS` and
-`COMPLETE_MPLS`. There is no `ARGUS_MAX_FLOWS` variable; flow-table sizing is controlled indirectly via
-`ARGUS_HASHTABLE_SIZE`, not a flow-count cap.)*
 
 ### Metrics / feature toggles
 
@@ -159,10 +133,8 @@ subinterfaces, which Argus treats as ordinary interface names if the OS exposes 
 | `ARGUS_SELF_SYNCHRONIZE` | none | Sensor self-synchronization behavior. |
 | `ARGUS_EVENT_DATA` | none | Event-record generation/capture settings. |
 
-*(Corrected: previous doc's `ARGUS_ENABLE_JITTER_METRICS`, `ARGUS_ENABLE_APP_METRICS`,
-`ARGUS_ALERT_ON_SYN_FLOOD`, `ARGUS_ALERT_ON_PORT_SCAN` do not exist. The sensor has no alerting concept at
-all — it emits flow records; alerting on patterns like SYN floods or port scans would be client/analyst
-tooling built on top of the record stream, not a sensor feature.)*
+Note: the sensor has no alerting concept — it emits flow records; alerting on patterns like SYN floods or
+port scans is client/analyst tooling built on top of the record stream, not a sensor feature.
 
 ### Output
 
@@ -175,19 +147,12 @@ tooling built on top of the record stream, not a sensor feature.)*
 | `ARGUS_MAR_STATUS_INTERVAL` | none | MAR (management/health) record interval — see `docs/data-model.md` §6 for what's in a MAR. |
 | `ARGUS_MAR_INTERFACE_INTERVAL` | none | Interface-specific MAR interval. |
 
-*(Corrected — this is the most operationally important fix: previous doc's `-S <host:port>` and
-`ARGUS_OUTPUT=collector.example.com:5100`/`ARGUS_OUTPUT=siem.example.com:5100` examples are wrong on two
-counts: (1) there is no plain `ARGUS_OUTPUT` variable — file output is `ARGUS_OUTPUT_FILE`, remote output
-is `ARGUS_OUTPUT_STREAM`, and they are not interchangeable via a single `host:port` string; (2) `-S` sets
-the flow-status **report interval in seconds**, confirmed both in source (`argus.c:150,578`,
-`setArgusFarReportInterval`) and the man page — it has never been a socket/host:port option. There is also
-no general "output to SIEM" variable — a SIEM integration would consume the sensor's native binary output
-via a client-side converter, not a sensor-level config option.)*
+**Note:** file output is `ARGUS_OUTPUT_FILE`, remote output is `ARGUS_OUTPUT_STREAM` — they are not
+interchangeable via a single variable. `-S`/`ARGUS_FLOW_STATUS_INTERVAL` sets the flow-status report
+interval in seconds; it is unrelated to socket/host configuration.
 
-**There is no file-rotation-by-size/time, no output buffer-size tuning, and no output compression variable**
-in the sensor's config system (`ARGUS_OUTPUT_MAX_SIZE`, `ARGUS_OUTPUT_MAX_TIME`, `ARGUS_OUTPUT_BUFFER`,
-`ARGUS_COMPRESS`, `ARGUS_COMPRESS_LEVEL` in the previous doc do not exist). See `docs/architecture.md` §6
-for the corrected output-capability description.
+There is no file-rotation-by-size/time, output buffer-size tuning, or output compression variable in the
+sensor's config system. See `docs/architecture.md` §6 for the output-capability description.
 
 ### Security / access control
 
@@ -195,14 +160,11 @@ for the corrected output-capability description.
 |---|---|---|
 | `ARGUS_BIND_IP` | `-B` | (see Interfaces table above) restricts the `ARGUS_ACCESS_PORT` listener to specific local addresses. |
 
-TCP-wrapper (`hosts.allow`/`hosts.deny`) and SASL authentication are real (confirmed in
-`docs/architecture.md` §8), but are **not controlled via `argus.conf` variables** — they're compiled-in
-behavior (`#include <tcpd.h>`, `#ifdef ARGUS_SASL`) configured through the standard system files
+TCP-wrapper (`hosts.allow`/`hosts.deny`) and SASL authentication are real (see `docs/architecture.md`
+§8), but are **not controlled via `argus.conf` variables** — they're compiled-in behavior
+(`#include <tcpd.h>`, `#ifdef ARGUS_SASL`) configured through the standard system files
 (`/etc/hosts.allow`, `/etc/hosts.deny`) or SASL's own configuration, not through Argus-specific config
 variables.
-
-*(Corrected: previous doc's `ARGUS_SASL`, `ARGUS_SASL_MECH` variables do not exist in
-`ArgusResourceFileStr[]`.)*
 
 ### Debug / logging
 
@@ -210,9 +172,6 @@ variables.
 |---|---|---|
 | `ARGUS_DEBUG_LEVEL` | `-D <n>` | Debug verbosity (requires debug-enabled build). Default 0. |
 | `ARGUS_LOG_DISPLAY_PRIORITY` | none | Controls which syslog priority levels are shown. |
-
-*(Corrected: previous doc's `ARGUS_LOG_SYSLOG` and `ARGUS_LOG_LEVEL=debug` don't exist as such — use
-`ARGUS_DEBUG_LEVEL` and `-D`.)*
 
 ### Miscellaneous
 
@@ -225,7 +184,7 @@ variables.
 ## 4. Interface specification syntax (detail)
 
 Since `ARGUS_INTERFACE` syntax is unusually rich and easy to get wrong, quoting the man page's own grammar
-directly (confirmed matches `ArgusParseSourceID`/interface-parsing logic):
+directly:
 
 ```
 -i ind:all
@@ -245,9 +204,6 @@ directly (confirmed matches `ArgusParseSourceID`/interface-parsing logic):
   the global `ARGUS_MONITOR_ID`. The `inf` keyword substitutes the actual interface name into the srcid.
 
 ## 5. Example: minimal working sensor config
-
-Built entirely from variables confirmed in §3 — this replaces the previous doc's example configs, which
-mixed real and fabricated variables:
 
 ```conf
 # /etc/argus.conf
@@ -281,8 +237,7 @@ ARGUS_OUTPUT_STREAM="argus-udp://collector.example.com:561"
 
 ## 6. Validating configuration
 
-Confirmed CLI mechanisms (there is no `-V` "validate only" flag in this version — check with `-h`/`usage()`
-if relying on this for a specific build):
+There is no `-V`/"validate only" flag. Options for checking configuration:
 
 ```bash
 # Run in foreground with debug output to see what's being parsed/applied
@@ -290,7 +245,7 @@ argus -F /etc/argus.conf -D 1 -d
 
 # Short capture test, then inspect with a client program
 timeout 60 argus -F /etc/argus.conf -i eth0 -w /tmp/test.argus
-# (radump/ra are client-repo tools, not part of this sensor — see docs/data-model.md scope note)
+# (radump/ra are client-repo tools, not part of this sensor)
 ```
 
 ## 7. Related documentation
@@ -304,15 +259,11 @@ timeout 60 argus -F /etc/argus.conf -i eth0 -w /tmp/test.argus
 
 ---
 
-## Open items / follow-up verification
+## Known gaps
 
-1. `ARGUS_COLLECTOR` appears in `ArgusResourceFileStr[]` and is parsed (`argus.c:1701`) but its `case`
-   body is empty (`break;` with no action) — likely a legacy or reserved variable. Confirm intended
-   behavior (or lack thereof) before documenting it as functional.
-2. This document has not yet been reconciled against `docs/getting-started.md` or
-   `docs/troubleshooting.md`, which may still contain the same class of fabricated variables/examples as
-   this file did — recommend the same source-verification pass be applied to those next.
-3. Default values quoted above are transcribed from the man page; a handful were not independently
-   re-derived from source defaults in this pass (e.g. `ARGUS_HASHTABLE_SIZE=4096`,
-   `ARGUS_MIN_SSF`/`ARGUS_MAX_SSF` bounds) — low risk given the man page's overall accuracy so far, but
-   flagged per the verification standard used throughout this doc set.
+1. `ARGUS_COLLECTOR` appears in `ArgusResourceFileStr[]` and is parsed, but its `case` body is a no-op
+   (`break;` with no action) — likely a legacy or reserved variable. Its intended behavior (if any) is
+   undocumented.
+2. A handful of default values above (`ARGUS_HASHTABLE_SIZE=4096`, `ARGUS_MIN_SSF`/`ARGUS_MAX_SSF`
+   bounds) are transcribed from the man page rather than independently re-derived from source; treat as
+   generally reliable but not exhaustively cross-checked.
