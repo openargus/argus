@@ -59,6 +59,9 @@
 
 #include <netdb.h>
 #include <net/ppp.h>
+
+#include <netinet/tcp.h>
+#include <netinet/tcp_fsm.h>
 #include <argus/extract.h>
 
 #include <argus_ethertype.h>
@@ -262,13 +265,13 @@ ArgusInitModeler(struct ArgusModelerStruct *model)
    model->ArgusQueueInterval.tv_usec  = 250000;
    model->ArgusListenInterval.tv_usec = 250000;
 
-   model->ArgusIPTimeout    = (model->ArgusIPTimeout == 0) ? ARGUS_IPTIMEOUT : model->ArgusIPTimeout;
-   model->ArgusTCPTimeout   = (model->ArgusTCPTimeout == 0) ? ARGUS_TCPTIMEOUT : model->ArgusTCPTimeout;
-   model->ArgusICMPTimeout  = (model->ArgusICMPTimeout == 0) ? ARGUS_ICMPTIMEOUT : model->ArgusICMPTimeout;
-   model->ArgusIGMPTimeout  = (model->ArgusIGMPTimeout == 0) ? ARGUS_IGMPTIMEOUT : model->ArgusIGMPTimeout;
-   model->ArgusFRAGTimeout  = (model->ArgusFRAGTimeout == 0) ? ARGUS_FRAGTIMEOUT : model->ArgusFRAGTimeout;
-   model->ArgusARPTimeout   = (model->ArgusARPTimeout == 0) ? ARGUS_ARPTIMEOUT : model->ArgusARPTimeout;
-   model->ArgusOtherTimeout = (model->ArgusOtherTimeout == 0) ? ARGUS_OTHERTIMEOUT : model->ArgusOtherTimeout;
+   model->ArgusIPTimeout        = (model->ArgusIPTimeout == 0) ? ARGUS_IPTIMEOUT : model->ArgusIPTimeout;
+   model->ArgusTCPTimeout       = (model->ArgusTCPTimeout == 0) ? ARGUS_TCPTIMEOUT : model->ArgusTCPTimeout;
+   model->ArgusICMPTimeout      = (model->ArgusICMPTimeout == 0) ? ARGUS_ICMPTIMEOUT : model->ArgusICMPTimeout;
+   model->ArgusIGMPTimeout      = (model->ArgusIGMPTimeout == 0) ? ARGUS_IGMPTIMEOUT : model->ArgusIGMPTimeout;
+   model->ArgusFRAGTimeout      = (model->ArgusFRAGTimeout == 0) ? ARGUS_FRAGTIMEOUT : model->ArgusFRAGTimeout;
+   model->ArgusARPTimeout       = (model->ArgusARPTimeout == 0) ? ARGUS_ARPTIMEOUT : model->ArgusARPTimeout;
+   model->ArgusOtherTimeout     = (model->ArgusOtherTimeout == 0) ? ARGUS_OTHERTIMEOUT : model->ArgusOtherTimeout;
 
    if ((tvp = getArgusFarReportInterval(model)) != NULL)
       model->ArgusStatusQueue->timeout = tvp->tv_sec;
@@ -530,8 +533,11 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
                   }
 
                   if (last->timeout > 0) {
-                     if (last->timeout > ARGUSTIMEOUTQS)
-                        last->timeout = ARGUSTIMEOUTQS;
+                     /* F-1 fix: ArgusTimeOutQueue[] has ARGUSTIMEOUTQS elements, valid indices
+                      * 0..ARGUSTIMEOUTQS-1. Clamping to ARGUSTIMEOUTQS itself is an off-by-one --
+                      * that value is one past the end of the array. */
+                     if (last->timeout > ARGUSTIMEOUTQS - 1)
+                        last->timeout = ARGUSTIMEOUTQS - 1;
 
                      if (model->ArgusTimeOutQueue[last->timeout] == NULL) {
                         model->ArgusTimeOutQueue[last->timeout] = ArgusNewQueue();
@@ -550,11 +556,34 @@ ArgusProcessQueueTimeout (struct ArgusModelerStruct *model, struct ArgusQueueStr
 
             } else {
                struct timeval timeout = {0,0};
+               int tcpFallow = 0;
                timeout.tv_sec = queue->timeout;
 
                if (ArgusCheckTimeout(model, &last->qhdr.qtime, now, &timeout)) {
                   ArgusRemoveFromQueue(queue, &last->qhdr, ARGUS_NOLOCK);
-                  ArgusDeleteObject(last);
+                  if (last->timeout == ARGUS_TCPTIMEOUT) {
+                     if (model->ArgusTCPFallowTimeout != 0) {
+                        struct ArgusTCPObject *tcpExt = (struct ArgusTCPObject *)&last->canon.net.net_union.tcp;
+                        unsigned int state = tcpExt->state;
+
+                        if ((state != TCPS_LISTEN) && (state != TCPS_CLOSED) && (state != TCPS_CLOSING)) {
+                           last->timeout = model->ArgusTCPFallowTimeout;
+                           tcpFallow = 1;
+                        }
+                     }
+                  }
+
+                  if (tcpFallow) {
+                     if (model->ArgusTimeOutQueue[last->timeout] == NULL) {
+                        model->ArgusTimeOutQueue[last->timeout] = ArgusNewQueue();
+                        model->ArgusTimeOutQueue[last->timeout]->timeout = last->timeout;
+                        ArgusPushQueue(model->ArgusTimeOutQueues, &model->ArgusTimeOutQueue[last->timeout]->qhdr, ARGUS_LOCK);
+                        model->ArgusFallowQueue = model->ArgusTimeOutQueue[last->timeout];
+                     }
+                     ArgusPushQueue(model->ArgusTimeOutQueue[last->timeout], &last->qhdr, ARGUS_LOCK);
+                  } else 
+                     ArgusDeleteObject(last);
+
                } else {
                   done++;
                }
@@ -768,6 +797,14 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
 
       case ETHERTYPE_8021Q: {
          model->ArgusThisNetworkFlowType = type;
+
+         /* Bug found during Tier 1b verification (same root-cause class as F-9/
+          * F-16-22): this case unconditionally read up to 5 bytes (the two
+          * ntohs() reads below, plus p[0]-p[4] for the ISL magic-number check
+          * further down) with no captured-length check at all. */
+         if (!BYTESCAPTURED(model, *p, 5))
+            break;
+
          model->ArgusThisPacket8021QEncaps = ntohs(*(unsigned short *)(p));
          model->ArgusThisEncaps |= ARGUS_ENCAPS_8021Q;
 
@@ -802,6 +839,13 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
 
          model->ArgusThisNetworkFlowType = type;
          while (!(bos)) {
+            /* F-19 fix: the label-stack walk previously read 4 bytes per iteration
+             * with no check that they were actually captured -- since the loop only
+             * terminates on the attacker-controlled bottom-of-stack bit, a truncated
+             * capture or a crafted non-bottom-of-stack label sequence could walk the
+             * read pointer arbitrarily far past the captured buffer. */
+            if (!BYTESCAPTURED(model, *(unsigned int *)model->ArgusThisUpHdr, 4))
+               break;
             unsigned int tlabel = ntohl(*(unsigned int *)(model->ArgusThisUpHdr));
             if (!(model->ArgusThisMplsLabelIndex)) {
                model->ArgusThisMplsLabel = tlabel;
@@ -813,7 +857,13 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
             model->ArgusSnapLength -= 4;
             model->ArgusThisEncaps |= ARGUS_ENCAPS_MPLS;
 
-            retn = ArgusDiscoverNetworkProtocol(model->ArgusThisUpHdr);
+            /* ArgusDiscoverNetworkProtocol reads up to 6 bytes (struct ip6_hdr's
+             * ip6_plen field, at byte offset 4-5) from ArgusThisUpHdr -- confirm
+             * those bytes are captured before calling it (same F-19 root cause). */
+            if (BYTESCAPTURED(model, *model->ArgusThisUpHdr, 6))
+               retn = ArgusDiscoverNetworkProtocol(model->ArgusThisUpHdr);
+            else
+               break;
          }
          break;
       }
@@ -822,41 +872,39 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
       case ETHERTYPE_IP: {
          struct ip *ip = (struct ip *) p;
 
-         if (ip->ip_v == 4) {
-            if (STRUCTCAPTURED(model,*ip)) {
-               model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
+         if (STRUCTCAPTURED(model,*ip) && (ip->ip_v == 4)) {
+            model->ArgusThisNetworkFlowType = ETHERTYPE_IP;
 
-               if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[0] == 1))
+            if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[0] == 1))
+               model->ArgusMatchProtocol++;
+
+            if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
+               model->ArgusThisIpHdr = (void *)ip;
+
+               if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[ip->ip_p] == 1))
                   model->ArgusMatchProtocol++;
 
-               if ((ip->ip_len == 0) || (ntohs(ip->ip_len) >= 20)) {
-                  model->ArgusThisIpHdr = (void *)ip;
-
-                  if (ArgusDumpTask->ppc && (ArgusDumpTask->ppc[ip->ip_p] == 1))
-                     model->ArgusMatchProtocol++;
-
-                  switch (ip->ip_p) {
-                     case IPPROTO_TTP: { /* Preparation for Juniper TTP */
-                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                        retn = ArgusProcessTtpHdr(model, ip, length);
-                        break;
-                     }
-                     case IPPROTO_UDP: { /* RCP 4380 */
-                        if (getArgusTunnelDiscovery(model)) {
-                           model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                           retn = ArgusProcessUdpHdr(model, ip, length);
-		        }
-                        break;
-                     }
-                     case IPPROTO_GRE: { /* RFC 2784 */
-                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
-                        retn = ArgusProcessGreHdr(model, ip, length);
-                        break;
-                     }
-                     default:
-                        retn = 0;
-                        break;
+               switch (ip->ip_p) {
+                  case IPPROTO_TTP: { /* Preparation for Juniper TTP */
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
+                     retn = ArgusProcessTtpHdr(model, ip, length);
+                     break;
                   }
+                  case IPPROTO_UDP: { /* RCP 4380 */
+                     if (getArgusTunnelDiscovery(model)) {
+                        model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
+                        retn = ArgusProcessUdpHdr(model, ip, length);
+                     }
+                     break;
+                  }
+                  case IPPROTO_GRE: { /* RFC 2784 */
+                     model->ArgusThisEncaps |= ARGUS_ENCAPS_IP;
+                     retn = ArgusProcessGreHdr(model, ip, length);
+                     break;
+                  }
+                  default:
+                     retn = 0;
+                     break;
                }
             }
             break;
@@ -1106,6 +1154,12 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
    unsigned char *ptr;
    int retn = 0;
 
+   /* Several real dispatch call sites (ArgusSource.c) do not consistently verify
+    * length >= sizeof(struct ether_header) before calling this function -- confirm here,
+    * defensively, before reading ep->ether_type below. */
+   if (!STRUCTCAPTURED(model, *ep))
+      return (retn);
+
    length -= len;
    model->ArgusThisEpHdr           = ep;
    model->ArgusThisUpHdr           = (unsigned char *) (ep + 1);
@@ -1121,7 +1175,10 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
       unsigned short ether_type = 0;
 
       ptr = (unsigned char *) ep;
-      if (ptr[0] == 0x01 && ptr[1] == 0x00 &&
+      /* ISL magic-number check reads 5 bytes (ptr[0..4]) -- confirm they are actually
+       * captured before reading, rather than trusting the Ethernet header length alone. */
+      if (BYTESCAPTURED(model, *ptr, 5) &&
+          ptr[0] == 0x01 && ptr[1] == 0x00 &&
           ptr[2] == 0x0C && ptr[3] == 0x00 && ptr[4] == 0x00) {
           return (ArgusProcessISLHdr (model, ep, length));
       }
@@ -1129,7 +1186,10 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
       ptr = (unsigned char *) model->ArgusThisUpHdr;
       llc = (struct argus_llc *) ptr;
 
-      if (BYTESCAPTURED(model,*llc, 3) && ((llc = model->ArgusThisLLC) != NULL)) {
+      /* Check that the full struct argus_llc is captured, not just 3 bytes -- the
+       * bcopy() below copies sizeof(struct argus_llc) (8 bytes), and later code reads
+       * fields (e.g. llc->ethertype) at offsets beyond byte 3. */
+      if (STRUCTCAPTURED(model,*llc) && ((llc = model->ArgusThisLLC) != NULL)) {
          model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
          bcopy((char *) ptr, (char *) llc, sizeof (struct argus_llc));
@@ -1202,6 +1262,12 @@ ArgusProcess80211Hdr (struct ArgusModelerStruct *model, char *p, int length)
 
    u_int16_t fc;
 
+   /* EXTRACT_LE_16BITS(p) below reads the 2-byte frame-control field -- confirm it is
+    * actually captured before reading, rather than trusting the caller's length
+    * accounting alone (see F-13 in security-review/findings-log.md). */
+   if (!BYTESCAPTURED(model, *p, 2))
+      return (retn);
+
    fc = EXTRACT_LE_16BITS(p);
    hdrlen = ArgusExtract802_11HeaderLength(fc);
 
@@ -1244,7 +1310,10 @@ ArgusProcessLLCHdr (struct ArgusModelerStruct *model, char *p, int length)
 */
    llc = (struct argus_llc *) ptr;
 
-   if (BYTESCAPTURED(model,*llc,3)) {
+   /* Check that the full struct argus_llc is captured, not just 3 bytes -- the bcopy()
+    * below copies sizeof(struct argus_llc) (8 bytes), and later code reads fields (e.g.
+    * llc->ethertype) at offsets beyond byte 3. */
+   if (STRUCTCAPTURED(model,*llc)) {
       model->ArgusThisEncaps |= ARGUS_ENCAPS_LLC;
 
       llc = model->ArgusThisLLC;
@@ -1311,7 +1380,12 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
    u_int proto = 0;
    int retn = 0, hdr_len = 0;
 
-   if (length >= PPP_HDRLEN) {
+   /* Bug found during Tier 1b verification (same class as the ArgusProcessPPPoEHdr
+    * F-22b fix): `length >= PPP_HDRLEN` only checks the packet's declared/remaining
+    * length, not the actual number of captured bytes -- confirm the captured buffer
+    * covers at least PPP_HDRLEN + 1 bytes (matching the minimum this function
+    * unconditionally reads via EXTRACT_16BITS(p) and the *p dereference below). */
+   if ((length >= PPP_HDRLEN) && BYTESCAPTURED(model, *p, PPP_HDRLEN + 1)) {
       model->ArgusThisEncaps |= ARGUS_ENCAPS_PPP;
       switch (EXTRACT_16BITS(p)) {
          case (PPP_WITHDIRECTION_IN  << 8 | PPP_CONTROL):
@@ -1333,6 +1407,11 @@ ArgusProcessPPPHdr (struct ArgusModelerStruct *model, char *p, int length)
         default:
             break;
       }
+
+      /* p's offset has grown by up to 2 bytes in the switch above -- re-check
+       * before dereferencing *p / EXTRACT_16BITS(p) below. */
+      if (!BYTESCAPTURED(model, *p, 2))
+         return (retn);
 
       if (*p % 2) {
          proto = *p;
@@ -1420,6 +1499,14 @@ ArgusProcessPPPoEHdr (struct ArgusModelerStruct *model, char *p, int length)
 
    model->ArgusThisEncaps |= ARGUS_ENCAPS_ETHER | ARGUS_ENCAPS_PPP;
 
+   /* F-22b fix: this function previously read p[1], EXTRACT_16BITS(p), *pload,
+    * and EXTRACT_16BITS(pload) unconditionally, with no check that any of those
+    * bytes were actually captured -- unlike every other protocol handler in this
+    * file. Require at least PPPOE_HDRLEN + 1 bytes captured before the first
+    * read (p[1]), matching the minimum this function unconditionally touches. */
+   if (!BYTESCAPTURED(model, *p, PPPOE_HDRLEN + 1))
+      return (retn);
+
    if (!p[1]) {
       switch(EXTRACT_16BITS(p)) {
          case (PPP_WITHDIRECTION_IN  << 8 | PPP_CONTROL):
@@ -1437,6 +1524,10 @@ ArgusProcessPPPoEHdr (struct ArgusModelerStruct *model, char *p, int length)
          default:
             break;
       }
+      /* pload's offset from p has grown by up to 2 bytes in the switch above --
+       * re-check before dereferencing *pload / EXTRACT_16BITS(pload) below. */
+      if (!BYTESCAPTURED(model, *pload, 2))
+         return (retn);
       if (*pload % 2) {
          proto = *pload;             /* PFC is used */
          pload++;
@@ -2052,7 +2143,11 @@ ArgusCreateFlow (struct ArgusModelerStruct *model, void *ptr, int length)
 
 /* drop through to here if above protocols didn't do it */
             case ARGUS_FLOW_KEY_LAYER_2_MATRIX:
-               if (ep != NULL) {
+               /* ep may point at a too-short captured buffer (e.g. when
+                * ArgusProcessEtherHdr rejected it for insufficient length) --
+                * ep != NULL alone doesn't guarantee sizeof(struct ether_header)
+                * bytes are actually available before reading ether_shost/ether_dhost. */
+               if (ep != NULL && STRUCTCAPTURED(model, *ep)) {
                   int dstgteq = 1, i;
                   model->ArgusThisLength = length;
                   model->ArgusThisFlow->hdr.type            = ARGUS_FLOW_DSR;
@@ -2286,11 +2381,30 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
       encaps->hdr.argus_dsrvl8.len  = 3;
       flow->dsrindex |= 0x01 << ARGUS_ENCAPS_INDEX;
 
+      /*
+       * ArgusGenerateRecord() (below, ARGUS_ENCAPS_INDEX case) reads
+       * encaps->sbuf/dbuf back out in whole 4-byte units, using
+       * ((encaps->slen + 3) / 4) / ((encaps->dlen + 3) / 4) -- i.e. rounded
+       * UP to the next 4-byte boundary, the same convention every other
+       * variable-length DSR payload in this file uses (see, e.g.,
+       * ArgusFragObject/ArgusMetricStruct's "(sizeof(...) + 3) / 4" length
+       * fields elsewhere in this function). But encaps->slen/dlen is a raw
+       * captured-byte count (model->ArgusThisEncapsLength: an arbitrary
+       * ptr-difference through variable-length encapsulation headers, with
+       * no 4-byte-alignment guarantee), and the buffer below was allocated
+       * with exactly that many bytes -- not rounded up to match. Whenever
+       * slen/dlen is not itself already a multiple of 4, the rountripped
+       * read in ArgusGenerateRecord() reads past the end of this
+       * allocation. Fixed by rounding the allocation size up to the same
+       * 4-byte boundary the read side already assumes; ArgusCalloc()
+       * zero-fills the extra padding bytes, so the rounded-up read also
+       * can't leak adjacent heap contents into the generated record.
+       */
       if (model->ArgusThisDir) {
          encaps->src = model->ArgusThisEncaps;
          if (model->ArgusEncapsCapture) {
             if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
-               if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+               if ((encaps->sbuf = (void *) ArgusCalloc(1, ((encaps->slen + 3) / 4) * 4)) != NULL) {
                   memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
                }
             }
@@ -2299,7 +2413,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          encaps->dst = model->ArgusThisEncaps;
          if (model->ArgusEncapsCapture) {
             if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
-               if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+               if ((encaps->dbuf = (void *) ArgusCalloc(1, ((encaps->dlen + 3) / 4) * 4)) != NULL) {
                   memcpy(encaps->dbuf, model->ArgusThisPacket, encaps->dlen);
                }
             }
@@ -2316,7 +2430,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          if (model->ArgusEncapsCapture) {
             if (encaps->slen == 0) {
                if ((encaps->slen = model->ArgusThisEncapsLength) > 0) {
-                  if ((encaps->sbuf = (void *) ArgusCalloc(1, encaps->slen)) != NULL) {
+                  if ((encaps->sbuf = (void *) ArgusCalloc(1, ((encaps->slen + 3) / 4) * 4)) != NULL) {
                      memcpy(encaps->sbuf, model->ArgusThisPacket, encaps->slen);
                   }
                }
@@ -2332,7 +2446,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          if (model->ArgusEncapsCapture) {
             if (encaps->dlen == 0) {
                if ((encaps->dlen = model->ArgusThisEncapsLength) > 0) {
-                  if ((encaps->dbuf = (void *) ArgusCalloc(1, encaps->dlen)) != NULL) {
+                  if ((encaps->dbuf = (void *) ArgusCalloc(1, ((encaps->dlen + 3) / 4) * 4)) != NULL) {
                      memcpy(encaps->dbuf, model->ArgusThisPacket, encaps->dlen);
                   }
                }  
@@ -2774,15 +2888,17 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
                   ArgusUpdateBasicFlow (model, frag, state);
 
                } else {
-                  struct ArgusNetworkStruct *net = (struct ArgusNetworkStruct *)frag->dsrs[ARGUS_FRAG_INDEX];
-                  struct ArgusFragObject *ofrag = &net->net_union.frag;
+                  if (frag->canon.net.hdr.subtype == ARGUS_NETWORK_SUBTYPE_FRAG) {
+                     struct ArgusNetworkStruct *net = (struct ArgusNetworkStruct *)frag->dsrs[ARGUS_FRAG_INDEX];
+                     struct ArgusFragObject *ofrag = &net->net_union.frag;
 
-                  net->hdr.argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
-                  if (ofrag->parent == NULL) {
-                     ofrag->parent = flow;
-                     if (frag->qhdr.queue != &flow->frag) {
-                        ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
-                        ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                     net->hdr.argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
+                     if (ofrag->parent == NULL) {
+                        ofrag->parent = flow;
+                        if (frag->qhdr.queue != &flow->frag) {
+                           ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
+                           ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                        }
                      }
                   }
                }
@@ -2803,11 +2919,22 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
 
          case ETHERTYPE_IPV6: {
             struct ip6_hdr *iphdr  = (struct ip6_hdr *) model->ArgusThisIpHdr;
-            unsigned int flowid    = iphdr->ip6_flow;
-            unsigned short ftos    = (flowid >> 16);
-            unsigned char tos      = ((ntohs(ftos) >> 4) & 0x00FF);
-            unsigned char ttl      = iphdr->ip6_hlim;
+            unsigned int flowid;
+            unsigned short ftos;
+            unsigned char tos;
+            unsigned char ttl;
             struct ip6_frag *tfrag = NULL;
+
+            /* model->ArgusThisIpHdr for IPv6 may point past the captured buffer after
+             * walking a chain of extension headers (see ArgusCreateIPv6Flow) -- confirm
+             * the header is actually captured before reading ip6_flow/ip6_hlim. */
+            if (!STRUCTCAPTURED(model, *iphdr))
+               break;
+
+            flowid = iphdr->ip6_flow;
+            ftos   = (flowid >> 16);
+            tos    = ((ntohs(ftos) >> 4) & 0x00FF);
+            ttl    = iphdr->ip6_hlim;
 
             if (model->ArgusThisDir) {
                if (!(attr->hdr.argus_dsrvl8.qual & ARGUS_IPATTR_SRC)) {
@@ -2860,8 +2987,10 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
                               
                            if ((frag = ArgusFindFlow (model, model->hstruct)) == NULL) {
 
-/* ok so here things are correct, we're going to schedule the expected frag struct
-            onto the parent flow, and proceed */
+/* 
+   Ok so here things are correct, we're going to schedule the expected frag struct
+   onto the parent flow, and proceed
+*/
 
                               if ((frag = ArgusNewFlow (model, fflow, model->hstruct, &flow->frag)) == NULL)
                                  ArgusLog (LOG_ERR, "ArgusNewFlow() returned NULL.\n");
@@ -2879,16 +3008,22 @@ ArgusUpdateFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow,
 
                            } else {
 
-/* oops, here we've seen parts of the fragment and are just now seeing the 0 offset
-            fragment, so need to move the frag from the general run queue and put it on this
-            parent frag queue */
+/* 
+   oops, here we've seen parts of the fragment and are just now seeing the 0 offset
+   fragment, so need to move the frag from the general run queue and put it on this
+   parent frag queue.
 
-                              if (frag->dsrs[ARGUS_FRAG_INDEX] != NULL)
-                                 frag->dsrs[ARGUS_FRAG_INDEX]->argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
+   Make sure it conforms to being a frag, and then proceed.
+   If not just ignore.
+*/
+                              if (frag->canon.net.hdr.subtype == ARGUS_NETWORK_SUBTYPE_FRAG) {
+                                 if (frag->dsrs[ARGUS_FRAG_INDEX] != NULL)
+                                    frag->dsrs[ARGUS_FRAG_INDEX]->argus_dsrvl8.qual |= ARGUS_FRAG_OUT_OF_ORDER;
 
-                              if (frag->qhdr.queue != &flow->frag) {
-                                 ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
-                                 ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                                 if (frag->qhdr.queue != &flow->frag) {
+                                    ArgusRemoveFromQueue(frag->qhdr.queue, &frag->qhdr, ARGUS_LOCK);
+                                    ArgusAddToQueue(&flow->frag, &frag->qhdr, ARGUS_LOCK);
+                                 }
                               }
                            }
 
@@ -3233,6 +3368,9 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                         int z, tlen = 0;
 
                         switch (trans->hdr.argus_dsrvl8.qual & ~ARGUS_TYPE_INTERFACE) {
+                           /* ARGUS_TYPE_STRING kept at 4 bytes intentionally,
+                            * for V3 wire compatibility -- see setArgusID() in
+                            * ArgusSource.c for the corresponding note. */
                            case ARGUS_TYPE_STRING: 
                            case ARGUS_TYPE_INT:    
                            case ARGUS_TYPE_IPV4:   
@@ -4070,7 +4208,48 @@ ArgusCopyRecordStruct (struct ArgusRecordStruct *rec)
                            case ARGUS_IPATTR_INDEX:    retn->dsrs[i] = &retn->canon.attr.hdr; break;
                            case ARGUS_JITTER_INDEX:    retn->dsrs[i] = &retn->canon.jitter.hdr; break;
                            case ARGUS_ICMP_INDEX:      retn->dsrs[i] = &retn->canon.icmp.hdr; break;
-                           case ARGUS_ENCAPS_INDEX:    retn->dsrs[i] = &retn->canon.encaps.hdr; break;
+                            case ARGUS_ENCAPS_INDEX: {
+                               /*
+                                * rec->canon (bcopy()'d into retn->canon just
+                                * above, at the top of this ARGUS_FAR case)
+                                * includes struct ArgusEncapsStruct's sbuf/
+                                * dbuf raw heap pointers by value -- a
+                                * shallow copy. Left as-is, rec->canon.encaps
+                                * and retn->canon.encaps would share the same
+                                * sbuf/dbuf allocations, and both rec and
+                                * retn are independent ArgusRecordStruct
+                                * list records that each get released via
+                                * ArgusFreeListRecord() (which frees
+                                * dsrs[ARGUS_ENCAPS_INDEX]'s sbuf/dbuf) --
+                                * leading to a double-free/use-after-free
+                                * once either one is freed.
+                                *
+                                * Fixed the same way ARGUS_SRCUSERDATA_INDEX/
+                                * ARGUS_DSTUSERDATA_INDEX (immediately above)
+                                * already handle the identical shared-heap-
+                                * buffer problem: give retn its own,
+                                * independently-allocated copy of sbuf/dbuf,
+                                * rather than sharing rec's.
+                                */
+                               struct ArgusEncapsStruct *rencaps = &retn->canon.encaps;
+                               rencaps->sbuf = NULL;
+                               rencaps->dbuf = NULL;
+
+                               if (rencaps->slen > 0) {
+                                  if ((rencaps->sbuf = (char *) ArgusCalloc(1, ((rencaps->slen + 3) / 4) * 4)) != NULL) {
+                                     bcopy (((struct ArgusEncapsStruct *)rec->dsrs[i])->sbuf, rencaps->sbuf, rencaps->slen);
+                                  } else
+                                     rencaps->slen = 0;
+                               }
+                               if (rencaps->dlen > 0) {
+                                  if ((rencaps->dbuf = (char *) ArgusCalloc(1, ((rencaps->dlen + 3) / 4) * 4)) != NULL) {
+                                     bcopy (((struct ArgusEncapsStruct *)rec->dsrs[i])->dbuf, rencaps->dbuf, rencaps->dlen);
+                                  } else
+                                     rencaps->dlen = 0;
+                               }
+                               retn->dsrs[i] = &retn->canon.encaps.hdr;
+                               break;
+                            }
                            case ARGUS_PSIZE_INDEX:     retn->dsrs[i] = &retn->canon.psize.hdr; break;
                            case ARGUS_MAC_INDEX:       retn->dsrs[i] = &retn->canon.mac.hdr; break;
                            case ARGUS_VLAN_INDEX:      retn->dsrs[i] = &retn->canon.vlan.hdr; break;
@@ -4144,7 +4323,44 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
                   switch (i) {
                      case ARGUS_TRANSPORT_INDEX:   retn->dsrs[i] = &retn->canon.trans.hdr; break;
                      case ARGUS_TIME_INDEX:        retn->dsrs[i] = &retn->canon.time.hdr; break;
-                     case ARGUS_ENCAPS_INDEX:      retn->dsrs[i] = &retn->canon.encaps.hdr; break;
+                     case ARGUS_ENCAPS_INDEX: {
+                        /*
+                         * flow->canon (bcopy()'d into retn->canon just above)
+                         * includes struct ArgusEncapsStruct's sbuf/dbuf raw
+                         * pointers by value -- a shallow copy. Left as-is,
+                         * both flow->canon.encaps and retn->canon.encaps end
+                         * up holding the exact same sbuf/dbuf pointers, with
+                         * two independent, unsynchronized owners and
+                         * lifetimes: retn is handed to the (separate,
+                         * concurrently-running) output thread for
+                         * asynchronous transmission via ArgusGenerateRecord()
+                         * (which reads sbuf/dbuf back out), while flow
+                         * continues on to ArgusDeleteObject() (called from
+                         * the modeler/capture thread, typically very soon
+                         * after, once the flow's timeout/close processing
+                         * finishes), which unconditionally ArgusFree()s
+                         * encaps->sbuf/dbuf. Whichever of those two threads
+                         * loses the race gets a use-after-free.
+                         *
+                         * Fixed the same way ARGUS_SRCUSERDATA_INDEX/
+                         * ARGUS_DSTUSERDATA_INDEX (immediately below) already
+                         * handle the identical shared-heap-buffer-ownership
+                         * problem for their own buffers: transfer ownership
+                         * of sbuf/dbuf to the list record being generated
+                         * (retn) and null out flow's copies, so
+                         * ArgusDeleteObject()'s free of flow->canon.encaps.*
+                         * becomes a no-op and retn is left as the buffers'
+                         * sole owner. ArgusFreeListRecord() (common/argus_util.c)
+                         * is extended alongside this fix to free
+                         * retn->canon.encaps.sbuf/dbuf when the list record
+                         * itself is finally released, mirroring exactly how
+                         * it already frees SRCUSERDATA/DSTUSERDATA today.
+                         */
+                        retn->dsrs[i] = &retn->canon.encaps.hdr;
+                        flow->canon.encaps.sbuf = NULL;
+                        flow->canon.encaps.dbuf = NULL;
+                        break;
+                     }
                      case ARGUS_FLOW_INDEX:        retn->dsrs[i] = &retn->canon.flow.hdr; break;
                      case ARGUS_FLOW_HASH_INDEX:   retn->dsrs[i] = &retn->canon.hash.hdr; break;
                      case ARGUS_METRIC_INDEX:      retn->dsrs[i] = &retn->canon.metric.hdr; break;
@@ -4527,6 +4743,15 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
       while (!done) {
          switch (nxt) {
             case IPPROTO_FRAGMENT: {
+               /* F-22a fix: struct ip6_hbh is only 2 bytes (ip6h_nxt, ip6h_len), but
+                * this case reinterprets the same memory as struct ip6_frag (8 bytes:
+                * ip6f_nxt, ip6f_reserved, ip6f_offlg[2], ip6f_ident[4]) and dereferences
+                * tfrag->ip6f_offlg (bytes 2-3) below -- validate the full 8-byte
+                * ip6_frag struct, not just the 2-byte ip6_hbh alias. */
+               if (!STRUCTCAPTURED(model, *(struct ip6_frag *)ip)) {
+                  done++;
+                  break;
+               }
                int offset = ((((struct ip6_hbh *)ip)->ip6h_len + 1) << 3);
                struct ip6_frag *tfrag = (struct ip6_frag *) ip;
 
@@ -4546,6 +4771,12 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
             case IPPROTO_HOPOPTS:
             case IPPROTO_DSTOPTS:
             case IPPROTO_ROUTING: {
+               /* ip6h_len is read from the extension header itself, which must be
+                * confirmed captured before dereferencing it. */
+               if (!STRUCTCAPTURED(model, *(struct ip6_hbh *)ip)) {
+                  done++;
+                  break;
+               }
                int offset = ((((struct ip6_hbh *)ip)->ip6h_len + 1) << 3);
                nxt = *(char *)ip;
                ip = (struct ip6_hdr *)((char *)ip + offset);
@@ -4591,16 +4822,27 @@ ArgusCreateIPv6Flow (struct ArgusModelerStruct *model, struct ip6_hdr *ip)
             switch (nxt) {
                case IPPROTO_TCP: {
                   struct tcphdr *tp = (struct tcphdr *) model->ArgusThisUpHdr;
-                  sport = ntohs(tp->th_sport);
-                  dport = ntohs(tp->th_dport);
+                  /* unlike the equivalent IPv4 path (ArgusTcp.c:82, STRUCTCAPTURED(model,
+                   * *thdr)), this IPv6 path had no check that the TCP header is actually
+                   * captured before reading th_sport/th_dport. */
+                  if (BYTESCAPTURED(model, *tp, 4)) {
+                     sport = ntohs(tp->th_sport);
+                     dport = ntohs(tp->th_dport);
+                  }
                   break;
                }
 
                case IPPROTO_UDP: {
                   struct udphdr *up = (struct udphdr *) model->ArgusThisUpHdr;
-                  sport = ntohs(up->uh_sport);
-                  dport = ntohs(up->uh_dport);
-                  if ((sport == 53) || (dport == 53)) {
+                  if (BYTESCAPTURED(model, *up, 4)) {
+                     sport = ntohs(up->uh_sport);
+                     dport = ntohs(up->uh_dport);
+                  }
+                  /* confirm the 2 padding bytes immediately after the UDP header are
+                   * within the captured snapshot before reading them (see IPv4 equivalent
+                   * fix above). */
+                  if (((sport == 53) || (dport == 53)) &&
+                      BYTESCAPTURED(model, *up, sizeof(struct udphdr) + 2)) {
                      unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
                      bcopy(&pad, &model->ArgusThisFlow->ipv6_flow.smask, 2);
                   }
@@ -4690,7 +4932,7 @@ void *
 ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 {
    void *retn = model->ArgusThisFlow;
-   unsigned char *nxtHdr = (unsigned char *)((char *)ip + (ip->ip_hl << 2));
+   unsigned char *nxtHdr;
    struct ip tipbuf, *tip = &tipbuf;
    arg_uint16 sport = 0, dport = 0;
    arg_uint8  proto, tp_p = 0;
@@ -4698,6 +4940,10 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
    int hlen, ArgusOptionLen;
 
    if ((ip != NULL) && STRUCTCAPTURED(model, *ip)) {
+      /* F-16 fix: ip->ip_hl must not be read until after the NULL/STRUCTCAPTURED
+       * check above -- previously nxtHdr was computed from ip->ip_hl before this
+       * point, dereferencing ip unconditionally. */
+      nxtHdr = (unsigned char *)((char *)ip + (ip->ip_hl << 2));
       model->ArgusThisIpHdr = ip;
  
 #ifdef _LITTLE_ENDIAN
@@ -4717,9 +4963,13 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
       len = (tip->ip_len - hlen);
 
       model->ArgusOptionIndicator = '\0';
-      if ((ArgusOptionLen = (hlen - sizeof (struct ip))) > 0)
-         model->ArgusOptionIndicator = ArgusParseIPOptions ((unsigned char *) (ip + 1), ArgusOptionLen);
-      else
+      if ((ArgusOptionLen = (hlen - sizeof (struct ip))) > 0) {
+         /* hlen (and thus ArgusOptionLen) is derived from the attacker-controlled
+          * ip_hl field (0-15, up to 60 bytes total header) -- confirm the options
+          * region is actually captured before parsing it. */
+         if (BYTESCAPTURED(model, *ip, hlen))
+            model->ArgusOptionIndicator = ArgusParseIPOptions (model, (unsigned char *) (ip + 1), ArgusOptionLen);
+      } else
          model->ArgusOptionIndicator = 0;
 
       model->ArgusThisLength  = len;
@@ -4761,21 +5011,26 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
                   }
                   break;
                } 
-               case IPPROTO_UDP: {
-                  model->ArgusThisFlow->ip_flow.smask = 0;
-                  model->ArgusThisFlow->ip_flow.dmask = 0;
-                  if (len >= sizeof (struct udphdr)) {
-                     struct udphdr *up = (struct udphdr *) nxtHdr;
-                     if (BYTESCAPTURED(model, *up, 4)) {
-                        sport = ntohs(up->uh_sport);
-                        dport = ntohs(up->uh_dport);
-                     }
-                     if ((sport == 53) || (dport == 53)) {
-                        unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
-                        bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
-                     }
-                  }
-                  break;
+                case IPPROTO_UDP: {
+                   model->ArgusThisFlow->ip_flow.smask = 0;
+                   model->ArgusThisFlow->ip_flow.dmask = 0;
+                   if (len >= sizeof (struct udphdr)) {
+                      struct udphdr *up = (struct udphdr *) nxtHdr;
+                      if (BYTESCAPTURED(model, *up, 4)) {
+                         sport = ntohs(up->uh_sport);
+                         dport = ntohs(up->uh_dport);
+                      }
+                      /* "len" is derived from the IP header's ip_len field, not the actual
+                       * number of captured bytes -- must separately confirm the 2 padding
+                       * bytes immediately after the UDP header are within the captured
+                       * snapshot before reading them. */
+                      if (((sport == 53) || (dport == 53)) &&
+                          BYTESCAPTURED(model, *up, sizeof(struct udphdr) + 2)) {
+                         unsigned short pad = ntohs(*(u_int16_t *)(up + 1));
+                         bcopy(&pad, &model->ArgusThisFlow->ip_flow.smask, 2);
+                      }
+                   }
+                   break;
                }
 
                case IPPROTO_ESP:
@@ -4878,12 +5133,22 @@ ArgusCreateIPv4Flow (struct ArgusModelerStruct *model, struct ip *ip)
 #endif
 
 unsigned short
-ArgusParseIPOptions (unsigned char *ptr, int len)
+ArgusParseIPOptions (struct ArgusModelerStruct *model, unsigned char *ptr, int len)
 {
    unsigned short retn = 0;
    int offset = 0;
 
+   /* F-18 fix: this function previously took only a raw pointer/length with no
+    * reference to the model/captured-buffer end, relying entirely on the
+    * caller's one-time BYTESCAPTURED(model, *ip, hlen) check. That check bounds
+    * the total options region assuming it's well-formed, but a crafted option's
+    * own length byte (ptr[1]) can still walk `ptr` past the actually-captured
+    * buffer while staying within `len`'s bookkeeping. Re-validate each byte
+    * access against the real captured end before reading it. */
    for (; len > 0; ptr += offset, len -= offset) {
+      if (!BYTESCAPTURED(model, *ptr, 1))
+         break;
+
       switch (*ptr) {
          case IPOPT_EOL:      break;
          case IPOPT_NOP:      break;
@@ -4900,6 +5165,8 @@ ArgusParseIPOptions (unsigned char *ptr, int len)
       if ((*ptr == IPOPT_EOL) || (*ptr == IPOPT_NOP))
          offset = 1;
       else {
+         if (!BYTESCAPTURED(model, *ptr, 2))
+            break;
          offset = ptr[1];
          if (!(offset && (offset <= len)))
             break;
@@ -4930,6 +5197,23 @@ setArgusTcpTimeout (struct ArgusModelerStruct *model, int value)
 {
    if (model != NULL) {
       model->ArgusTCPTimeout = value;
+   }
+}
+
+void
+setArgusTcpFallowTimeout (struct ArgusModelerStruct *model, int value)
+{
+   if (model != NULL) {
+      /* F-2 fix: ARGUS_TCP_FALLOW_TIMEOUT (this value) is later used unchecked as an index into
+       * ArgusTimeOutQueue[ARGUSTIMEOUTQS] (ArgusModeler.c, TCP fallow-timeout path). Validate the
+       * range here, at the point the config value enters the model, rather than trusting the
+       * config file / CLI value all the way through to the array-index use. */
+      if ((value < 0) || (value > ARGUSTIMEOUTQS - 1)) {
+         ArgusLog (LOG_ERR, "setArgusTcpFallowTimeout: value %d out of range [0, %d]\n",
+                   value, ARGUSTIMEOUTQS - 1);
+         return;
+      }
+      model->ArgusTCPFallowTimeout = value;
    }
 }
 
@@ -5193,9 +5477,9 @@ setArgusControlPlaneProtocols(struct ArgusModelerStruct *model, char *optarg)
 
    if (optarg && strlen(optarg)) {
       char *str = strdup(optarg);
-      char *sptr = str, *tok;
+      char *sptr = str, *tok, *saveptr = NULL;
 
-      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
+      while ((tok = strtok_r(sptr, ",\t\n", &saveptr)) != NULL) {
          char *proto = NULL;
          int port = 0;
          char *ptr;

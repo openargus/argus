@@ -863,8 +863,9 @@ struct ArgusMarStruct {
    unsigned short reportInterval, argusMrInterval;
 
    unsigned long long pktsRcvd, bytesRcvd;
-   long long drift;
 
+   unsigned int interfaces;
+   unsigned int fallow;
    unsigned int records, flows, dropped;
    unsigned int queue, output, clients;
    unsigned int bufs, bytes;
@@ -1000,7 +1001,6 @@ struct ArgusAsnStruct {
    uint32_t dst_as;        /* originating AS of destination address */
    uint32_t inode_as;      /* originating AS of intermediate node address, if present */
 };
-
 
 struct ArgusNetworkStruct {
    struct ArgusDSRHeader hdr;

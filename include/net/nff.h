@@ -45,6 +45,8 @@
  * $Change: 816 $
  */
 
+#include <net/dlt.h>
+
 #ifndef NFF_MAJOR_VERSION
 
 /* BSD style release date */

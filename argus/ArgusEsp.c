@@ -151,7 +151,15 @@ ArgusUpdateESPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
             }
 
             if (diff != 1) {
-               if ((diff == 0) || (abs(diff) > ARGUS_ESP_WINDOW)) {
+               /* diff is a signed 32-bit wraparound of two attacker-controlled unsigned
+                * 32-bit sequence numbers; when their unsigned difference is exactly
+                * 0x80000000, diff becomes INT_MIN. abs(INT_MIN) is undefined behavior
+                * (its magnitude, 2^31, isn't representable as a positive int) -- confirmed
+                * via fuzzing (UBSan: "negation of -2147483648 cannot be represented in
+                * type 'int'"). Compute the magnitude in unsigned arithmetic instead, which
+                * is well-defined for every possible value of diff, including INT_MIN. */
+               unsigned int absdiff = (diff < 0) ? (0U - (unsigned int) diff) : (unsigned int) diff;
+               if ((diff == 0) || (absdiff > ARGUS_ESP_WINDOW)) {
                   espObj->status |= ARGUS_ESP_SEQFAILURE;
                   if (diff)
                      espObj->lastseq = esp->seq;

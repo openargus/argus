@@ -687,6 +687,9 @@ Argusgen_cmp(int dsr, u_int offset, u_int size, u_int v, u_int op, int type)
       case Q_GREATER: b = new_block(JMP(NFF_JGT)); break;
       case Q_GEQ:     b = new_block(JMP(NFF_JGE)); break;
       case Q_LEQ:     b = new_block(JMP(NFF_JGT)); b->sense = !b->sense; break;
+      default:
+         ArgusLog (LOG_ERR, "Argusgen_cmp: invalid op %d\n", op);
+         return NULL;
    }
    b->stmts = s;
    b->s.data.k = v;
@@ -715,6 +718,9 @@ Argusgen_fcmp(int dsr, u_int offset, u_int size, float v, u_int op, int type)
       case Q_GREATER: b = new_block(JMP(NFF_JGT|NFF_F)); break;
       case Q_GEQ:     b = new_block(JMP(NFF_JGE|NFF_F)); break;
       case Q_LEQ:     b = new_block(JMP(NFF_JGT|NFF_F)); b->sense = !b->sense; break;
+      default:
+         ArgusLog (LOG_ERR, "Argusgen_fcmp: invalid op %d\n", op);
+         return NULL;
    }
 
    b->stmts = s;

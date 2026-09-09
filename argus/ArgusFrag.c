@@ -172,233 +172,240 @@ ArgusUpdateFRAGState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    }
 
    if ((net = (struct ArgusNetworkStruct *) flowstr->dsrs[ARGUS_FRAG_INDEX]) != NULL) {
-      if (net->hdr.subtype != ARGUS_NETWORK_SUBTYPE_FRAG) {
-         if (state == ARGUS_START) {
-            memset (net, 0, sizeof(struct ArgusFragObject) + 4);
+      /* ARGUS_FRAG_INDEX and ARGUS_NETWORK_INDEX share the same dsrs[] slot/union
+       * (net_union), so this slot may currently hold a *different* network-object
+       * type's data (e.g. a TCP ArgusTCPObject, with its own totally different layout
+       * and pointer fields) left over from earlier processing of this flow. Previously
+       * this re-initialization was gated on "state == ARGUS_START", which left the
+       * mismatch unrepaired for any other state value -- the code below would then
+       * walk frag->offsets.nxt as if it were a valid linked list, when it's actually
+       * uninitialized/foreign union bytes, causing a SEGV (confirmed via fuzzing +
+       * persistent-mode replay). The subtype mismatch itself, not the caller's flow
+       * state, is what determines whether re-initialization is needed here. */
 
-            net->hdr.subtype = ARGUS_NETWORK_SUBTYPE_FRAG;
-            net->hdr.argus_dsrvl8.qual  = 0;
-            net->hdr.argus_dsrvl8.len   = ((sizeof(struct ArgusFragObject) + 3)/4) + 1;
-         }
-      }
-
-      frag = &net->net_union.frag;
-      frag->totbytes += model->ArgusThisLength;
+      if (net->hdr.subtype == ARGUS_NETWORK_SUBTYPE_FRAG) {
+         frag = &net->net_union.frag;
+         frag->totbytes += model->ArgusThisLength;
 
 /* is this the first fragment chunk seen ?*/
-      if (!(frag->offsets.end)) {
-         frag->offsets.start = offset;
-         frag->offsets.end   = end;
-         found = 1;
-      
-      } else {
+         if (!(frag->offsets.end)) {
+            frag->offsets.start = offset;
+            frag->offsets.end   = end;
+            found = 1;
+         
+         } else {
 /* if not lets see if we've seen this data before */
 
-         fragOffset = &frag->offsets;
+            fragOffset = &frag->offsets;
 
-         while ((fragOffset != NULL) && !(found)) {
+            while ((fragOffset != NULL) && !(found)) {
 /* this frag is past this frag chunk, so continue */
-            if (offset > fragOffset->end) {
-               prvfragOffset = fragOffset;
-               fragOffset = fragOffset->nxt;
+               if (offset > fragOffset->end) {
+                  prvfragOffset = fragOffset;
+                  fragOffset = fragOffset->nxt;
 
-            } else
+               } else
 
 /* if frag is contiguous with previously frag, then update end */
-            if (offset == fragOffset->end) {
+               if (offset == fragOffset->end) {
 /* check that we don't overlap next frag, prediction is that there is no nxt frag */
-               if ((nxtfragOffset = fragOffset->nxt) == NULL) {
-                  fragOffset->end = end;
-                  found = 1;
-               } else {
-/* this frag connects the two frags so account and remove nxt chunk */
-                  if (end == nxtfragOffset->start) {
-                     fragOffset->nxt = nxtfragOffset->nxt;
-                     fragOffset->end = nxtfragOffset->end;
-                     free(nxtfragOffset);
-                     found = 1;
-                  } else
-/* this frag ends before the next chunk, i.e. we missed several frags  */
-                  if (end < nxtfragOffset->start) {
+                  if ((nxtfragOffset = fragOffset->nxt) == NULL) {
                      fragOffset->end = end;
                      found = 1;
                   } else {
-/* this frag overlaps, so chop this frag, set overlap, and then continue */
-                     offset = nxtfragOffset->start;
-                     fragOffset->end = nxtfragOffset->start;
-                     flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
-                     prvfragOffset = fragOffset;
-                     fragOffset = nxtfragOffset;
-                  }
-               }
-
-            } else
-/* so this offset is before or in this chunk, so check if this is before or previous */
-            if (offset < fragOffset->start) {
-               if (end == fragOffset->start) {
-                  fragOffset->start = offset;
-                  found = 1;
-               } else {
-                  if (end < fragOffset->start) {
-                     fragOffset = NULL;
-                  } else {
-/* so end is in or past this frag, if past, then remove the smaller frag in list and start over */
-                     if (end > fragOffset->end) {
-                        flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
-                        frag->bytes -= (fragOffset->end - fragOffset->start);
-/* if there is a nxt fragment, replace the overlaping frag (fragOffset) with it */
-                        if (fragOffset->nxt != NULL) {
-                           if (prvfragOffset != NULL) {
-                              prvfragOffset->nxt = fragOffset->nxt;
-                           } else {
-                              bcopy((char *) fragOffset->nxt , (char *)&frag->offsets, sizeof(frag->offsets));
-                           }
-/* else just update the prv fragments pointer to toss this one */
-                        } else {
-                           if (prvfragOffset != NULL) {
-                              prvfragOffset->nxt = NULL;
-                           } else {
-/* else we're the first chunk just update this chunk */
-                              fragOffset->start = offset;
-                              fragOffset->end   = end;
-                              found = 1;
-                           }
-                        }
-                        if (fragOffset != &frag->offsets)
-                           free(fragOffset);
-                        prvfragOffset = NULL;
-                        fragOffset = &frag->offsets;
-                     } else {
-/* so (end < fragOffset->end), overlap but account for previous missing chunk */
-                        flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
-                        end = fragOffset->start;
-                        fragOffset->start = offset;
+/* this frag connects the two frags so account and remove nxt chunk */
+                     if (end == nxtfragOffset->start) {
+                        fragOffset->nxt = nxtfragOffset->nxt;
+                        fragOffset->end = nxtfragOffset->end;
+                        free(nxtfragOffset);
                         found = 1;
+                     } else
+/* this frag ends before the next chunk, i.e. we missed several frags  */
+                     if (end < nxtfragOffset->start) {
+                        fragOffset->end = end;
+                        found = 1;
+                     } else {
+/* this frag overlaps, so chop this frag, set overlap, and then continue */
+                        offset = nxtfragOffset->start;
+                        fragOffset->end = nxtfragOffset->start;
+                        flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
+                        prvfragOffset = fragOffset;
+                        fragOffset = nxtfragOffset;
                      }
                   }
-               }
 
-            } else
+               } else
+/* so this offset is before or in this chunk, so check if this is before or previous */
+               if (offset < fragOffset->start) {
+                  if (end == fragOffset->start) {
+                     fragOffset->start = offset;
+                     found = 1;
+                  } else {
+                     if (end < fragOffset->start) {
+                        fragOffset = NULL;
+                     } else {
+/* so end is in or past this frag, if past, then remove the smaller frag in list and start over */
+                        if (end > fragOffset->end) {
+                           flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
+                           frag->bytes -= (fragOffset->end - fragOffset->start);
+/* if there is a nxt fragment, replace the overlaping frag (fragOffset) with it */
+                           if (fragOffset->nxt != NULL) {
+                              if (prvfragOffset != NULL) {
+                                 prvfragOffset->nxt = fragOffset->nxt;
+                              } else {
+                                 bcopy((char *) fragOffset->nxt , (char *)&frag->offsets, sizeof(frag->offsets));
+                              }
+/* else just update the prv fragments pointer to toss this one */
+                           } else {
+                              if (prvfragOffset != NULL) {
+                                 prvfragOffset->nxt = NULL;
+                              } else {
+/* else we're the first chunk just update this chunk */
+                                 fragOffset->start = offset;
+                                 fragOffset->end   = end;
+                                 found = 1;
+                              }
+                           }
+                           if (fragOffset != &frag->offsets)
+                              free(fragOffset);
+                           prvfragOffset = NULL;
+                           fragOffset = &frag->offsets;
+                        } else {
+/* so (end < fragOffset->end), overlap but account for previous missing chunk */
+                           flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
+                           end = fragOffset->start;
+                           fragOffset->start = offset;
+                           found = 1;
+                        }
+                     }
+                  }
+
+               } else
 /* if frag is coincidental with this frag, then retransmission or overlap */
-            if (offset >= fragOffset->start) {
-               if (end <= fragOffset->end) {
-                  if ((offset == fragOffset->start) && (end == fragOffset->end))
-                     flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_SRC_PKTS_RETRANS;
-                  else
-                     flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
-                  newbytes = 0;
-                  found = 1;
-               } else {
+               if (offset >= fragOffset->start) {
+                  if (end <= fragOffset->end) {
+                     if ((offset == fragOffset->start) && (end == fragOffset->end))
+                        flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_SRC_PKTS_RETRANS;
+                     else
+                        flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
+                     newbytes = 0;
+                     found = 1;
+                  } else {
 /* this end extends beyond this frag, so clip and continue */
-                  flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
+                     flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_FRAGOVERLAP;
 /* if we do, chop this frag, set overlap, and then continue */
-                  if ((fragOffset->nxt != NULL) && (fragOffset->nxt->start < end)) {
-                        offset = fragOffset->nxt->start;
-                        fragOffset->end = fragOffset->nxt->start;
-                  } else 
-                        offset = fragOffset->end;
+                     if ((fragOffset->nxt != NULL) && (fragOffset->nxt->start < end)) {
+                           offset = fragOffset->nxt->start;
+                           fragOffset->end = fragOffset->nxt->start;
+                     } else 
+                           offset = fragOffset->end;
 
-                  prvfragOffset = fragOffset;
-                  fragOffset = fragOffset->nxt;
+                     prvfragOffset = fragOffset;
+                     fragOffset = fragOffset->nxt;
+                  }
                }
             }
-         }
 
-         if (flowstr->canon.net.hdr.argus_dsrvl8.qual & ARGUS_FRAGOVERLAP)
+            if (flowstr->canon.net.hdr.argus_dsrvl8.qual & ARGUS_FRAGOVERLAP)
 /* first check the TCP header overlap condition */
-            if ((up_p == IPPROTO_TCP) && ((offset > 0) && (offset < 2)))
-               flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_TCPFRAGOFFSETERROR;
-      }
+               if ((up_p == IPPROTO_TCP) && ((offset > 0) && (offset < 2)))
+                  flowstr->canon.net.hdr.argus_dsrvl8.qual |= ARGUS_TCPFRAGOFFSETERROR;
+         }
 
 /* if its new data update byte counters */
-      if (newbytes)
-         frag->bytes += end - offset;
+         if (newbytes)
+            frag->bytes += end - offset;
 
-      frag->fragnum++;
+         frag->fragnum++;
 
-      if (model->ArgusThisLength > frag->maxfraglen)
-         frag->maxfraglen = model->ArgusThisLength;
+         if (model->ArgusThisLength > frag->maxfraglen)
+            frag->maxfraglen = model->ArgusThisLength;
 
-      switch (proto) {
-         case ETHERTYPE_IP: {
-            struct ip *iphdr = (struct ip *)model->ArgusThisIpHdr;
+         switch (proto) {
+            case ETHERTYPE_IP: {
+               struct ip *iphdr = (struct ip *)model->ArgusThisIpHdr;
 
-            if (!(ntohs(iphdr->ip_off) & IP_MF))
-               frag->totlen = ((ntohs(iphdr->ip_off) & 0x1fff) << 3) +
-                               (ntohs(iphdr->ip_len) - (iphdr->ip_hl << 2));
-            break;
-         }
-         case ETHERTYPE_IPV6: {
-            struct ip6_frag *tfrag = model->ArgusThisIpv6Frag;
-            struct ip6_hdr  *iphdr = (struct ip6_hdr *)model->ArgusThisIpHdr;
-            if (!(tfrag->ip6f_offlg & IP6F_MORE_FRAG)) {
-               frag->totlen = (ntohs(tfrag->ip6f_offlg & IP6F_OFF_MASK) + (ntohs(iphdr->ip6_plen) - 16));
+               if (!(ntohs(iphdr->ip_off) & IP_MF))
+                  frag->totlen = ((ntohs(iphdr->ip_off) & 0x1fff) << 3) +
+                                  (ntohs(iphdr->ip_len) - (iphdr->ip_hl << 2));
+               break;
             }
-            break;
-         }
-      }
-      
-      /* so if we've seen the first fragment we can know how many bytes to expect */
-      if (frag->totlen) {
-         /* so if we've seen all the bytes */
-         if (frag->totlen == frag->bytes) {
-            if (!(ArgusUpdateParentFlow (model, flowstr)))
-               ArgusSendFlowRecord(model, flowstr, ARGUS_STOP);
-
-            /* don't try to deallocate the non-malloc first chunk */
-            if ((fragOffset = frag->offsets.nxt) != NULL) {
-               struct ArgusFragOffsetStruct *toffset = fragOffset->nxt;
-               do { 
-                  toffset = fragOffset->nxt;
-                  free(fragOffset);
-                  fragOffset = toffset;
-               } while (fragOffset);
-            }
-            memset(&frag->offsets, 0, sizeof(frag->offsets));
-            retn = 1;
-
-         } else {
-/* we could wait, thinking we'll get some fragments out of order
-      may just want to finish up here with reported packet loss ?
-      the option is to wait for the timeout */
-
-         }
-
-      } else {
-         /* test if we need add this chunk */
-         if (!found) {
-            /* test if we've used the base frag offset */
-            if (fragOffset || prvfragOffset) {
-               /* yes so we're going to add a new chunk */
-
-               if (fragOffset == NULL)
-                  fragOffset = prvfragOffset;
-
-               if ((thisFragOffset = (struct ArgusFragOffsetStruct *) malloc(sizeof(*thisFragOffset))) != NULL) {
-
-                  thisFragOffset->nxt   = NULL;
-                  thisFragOffset->start = offset;
-                  thisFragOffset->end   = end;
-
-                  /* so does this go as the next chunk or the first chunk */
-                  /* the idea is that fragOffset is the pointer to the new previous chunk */
-                  /* so add it as its nxt pointer */
-                  if (fragOffset->nxt == NULL)
-                     fragOffset->nxt = thisFragOffset;
-                  else {
-                     if ((fragOffset = &frag->offsets) != NULL) {
-                        while (fragOffset->nxt != NULL)
-                           fragOffset = fragOffset->nxt;
-
-                        fragOffset->nxt = thisFragOffset;
-
-                     }
-                  }
+            case ETHERTYPE_IPV6: {
+               struct ip6_frag *tfrag = model->ArgusThisIpv6Frag;
+               struct ip6_hdr  *iphdr = (struct ip6_hdr *)model->ArgusThisIpHdr;
+               if (!(tfrag->ip6f_offlg & IP6F_MORE_FRAG)) {
+                  frag->totlen = (ntohs(tfrag->ip6f_offlg & IP6F_OFF_MASK) + (ntohs(iphdr->ip6_plen) - 16));
                }
+               break;
+            }
+         }
+         
+         /* so if we've seen the first fragment we can know how many bytes to expect */
+         if (frag->totlen) {
+            /* so if we've seen all the bytes */
+            if (frag->totlen == frag->bytes) {
+               if (!(ArgusUpdateParentFlow (model, flowstr)))
+                  ArgusSendFlowRecord(model, flowstr, ARGUS_STOP);
+
+               /* don't try to deallocate the non-malloc first chunk */
+               if ((fragOffset = frag->offsets.nxt) != NULL) {
+                  struct ArgusFragOffsetStruct *toffset = fragOffset->nxt;
+                  do { 
+                     toffset = fragOffset->nxt;
+                     free(fragOffset);
+                     fragOffset = toffset;
+                  } while (fragOffset);
+               }
+               memset(&frag->offsets, 0, sizeof(frag->offsets));
+               retn = 1;
 
             } else {
+/* we could wait, thinking we'll get some fragments out of order
+         may just want to finish up here with reported packet loss ?
+         the option is to wait for the timeout */
+
+            }
+
+         } else {
+            /* test if we need add this chunk */
+            if (!found) {
+               /* test if we've used the base frag offset */
+               if (fragOffset || prvfragOffset) {
+                  /* yes so we're going to add a new chunk */
+
+                  if (fragOffset == NULL)
+                     fragOffset = prvfragOffset;
+
+                  if ((thisFragOffset = (struct ArgusFragOffsetStruct *) malloc(sizeof(*thisFragOffset))) != NULL) {
+
+                     thisFragOffset->nxt   = NULL;
+                     thisFragOffset->start = offset;
+                     thisFragOffset->end   = end;
+
+                     /* so does this go as the next chunk or the first chunk */
+                     /* the idea is that fragOffset is the pointer to the new previous chunk */
+                     /* so add it as its nxt pointer */
+                     if (fragOffset->nxt == NULL)
+                        fragOffset->nxt = thisFragOffset;
+                     else {
+                        if ((fragOffset = &frag->offsets) != NULL) {
+                           while (fragOffset->nxt != NULL)
+                              fragOffset = fragOffset->nxt;
+
+                           fragOffset->nxt = thisFragOffset;
+
+                        }
+                     }
+                  }
+
+               } else {
+               }
             }
          }
+      } else {
+#ifdef ARGUSDEBUG
+         ArgusDebug (4, "ArgusUpdateFRAGState (0x%x, %d) not a  frag struct\n", flowstr, state);
+#endif 
       }
 
    } else {

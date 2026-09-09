@@ -1,0 +1,47 @@
+# Argus CODEOWNERS
+
+# Default owner for the entire repository
+* Carter Bullard - carter@qosient.com
+
+# Documentation
+*.md Carter Bullard - carter@qosient.com
+docs/ Carter Bullard - carter@qosient.com
+
+# Core Argus server
+argus/*.c Carter Bullard - carter@qosient.com
+argus/*.h Carter Bullard - carter@qosient.com
+
+# Protocol parsers
+argus/ArgusTcp.c Carter Bullard - carter@qosient.com
+argus/ArgusUdp.c Carter Bullard - carter@qosient.com
+argus/ArgusIp.c Carter Bullard - carter@qosient.com
+argus/ArgusIcmp.c Carter Bullard - carter@qosient.com
+argus/ArgusArp.c Carter Bullard - carter@qosient.com
+
+# Common utilities
+common/*.c Carter Bullard - carter@qosient.com
+common/*.l Carter Bullard - carter@qosient.com
+common/*.y Carter Bullard - carter@qosient.com
+
+# Include files
+include/ Carter Bullard - carter@qosient.com
+
+# Configuration
+*.conf Carter Bullard - carter@qosient.com
+config/ Carter Bullard - carter@qosient.com
+
+# Build system
+Makefile* Carter Bullard - carter@qosient.com
+configure* Carter Bullard - carter@qosient.com
+*.am Carter Bullard - carter@qosient.com
+*.in Carter Bullard - carter@qosient.com
+
+# Platform-specific
+debian/ Carter Bullard - carter@qosient.com
+support/ Carter Bullard - carter@qosient.com
+
+# Scripts
+bin/ Carter Bullard - carter@qosient.com
+*.sh Carter Bullard - carter@qosient.com
+*.pl Carter Bullard - carter@qosient.com
+

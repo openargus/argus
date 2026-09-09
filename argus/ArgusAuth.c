@@ -155,7 +155,7 @@ ArgusAuthenticateClient (struct ArgusClientData *client)
    }
 
    if ((retn != SASL_OK) && (retn != SASL_CONTINUE)) {
-      sprintf (buf, "%s", sasl_errstring(retn, NULL, NULL));
+      snprintf (buf, sizeof(buf), "%s", sasl_errstring(retn, NULL, NULL));
 #ifdef ARGUSDEBUG
       ArgusDebug (2, "ArgusAuthenticateClient: Error starting SASL negotiation");
 #endif
@@ -189,7 +189,7 @@ ArgusAuthenticateClient (struct ArgusClientData *client)
 
       retn = sasl_server_step(conn, buf, len, &data, &rlen);
       if ((retn != SASL_OK) && (retn != SASL_CONTINUE)) {
-         sprintf (buf, "%s", sasl_errstring(retn, NULL, NULL));
+         snprintf (buf, sizeof(buf), "%s", sasl_errstring(retn, NULL, NULL));
 #ifdef ARGUSDEBUG
          ArgusDebug(2, "Authentication failed %s\n", sasl_errstring(retn, NULL, NULL));
 #endif
@@ -244,7 +244,7 @@ ArgusSendSaslString(FILE *f, const char *s, int l, int mode)
          break;
       }
       default: {
-         sprintf (error, "E: [%d]", mode);
+         snprintf (error, sizeof(error), "E: [%d]", mode);
          ptr = error;
          tsize = strlen(error);
          break;

@@ -126,6 +126,7 @@ usage(void)
    fprintf (stdout, "                                 packets to arrive in packet capture file.\n");
    fprintf (stdout, "         -F <conffile>           read configuration from <conffile>.\n");
    fprintf (stdout, "         -h                      print help.\n");
+   fprintf (stdout, "         -H <size>               specify flow hash table size (4096).\n");
    fprintf (stdout, "         -i <interface>          specify interface to use as a packet source.\n");
    fprintf (stdout, "             Supported formats:                                              \n");
    fprintf (stdout, "                -i ind:all                    open all as independent sources.\n");
@@ -135,6 +136,7 @@ usage(void)
    fprintf (stdout, "                -i en0/srcid -i en1/srcid     equivalent to '-i ind:en0/..'   \n");
    fprintf (stdout, "                -i en0 en1                     equivalent '-i bond:en0,en1')  \n");
    fprintf (stdout, "         -J                      generate packet performance data.\n");
+   fprintf (stdout, "         -l                      list available network interfaces and exit.\n");
    fprintf (stdout, "         -M <secs>               set MAR Status Report Time Interval (300s).\n");
    fprintf (stdout, "         -m                      turn on MAC Layer Reporting.\n");
    fprintf (stdout, "         -O                      turn off filter optimizer.\n");
@@ -323,6 +325,7 @@ main (int argc, char *argv[])
 #endif
 #endif
    int status;
+   size_t stacksize;
 #endif
 
 #if defined(ARGUS_FLEXLM)
@@ -740,6 +743,27 @@ main (int argc, char *argv[])
    pthread_attr_setdetachstate(ArgusAttr, PTHREAD_CREATE_JOINABLE);
 #endif
 
+#if defined(_POSIX_THREAD_ATTR_STACKSIZE)
+#define ARGUS_MIN_STACKSIZE     0x10000000
+ 
+   if (pthread_attr_getstacksize(ArgusAttr, &stacksize))
+      ArgusLog (LOG_ERR, "pthreads get stacksize error");
+ 
+   if (stacksize < ARGUS_MIN_STACKSIZE) {
+      size_t nstacksize;
+ 
+      if (pthread_attr_setstacksize(ArgusAttr, ARGUS_MIN_STACKSIZE))
+         ArgusLog (LOG_ERR, "pthreads set stacksize error");
+ 
+      if (pthread_attr_getstacksize(ArgusAttr, &nstacksize))
+         ArgusLog (LOG_ERR, "pthreads get stacksize error");
+ 
+#ifdef ARGUSDEBUG
+      ArgusDebug (1, "stacksize from %d to %d", stacksize, nstacksize);
+#endif                
+   }                  
+#endif
+
    ArgusInitOutput (ArgusOutputTask);
 
    if (getArgusrfile(ArgusSourceTask) != NULL) {
@@ -851,7 +875,7 @@ ArgusComplete ()
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
       char sbuf[MAXSTRLEN];
       if (ArgusSourceTask->ArgusInterface[i].ArgusDevice != NULL) {
-         sprintf (sbuf, "%s\n    Total Pkts %8lld  Rate %f\n",
+         snprintf (sbuf, sizeof(sbuf), "%s\n    Total Pkts %8lld  Rate %f\n",
                      ArgusSourceTask->ArgusInterface[i].ArgusDevice->name, ArgusSourceTask->ArgusInterface[i].ArgusTotalPkts,
                      ArgusSourceTask->ArgusInterface[i].ArgusTotalPkts/totaltime);
          ArgusIntStr[i] = strdup(sbuf);
@@ -886,7 +910,7 @@ ArgusComplete ()
       buf[i] = ' ';
 
    if (ArgusTotalNewFlows > 0) {
-      extern int ArgusAllocTotal, ArgusFreeTotal;
+      extern long long ArgusAllocTotal, ArgusFreeTotal;
 
       fprintf (stderr, "%s: Time %d.%06d Flows %-8lld  Closed %-8lld  Sends %-8lld  BSends %-8lld\n",
                          ArgusProgramName, (int)timediff.tv_sec, (int)timediff.tv_usec,
@@ -894,7 +918,7 @@ ArgusComplete ()
                          ArgusTotalSends, ArgusTotalBadSends);
       fprintf (stderr, "%*s  Updates %-8lld Cache %-8lld\n", (int)strlen(ArgusProgramName), " ",
                          ArgusTotalUpdates, ArgusTotalCacheHits);
-      fprintf (stderr, "%*s  Total Memory %-8d Free %-8d\n", (int)strlen(ArgusProgramName), " ",
+      fprintf (stderr, "%*s  Total Memory %-8lld Free %-8lld\n", (int)strlen(ArgusProgramName), " ",
                          ArgusAllocTotal, ArgusFreeTotal);
    }
    for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
@@ -942,6 +966,22 @@ ArgusScheduleShutDown (int sig)
 {
    ArgusSourceTask->status |= ARGUS_SHUTDOWN;
 
+   /*
+    * ArgusShutDownSig/ArgusShutDownFlag must always be set, in every build
+    * configuration -- they are the flag every capture/read loop actually
+    * polls to notice a requested shutdown (see e.g. ArgusModeler.c's
+    * ArgusProcessPacket() stall loop and ArgusSource.c's several capture
+    * read loops). Previously these two assignments were nested inside
+    * "#ifdef ARGUSDEBUG", which is only defined in local developer builds
+    * (via the gitignored ".debug" marker file, consumed by configure) and
+    * is NOT defined in normal production builds/packages. In production,
+    * this function was a no-op beyond setting ArgusSourceTask->status,
+    * which nothing polls in the same way -- SIGINT/SIGTERM/SIGHUP could
+    * not cleanly stop a running capture loop.
+    */
+   ArgusShutDownSig = sig;
+   ArgusShutDownFlag++;
+
 #ifdef ARGUSDEBUG
 #if defined(HAVE_BACKTRACE)
    if (Argusdflag > 1) {
@@ -950,8 +990,6 @@ ArgusScheduleShutDown (int sig)
    }
 #endif
 
-   ArgusShutDownSig = sig;
-   ArgusShutDownFlag++;
    ArgusDebug (1, "ArgusScheduleShutDown(%d)\n", sig);
 #endif 
 }
@@ -1010,9 +1048,9 @@ setArgusBindAddr (struct ArgusOutputStruct *output, char *value)
          output->ArgusBindAddrs = ArgusNewList();
 
       struct ArgusBindAddrStruct *baddr;
-      char *tok, *ptr = value;
+      char *tok, *ptr = value, *saveptr = NULL;
 
-      while ((tok = strtok (ptr, ", \t")) != NULL) {
+      while ((tok = strtok_r (ptr, ", \t", &saveptr)) != NULL) {
 
          if ((baddr = (struct ArgusBindAddrStruct *) ArgusCalloc(1, sizeof(*baddr))) == NULL)
             ArgusLog (LOG_ERR, "setArgusBindAddr ArgusCalloc %s\n", strerror(errno));
@@ -1059,7 +1097,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				67
+#define ARGUS_RCITEMS				68
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1128,7 +1166,7 @@ getArguspidflag ()
 #define ARGUS_TUNNEL_INFORMATION		64
 #define ARGUS_BIND_IP				65
 #define ARGUS_ENCAPS_CAPTURE			66
-
+#define ARGUS_TCP_FALLOW_TIMEOUT		67
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MONITOR_ID=",
@@ -1197,7 +1235,8 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_TUNNEL_PARSING=",
    "ARGUS_TUNNEL_INFORMATION=",
    "ARGUS_BIND_IP=",
-   "ARGUS_ENCAPS_CAPTURE="
+   "ARGUS_ENCAPS_CAPTURE=",
+   "ARGUS_TCP_FALLOW_TIMEOUT="
 };
 
 
@@ -1304,7 +1343,20 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
    if (file) {
       if ((fd = fopen (file, "r")) != NULL) {
-         while ((fgets(str, MAXSTRLEN, fd)) != NULL)  {
+         while ((fgets(strbuf, MAXSTRLEN, fd)) != NULL)  {
+            /*
+             * Always read each line into the start of strbuf, and reset the
+             * working pointer str back to strbuf here, before any of this
+             * loop body's parsing gets a chance to advance it (e.g. the
+             * leading-whitespace skip below, or the ARGUS_FILTER case's
+             * "str = optarg" reassignment further down). Previously str was
+             * left wherever a prior iteration's parsing had advanced it to,
+             * and fgets() was called with that stale, already-advanced
+             * pointer as its destination -- writing up to MAXSTRLEN bytes
+             * starting from partway into strbuf can write past the end of
+             * the buffer, corrupting adjacent stack memory.
+             */
+            str = strbuf;
             done = 0;
             linenum++;
             while (*str && isspace((int)*str))
@@ -1380,9 +1432,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                           }
 
                                           if (appendInf)
-                                             sprintf(buf, "\"%s\"/inf",  ptr);
+                                             snprintf(buf, sizeof(buf), "\"%s\"/inf",  ptr);
                                           else
-                                             sprintf(buf, "\"%s\"",  ptr);
+                                             snprintf(buf, sizeof(buf), "\"%s\"",  ptr);
 
                                           optarg = strdup(buf);
 
@@ -1398,9 +1450,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                           uuid_unparse(id, sbuf);
 
                                           if (appendInf)
-                                             sprintf(buf, "%s/inf", sbuf);
+                                             snprintf(buf, sizeof(buf), "%s/inf", sbuf);
                                           else
-                                             sprintf(buf, "%s", sbuf);
+                                             snprintf(buf, sizeof(buf), "%s", sbuf);
                                           optarg = strdup(buf);
                                        } else
                                           ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) System error: gethostuuid() %s\n", file, strerror(errno));
@@ -1412,9 +1464,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                        bzero(uuidstr, 64);
                                        if (__linux_get_machine_id_uuid(uuidstr, 37) == 0) {
                                           if (appendInf)
-                                             sprintf(buf, "%s/inf", uuidstr);
+                                             snprintf(buf, sizeof(buf), "%s/inf", uuidstr);
                                           else
-                                             sprintf(buf, "%s", uuidstr);
+                                             snprintf(buf, sizeof(buf), "%s", uuidstr);
                                           optarg = strdup(buf);
                                        } else {
                                           ArgusLog(LOG_ERR, "%s(%s) unable to "
@@ -1428,9 +1480,9 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                                        if (__wmic_get_uuid(uuidstr, 37) == 0) {
                                           if (appendInf)
-                                             sprintf(buf, "%s/inf", uuidstr);
+                                             snprintf(buf, sizeof(buf), "%s/inf", uuidstr);
                                           else
-                                             sprintf(buf, "%s", uuidstr);
+                                             snprintf(buf, sizeof(buf), "%s", uuidstr);
                                           optarg = strdup(buf);
                                        } else {
                                           ArgusLog(LOG_ERR, "%s(%s) unable to " "read system UUID\n", __func__, file);
@@ -1438,8 +1490,8 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 #  endif
 # endif
 #endif
-                                    } else
-                                       ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` line %d.\n", optarg, linenum);
+                                     } else
+                                        ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) unsupported command `%s` line %d.\n", file, optarg, linenum);
                                  } else
                                     ArgusLog (LOG_ERR, "ArgusParseResourceFile(%s) syntax error line %d\n", file, linenum);
                               }
@@ -1573,19 +1625,36 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         case ARGUS_FILTER:
                            if ((ArgusSourceTask->ArgusInputFilter = ArgusCalloc (1, MAXSTRLEN)) != NULL) {
                               char *ptr = ArgusSourceTask->ArgusInputFilter;
+                              char *ptrend = ptr + MAXSTRLEN - 1;
+                              char contbuf[MAXSTRLEN];
                               str = optarg;
                               while (*str) {
                                  if ((*str == '\\') && (str[1] == '\n')) {
-                                    if (fgets(str, MAXSTRLEN, fd) != NULL)
+                                    /*
+                                     * Read a continuation line into its own buffer, not
+                                     * into str's current position (which points somewhere
+                                     * inside strbuf/optarg, not at its start) -- fgets()
+                                     * writing MAXSTRLEN bytes there would overwrite past
+                                     * the end of strbuf, the same class of bug as the
+                                     * caller's own fgets() call above this switch.
+                                     */
+                                    if (fgets(contbuf, MAXSTRLEN, fd) != NULL) {
+                                       str = contbuf;
                                        while (*str && (isspace((int)*str) && (str[1] && isspace((int)str[1]))))
                                           str++;
+                                    } else
+                                       break;
                                  }
-                                 
-                                 if ((*str != '\n') && (*str != '"'))
-                                    *ptr++ = *str++;
-                                 else
+
+                                 if ((*str != '\n') && (*str != '"')) {
+                                    if (ptr < ptrend)
+                                       *ptr++ = *str++;
+                                    else
+                                       str++;
+                                 } else
                                     str++;
                               }
+                              *ptr = '\0';
 #ifdef ARGUSDEBUG
                            ArgusDebug (1, "ArgusParseResourceFile: ArgusFilter \"%s\" \n", ArgusSourceTask->ArgusInputFilter);
 #endif 
@@ -1687,11 +1756,11 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                            break;
 
                         case ARGUS_FLOW_KEY: {
-                           char *tok = NULL;
+                           char *tok = NULL, *saveptr = NULL;
 
                            setArgusFlowKey (model, 0);
 
-                           while ((tok = strtok(optarg, " +\t")) != NULL) {
+                           while ((tok = strtok_r(optarg, " +\t", &saveptr)) != NULL) {
                               if (!(strncasecmp(tok, "CLASSIC_5_TUPLE", 14)))
                                  setArgusFlowKey (model, ARGUS_FLOW_KEY_CLASSIC5TUPLE);
                               else
@@ -1871,6 +1940,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
                         case ARGUS_TCP_TIMEOUT: {
                            setArgusTcpTimeout (model, atoi(optarg));
+                           break;
+                        }
+                        case ARGUS_TCP_FALLOW_TIMEOUT: {
+                           setArgusTcpFallowTimeout (model, atoi(optarg));
                            break;
                         }
                         case ARGUS_ICMP_TIMEOUT: {
@@ -2158,7 +2231,7 @@ setArgusEventDataRecord (char *ptr)
 {
    struct ArgusEventRecordStruct *event = NULL;
    char *sptr = NULL, *method = NULL, *file = NULL;
-   char *tok = NULL, *pp = NULL, *tptr = NULL;
+   char *tok = NULL, *pp = NULL, *tptr = NULL, *saveptr = NULL;
    int ind = 0, interval = 0, elem = 0;
 
    if (ArgusEventsTask == NULL)
@@ -2171,7 +2244,7 @@ setArgusEventDataRecord (char *ptr)
       int i;
 
       if ((sptr = strdup(ptr)) != NULL)
-         tok = strtok(sptr, ":");
+         tok = strtok_r(sptr, ":", &saveptr);
 
       while (tok != NULL) {
          switch (ind++) {
@@ -2212,7 +2285,7 @@ setArgusEventDataRecord (char *ptr)
                ArgusLog (LOG_ERR, "setArgusEventDataRecord, syntax error %s\n", ptr);
                break;
          }
-         tok = strtok(NULL, ":");
+         tok = strtok_r(NULL, ":", &saveptr);
       }
 
       if (elem < 3)
@@ -2235,8 +2308,18 @@ setArgusEventDataRecord (char *ptr)
   
          ArgusPushFrontList(ArgusEventsTask->ArgusEventsList, (struct ArgusListRecord *) event, ARGUS_LOCK);
 
-      } else
+      } else {
+         /* F-8 fix: method/file are strdup'd above and normally handed off to `event` (freed
+          * later via ArgusDeleteList's ARGUS_EVENT_LIST case). If ArgusCalloc fails here,
+          * `event` stays NULL and that handoff never happens -- free them explicitly before
+          * ArgusLog(LOG_ERR, ...) below exits, for correctness/hygiene even though the process
+          * exit would otherwise reclaim them anyway. */
+         if (method != NULL)
+            free(method);
+         if (file != NULL)
+            free(file);
          ArgusLog (LOG_ERR, "setArgusEventDataRecord, ArgusCalloc %s\n", strerror(errno));
+      }
 
       free(pp);
    } else

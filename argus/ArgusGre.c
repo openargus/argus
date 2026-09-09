@@ -63,7 +63,12 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
    model->ArgusSnapLength -= hlen;
 */
       length -= hlen;
-         
+
+      /* flags + protocol-type fields are 4 bytes total; confirm they are captured
+       * before reading, rather than trusting the caller's length accounting alone. */
+      if (!BYTESCAPTURED(model, *bp, 4))
+         return (0);
+
       flags = EXTRACT_16BITS(bp);
       bp += sizeof(unsigned short);
 

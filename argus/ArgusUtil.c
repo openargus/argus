@@ -46,6 +46,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 
 #if defined(HAVE_SYS_VFS_H)
 #include <sys/vfs.h>
@@ -758,7 +759,7 @@ ArgusUpdateTime (struct ArgusModelerStruct *model)
          model->ArgusUpdateTimer.tv_sec++; 
          model->ArgusUpdateTimer.tv_usec -= 1000000;
          if (model->ArgusUpdateTimer.tv_usec >= 1000000) {
-            ArgusLog (LOG_ERR, "ArgusUpdateTime: usec still too big %d(using MICRO)\n", model->ArgusUpdateTimer.tv_usec);
+            ArgusLog (LOG_ERR, "ArgusUpdateTime: usec still too big %ld(using MICRO)\n", (long)model->ArgusUpdateTimer.tv_usec);
          }
       }
 #endif
@@ -803,7 +804,7 @@ ArgusNewHashTable (size_t size, int status)
    struct ArgusHashTable *retn = NULL;
 
    if ((retn = (struct ArgusHashTable *) ArgusCalloc (1, sizeof(*retn))) == NULL)
-      ArgusLog (LOG_ERR, "ArgusNewHashTable: ArgusCalloc(1, %d) error %s\n", size, strerror(errno));
+      ArgusLog (LOG_ERR, "ArgusNewHashTable: ArgusCalloc(1, %zu) error %s\n", sizeof(*retn), strerror(errno));
 
    if ((retn->array = (struct ArgusHashTableHeader **)
                       ArgusMallocAligned (size * sizeof(struct ArgusHashTableHeader *), 64)) == NULL)
@@ -1221,10 +1222,10 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
    memset(&flow->dtime.act,  0, sizeof(flow->dtime.act));
    memset(&flow->dtime.idle, 0, sizeof(flow->dtime.idle));
 
-   flow->stime.act.minval  = 0xffffffff;
-   flow->stime.idle.minval = 0xffffffff;
-   flow->dtime.act.minval  = 0xffffffff;
-   flow->dtime.idle.minval = 0xffffffff;
+   flow->stime.act.minval  = FLT_MAX;
+   flow->stime.idle.minval = FLT_MAX;
+   flow->dtime.act.minval  = FLT_MAX;
+   flow->dtime.idle.minval = FLT_MAX;
 
    flow->sipid = 0;
    flow->dipid = 0;

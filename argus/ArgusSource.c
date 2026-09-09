@@ -488,14 +488,14 @@ int
 setArgusTimestampType(char *optarg)
 {
    int retn = 0;
-   char *str, *ptr, *tok;
+   char *str, *ptr, *tok, *saveptr = NULL;
 
    if (optarg && strlen(optarg)) {
       str = strdup(optarg);
       ptr = str;
 
 #if defined(HAVE_PCAP_SET_TSTAMP_TYPE)
-      while ((tok = strtok(ptr, " ,\r\n")) != NULL) {
+      while ((tok = strtok_r(ptr, " ,\r\n", &saveptr)) != NULL) {
          if (!(strcasecmp(tok, "hiprec"))) {
             ArgusTimeStampType |= ARGUS_TIMESTAMP_HIPREC;
          } else if (!(strcasecmp(tok, "lowprec"))) {
@@ -596,6 +596,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
 // struct ArgusInput *addr = NULL;
    long int portnum = 0;
    int proto = 0;
+   char *saveptr = NULL;
 
    if (ArgusShutDownFlag)
       return retn;
@@ -616,7 +617,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
          inf->mode = device->mode;
          hostname = inf->hostname;
 
-         while ((sptr = strtok(hostname, " ")) != NULL) {
+         while ((sptr = strtok_r(hostname, " ", &saveptr)) != NULL) {
             tptr = sptr;
             if ((ptr = strstr(tptr, "://")) != NULL) {
                ptr = &ptr[3];
@@ -684,6 +685,11 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                   *aptr++ = '\0';
 //                pptr = strdup(aptr);
                }
+               /* F-8 fix: uptr is only used above (as a scratch copy to locate ':' in the
+                * user-info portion of a user@host string); its contents aren't referenced
+                * again, so free it here rather than leaking it on every loop iteration. */
+               free(uptr);
+               uptr = NULL;
             }
 
             if ((fptr = strchr (ptr, (int)'/')) != NULL) {
@@ -699,7 +705,7 @@ ArgusOpenInterface(struct ArgusSourceStruct *src, struct ArgusDeviceStruct *devi
                      *tptr++ = '\0';
                      portnum = strtol(tptr, &endptr, 10);
                      if (endptr != &tptr[strlen(tptr)]) {
-                        ArgusLog (LOG_ALERT, "ArgusAddServerList(%s) format error %s is not a port number", tptr);
+                        ArgusLog (LOG_ALERT, "ArgusAddServerList(%s) format error %s is not a port number", hostname, tptr);
                      } else
                         servname = tptr;
                   }
@@ -1287,7 +1293,24 @@ setArgusID(struct ArgusSourceStruct *src, void *ptr, int len, unsigned int type)
       trans->hdr.argus_dsrvl8.qual = type;
 
       switch (type & ~ARGUS_TYPE_INTERFACE) {
-         case ARGUS_TYPE_STRING: bcopy((char *)ptr, &trans->srcid.a_un.str, strlen((char *)ptr)); break;
+         case ARGUS_TYPE_STRING: {
+            /* ARGUS_TYPE_STRING is intentionally kept at the V3 record srcid
+             * length (4 bytes) for backward/forward wire compatibility with
+             * V3 (struct ArgusV3AddrStruct.a_un.str[4]), even though this V5
+             * union has 16 bytes of storage available (shared with uuid/ipv6).
+             * Do not widen this without also updating the matching ARGUS_TYPE_STRING
+             * length assumptions in ArgusModeler.c:ArgusGenerateRecord,
+             * ArgusEvents.c:ArgusEventRecord, and ArgusOutput.c's two MAR-record
+             * srcid encoders (ArgusGenerateInitialMar / status MAR) -- planned
+             * together as part of a future V3-support-obsoletion release, not
+             * before (security review finding F-32).
+             */
+            size_t cplen = strlen((char *)ptr);
+            if (cplen > sizeof(trans->srcid.a_un.str))
+               cplen = sizeof(trans->srcid.a_un.str);
+            bcopy((char *)ptr, &trans->srcid.a_un.str, cplen);
+            break;
+         }
          case ARGUS_TYPE_INT:    trans->srcid.a_un.value = *(unsigned int *)ptr; offset = sizeof(unsigned int); break;
          case ARGUS_TYPE_IPV4:   trans->srcid.a_un.ipv4 = ntohl(*(unsigned int *)ptr); offset = sizeof(unsigned int); break;
          case ARGUS_TYPE_IPV6:   bcopy((char *)ptr, &trans->srcid.a_un.ipv6, 16); offset = sizeof(trans->srcid.a_un.ipv6); break;
@@ -1647,7 +1670,7 @@ struct ArgusAddressStruct {
  
          fd = ArgusGetInterfaceFD;
 
-         strcpy(ifr.ifr_name, dev->name);
+         strlcpy(ifr.ifr_name, dev->name, sizeof(ifr.ifr_name));
 
          if ((ioctl(fd, SIOCGIFFLAGS, (char *)&ifr)) == 0) {
             retn->flags = ifr.ifr_flags;
@@ -1694,6 +1717,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
    if (cmd && (strlen(cmd) > 0)) {
       struct ArgusDeviceStruct *device = NULL;
       char *errbuf, *tok, *stok, *params = NULL;
+      char *saveptr = NULL, *ssaveptr = NULL;
       pcap_if_t *alldevs = NULL, *d;
       char *ptr = NULL;
       struct ArgusDeviceStruct *dev = NULL;
@@ -1751,7 +1775,14 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
             status = ARGUS_TYPE_IND;
          }
 
-         while ((tok = strtok(ptr, " ")) != NULL) {
+         /* F-5 fix: this outer strtok() and the inner strtok() at the ARGUS_FILE_DEVICE case
+          * below (tokenizing `tok` on ",") shared strtok's single static save-position state --
+          * a real, confirmed correctness bug, not just a hypothetical thread-safety one: any
+          * outer token containing a comma caused the inner loop's strtok(tok, ",") calls to
+          * clobber the outer loop's saved position in `ptr`, making the outer while-loop
+          * silently terminate early and skip remaining space-separated device groups. Using
+          * independent strtok_r() save pointers for the outer and inner loops fixes this. */
+         while ((tok = strtok_r(ptr, " ", &saveptr)) != NULL) {
             char *srcid = NULL, *dlt = NULL, *sptr = NULL;
 
             switch (type) {
@@ -1848,7 +1879,7 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
                }
 
                case ARGUS_FILE_DEVICE: {
-                  while ((stok = strtok(tok, ",")) != NULL) {
+                  while ((stok = strtok_r(tok, ",", &ssaveptr)) != NULL) {
                      if ((dev = (struct ArgusDeviceStruct *) ArgusCalloc(1, sizeof(*device))) == NULL)
                               ArgusLog (LOG_ERR, "setArgusDevice ArgusCalloc %s\n", strerror(errno));
 
@@ -1916,6 +1947,13 @@ setArgusDevice (struct ArgusSourceStruct *src, char *cmd, int type, int mode)
             }
             ptr = NULL;
          }
+      }
+
+      /* F-8 fix: params (a strdup'd copy of cmd) is used above as the strtok() buffer but
+       * was never freed on any path through this function -- leaked on every call. */
+      if (params != NULL) {
+         free(params);
+         params = NULL;
       }
 
       if (device != NULL)
@@ -1989,9 +2027,9 @@ setArgusrfile (struct ArgusSourceStruct *src, char *value)
    if (value) {
       struct ArgusRfileStruct *rfile;
       struct stat statbuf;
-      char *tok, *ptr = value;
+      char *tok, *ptr = value, *saveptr = NULL;
 
-      while ((tok = strtok (ptr, " \t")) != NULL) {
+      while ((tok = strtok_r (ptr, " \t", &saveptr)) != NULL) {
          char *tptr;
          int mode = 0;
          if (strcmp("-", tok)) {
@@ -2007,8 +2045,10 @@ setArgusrfile (struct ArgusSourceStruct *src, char *value)
 
                tok = tptr + 6;
             }
-            if (stat(tok, &statbuf) < 0)
-               ArgusLog (LOG_ERR, "input file '%s': %s", tok, strerror(errno));
+            if (stat(tok, &statbuf) < 0) {
+               fprintf (stderr, "file '%s': %s\n", tok, strerror(errno));
+               exit(-1);
+            }
          }
 
          if ((rfile = (struct ArgusRfileStruct *) ArgusCalloc(1, sizeof(*rfile))) == NULL)
@@ -2604,9 +2644,9 @@ setArgusPacketCaptureProtocols(struct ArgusDumpStruct *dump, char *optarg)
 
    if (optarg && strlen(optarg)) {
       struct protoent *pent = NULL;
-      char *sptr = optarg, *tok;
+      char *sptr = optarg, *tok, *saveptr = NULL;
 
-      while ((tok = strtok(sptr, ",\t\n")) != NULL) {
+      while ((tok = strtok_r(sptr, ",\t\n", &saveptr)) != NULL) {
          found = 0;
          if ((pent = getprotobyname(tok)) != NULL) {
             ppc[pent->p_proto] = 1;
@@ -2978,8 +3018,8 @@ ArgusArcnetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    ArgusModel->ArgusGlobalTime = *tvp;
    src->ArgusModel->ArgusGlobalTime  = *tvp;
    if (src->ArgusModel->ArgusGlobalTime.tv_sec < 0) {
-      ArgusLog (LOG_ERR, "ArgusArcnetPacket (%p, %p, %p) libpcap timestamp out of range %d.%d\n",
-              user, h, p, src->ArgusModel->ArgusGlobalTime.tv_sec, src->ArgusModel->ArgusGlobalTime.tv_usec);
+      ArgusLog (LOG_ERR, "ArgusArcnetPacket (%p, %p, %p) libpcap timestamp out of range %ld.%ld\n",
+              user, h, p, (long)src->ArgusModel->ArgusGlobalTime.tv_sec, (long)src->ArgusModel->ArgusGlobalTime.tv_usec);
    }   
 
 
@@ -4523,7 +4563,6 @@ ArgusSlipPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #define ETHER_ADDR_LEN  6
 #endif
 
-
 void
 ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
@@ -4535,8 +4574,7 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    const struct sll_header *sllp = NULL;
    struct timeval tvpbuf, *tvp = &tvpbuf;
 
-   unsigned char buf[2048];
-   struct ether_header *ep = (struct ether_header *)buf;
+   struct ether_header *ep = (struct ether_header *)src->ArgusSllPkt;
    u_short pkttype;
 
    tvp->tv_sec  = h->ts.tv_sec;
@@ -4550,6 +4588,20 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
    if (ArgusDumpTask->ArgusDumpPacket)
       ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
+
+   if ((caplen < SLL_HDR_LEN) || (length < SLL_HDR_LEN)) {
+      /*
+       * Truncated or malformed cooked-capture (DLT_LINUX_SLL) packet:
+       * there isn't even a complete SLL pseudo-header present.  Bail
+       * out before touching any SLL header fields or doing arithmetic
+       * on caplen/length, both of which would otherwise underflow.
+       */
+#ifdef ARGUSDEBUG
+      ArgusDebug (3, "ArgusSllPacket (%p, %p, %p) truncated SLL header: caplen %u length %u\n",
+                  user, h, p, caplen, length);
+#endif
+      return;
+   }
 
    sllp = (const struct sll_header *)p;
    memcpy((void *)&ep->ether_shost, sllp->sll_addr, ETHER_ADDR_LEN);
@@ -4590,12 +4642,27 @@ ArgusSllPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    length -= SLL_HDR_LEN;
    caplen -= SLL_HDR_LEN;
    p += SLL_HDR_LEN;
- 
+
+   if (caplen > (sizeof(src->ArgusSllPkt) - sizeof(*ep))) {
+      /*
+       * Guard against overflowing the fixed-size ArgusSllPkt buffer.
+       * This should not happen with a well-formed capture (caplen is
+       * bounded by the interface snaplen), but a corrupted or crafted
+       * capture file could otherwise drive an oversized memcpy() into
+       * this source's per-source scratch buffer.
+       */
+#ifdef ARGUSDEBUG
+      ArgusDebug (3, "ArgusSllPacket (%p, %p, %p) caplen %u exceeds ArgusSllPkt capacity\n",
+                  user, h, p, caplen);
+#endif
+      return;
+   }
+
    ep->ether_type = sllp->sll_protocol;
- 
+
    memcpy((ep + 1), p, caplen);
 
-   model->ArgusThisSnapEnd = (unsigned char *)(ep + caplen);
+   model->ArgusThisSnapEnd = ((unsigned char *)ep) + sizeof(*ep) + caplen;
    model->ArgusThisLength  = length;
    model->ArgusSnapLength  = caplen;
    model->ArgusThisEncaps  = ARGUS_ENCAPS_SLL;
@@ -5500,7 +5567,7 @@ ArgusGetPackets (void *arg)
       if (src->ArgusInterface[0].fd > 0) {
          inf = &src->ArgusInterface[0];
 
-	 while (!inf->ArgusReadDone) {
+	 while (!inf->ArgusReadDone && !ArgusShutDownFlag) {
             int width = -1, retn = 0;
             fd_set readmask;
             FD_ZERO(&readmask);
@@ -5511,8 +5578,28 @@ ArgusGetPackets (void *arg)
                width++;
                wait.tv_sec = 0;
                wait.tv_usec = 500000;
-      
-               if ((retn = select (width, &readmask, NULL, NULL, &wait)) >= 0) {
+
+               /*
+                * Only call ArgusReadSflowDatagramSocket() (which calls a
+                * blocking recvfrom()) when select() reports the socket is
+                * actually readable (retn > 0). select() returning 0 means
+                * the 500ms wait timed out with nothing ready -- that must
+                * fall through to the top of the loop so
+                * "!inf->ArgusReadDone && !ArgusShutDownFlag" gets
+                * re-evaluated on every iteration, rather than proceeding
+                * into a recvfrom() call that has no data to return.
+                * Previously this checked "retn >= 0", which is true for
+                * both the ready case (retn > 0) and the timeout case
+                * (retn == 0), so a source with no incoming sFlow traffic
+                * called recvfrom() on every 500ms tick regardless of
+                * readiness; the socket is now also set non-blocking
+                * (see ArgusGetServerSocket()'s ARGUS_SFLOW_DATA_SOURCE
+                * case) as defense-in-depth against any remaining
+                * spurious-wakeup/race window between select() and
+                * recvfrom(), so a call reached with nothing ready returns
+                * -1/EAGAIN immediately instead of blocking either way.
+                */
+               if ((retn = select (width, &readmask, NULL, NULL, &wait)) > 0) {
                   if ((ArgusReadSflowDatagramSocket(src, inf) < 0)) {
                      inf->ArgusReadDone = 1;
                   }
@@ -6266,7 +6353,7 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
 #if HAVE_GETADDRINFO
                memset(&hints, 0, sizeof(hints));
                hints.ai_family   = AF_INET;
-               if ((inf->mode == ARGUS_SFLOW_DATA_SOURCE)) {
+               if (inf->mode == ARGUS_SFLOW_DATA_SOURCE) {
                   hints.ai_socktype = SOCK_DGRAM;
                   hints.ai_protocol = IPPROTO_UDP;
                   hints.ai_family   = AF_INET;
@@ -6280,19 +6367,19 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
                if ((rval = getaddrinfo(hptr, inf->servname, &hints, host)) != 0) {
                   switch (rval) {
                      case EAI_AGAIN: 
-                        sprintf (msgbuf, "dns server not available");
+                        snprintf (msgbuf, sizeof(msgbuf), "dns server not available");
                         break;
                      case EAI_NONAME:
-                        sprintf (msgbuf, "host %s unknown", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s unknown", hptr);
                         break;
 #if defined(EAI_ADDRFAMILY)
                      case EAI_ADDRFAMILY:
-                        sprintf (msgbuf, "host %s has no IP address", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s has no IP address", hptr);
                         break;
 #endif
                      case EAI_SYSTEM:
                      default:
-                        sprintf (msgbuf, "host '%s' %s", hptr, gai_strerror(rval));
+                        snprintf (msgbuf, sizeof(msgbuf), "host '%s' %s", hptr, gai_strerror(rval));
                         break;
                   }
                }
@@ -6304,16 +6391,16 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
                } else {
                   switch (h_errno) {
                      case TRY_AGAIN:
-                        sprintf (msgbuf, "dns server not available");
+                        snprintf (msgbuf, sizeof(msgbuf), "dns server not available");
                         break;
                      case HOST_NOT_FOUND:
-                        sprintf (msgbuf, "host %s unknown", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s unknown", hptr);
                         break;
                      case NO_ADDRESS:
-                        sprintf (msgbuf, "host %s has no IP address", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s has no IP address", hptr);
                         break;
                      case NO_RECOVERY:
-                        sprintf (msgbuf, "host %s name server error", hptr);
+                        snprintf (msgbuf, sizeof(msgbuf), "host %s name server error", hptr);
                         break;
                   }
                }
@@ -6403,6 +6490,26 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
 #endif
                         hp = hp->ai_next;
                      } else {
+                        /*
+                         * Set this datagram socket non-blocking so a
+                         * subsequent recvfrom() (in
+                         * ArgusReadSflowDatagramSocket(), ArgusSource.c's
+                         * ArgusGetPackets() read loop) can never block
+                         * indefinitely -- e.g. on a spurious/racy select()
+                         * wakeup, or if the sender stops transmitting
+                         * mid-stream. Belt-and-suspenders alongside the
+                         * caller's own select()-readiness check: with this
+                         * flag set, a recvfrom() reached without data ready
+                         * returns -1/EAGAIN immediately instead of blocking,
+                         * so the read loop's own
+                         * "!ArgusReadDone && !ArgusShutDownFlag" condition
+                         * always gets a chance to be re-evaluated.
+                         */
+                        {
+                           int flags = fcntl(s, F_GETFL, 0);
+                           if (flags >= 0)
+                              fcntl(s, F_SETFL, flags | O_NONBLOCK);
+                        }
                         retn = s;
                         inf->fd = s;
                      }
@@ -6487,7 +6594,7 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
                        ArgusGetName(ArgusParser, (unsigned char *)&inf->addr.s_addr), ntohs(portnum), ArgusRecordType); 
 #endif
                   if ((bind (s, (struct sockaddr *)&server, sizeof(server))) < 0)
-                     ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %d) failed '%s'", s, inet_ntoa(server.sin_addr),
+                     ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %zu) failed '%s'", s, inet_ntoa(server.sin_addr),
                                                     server.sin_port, sizeof(server), strerror(errno));
                   retn = s;
                   inf->fd = s;
@@ -6512,7 +6619,7 @@ ArgusGetServerSocket (struct ArgusDeviceStruct *device, struct ArgusInterfaceStr
                           ArgusGetName(ArgusParser, ArgusParser->ArgusSourcePort, ArgusRecordType));
 #endif
                      if ((bind (s, (struct sockaddr *)&server, sizeof(server))) < 0)
-                        ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %d) failed '%s'", s, "INADDR_ANY",
+                        ArgusLog (LOG_ERR, "bind (%d, %s:%hu, %zu) failed '%s'", s, "INADDR_ANY",
                                                        ntohs(server.sin_port), sizeof(server), strerror(errno));
                   }
 

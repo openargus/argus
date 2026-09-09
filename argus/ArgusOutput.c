@@ -352,8 +352,40 @@ ArgusInitOutput (struct ArgusOutputStruct *output)
             }
 
             if (wfile->filter != NULL) {
-               if (ArgusFilterCompile (&client->ArgusNFFcode, wfile->filter, 1) < 0) 
+               char *reply = NULL;
+               /*
+                * ArgusFilterCompile() returns char *, not an int status code,
+                * and its non-error return value is not a fixed sentinel:
+                *   - NULL on a hard failure (e.g. the compiler subprocess
+                *     died or the control pipe broke).
+                *   - The 2-byte strings "SY" (syntax error), "ER" (compiler
+                *     error) or "TI" (compiler timeout) when argus_parse()
+                *     rejected the filter expression.
+                *   - "OK" (or, in the non-forked code path, a pointer to
+                *     program->bf_len) on success.
+                * The original code compared this pointer with "< 0", which
+                * is always false, so no error here -- NULL or otherwise --
+                * was ever detected: client->ArgusFilterInitialized still got
+                * set even though client->ArgusNFFcode.bf_insns was left NULL
+                * (its zero-initialized default; ArgusFilterCompile() never
+                * populates it on any error path). Downstream,
+                * ArgusFilterRecord() treats a NULL instruction pointer as "no
+                * filter" and unconditionally passes every record through --
+                * i.e. a mistyped -w file:filter destination filter failed
+                * open, silently writing every record to that output instead
+                * of rejecting the malformed filter at startup.
+                *
+                * Fixed by checking both the NULL case and the "OK" string,
+                * matching the already-correct handling of this same
+                * ArgusFilterCompile() contract in the RADIUM_FILTER case
+                * below (this file).
+                */
+               if ((reply = ArgusFilterCompile (&client->ArgusNFFcode, wfile->filter, 1)) == NULL)
                   ArgusLog (LOG_ERR, "ArgusInitOutput: ArgusFilter syntax error: %s", wfile->filter);
+
+               if (strcmp(reply, "OK"))
+                  ArgusLog (LOG_ERR, "ArgusInitOutput: ArgusFilter syntax error: %s", wfile->filter);
+
                client->ArgusFilterInitialized++;
 #ifdef ARGUSDEBUG
                {
@@ -1167,7 +1199,7 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
          int flags = fcntl (s, F_GETFL, 0L);
          if ((fcntl (s, F_SETFL, flags | O_NDELAY)) >= 0) {
             server.sun_family = AF_UNIX;
-            strcpy(server.sun_path, ARGUS_SOCKET_PATH);
+            strlcpy(server.sun_path, ARGUS_SOCKET_PATH, sizeof(server.sun_path));
 
             if (!(bind (s, (struct sockaddr *) &server, sizeof(struct sockaddr_un)))) {
                if ((retn = listen (s, ARGUS_MAXLISTEN)) >= 0) {
@@ -1295,7 +1327,7 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
                       if (getnameinfo((struct sockaddr *)&remoteaddr, salen, hbuf, sizeof(hbuf), NULL, 0, niflags) != 0)
                           strncpy(hbuf, "unknown", sizeof(hbuf));
 
-                      sprintf(&clienthost[strlen(clienthost)], "[%s]", hbuf);
+                      snprintf(&clienthost[strlen(clienthost)], sizeof(clienthost) - strlen(clienthost), "[%s]", hbuf);
 
                       salen = sizeof(localaddr);
                       if (getsockname(fd, (struct sockaddr *)&localaddr, &salen) == 0) {
@@ -1310,7 +1342,7 @@ ArgusCheckClientStatus (struct ArgusOutputStruct *output, int s)
                gethostname(localhostname, 1024);
                if (!strchr (localhostname, '.')) {
                   char domainname[256];
-                  strcat (localhostname, ".");
+                  strlcat (localhostname, ".", sizeof(localhostname));
                   if (getdomainname (domainname, 256)) {
                      snprintf (&localhostname[strlen(localhostname)], 1024 - strlen(localhostname), "%s", domainname);
                   }
@@ -1656,8 +1688,18 @@ ArgusGenerateInitialMar (struct ArgusOutputStruct *output)
    if (getArgusID(ArgusSourceTask, asptr)) {
       switch (getArgusIDType(ArgusSourceTask) & ~ARGUS_TYPE_INTERFACE) {
          case ARGUS_TYPE_STRING: {
+            /* strlen() must read the populated SOURCE (asptr->a_un.str), not
+             * the zero-filled DESTINATION (retn->argus_mar.str) -- see
+             * setArgusID() in ArgusSource.c: the source is bzero()'d and then
+             * at most 4 bytes written, so a NUL is always present within
+             * a_un.str's 4-byte bound (or immediately after it, within the
+             * same zero-filled union), making this strlen() safely bounded.
+             * Previously read the destination here, which is always
+             * all-zero at this point, so the bcopy always copied zero bytes
+             * and the MAR record's string source ID was silently emitted
+             * empty (security review finding F-33). */
             retn->argus_mar.status |= ARGUS_IDIS_STRING;
-            bcopy (&asptr->a_un.str, &retn->argus_mar.str, strlen((const char *)retn->argus_mar.str));
+            bcopy (&asptr->a_un.str, &retn->argus_mar.str, strlen((const char *)asptr->a_un.str));
             break;
          }
          case ARGUS_TYPE_INT: {
@@ -1868,7 +1910,8 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
    }
 
    if (retn) {
-      extern int ArgusAllocTotal, ArgusFreeTotal;
+      extern long long ArgusAllocTotal, ArgusFreeTotal;
+      extern long long ArgusAllocBytes;
       struct ArgusAddrStruct asbuf, *asptr = &asbuf;
       struct ArgusSourceStruct *aSrc = NULL;
       struct timeval now;
@@ -1888,8 +1931,11 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       if (getArgusID(ArgusSourceTask, asptr)) {
          switch (getArgusIDType(ArgusSourceTask) & ~ARGUS_TYPE_INTERFACE) {
             case ARGUS_TYPE_STRING: {
+               /* strlen() must read the populated source (asptr->a_un.str),
+                * not the zero-filled destination -- see the fix note at
+                * ArgusGenerateInitialMar() above (F-33). */
                rec->argus_mar.status |= ARGUS_IDIS_STRING;
-               bcopy (&asptr->a_un.str, &rec->argus_mar.str, strlen((const char *)rec->argus_mar.str));
+               bcopy (&asptr->a_un.str, &rec->argus_mar.str, strlen((const char *)asptr->a_un.str));
                break;
             }
             case ARGUS_TYPE_INT: {
@@ -1939,12 +1985,17 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       if (ArgusSourceTask != NULL) {
          int x;
 
-         rec->argus_mar.pktsRcvd  = 0;
-         rec->argus_mar.bytesRcvd = 0;
-         rec->argus_mar.dropped   = 0;
+         rec->argus_mar.pktsRcvd   = 0;
+         rec->argus_mar.bytesRcvd  = 0;
+         rec->argus_mar.dropped    = 0;
+         rec->argus_mar.interfaces = 0;
+         rec->argus_mar.flows      = 0;
+         rec->argus_mar.queue      = 0;
 
          for (x = 0; x < ARGUS_MAXINTERFACE; x++) {
             if ((aSrc = ArgusSourceTask->srcs[x]) != NULL) {
+               struct ArgusModelerStruct *model = aSrc->ArgusModel;
+
                if (aSrc->ArgusInterface[0].ArgusPd != NULL) {
                   int i;
                   rec->argus_mar.interfaceType = pcap_datalink(aSrc->ArgusInterface[0].ArgusPd);
@@ -1952,6 +2003,9 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
 
                   for (i = 0; i < ARGUS_MAXINTERFACE; i++) {
                      if (aSrc->ArgusInterface[i].ArgusPd != NULL) {
+
+                        rec->argus_mar.interfaces++;
+
                         rec->argus_mar.pktsRcvd  += aSrc->ArgusInterface[i].ArgusTotalPkts - 
                                                     aSrc->ArgusInterface[i].ArgusLastPkts;
                         rec->argus_mar.bytesRcvd += aSrc->ArgusInterface[i].ArgusTotalBytes -
@@ -1966,20 +2020,25 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
                         break;
                   }
                }
+
+               if (model != NULL) {
+                  rec->argus_mar.flows += model->ArgusTotalNewFlows - model->ArgusLastNewFlows;
+                  model->ArgusLastNewFlows = model->ArgusTotalNewFlows;
+
+                  if (model->ArgusStatusQueue)
+                     rec->argus_mar.queue += model->ArgusStatusQueue->count;
+
+                  if (model->ArgusFallowQueue)
+                     rec->argus_mar.fallow += model->ArgusFallowQueue->count;
+               }
             }
          }
       }
 
+
       rec->argus_mar.records = output->ArgusTotalRecords - output->ArgusLastRecords;
       output->ArgusLastRecords = output->ArgusTotalRecords;
 
-      rec->argus_mar.flows = output->ArgusModel->ArgusTotalNewFlows - output->ArgusModel->ArgusLastNewFlows;
-      output->ArgusModel->ArgusLastNewFlows = output->ArgusModel->ArgusTotalNewFlows;
-
-      if (output->ArgusModel && output->ArgusModel->ArgusStatusQueue)
-         rec->argus_mar.queue   = output->ArgusModel->ArgusStatusQueue->count;
-      else
-         rec->argus_mar.queue   = 0;
 
       if (output->ArgusOutputList)
          rec->argus_mar.output  = output->ArgusOutputList->count;
@@ -1989,6 +2048,8 @@ ArgusGenerateStatusMarRecord (struct ArgusOutputStruct *output, unsigned char st
       rec->argus_mar.clients = output->ArgusClients->count;
 
       rec->argus_mar.bufs     = ArgusAllocTotal - ArgusFreeTotal;
+      rec->argus_mar.bytes    = ArgusAllocBytes;
+
       rec->argus_mar.suserlen = getArgusUserDataLen(ArgusModel);
       rec->argus_mar.duserlen = getArgusUserDataLen(ArgusModel);
 

@@ -339,8 +339,8 @@ ArgusInitializeTCP (struct ArgusModelerStruct *model, struct ArgusFlowStruct *fl
 
    if (fdsr) {
       if (!(model->ArgusThisDir)) {
-//       fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
-//       fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
+         fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
+         fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
       }
    }
 
@@ -469,8 +469,8 @@ ArgusUpdateTCPStateMachine (struct ArgusModelerStruct *model, struct ArgusFlowSt
                   if (tcpExt->status & ARGUS_SAW_SYN_SENT) {
                      struct ArgusSystemFlow *fdsr = (struct ArgusSystemFlow *)flowstr->dsrs[ARGUS_FLOW_INDEX];
                      if (fdsr != NULL) {
-//                      fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
-//                      fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
+                        fdsr->hdr.argus_dsrvl8.qual &= ~ARGUS_DIRECTION;
+                        fdsr->hdr.subtype           &= ~ARGUS_REVERSE;
                      }
 	          }
 	       }
@@ -1032,11 +1032,23 @@ ArgusParseTCPOptions(struct ArgusModelerStruct *model, struct tcphdr *tcp, int l
       cp = (const u_char *)tcp + sizeof(*tcp);
 
       while (len > 0) {
+         /* "len" is derived from the TCP header's th_off field (attacker-controlled),
+          * not from the number of bytes actually captured -- confirm at least 1 byte
+          * remains in the captured snapshot before reading *cp below. The LENCHECK()
+          * calls further down only validate specific options' data lengths, not this
+          * initial per-iteration option-type byte read. */
+         if (!BYTESCAPTURED(model, *cp, 1))
+            goto trunc;
+
          opt = *cp++;
          if (ZEROLENOPT(opt))
             alen = 1;
 
          else {
+            /* second per-option byte read (the option's length field) -- also needs an
+             * explicit captured-length check, same rationale as above. */
+            if (!BYTESCAPTURED(model, *cp, 1))
+               goto trunc;
             alen = *cp++;   /* total including type, len */
             if (alen < 2 || alen > len)
                goto bad;
@@ -1063,7 +1075,15 @@ ArgusParseTCPOptions(struct ArgusModelerStruct *model, struct tcphdr *tcp, int l
                *options |= ARGUS_TCP_WSCALE;
                datalen = 1;
                LENCHECK(model, datalen);
-               ArgusThisTCPsrc->winshift = *cp;
+               /* *cp is a raw, attacker-controlled byte (0-255). RFC 1323 sec 2.2 caps the
+                * legal window-scale shift count at 14; more importantly, winshift is later
+                * used unchecked as a shift exponent (ArgusThisTCPsrc->win >> winshift) in
+                * ArgusUpdateTCPState()/ArgusTcpMonitor() -- a value >= 32 is undefined
+                * behavior in C and, in practice, corrupts retransmission/window-close
+                * detection. Clamp to the RFC-legal maximum rather than silently truncating
+                * to the low 5 bits, so out-of-spec values are treated the same as the
+                * largest legal shift instead of wrapping to something small/misleading. */
+               ArgusThisTCPsrc->winshift = (*cp > 14) ? 14 : *cp;
                break;
 
             case TCPOPT_SACKOK:

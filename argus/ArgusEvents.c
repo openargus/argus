@@ -322,9 +322,16 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
             char buf[ARGUS_MAX_OS_STATUS];
 
             snprintf(buf, ARGUS_MAX_OS_STATUS - 1, "file=%s\n", evt->filename);
-            strcpy(rec->argus_event.data.array, buf);
+            strlcpy(rec->argus_event.data.array, buf, ARGUS_MAX_OS_STATUS);
             tcnt = strlen(rec->argus_event.data.array);
-            cnt = read(fd, &rec->argus_event.data.array[tcnt], len - tcnt);
+            /* Security review Open Item #1 follow-up: `len` here is ARGUS_MAX_OS_BUF (65536), the
+             * size of the *whole* allocated record (`retn`), not the space remaining in
+             * data.array once its ~408-byte struct-header offset within that allocation is
+             * accounted for. Using `len - tcnt` as the read() bound overflows the allocation by
+             * ~408 bytes for a sufficiently large source file. The zlib-compressed sibling branch
+             * above already uses the correct, smaller ARGUS_MAX_OS_STATUS bound -- use the same
+             * constant here for consistency and correctness. */
+            cnt = read(fd, &rec->argus_event.data.array[tcnt], ARGUS_MAX_OS_STATUS - tcnt);
             ocnt = cnt;
 #if defined(HAVE_ZLIB_H)
          }
@@ -386,9 +393,22 @@ ArgusGenerateEventRecord (struct ArgusEventsStruct *events, struct ArgusEventRec
          } else {
 #endif
             ocnt = tcnt;
-            strncpy(buf, ptr, ARGUS_MAX_OS_STATUS);
-            strcpy((char *)&rec->argus_event.data.array, buf);
-            cnt = strlen((char *)&rec->argus_event.data.array);
+            strlcpy(buf, ptr, ARGUS_MAX_OS_STATUS);
+            {
+               /* data.array is declared as a fixed 8-byte placeholder (see argus_out.h) but is
+                * actually used here as a variable-length trailing buffer within this record's
+                * much larger ARGUS_MAX_OS_BUF allocation (see the F-28 writeup in
+                * security-review/findings-log.md for the full explanation of this layout).
+                * Route through a plain char * so the compiler's static
+                * __builtin_object_size-based overflow check (which only sees the *declared*
+                * 8-byte array, not the real allocation) doesn't misfire on strlcpy's explicit
+                * size argument -- this is a compile-time false positive, not a real bug; the
+                * actual runtime bound (ARGUS_MAX_OS_STATUS, matching buf's own size above) is
+                * correct and unchanged. */
+               char *dst = (char *) rec->argus_event.data.array;
+               strlcpy(dst, buf, ARGUS_MAX_OS_STATUS);
+               cnt = strlen(dst);
+            }
 #if defined(HAVE_ZLIB_H)
          }
 #endif
@@ -445,6 +465,13 @@ struct ArgusRecord {
       trans->hdr.argus_dsrvl8.qual = src->type & ~ARGUS_TYPE_INTERFACE;
 
       switch (src->type & ~ARGUS_TYPE_INTERFACE) {
+         /* ARGUS_TYPE_STRING kept at 4 bytes intentionally, for V3 wire
+          * compatibility -- see setArgusID() in ArgusSource.c for the
+          * corresponding note. Safe to read via strlen() here because
+          * setArgusID() bzero()s the full struct ArgusTransportStruct
+          * before writing at most 4 bytes into a_un.str, leaving the
+          * rest of the 16-byte a_un union (and str's own unwritten tail,
+          * if the source string is under 4 bytes) zero-filled. */
          case ARGUS_TYPE_STRING: {
             tlen = strlen((const char *)&src->trans.srcid.a_un.str);
             bcopy(&src->trans.srcid.a_un.str, trans->srcid.a_un.str, tlen);

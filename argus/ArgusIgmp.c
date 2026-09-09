@@ -107,7 +107,10 @@ ArgusCreateIGMPFlow (struct ArgusModelerStruct *model, struct ip *ip)
 
    model->state &= ~ARGUS_DIRECTION;
 
-   if (STRUCTCAPTURED(model, *igmphdr)) {
+   /* STRUCTCAPTURED(model, *igmphdr) only validates sizeof(unsigned int) (4 bytes) since
+    * igmphdr is declared as unsigned int*, but igmp->igmp_group (read below, at offset 4)
+    * requires the full struct igmp (8 bytes) to be captured. */
+   if (STRUCTCAPTURED(model, *igmp)) {
       model->ArgusThisFlow->hdr.type             = ARGUS_FLOW_DSR;
       model->ArgusThisFlow->hdr.subtype          = ARGUS_FLOW_CLASSIC5TUPLE;
       model->ArgusThisFlow->hdr.argus_dsrvl8.qual = ARGUS_TYPE_IPV4;
