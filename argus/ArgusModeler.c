@@ -913,7 +913,11 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
       }
 
       case ETHERTYPE_IPV6: {
+         struct ip *ip = (struct ip *) p;
          struct ip6_hdr *ipv6 = (struct ip6_hdr *) p;
+      
+         if (!(STRUCTCAPTURED(model,*ip) && (ip->ip_v == 6))) 
+            break;
 
          /* Confirm the full IPv6 header is captured before reading ip6_nxt below --
           * mirrors the equivalent IPv4 check added at the ETHERTYPE_IP case above. */
@@ -1888,7 +1892,6 @@ ArgusProcessIpPacket (struct ArgusModelerStruct *model, struct ip *ip, int lengt
 
    int retn = 0, pass = 0, type = ETHERTYPE_IP; 
 
-
    model->ArgusTotalPacket++;
 
    while (type > 0)
@@ -1904,6 +1907,9 @@ ArgusProcessIpPacket (struct ArgusModelerStruct *model, struct ip *ip, int lengt
 
    if (!(length) && !(tvp) && !(ip))
       ArgusModelerCleanUp (model); 
+
+   if (ip == NULL)
+      return (retn);
 
    else {
       if (ip->ip_v == 4) {
