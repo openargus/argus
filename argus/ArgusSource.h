@@ -937,6 +937,7 @@ static struct callback ArgusSourceCallbacks[] = {
    { ArgusFddiPacket,      DLT_FDDI,        "ArgusFddiPacket()" },
    { ArgusATMPacket,       DLT_ATM_RFC1483, "ArgusATMPacket()" },
    { ArgusIpPacket,        DLT_RAW,         "ArgusIpPacket()" },
+   { ArgusIpPacket,        DLT_IPV6,        "ArgusIpPacket()" },
    { ArgusPflogPacket,     DLT_PFLOG,       "ArgusPflogPacket()" },
    { ArgusNullPacket,      DLT_NULL,        "ArgusNullPacket()" },
 #ifdef DLT_ENC
