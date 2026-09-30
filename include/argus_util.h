@@ -46,6 +46,10 @@
 
 #include <argus/CflowdFlowPdu.h>
 
+#if !defined(HAVE_STRLCPY)
+extern size_t strlcpy(char *, const char *, size_t);
+#endif
+
 
 typedef void (*proc)(void);
 typedef char *(*strproc)(void);
