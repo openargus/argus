@@ -328,7 +328,11 @@ ArgusUpdateArpState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
    if (model->ArgusThisEpHdr == NULL)
       return;
 
-   arp = (struct ether_arp *)(model->ArgusThisEpHdr + 1);
+/*
+ * This mod is needed as there can be sub-layer 3 headers in the ARP request / response 
+ * Earlier versions simply processed the ethernet header with out regard to encapsulations.
+ */
+   arp = (struct ether_arp *)(model->ArgusThisUpHdr);
    ahdr = &arp->ea_hdr;
 
    if (STRUCTCAPTURED(model, *arp)) {

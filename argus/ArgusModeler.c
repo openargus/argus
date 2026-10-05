@@ -1720,6 +1720,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
    model->ArgusThisIpHdr = NULL;
    model->ArgusThisMplsLabelIndex = 0;
    model->ArgusThisNetworkFlowType = 0;
+   model->ArgusThisPacket8021QEncaps = 0;
    model->ArgusInProtocol = 1;
 
    if ((value = getArgusRealTime (model->ArgusSrc)) > 0) {

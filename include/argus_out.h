@@ -753,7 +753,7 @@ struct ArgusServiceStruct {
 struct ArgusDataStruct {
    struct ArgusDSRHeader hdr;
    unsigned short size, count;
-   char array[8];
+   char array[];
 };
 
 struct ArgusIcmpv6Struct {
