@@ -987,8 +987,14 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
 {
    int port = output->ArgusPortNum;
    struct ArgusBindAddrStruct *ArgusBindAddrs = NULL;
-   char *baddr = NULL;
+   const char *baddr = NULL;
    int s = -1;
+   int default_bind_index = 0;
+#if defined(HAVE_GETADDRINFO)
+   static const char *const ArgusDefaultBindAddrs[] = { "::1", "127.0.0.1", NULL };
+#else
+   static const char *const ArgusDefaultBindAddrs[] = { "127.0.0.1", NULL };
+#endif
 
    if (port > 0) {
       if (output->ArgusListens > 0) {
@@ -1000,15 +1006,18 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
       }
       output->ArgusListens = 0;
 
-      if (output->ArgusBindAddrs != NULL) {
+      if ((output->ArgusBindAddrs != NULL) && (output->ArgusBindAddrs->start != NULL)) {
          ArgusBindAddrs = (struct ArgusBindAddrStruct *)output->ArgusBindAddrs->start;
          baddr = ArgusBindAddrs->addr;
+      } else {
+          /* A port alone provides local TCP access without exposing it to network peers. */
+          baddr = ArgusDefaultBindAddrs[default_bind_index];
       }
 
       do {
 #if defined(HAVE_GETADDRINFO)
          {
-            struct addrinfo hints, *host, *hp;
+            struct addrinfo hints, *host = NULL, *hp;
             char portbuf[32];
             int retn = 0;
 
@@ -1027,27 +1036,31 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
             snprintf(portbuf, 32, "%d", port);
 
             if ((retn = getaddrinfo(baddr, portbuf, &hints, &host)) != 0) {
-               switch (retn) {
-                  case EAI_AGAIN:
-                     ArgusLog(LOG_ERR, "dns server not available");
-                     break;
-                  case EAI_NONAME:
-                     ArgusLog(LOG_ERR, "bind address %s unknown", optarg);
-                     break;
+               /* IPv6 may be unavailable; continue to the IPv4 loopback default quietly. */
+               if (!((ArgusBindAddrs == NULL) && (default_bind_index == 0))) {
+                  switch (retn) {
+                     case EAI_AGAIN:
+                        ArgusLog(LOG_ERR, "dns server not available");
+                        break;
+                     case EAI_NONAME:
+                        ArgusLog(LOG_ERR, "bind address %s unknown", baddr);
+                        break;
 #if defined(EAI_ADDRFAMILY)
-                  case EAI_ADDRFAMILY:
-                     ArgusLog(LOG_ERR, "bind address %s has no IP address", optarg);
-                     break;
+                     case EAI_ADDRFAMILY:
+                        ArgusLog(LOG_ERR, "bind address %s has no IP address", baddr);
+                        break;
 #endif
-                  case EAI_SYSTEM:
-                     ArgusLog(LOG_ERR, "bind address %s name server error %s", optarg, strerror(errno));
-                     break;
+                     case EAI_SYSTEM:
+                        ArgusLog(LOG_ERR, "bind address %s name server error %s", baddr, strerror(errno));
+                        break;
+                  }
                }
             }
 
-            hp = host;
+            if (host != NULL) {
+               hp = host;
 
-            do {
+               do {
                retn = -1;
                if ((s = socket (hp->ai_family, hp->ai_socktype, hp->ai_protocol)) >= 0) {
                   int flags = fcntl (s, F_GETFL, 0L);
@@ -1106,36 +1119,40 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
 
                hp = hp->ai_next;
 
-            } while ((hp != NULL) && (retn == -1));
+               } while ((hp != NULL) && (retn == -1));
 
-            freeaddrinfo(host);
+               freeaddrinfo(host);
+            }
          }
 #else
-         struct sockaddr_in sin;
-         struct hostent *host;
+          struct sockaddr_in sin;
+          struct hostent *host;
+          int bindaddr_valid = 0;
 
-         sin.sin_addr.s_addr = INADDR_ANY;
-         if (baddr) {
+          bzero((char *)&sin, sizeof(sin));
+          if (baddr) {
 #ifdef ARGUSDEBUG
             ArgusDebug (1, "ArgusEstablishListen(%d, %s, %p)\n", port, baddr, errbuf);
 #endif
             if ((host = gethostbyname (baddr)) != NULL) {
                if ((host->h_addrtype == AF_INET) && (host->h_length == 4)) {
                   bcopy ((char *) *host->h_addr_list, (char *)&sin.sin_addr.s_addr, host->h_length);
-               } else
+                  bindaddr_valid = 1;
+                } else
                   ArgusLog (LOG_ERR, "ArgusEstablishListen() unsupported bind address %s", baddr);
             } else
                ArgusLog (LOG_ERR, "ArgusEstablishListen() bind address %s error %s", baddr, strerror(errno));
          }
 
-         sin.sin_port = htons((u_short) port);
-         sin.sin_family = AF_INET;
+          if (bindaddr_valid) {
+             sin.sin_port = htons((u_short) port);
+             sin.sin_family = AF_INET;
 
 #ifdef ARGUSDEBUG
          ArgusDebug (1, "ArgusEstablishListen(%p, %p) binding: %d:%d\n", output, errbuf, sin.sin_addr.s_addr, port);
 #endif
 
-         if ((s = socket (AF_INET, SOCK_STREAM, 0)) != -1) {
+             if ((s = socket (AF_INET, SOCK_STREAM, 0)) != -1) {
             int flags = fcntl (s, F_GETFL, 0L);
             if ((fcntl (s, F_SETFL, flags | O_NDELAY)) >= 0) {
                int on = 1;
@@ -1163,17 +1180,19 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
                snprintf(errbuf, errbuflen,
                         "%s: ArgusEstablishListen: fcntl() error",
                         ArgusProgramName);
-         } else
-            snprintf(errbuf, errbuflen,
-                     "%s: ArgusEstablishListen: socket() error",
-                     ArgusProgramName);
+             } else
+                snprintf(errbuf, errbuflen,
+                         "%s: ArgusEstablishListen: socket() error",
+                         ArgusProgramName);
+          }
 #endif
-         if (ArgusBindAddrs) {
-            if ((ArgusBindAddrs = (struct ArgusBindAddrStruct *)ArgusBindAddrs->nxt) != NULL) {
-               baddr = ArgusBindAddrs->addr;
-            } else
-               baddr = NULL;
-         }
+          if (ArgusBindAddrs) {
+             if ((ArgusBindAddrs = (struct ArgusBindAddrStruct *)ArgusBindAddrs->nxt) != NULL) {
+                baddr = ArgusBindAddrs->addr;
+             } else
+                baddr = NULL;
+          } else
+             baddr = ArgusDefaultBindAddrs[++default_bind_index];
             
       } while (baddr != NULL);
 
@@ -1231,6 +1250,9 @@ ArgusEstablishListen (struct ArgusOutputStruct *output, char *errbuf,
 #ifdef ARGUSDEBUG
    ArgusDebug (2, "ArgusEstablishListen(%p, %p) returning %d\n", output, errbuf, s);
 #endif
+
+   if (output->ArgusListens > 0)
+      s = output->ArgusLfd[0];
 
    return (s);
 }

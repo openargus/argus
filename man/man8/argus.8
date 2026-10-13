@@ -68,9 +68,11 @@ used to debug filter expressions.
 .TP 5 5
 .B \-B
 <addr>
-Specify the bind interface address for remote access.  Acceptable values
-are IP version 4 addresses.  The default is to bind to INADDR_ANY
-address.
+Specify one or more comma-separated bind interface addresses for remote
+access. This option alone does not enable remote access; use it with a
+positive \fB-P\fP port number. With no \fB-B\fP address, an enabled access
+port listens only on IPv6 and IPv4 loopback (::1 and 127.0.0.1). Specify a
+non-loopback address explicitly to allow external TCP access.
 .TP 5 5
 .BI \-c
 <dir>
@@ -205,7 +207,8 @@ is running on.
 Specifies the \fB<portnum>\fP for remote client connection.
 The default is to not support remote access.
 Setting the value to zero (0) will forceably turn off the
-facility.
+facility. A positive port with no \fB-B\fP address listens only on
+IPv6 and IPv4 loopback (::1 and 127.0.0.1).
 .TP 5 5
 .B \-r <[type:]file [type:]file ... >
 Read from

@@ -1,8 +1,9 @@
 # Security-review regression tests (sensor repo)
 
-This directory holds small, targeted regression tests for specific fixes made during the
-2026-09 security review (see `../findings-log.md` and `../SECURITY-REVIEW-REPORT.md`). It is
-separate from `../fuzz/`, which fuzzes/replays a corpus against the single `ArgusProcessPacket()`
+This directory holds small, targeted regression tests for specific fixes and hardening changes
+from the 2026-09 security review and later follow-up work (see `../findings-log.md` and
+`../SECURITY-REVIEW-REPORT.md`). It is separate from `../fuzz/`, which
+fuzzes/replays a corpus against the single `ArgusProcessPacket()`
 choke point. These tests exist because several of the review's fixes are in code paths that
 harness never reaches (signal handling, resource-file parsing, output-filter setup, the sFlow
 read loop, and DLT_LINUX_SLL packet dispatch), so the fuzz-regression job alone does not exercise
@@ -23,7 +24,11 @@ Each fix falls into one of two categories:
   iterations. This substantially increases the odds of catching a reintroduced race, but -
   being a race - it is not guaranteed to fail every time the underlying bug is reintroduced.
   There is no claim here that this is a substitute for careful code review of any future change
-  to this code.
+   to this code.
+
+- **Access-port exposure policy**: `test_access_port_loopback_default.sh` verifies that a positive
+  access port with no explicit bind address listens only on IPv4 and IPv6 loopback. An explicit
+  bind address remains the required configuration for external TCP access.
 
 F-41 (encaps-capture buffer lifecycle) and F-49 (Makefile failure-masking) are not covered by
 tests in this directory: F-41 is not yet merged, and F-49 was verified via `make`-level fault

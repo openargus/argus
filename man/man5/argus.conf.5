@@ -203,13 +203,17 @@ Commandline equivalent:   There is no commandline equivalent
 .SH ARGUS_ACCESS_PORT
 
 Argus monitors can provide a real-time remote access port
-for collecting Argus data.  This is a TCP based port service and
-the default port number is tcp/561, the "experimental monitor"
-service.  This feature is disabled by default, and can be forced
-off by setting it to zero (0).
+for collecting Argus data.  This is a TCP based port service.
+The feature is disabled by default, and can be forced off by
+setting it to zero (0). When enabled without an explicit
+ARGUS_BIND_IP setting, Argus listens only on IPv6 and IPv4
+loopback addresses (::1 and 127.0.0.1).
 
 When you do want to enable this service, 561 is a good choice,
 as all ra* clients are configured to try this port by default.
+To intentionally allow external TCP access, configure both a
+positive access port and one or more explicit non-loopback
+ARGUS_BIND_IP addresses.
 
 Commandline equivalent  -P
 
@@ -222,14 +226,17 @@ provide argus data access on port 561.
 .SH ARGUS_BIND_IP
 
 When remote access is enabled (see above), you can specify that Argus
-should bind only to a specific IP address. This is useful, for example,
+should bind only to specific IP addresses. This is useful, for example,
 in restricting access to the local host, or binding to a private
-interface while capturing from another.
+interface while capturing from another. ARGUS_BIND_IP alone does not
+enable a listener; ARGUS_ACCESS_PORT must also be positive.
 
 You can provide multiple addresses, separated by commas, or on multiple
 lines.
 
-The default is to bind to any IP address.
+With a positive access port and no ARGUS_BIND_IP setting, the default
+is to bind only to ::1 and 127.0.0.1. Specify a non-loopback address
+explicitly to allow external TCP access.
 
 Commandline equivalent  -B
 
@@ -1082,4 +1089,3 @@ recommend > 10M (0x1000000) for the hash table.
 .RE
 .SH SEE ALSO
 .BR argus (8)
-
