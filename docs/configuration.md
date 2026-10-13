@@ -84,7 +84,7 @@ variable is not in this list, the sensor's config-file parser does not recognize
 | `ARGUS_INTERFACE` | `-i <interface>` | Interface(s) to capture from. Supports rich syntax: `ind:` (independent tracking per interface), `dup:` (treat 2 interfaces as one half-duplex link), `bond:` (treat multiple interfaces as one source), grouping with `[...]`, and per-interface srcid override — see §4 below. |
 | `ARGUS_INTERFACE_SCAN_INTERVAL` | none | Seconds between checks for new/changed interfaces (1–60, default 1). |
 | `ARGUS_GO_PROMISCUOUS` | (inverse of `-p`) | Whether to open interfaces in promiscuous mode. |
-| `ARGUS_BIND_IP` | `-B` | Restrict the *remote access* listening socket (see `ARGUS_ACCESS_PORT`) to specific local IP(s), comma-separated. |
+| `ARGUS_BIND_IP` | `-B` | Select the local IP address or addresses for an enabled `ARGUS_ACCESS_PORT`, comma-separated. Without this setting, an enabled access port listens only on `::1` and `127.0.0.1`; specify a non-loopback address explicitly for external TCP access. |
 | `ARGUS_PCAP_BUF_SIZE` | none | libpcap capture buffer size; accepts `K`/`M`/`G` suffixes, e.g. `1G`. |
 | `ARGUS_PCAP_DISPATCH_NUM` | none | Packets requested per `pcap_dispatch()` call; `-1` = full buffer. Default `1`. |
 | `ARGUS_FILTER` | none | A BPF filter expression, max 2K. |
@@ -142,7 +142,7 @@ port scans is client/analyst tooling built on top of the record stream, not a se
 |---|---|---|
 | `ARGUS_OUTPUT_FILE` | `-w <file>` | Write to file. Supports up to 5 concurrent files, each with its own optional filter: `ARGUS_OUTPUT_FILE=/path/to/file "filter expr"`. |
 | `ARGUS_OUTPUT_STREAM` | `-w argus-udp://host:port` | Write to a remote host over UDP (unregistered/unsolicited push), up to 5 concurrent streams, each with its own optional filter: `ARGUS_OUTPUT_STREAM="argus-udp://224.0.20.21:561 'filter'"`. |
-| `ARGUS_ACCESS_PORT` | `-P <port>` | Enables a **listening** TCP port (default 561) for remote clients to pull data — this is the "collector connects to sensor" model, distinct from `ARGUS_OUTPUT_STREAM`'s "sensor pushes to collector" model. Disabled by setting to `0`. Man page notes: if `radium.1` (a client-side relay) is also using port 561, use a different port here, e.g. 562, to avoid conflict. |
+| `ARGUS_ACCESS_PORT` | `-P <port>` | Enables a **listening** TCP port for clients to pull data. `0` disables the listener. With a positive port and no `ARGUS_BIND_IP`, Argus listens only on `::1` and `127.0.0.1`; external TCP access requires both a positive port and an explicit non-loopback bind address. This is distinct from `ARGUS_OUTPUT_STREAM`'s sensor-push model. |
 | `ARGUS_FLOW_STATUS_INTERVAL` | `-S <secs>` | How often a status record is emitted for ongoing flows. |
 | `ARGUS_MAR_STATUS_INTERVAL` | none | MAR (management/health) record interval — see `docs/data-model.md` §6 for what's in a MAR. |
 | `ARGUS_MAR_INTERFACE_INTERVAL` | none | Interface-specific MAR interval. |
@@ -158,7 +158,7 @@ sensor's config system. See `docs/architecture.md` §6 for the output-capability
 
 | Variable | CLI equiv. | Purpose |
 |---|---|---|
-| `ARGUS_BIND_IP` | `-B` | (see Interfaces table above) restricts the `ARGUS_ACCESS_PORT` listener to specific local addresses. |
+| `ARGUS_BIND_IP` | `-B` | (see Interfaces table above) selects listener addresses. It is required with a non-loopback address to intentionally expose `ARGUS_ACCESS_PORT` beyond the local host. |
 
 TCP-wrapper (`hosts.allow`/`hosts.deny`) and SASL authentication are real (see `docs/architecture.md`
 §8), but are **not controlled via `argus.conf` variables** — they're compiled-in behavior

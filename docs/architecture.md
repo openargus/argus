@@ -129,10 +129,10 @@ single `-w` flag:
 -w domain://path/to/socket   Unix domain socket
 ```
 
-Separately, `-P <portnum>` puts the sensor itself into a listening/server role (default port 561),
-allowing remote client programs to connect and pull the live record stream — this is the basis for the
-"argus (sensor) → ra/racluster/etc." dataflow, and is protected by the SASL (`argus_auth.c`) and
-TCP-wrapper (`<tcpd.h>` in `ArgusOutput.c`) mechanisms in §3.
+Separately, `-P <portnum>` puts the sensor itself into a listening/server role, allowing client
+programs to pull the live record stream. A positive port with no `-B` bind address listens only on
+IPv4 and IPv6 loopback; external TCP access requires an explicit non-loopback `-B` address. SASL is an
+optional deployment control for installations that require identity-based access control.
 
 ## 7. Configuration precedence
 
