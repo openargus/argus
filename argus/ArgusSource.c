@@ -1056,7 +1056,7 @@ ArgusInitSource (struct ArgusSourceStruct *src)
 
       if (cmdbuf) {
          if (src->ArgusInputFilter)
-            ArgusFree(src->ArgusInputFilter);
+            free(src->ArgusInputFilter);
 
          src->ArgusInputFilter = cmdbuf;
       }
@@ -1140,7 +1140,7 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
       }
 
       if (src->ArgusInputFilter) {
-         ArgusFree (src->ArgusInputFilter);
+         free (src->ArgusInputFilter);
          src->ArgusInputFilter = NULL;
       }
 

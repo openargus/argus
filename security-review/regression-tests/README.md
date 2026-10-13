@@ -30,6 +30,10 @@ Each fix falls into one of two categories:
   access port with no explicit bind address listens only on IPv4 and IPv6 loopback. An explicit
   bind address remains the required configuration for external TCP access.
 
+- **Input-filter cleanup**: `test_input_filter_cleanup.sh` verifies that resource-file and
+  command-line filters are released cleanly after offline processing. The CI job enables
+  `ARGUSMEMDEBUG` so allocation-family mismatches fail this test.
+
 F-41 (encaps-capture buffer lifecycle) and F-49 (Makefile failure-masking) are not covered by
 tests in this directory: F-41 is not yet merged, and F-49 was verified via `make`-level fault
 injection, not a program input, and doesn't fit this directory's per-fix-test pattern.

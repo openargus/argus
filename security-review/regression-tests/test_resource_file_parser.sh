@@ -19,13 +19,8 @@
 # correctly (confirmed indirectly via a successful, expected-record-count
 # run), and exits 0 -- rather than corrupting adjacent stack memory.
 #
-# Note: this test deliberately does NOT combine "ARGUS_FILTER=" in the
-# resource file with "-r <pcap>" on the command line -- that specific
-# combination triggers a separate, already-known, pre-existing,
-# out-of-scope bug (an "ArgusFree: buffer error" abort on exit, unrelated
-# to this fix) documented in findings-log.md's F-39 entry. Combining them
-# here would make this test fail for a reason that has nothing to do with
-# the fix being verified.
+# Input-filter ownership is covered separately by
+# test_input_filter_cleanup.sh.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
