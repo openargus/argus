@@ -39,7 +39,7 @@
 
 void ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr);
 
-static void SFLengthCheck(SFSample *, u_char *, int);
+static void SFLengthCheck(SFSample *, u_char *, uint32_t);
 
 void SFParseFlowSample_header(struct ArgusSourceStruct *, struct timeval *, SFSample *);
 void SFParseFlowSample_ethernet(SFSample *);

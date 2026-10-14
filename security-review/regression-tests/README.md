@@ -59,6 +59,12 @@ Each fix falls into one of two categories:
   FDDI conversion rejects unsafe input before FDDI/LLC access or copying while retaining normal
   conversion behavior. The ASan/UBSan CI job runs this test.
 
+- **sFlow datagram bounds**: `test_sflow_datagram_bounds.sh` sends malformed datagrams through
+  both offline `sflow:<pcap>` and live `sflow://` sources. It covers a truncated version field,
+  IPv6 agent address, oversized encoded string, sampled-header record, and sampled IPv4, IPv6,
+  and Ethernet headers, while retaining a valid sFlow v5 sampled-packet path. The ASan/UBSan CI
+  job runs this test.
+
 - **Radiotap capture bounds**: `test_radiotap_capture_bounds.sh` verifies that a truncated
   radiotap present-bitmap extension cannot be read past captured packet data. The ASan/UBSan CI
   job runs this test.
