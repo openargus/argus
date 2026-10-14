@@ -37,6 +37,9 @@ Each fix falls into one of two categories:
 - **GRE capture bounds**: `test_gre_capture_bounds.sh` verifies that a truncated GRE routing
   header cannot advance Argus past captured packet data. The ASan/UBSan CI job runs this test.
 
+- **PPP/HDLC capture bounds**: `test_ppp_hdlc_capture_bounds.sh` verifies that a truncated
+  PPP/HDLC header cannot be read past captured packet data. The ASan/UBSan CI job runs this test.
+
 F-41 (encaps-capture buffer lifecycle) and F-49 (Makefile failure-masking) are not covered by
 tests in this directory: F-41 is not yet merged, and F-49 was verified via `make`-level fault
 injection, not a program input, and doesn't fit this directory's per-fix-test pattern.
@@ -56,8 +59,9 @@ also be run standalone; see the comment header in each file for what it checks a
 
 ## Fixtures
 
-`fixtures/babel.pcap`, `fixtures/bgp-infinite-loop.pcap`, `fixtures/gre-heapoverflow-2.pcap`, and
-`fixtures/lsp-ping-timestamp.pcap` are copied from tcpdump's own public, BSD-licensed regression-test corpus
-(https://github.com/the-tcpdump-group/tcpdump, `tests/` directory). They are tiny (116 bytes -
-3.3 KB) and safe to redistribute. No
+`fixtures/babel.pcap`, `fixtures/bgp-infinite-loop.pcap`, `fixtures/gre-heapoverflow-2.pcap`,
+`fixtures/heapoverflow-ppp_hdlc_if_print.pcap`, and `fixtures/lsp-ping-timestamp.pcap` are copied
+from tcpdump's own public, BSD-licensed regression-test corpus
+(https://github.com/the-tcpdump-group/tcpdump, `tests/` directory). They are tiny (42 bytes - 3.3
+KB) and safe to redistribute. No
 proprietary, customer, or otherwise sensitive capture data is used anywhere in this directory.

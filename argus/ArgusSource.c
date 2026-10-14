@@ -3189,6 +3189,7 @@ ArgusPppHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
    struct timeval tvpbuf, *tvp = &tvpbuf;
    unsigned int caplen = h->caplen;
+   unsigned int snaplen = caplen;
    unsigned int length = h->len;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
@@ -3207,10 +3208,16 @@ ArgusPppHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    src->ArgusModel->ArgusGlobalTime = *tvp;
    src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_HDLC;
 
-   if (p && length) {
+   /* The declared frame length may exceed h->caplen on truncated captures. */
+   if (p && (caplen >= sizeof(unsigned short)) &&
+       (length >= sizeof(unsigned short))) {
       unsigned short proto = 0;
       unsigned short value;
       int offset = 0, retn = 0;
+
+#if !defined(CHDLC_HDRLEN)
+#define CHDLC_HDRLEN      4
+#endif
 
 #if defined(_LITTLE_ENDIAN)
       value = ntohs(*(unsigned short *)p);
@@ -3220,37 +3227,40 @@ ArgusPppHdlcPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       if (value == 0xFF03) {
          src->ArgusModel->ArgusThisEncaps  |= ARGUS_ENCAPS_PPP;
          if ((p[0] == PPP_ADDRESS) && (p[1] == PPP_CONTROL)) {
-            p += 2; length -= 2;
+            p += 2; length -= 2; caplen -= 2;
          }
+         if (!caplen || !length)
+            return;
          if (*p & 01) {
-            proto = *p; p++; length -= 1;
+            proto = *p; p++; length -= 1; caplen -= 1;
          } else {
+            if ((caplen < sizeof(u_short)) || (length < sizeof(u_short)))
+               return;
 #if defined(_LITTLE_ENDIAN)
             proto = ntohs(*(u_short *)p);
 #else
             proto = *(u_short *)p;
 #endif
-            p += 2; length -= 2;
+            p += 2; length -= 2; caplen -= 2;
          }
       } else {
+         if ((caplen < CHDLC_HDRLEN) || (length < CHDLC_HDRLEN))
+            return;
 #if defined(_LITTLE_ENDIAN)
          proto = ntohs(*(u_short *)&p[2]);
 #else
          proto = *(u_short *)p;
 #endif
 
-#if !defined(CHDLC_HDRLEN)
-#define CHDLC_HDRLEN      4
-#endif
          src->ArgusModel->ArgusThisEncaps = ARGUS_ENCAPS_CHDLC;
          offset = CHDLC_HDRLEN;
          p = (unsigned char *) (src->ArgusInterface[ind].ArgusPacketBuffer + offset);
-         length -= offset;
+         length -= offset; caplen -= offset;
       }
 
       src->ArgusModel->ArgusThisLength  = length;
-      src->ArgusModel->ArgusSnapLength  = caplen;
-      src->ArgusModel->ArgusThisSnapEnd = (src->ArgusInterface[ind].ArgusPacketBuffer + caplen);
+      src->ArgusModel->ArgusSnapLength  = snaplen;
+      src->ArgusModel->ArgusThisSnapEnd = (src->ArgusInterface[ind].ArgusPacketBuffer + snaplen);
 
       switch (proto) {
          case PPP_LCP:
