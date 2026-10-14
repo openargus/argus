@@ -49,6 +49,11 @@ Each fix falls into one of two categories:
   verifies that the reported callbacks reject them before reading or pointer arithmetic. The
   ASan/UBSan CI job runs this test.
 
+- **ENC and NULL capture bounds**: `test_enc_null_capture_bounds.sh` creates `DLT_ENC` and
+  `DLT_NULL` captures with captured or wire lengths shorter than their fixed headers and verifies
+  that the callbacks reject them before fixed-header access or length subtraction. The ASan/UBSan
+  CI job runs this test.
+
 - **Radiotap capture bounds**: `test_radiotap_capture_bounds.sh` verifies that a truncated
   radiotap present-bitmap extension cannot be read past captured packet data. The ASan/UBSan CI
   job runs this test.

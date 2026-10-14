@@ -4170,9 +4170,17 @@ ArgusEncPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
    int ind = src->ArgusThisIndex;
-   struct ip *ip = (struct ip *) (p + ENC_HDRLEN);
-   unsigned int caplen = h->caplen - ENC_HDRLEN;
-   unsigned int length = h->len    - ENC_HDRLEN;
+   struct ip *ip;
+   unsigned int caplen;
+   unsigned int length;
+
+   if ((p == NULL) || (h == NULL) ||
+       (h->caplen < ENC_HDRLEN) || (h->len < ENC_HDRLEN))
+      return;
+
+   ip = (struct ip *) (p + ENC_HDRLEN);
+   caplen = h->caplen - ENC_HDRLEN;
+   length = h->len - ENC_HDRLEN;
 
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
@@ -4734,6 +4742,10 @@ ArgusNullPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    int ind = src->ArgusThisIndex;
    struct pcap_pkthdr hbuf;
    unsigned int family;
+
+   if ((p == NULL) || (h == NULL) ||
+       (h->caplen < NULL_HDRLEN) || (h->len < NULL_HDRLEN))
+      return;
 
    if (ArgusDumpTask->ArgusDumpPacket)
       ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
