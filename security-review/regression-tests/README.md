@@ -44,6 +44,11 @@ Each fix falls into one of two categories:
 - **PPP/HDLC capture bounds**: `test_ppp_hdlc_capture_bounds.sh` verifies that a truncated
   PPP/HDLC header cannot be read past captured packet data. The ASan/UBSan CI job runs this test.
 
+- **PPP, PPP/BSDOS, and SLIP capture bounds**: `test_ppp_slip_capture_bounds.sh` creates
+  one-byte `DLT_PPP`, `DLT_PPP_BSDOS`, and `DLT_SLIP` captures with larger wire lengths and
+  verifies that the reported callbacks reject them before reading or pointer arithmetic. The
+  ASan/UBSan CI job runs this test.
+
 - **Radiotap capture bounds**: `test_radiotap_capture_bounds.sh` verifies that a truncated
   radiotap present-bitmap extension cannot be read past captured packet data. The ASan/UBSan CI
   job runs this test.

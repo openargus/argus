@@ -4415,7 +4415,7 @@ ArgusPppPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
    int ind = src->ArgusThisIndex;
-   struct ip *ip = (struct ip *) (p + PPP_HDRLEN);
+   struct ip *ip;
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
 
@@ -4429,7 +4429,8 @@ ArgusPppPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
    src->ArgusModel->ArgusMatchProtocol = 0;
 
-   if (p && (length > PPP_HDRLEN)) {
+   if (p && (length > PPP_HDRLEN) && (caplen >= PPP_HDRLEN)) {
+      ip = (struct ip *) (p + PPP_HDRLEN);
       ArgusModel->ArgusGlobalTime = *tvp;
       src->ArgusModel->ArgusGlobalTime  = *tvp;
       src->ArgusModel->ArgusSnapLength  = caplen;
@@ -4459,8 +4460,9 @@ ArgusPppBsdosPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
    int ind = src->ArgusThisIndex;
-   unsigned int length = h->len, hdrlen = 0;
+   unsigned int length = h->len;
    unsigned int caplen = h->caplen;
+   unsigned int snaplen = caplen;
    unsigned short ptype = 0;
 
    tvp->tv_sec  = h->ts.tv_sec;
@@ -4472,34 +4474,44 @@ ArgusPppBsdosPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
 
-   ArgusModel->ArgusGlobalTime = *tvp;
-   src->ArgusModel->ArgusGlobalTime  = *tvp;
-   src->ArgusModel->ArgusSnapLength  = caplen;
-   src->ArgusModel->ArgusThisSnapEnd = (u_char *) p + caplen;
-   src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_PPP;
+   if ((p == NULL) || (caplen == 0) || (length == 0))
+      return;
 
-   if (p[0] == PPP_ADDRESS && p[1] == PPP_CONTROL) {
+   if ((caplen >= 2) && (length >= 2) &&
+       (p[0] == PPP_ADDRESS) && (p[1] == PPP_CONTROL)) {
       p += 2;
-      hdrlen = 2;
+      caplen -= 2;
+      length -= 2;
    }
+
+   if ((caplen < 1) || (length < 1))
+      return;
 
    if (*p & 01) {                  /* Retrieve the protocol type */
       ptype = *p;                  /* Compressed protocol field */
       p++;
-      hdrlen += 1;
+      caplen -= 1;
+      length -= 1;
    } else {
+      if ((caplen < sizeof(u_short)) || (length < sizeof(u_short)))
+         return;
 #if defined(_LITTLE_ENDIAN)
       ptype = ntohs(*(u_short *)p);
 #else
       ptype = *(u_short *)p;
 #endif
       p += 2;
-      hdrlen += 2;
+      caplen -= 2;
+      length -= 2;
    }
 
+   ArgusModel->ArgusGlobalTime = *tvp;
+   src->ArgusModel->ArgusGlobalTime  = *tvp;
+   src->ArgusModel->ArgusSnapLength  = snaplen;
+   src->ArgusModel->ArgusThisSnapEnd = (u_char *) p + caplen;
+   src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_PPP;
    src->ArgusModel->ArgusMatchProtocol = 0;
 
-   length -= hdrlen;
    if (ptype == PPP_IP)
       if (p && (length > 0)) {
          src->ArgusModel->ArgusThisLength  = length;
@@ -4538,7 +4550,7 @@ ArgusSlipPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
    struct timeval tvpbuf, *tvp = &tvpbuf;
    int ind = src->ArgusThisIndex;
-   struct ip *ip = (struct ip *) (p + SLIP_HDRLEN);
+   struct ip *ip;
    unsigned int length = h->len;
    unsigned int caplen = h->caplen;
 
@@ -4551,14 +4563,15 @@ ArgusSlipPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    if (src->ArgusReadingOffLine)
       src->ArgusInputOffset = ftell(src->ArgusPacketInput);
 
-   ArgusModel->ArgusGlobalTime = *tvp;
-   src->ArgusModel->ArgusGlobalTime  = *tvp;
-   src->ArgusModel->ArgusSnapLength  = caplen;
-   src->ArgusModel->ArgusThisSnapEnd = ((u_char *)ip) + (caplen - SLIP_HDRLEN);
-   src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_SLIP;
-   src->ArgusModel->ArgusMatchProtocol = 0;
+   if (p && (length > SLIP_HDRLEN) && (caplen >= SLIP_HDRLEN)) {
+      ip = (struct ip *) (p + SLIP_HDRLEN);
+      ArgusModel->ArgusGlobalTime = *tvp;
+      src->ArgusModel->ArgusGlobalTime  = *tvp;
+      src->ArgusModel->ArgusSnapLength  = caplen;
+      src->ArgusModel->ArgusThisSnapEnd = ((u_char *)ip) + (caplen - SLIP_HDRLEN);
+      src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_SLIP;
+      src->ArgusModel->ArgusMatchProtocol = 0;
 
-   if (p && (length > SLIP_HDRLEN)) {
       length -= SLIP_HDRLEN;
 
       src->ArgusModel->ArgusThisLength  = length;
