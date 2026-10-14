@@ -6203,16 +6203,19 @@ void
 ArgusSflowPacket (struct ArgusSourceStruct *src, struct timeval *tvp, const u_char *p, int len)
 {
 // int ind = src->ArgusThisIndex;
-   unsigned int caplen = 1548;
-   unsigned int length = len;
+   unsigned int caplen;
+   unsigned int length;
 
 /*
    if (ArgusDumpTask->ArgusDumpPacket)
       ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 */
 
-   if (p != NULL) {
+   if ((src != NULL) && (tvp != NULL) && (p != NULL) && (len > 0)) {
       unsigned int ind = src->ArgusThisIndex;
+
+      caplen = (unsigned int)len;
+      length = caplen;
 
 /*
       if (src->ArgusReadingOffLine)

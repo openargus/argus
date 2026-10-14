@@ -8,6 +8,8 @@
 #ifndef SFLOW_H
 #define SFLOW_H 1
 
+#include <setjmp.h>
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -1610,6 +1612,8 @@ typedef struct _SFSample {
 
   /* decode cursor */
   uint32_t *datap;
+  jmp_buf abortEnv;
+  uint32_t abortReason;
 
   uint32_t datagramVersion;
   uint32_t sampleType;
@@ -1741,16 +1745,39 @@ typedef struct _SFSample {
   uint32_t statsSamplingInterval;
   uint32_t counterBlockVersion;
 
-# define SFABORT(s, r) abort()
-
 } SFSample;
 
-static uint32_t SFGetData32_nobswap(SFSample *sample) {
-  uint32_t ans = *(sample->datap)++;
+#define SF_ABORT_EOS 1
+#define SF_ABORT_LENGTH_ERROR 2
 
-  if((u_char *)sample->datap > sample->endp) {
+#define SFABORT(s, r) do { \
+  (s)->abortReason = (r); \
+  longjmp((s)->abortEnv, 1); \
+} while (0)
+
+static u_char *SFEndOfBytes(SFSample *sample, uint32_t length) {
+  u_char *cursor = (u_char *)sample->datap;
+  uint64_t padded = ((uint64_t)length + 3U) & ~3ULL;
+
+  if(cursor == NULL || sample->endp == NULL || cursor > sample->endp ||
+     padded > (uint64_t)(sample->endp - cursor)) {
     SFABORT(sample, SF_ABORT_EOS);
   }
+
+  return cursor + (size_t)padded;
+}
+
+static u_char *SFConsumeBytes(SFSample *sample, uint32_t length) {
+  u_char *cursor = (u_char *)sample->datap;
+
+  sample->datap = (uint32_t *)SFEndOfBytes(sample, length);
+  return cursor;
+}
+
+static uint32_t SFGetData32_nobswap(SFSample *sample) {
+  uint32_t ans;
+
+  memcpy(&ans, SFConsumeBytes(sample, sizeof(ans)), sizeof(ans));
   return ans;
 }
 
@@ -1773,21 +1800,33 @@ static uint64_t SFGetData64(SFSample *sample) {
 }
 
 static void SFSkipBytes(SFSample *sample, uint32_t skip) {
-  int quads = (skip + 3) / 4;
-  sample->datap += quads;
-  if(skip > sample->rawSampleLen || (u_char *)sample->datap > sample->endp) {
+  SFConsumeBytes(sample, skip);
+}
+
+static void SFSkipWords(SFSample *sample, uint32_t words) {
+  if(words > (UINT32_MAX / 4U)) {
     SFABORT(sample, SF_ABORT_EOS);
   }
+
+  SFSkipBytes(sample, words * 4U);
 }
 
 static uint32_t SFGetString(SFSample *sample, char *buf, uint32_t bufLen) {
   uint32_t len, read_len;
+  u_char *bytes;
+
+  if(buf == NULL || bufLen == 0) {
+    SFABORT(sample, SF_ABORT_EOS);
+  }
+
   len = SFGetData32(sample);
+  bytes = SFConsumeBytes(sample, len);
   // truncate if too long
   read_len = (len >= bufLen) ? (bufLen - 1) : len;
-  memcpy(buf, sample->datap, read_len);
+  if(read_len) {
+    memcpy(buf, bytes, read_len);
+  }
   buf[read_len] = '\0';   // null terminate
-  SFSkipBytes(sample, len);
   return len;
 }
 
@@ -1797,8 +1836,7 @@ static uint32_t SFGetAddress(SFSample *sample, SFLAddress *address) {
   if(address->type == SFLADDRESSTYPE_IP_V4)
     address->address.ip_v4.addr = SFGetData32_nobswap(sample);
   else {
-    memcpy(&address->address.ip_v6.addr, sample->datap, 16);
-    SFSkipBytes(sample, 16);
+    memcpy(&address->address.ip_v6.addr, SFConsumeBytes(sample, 16), 16);
   }
   return address->type;
 }

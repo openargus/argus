@@ -51,7 +51,7 @@
 
 void ArgusParseSFlowRecord (struct ArgusModelerStruct *, void *);
 
-static void SFLengthCheck(SFSample *, u_char *, int);
+static void SFLengthCheck(SFSample *, u_char *, uint32_t);
 
 void SFParseFlowSample_header(struct ArgusSourceStruct *, struct timeval *, SFSample *);
 void SFParseFlowSample_ethernet(SFSample *);
@@ -106,6 +106,7 @@ void SFParseCounters_CAL (SFSample *sptr);
 static void SFDecodeLinkLayer(SFSample *);
 static void SFDecode80211MAC(SFSample *);
 
+static int SFHeaderBytes(const SFSample *, const u_char *, size_t);
 static void SFDecodeIPV4(SFSample *);
 static void SFDecodeIPV6(SFSample *);
 static void SFDecodeIPLayer4(SFSample *, u_char *);
@@ -126,11 +127,14 @@ ArgusParseSFFlowSample(struct ArgusSourceStruct *src, SFSample *sptr, int state)
    gettimeofday(tvp, 0L);
 
    if (sptr->datagramVersion >= 5) {
-      u_char *start;
-      int i, len, num;
+      u_char *start, *outer_end, *sample_end;
+      uint32_t i, len, num;
   
       len = SFGetData32 (sptr);
       start = (u_char *)sptr->datap;
+      outer_end = sptr->endp;
+      sample_end = SFEndOfBytes(sptr, len);
+      sptr->endp = sample_end;
 
 //    seq = SFGetData32 (sptr);
       SFGetData32 (sptr);
@@ -163,11 +167,12 @@ ArgusParseSFFlowSample(struct ArgusSourceStruct *src, SFSample *sptr, int state)
       num = SFGetData32 (sptr);
       for (i = 0; i < num; i++) {
          uint32_t stag, slen;
-         u_char *sdp = NULL;
+         u_char *sdp;
 
          stag = SFGetData32 (sptr);
          slen = SFGetData32 (sptr);
          sdp  = (u_char *)sptr->datap;
+         sptr->endp = SFEndOfBytes(sptr, slen);
 
          switch (stag) {
             case SFLFLOW_HEADER:           SFParseFlowSample_header(src, tvp, sptr); break;
@@ -196,11 +201,13 @@ ArgusParseSFFlowSample(struct ArgusSourceStruct *src, SFSample *sptr, int state)
             case SFLFLOW_EX_SOCKET4:       SFParseExtendedSocket4(sptr); break;
             case SFLFLOW_EX_SOCKET6:       SFParseExtendedSocket6(sptr); break;
             default:                       SFSkipBytes(sptr, slen); break;
-         }
-         SFLengthCheck(sptr, sdp, slen);
-      }
+          }
+          SFLengthCheck(sptr, sdp, slen);
+          sptr->endp = sample_end;
+       }
 
       SFLengthCheck(sptr, start, len);
+      sptr->endp = outer_end;
    }
 }
 
@@ -208,12 +215,14 @@ static void
 ArgusParseSFCountersSample(struct ArgusSourceStruct *src, SFSample *sptr, int state)
 {
    if (sptr->datagramVersion >= 5) {
-      uint32_t slen, num;
-      u_char *sdp, *start;
-      int i;
+      uint32_t slen, num, i;
+      u_char *sdp, *start, *outer_end, *sample_end;
 
       slen = SFGetData32 (sptr);
       sdp = (u_char *)sptr->datap;
+      outer_end = sptr->endp;
+      sample_end = SFEndOfBytes(sptr, slen);
+      sptr->endp = sample_end;
       sptr->samplesGenerated = SFGetData32 (sptr);
       
       if (state) {
@@ -229,9 +238,10 @@ ArgusParseSFCountersSample(struct ArgusSourceStruct *src, SFSample *sptr, int st
          
       for (i = 0; i < num; i++) {
          uint32_t tag, length;
-         tag    = SFGetData32 (sptr);
-         length = SFGetData32 (sptr);
-         start  = (u_char *)sptr->datap;
+          tag    = SFGetData32 (sptr);
+          length = SFGetData32 (sptr);
+          start  = (u_char *)sptr->datap;
+          sptr->endp = SFEndOfBytes(sptr, length);
          
          switch (tag) {
             case SFLCOUNTERS_GENERIC:       SFParseCounters_generic(sptr); break;
@@ -258,10 +268,12 @@ ArgusParseSFCountersSample(struct ArgusSourceStruct *src, SFSample *sptr, int st
             case SFLCOUNTERS_HTTP:          SFParseCounters_http(sptr); break;
             case SFLCOUNTERS_CAL:           SFParseCounters_CAL(sptr); break;
             default:                        SFSkipBytes(sptr, length); break;
-         }
-         SFLengthCheck(sptr, start, length);
-      }
+          }
+          SFLengthCheck(sptr, start, length);
+          sptr->endp = sample_end;
+       }
       SFLengthCheck(sptr, sdp, slen);
+      sptr->endp = outer_end;
    }
 }
 
@@ -270,7 +282,7 @@ extern unsigned int ArgusSourceCount;
 void
 ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
 {
-   struct ArgusSourceStruct *stask = model->ArgusSrc, *src = NULL;
+   struct ArgusSourceStruct *stask, *src = NULL;
    SFSample sample, *sptr = &sample;
    uint32_t count, cnt, srcid;
    int i;
@@ -283,6 +295,11 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
    bcopy(model, ArgusSflowModel, sizeof(*model));
 */
 
+   if ((model == NULL) || (ptr == NULL) || (model->ArgusThisSnapEnd == NULL) ||
+       ((u_char *)ptr > model->ArgusThisSnapEnd))
+      return;
+
+   stask = model->ArgusSrc;
    cnt = model->ArgusThisSnapEnd - (u_char *)ptr;
 
    bzero(sptr, sizeof (sample));
@@ -291,6 +308,9 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
 
    sptr->datap = (uint32_t *) ptr;
    sptr->endp  = model->ArgusThisSnapEnd;
+
+   if (setjmp(sptr->abortEnv))
+      return;
 
    sptr->datagramVersion = SFGetData32 (sptr);
 
@@ -428,6 +448,9 @@ ArgusProcessSflowDatagram (struct ArgusSourceStruct *src, struct ArgusInterfaceS
    uint32_t count;
    int retn = 0, i;
 
+   if ((inf == NULL) || (inf->ArgusReadPtr == NULL) || (cnt <= 0))
+      return (retn);
+
    bzero(sptr, sizeof (sample));
    sptr->rawSample = inf->ArgusReadPtr;
    sptr->rawSampleLen = cnt;
@@ -435,6 +458,9 @@ ArgusProcessSflowDatagram (struct ArgusSourceStruct *src, struct ArgusInterfaceS
 
    sptr->datap = (uint32_t *)inf->ArgusReadPtr;
    sptr->endp  = ((u_char *)inf->ArgusReadPtr) + cnt;
+
+   if (setjmp(sptr->abortEnv))
+      return (retn);
 
    sptr->datagramVersion = SFGetData32 (sptr);
 
@@ -567,18 +593,19 @@ ArgusReadSflowDatagramSocket (struct ArgusSourceStruct *src, struct ArgusInterfa
 void 
 SFParseFlowSample_header(struct ArgusSourceStruct *src, struct timeval *tvp, SFSample *sptr)
 {
+   uint32_t headerLen;
+
    sptr->headerProtocol    = SFGetData32 (sptr);
    sptr->sampledPacketSize = SFGetData32 (sptr);
 
    if (sptr->datagramVersion > 4)
       sptr->stripped = SFGetData32 (sptr);
   
-   sptr->headerLen  = SFGetData32 (sptr);
-   sptr->header     = (u_char *)sptr->datap;
+   headerLen = SFGetData32 (sptr);
+   sptr->header = SFConsumeBytes(sptr, headerLen);
+   sptr->headerLen = (int)headerLen;
 
-   ArgusSflowPacket (src, tvp, (const u_char *)sptr->datap, sptr->headerLen);
-
-   SFSkipBytes(sptr, sptr->headerLen);
+   ArgusSflowPacket (src, tvp, sptr->header, sptr->headerLen);
    
    switch(sptr->headerProtocol) {
       case SFLHEADER_ETHERNET_ISO8023:
@@ -622,11 +649,13 @@ SFParseFlowSample_header(struct ArgusSourceStruct *src, struct timeval *tvp, SFS
 void
 SFParseFlowSample_ethernet(SFSample *sptr)
 {
+   u_char *mac;
+
    sptr->eth_len = SFGetData32 (sptr);
-   memcpy(sptr->eth_src, sptr->datap, 6);
-   SFSkipBytes(sptr, 6);
-   memcpy(sptr->eth_dst, sptr->datap, 6);
-   SFSkipBytes(sptr, 6);
+   mac = SFConsumeBytes(sptr, 6);
+   memcpy(sptr->eth_src, mac, 6);
+   mac = SFConsumeBytes(sptr, 6);
+   memcpy(sptr->eth_dst, mac, 6);
    sptr->eth_type = SFGetData32 (sptr);
 }
 
@@ -636,9 +665,8 @@ SFParseFlowSample_IPv4 (SFSample *sptr)
    SFLSampled_ipv4 nfKey;
 
    sptr->headerLen = sizeof(SFLSampled_ipv4);
-   sptr->header = (u_char *)sptr->datap; /* just point at the header */
-   SFSkipBytes(sptr, sptr->headerLen);
-   
+   sptr->header = SFConsumeBytes(sptr, sptr->headerLen);
+
    memcpy(&nfKey, sptr->header, sizeof(nfKey));
    sptr->sampledPacketSize = ntohl(nfKey.length);
    sptr->ipsrc.type = SFLADDRESSTYPE_IP_V4;
@@ -665,9 +693,8 @@ SFParseFlowSample_IPv6(SFSample *sptr)
 {
    SFLSampled_ipv6 nfKey6;
 
-   sptr->header = (u_char *)sptr->datap; /* just point at the header */
+   sptr->header = SFConsumeBytes(sptr, sizeof(SFLSampled_ipv6));
    sptr->headerLen = sizeof(SFLSampled_ipv6);
-   SFSkipBytes(sptr, sptr->headerLen);
    memcpy(&nfKey6, sptr->header, sizeof(nfKey6));
    sptr->sampledPacketSize = ntohl(nfKey6.length);
    sptr->ipsrc.type = SFLADDRESSTYPE_IP_V6;
@@ -823,7 +850,7 @@ SFParseExtendedGateway(SFSample *sptr)
    if (sptr->communities_len > 0)
       sptr->communities = sptr->datap;
    /* and skip over it in the input */
-   SFSkipBytes(sptr, sptr->communities_len * 4);
+   SFSkipWords(sptr, sptr->communities_len);
  
    sptr->extended_data_tag |= SASAMPLE_EXTENDED_DATA_GATEWAY;
    sptr->localpref = SFGetData32 (sptr);
@@ -868,7 +895,7 @@ SFMplsLabelStack(SFSample *sptr, char *fieldName)
    if(lstk.depth > 0)
       lstk.stack = (uint32_t *)sptr->datap;
    /* and skip over it in the input */
-   SFSkipBytes(sptr, lstk.depth * 4);
+   SFSkipWords(sptr, lstk.depth);
 }
 
 void
@@ -956,7 +983,7 @@ SFParseExtendedVlanTunnel(SFSample *sptr)
       lstk.stack = (uint32_t *)sptr->datap;
 
    /* and skip over it in the input */
-   SFSkipBytes(sptr, lstk.depth * 4);
+   SFSkipWords(sptr, lstk.depth);
    sptr->extended_data_tag |= SASAMPLE_EXTENDED_DATA_VLAN_TUNNEL;
 }
 
@@ -1020,13 +1047,15 @@ SFParseExtendedSocket4(SFSample *sptr)
 void
 SFParseExtendedSocket6(SFSample *sptr)
 {
+   u_char *address;
+
    SFGetData32 (sptr);   // "socket6_ip_protocol"
    sptr->ipsrc.type = SFLADDRESSTYPE_IP_V6;
-   memcpy(&sptr->ipsrc.address.ip_v6, sptr->datap, 16);
-   SFSkipBytes(sptr, 16);
+   address = SFConsumeBytes(sptr, 16);
+   memcpy(&sptr->ipsrc.address.ip_v6, address, 16);
    sptr->ipdst.type = SFLADDRESSTYPE_IP_V6;
-   memcpy(&sptr->ipdst.address.ip_v6, sptr->datap, 16);
-   SFSkipBytes(sptr, 16);
+   address = SFConsumeBytes(sptr, 16);
+   memcpy(&sptr->ipdst.address.ip_v6, address, 16);
    SFGetData32 (sptr);   // "socket6_local_port"
    SFGetData32 (sptr);   // "socket6_remote_port"
 }
@@ -1394,13 +1423,21 @@ SFParseCounters_CAL (SFSample *sptr)
 
 
 static void
-SFLengthCheck(SFSample *sample, u_char *start, int len) 
+SFLengthCheck(SFSample *sample, u_char *start, uint32_t len)
 {
-  uint32_t actualLen = (u_char *)sample->datap - start;
-  uint32_t adjustedLen = ((len + 3) >> 2) << 2;
-  if(actualLen != adjustedLen) {
-    SFABORT(sample, SF_ABORT_LENGTH_ERROR);
-  }
+   u_char *cursor = (u_char *)sample->datap;
+   uint64_t actualLen;
+   uint64_t adjustedLen = ((uint64_t)len + 3U) & ~3ULL;
+
+   if (start == NULL || cursor == NULL || sample->endp == NULL ||
+       start > cursor || cursor > sample->endp) {
+      SFABORT(sample, SF_ABORT_LENGTH_ERROR);
+   }
+
+   actualLen = cursor - start;
+   if (actualLen != adjustedLen) {
+      SFABORT(sample, SF_ABORT_LENGTH_ERROR);
+   }
 }
 
 /* define my own IP header struct - to ease portability */
@@ -1447,6 +1484,22 @@ struct SFmyicmphdr
   /* ignore the rest */
 };
 
+static int
+SFHeaderBytes(const SFSample *sample, const u_char *ptr, size_t length)
+{
+   const u_char *end;
+
+   if ((sample == NULL) || (sample->header == NULL) || (ptr == NULL) ||
+       (sample->headerLen < 0))
+      return (ARGUS_FALSE);
+
+   end = sample->header + sample->headerLen;
+   if ((ptr < sample->header) || (ptr > end))
+      return (ARGUS_FALSE);
+
+   return (length <= (size_t)(end - ptr));
+}
+
 
 static void 
 SFDecodeIPV4(SFSample *sptr)
@@ -1456,6 +1509,10 @@ SFDecodeIPV4(SFSample *sptr)
       /* Create a local copy of the IP header (cannot overlay structure in case it is not quad-aligned...some
           platforms would core-dump if we tried that).   It's OK coz this probably performs just as well anyway. */
       struct SFmyiphdr ip;
+
+      if (!SFHeaderBytes(sptr, ptr, sizeof(ip)))
+         return;
+
       memcpy(&ip, ptr, sizeof(ip));
       /* Value copy all ip elements into sptr */
       sptr->ipsrc.type = SFLADDRESSTYPE_IP_V4;
@@ -1467,11 +1524,17 @@ SFDecodeIPV4(SFSample *sptr)
       sptr->dcd_ipTTL = ip.ttl;
       sptr->ip_fragmentOffset = ntohs(ip.frag_off) & 0x1FFF;
       if(sptr->ip_fragmentOffset > 0) {
-      } else {
-         /* advance the pointer to the next protocol layer */
-         /* ip headerLen is expressed as a number of quads */
-         ptr += (ip.version_and_headerLen & 0x0f) * 4;
-         SFDecodeIPLayer4(sptr, ptr);
+       } else {
+          /* advance the pointer to the next protocol layer */
+          /* ip headerLen is expressed as a number of quads */
+          size_t headerLen = (ip.version_and_headerLen & 0x0f) * 4;
+
+          if (((ip.version_and_headerLen >> 4) != 4) ||
+              (headerLen < sizeof(ip)) || !SFHeaderBytes(sptr, ptr, headerLen))
+             return;
+
+          ptr += headerLen;
+          SFDecodeIPLayer4(sptr, ptr);
       }
    }
 }
@@ -1483,11 +1546,15 @@ SFDecodeIPV6(SFSample *sptr)
 // uint16_t payloadLen;
 // uint32_t label;
    uint32_t nextHeader;
-   u_char *end = sptr->header + sptr->headerLen;
 
    if(sptr->gotIPV6) {
       u_char *ptr = sptr->header + sptr->offsetToIPV6;
-      int ipVersion = (*ptr >> 4);
+      int ipVersion;
+
+      if (!SFHeaderBytes(sptr, ptr, 40))
+         return;
+
+      ipVersion = (*ptr >> 4);
       
       if(ipVersion != 6)
          return;
@@ -1527,12 +1594,16 @@ SFDecodeIPV6(SFSample *sptr)
       // nextHeader == 50 || // encryption - don't bother coz we'll not be able to read any further
       nextHeader == 51 || // auth
       nextHeader == 60) { // destination options
-         uint32_t optionLen, skip;
+         uint32_t optionLen;
+
+         if (!SFHeaderBytes(sptr, ptr, 2))
+            return;
+
          nextHeader = ptr[0];
-         optionLen = 8 * (ptr[1] + 1);   // second byte gives option len in 8-byte chunks, not counting first 8
-         skip = optionLen - 2;
-         ptr += skip;
-         if(ptr > end) return; // ran off the end of the header
+          optionLen = 8 * (ptr[1] + 1);   // second byte gives option len in 8-byte chunks, not counting first 8
+         if (!SFHeaderBytes(sptr, ptr, optionLen))
+            return;
+         ptr += optionLen;
       }
       
       // now that we have eliminated the extension headers, nextHeader should have what we want to
@@ -1545,14 +1616,13 @@ SFDecodeIPV6(SFSample *sptr)
 static void 
 SFDecodeIPLayer4(SFSample *sptr, u_char *ptr)
 {
-   u_char *end = sptr->header + sptr->headerLen;
-   if (ptr > (end - 8)) {
-      // not enough header bytes left
-      return;
-   }
    switch (sptr->dcd_ipProtocol) {
       case IPPROTO_ICMP: { /* ICMP */
          struct SFmyicmphdr icmp;
+
+         if (!SFHeaderBytes(sptr, ptr, sizeof(icmp)))
+            return;
+
          memcpy(&icmp, ptr, sizeof(icmp));
          sptr->dcd_sport = icmp.type;
          sptr->dcd_dport = icmp.code;
@@ -1562,17 +1632,28 @@ SFDecodeIPLayer4(SFSample *sptr, u_char *ptr)
       case IPPROTO_TCP: { /* TCP */
          struct SFmytcphdr tcp;
          int headerBytes;
+
+         if (!SFHeaderBytes(sptr, ptr, sizeof(tcp)))
+            return;
+
          memcpy(&tcp, ptr, sizeof(tcp));
          sptr->dcd_sport = ntohs(tcp.th_sport);
          sptr->dcd_dport = ntohs(tcp.th_dport);
          sptr->dcd_tcpFlags = tcp.th_flags;
          headerBytes = (tcp.th_off_and_unused >> 4) * 4;
+         if ((headerBytes < (int)sizeof(tcp)) ||
+             !SFHeaderBytes(sptr, ptr, headerBytes))
+            return;
          ptr += headerBytes;
          sptr->offsetToPayload = ptr - sptr->header;
          break;
       }
       case IPPROTO_UDP: { /* UDP */
          struct SFmyudphdr udp;
+
+         if (!SFHeaderBytes(sptr, ptr, sizeof(udp)))
+            return;
+
          memcpy(&udp, ptr, sizeof(udp));
          sptr->dcd_sport = ntohs(udp.uh_sport);
          sptr->dcd_dport = ntohs(udp.uh_dport);
@@ -1600,7 +1681,6 @@ static void
 SFDecodeLinkLayer(SFSample *sample)
 {
    u_char *start = (u_char *)sample->header;
-   u_char *end = start + sample->headerLen;
    u_char *ptr = start;
    uint16_t type_len;
 
@@ -1609,6 +1689,7 @@ SFDecodeLinkLayer(SFSample *sample)
    sample->gotIPV6 = ARGUS_FALSE;
 
    if (sample->headerLen < NFT_ETHHDR_SIZ) return; /* not enough for an Ethernet header */
+   if (!SFHeaderBytes(sample, ptr, NFT_ETHHDR_SIZ)) return;
 
    memcpy(sample->eth_dst, ptr, 6);
    ptr += 6;
@@ -1620,6 +1701,7 @@ SFDecodeLinkLayer(SFSample *sample)
 
    if (type_len == 0x8100) {
       /* VLAN   - next two bytes */
+      if (!SFHeaderBytes(sample, ptr, 4)) return;
       uint32_t vlanData = (ptr[0] << 8) + ptr[1];
       uint32_t vlan = vlanData & 0x0fff;
       ptr += 2;
@@ -1636,10 +1718,11 @@ SFDecodeLinkLayer(SFSample *sample)
    /* now we're just looking for IP */
    if (sample->headerLen < NFT_MIN_SIZ) return; /* not enough for an IPv4 header */
    
-   /* peek for IPX */
-   if(type_len == 0x0200 || type_len == 0x0201 || type_len == 0x0600) {
+    /* peek for IPX */
+    if(type_len == 0x0200 || type_len == 0x0201 || type_len == 0x0600) {
 #define IPX_HDR_LEN 30
 #define IPX_MAX_DATA 546
+      if (!SFHeaderBytes(sample, ptr, 4)) return;
       int ipxChecksum = (ptr[0] == 0xff && ptr[1] == 0xff);
       int ipxLen = (ptr[2] << 8) + ptr[3];
       if (ipxChecksum &&
@@ -1652,8 +1735,10 @@ SFDecodeLinkLayer(SFSample *sample)
    if (type_len <= NFT_MAX_8023_LEN) {
       /* assume 802.3+802.2 header */
       /* check for SNAP */
+      if (!SFHeaderBytes(sample, ptr, NFT_8022_SIZ)) return;
       if (ptr[0] == 0xAA && ptr[1] == 0xAA && ptr[2] == 0x03) {
          ptr += 3;
+         if (!SFHeaderBytes(sample, ptr, 5)) return;
          if (ptr[0] != 0 || ptr[1] != 0 || ptr[2] != 0) {
             return; /* no further decode for vendor-specific protocol */
          }
@@ -1680,7 +1765,7 @@ SFDecodeLinkLayer(SFSample *sample)
 
    if (type_len == 0x0800) {
       /* IPV4 */
-      if((end - ptr) < sizeof(struct SFmyiphdr)) return;
+      if (!SFHeaderBytes(sample, ptr, sizeof(struct SFmyiphdr))) return;
       /* look at first byte of header.... */
       /*   ___________________________ */
       /* |    version    |      hdrlen    | */
@@ -1694,6 +1779,7 @@ SFDecodeLinkLayer(SFSample *sample)
 
    if (type_len == 0x86DD) {
       /* IPV6 */
+      if (!SFHeaderBytes(sample, ptr, 1)) return;
       /* look at first byte of header.... */
       if((*ptr >> 4) != 6) return; /* not version 6 */
       /* survived all the tests - store the offset to the start of the ip6 header */
@@ -1717,6 +1803,7 @@ SFDecode80211MAC(SFSample *sample)
    sample->gotIPV6 = ARGUS_FALSE;
 
    if(sample->headerLen < WIFI_MIN_HDR_SIZ) return; /* not enough for an 80211 MAC header */
+   if (!SFHeaderBytes(sample, ptr, WIFI_MIN_HDR_SIZ)) return;
 
    uint32_t fc = (ptr[1] << 8) + ptr[0];   // [b7..b0][b15..b8]
 // uint32_t protocolVersion = fc & 3;
@@ -1764,6 +1851,7 @@ SFDecode80211MAC(SFSample *sample)
          if(toDS) {
             dstMAC = macAddr3;
             if(fromDS) {
+               if (!SFHeaderBytes(sample, ptr, 6)) return;
                srcMAC = ptr; // macAddr4.   1,1 => (wireless bridge)
                ptr += 6;
             } else
