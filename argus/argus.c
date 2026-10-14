@@ -637,8 +637,11 @@ main (int argc, char *argv[])
    setArgusOptind (ArgusSourceTask, optind);
    setArgusCmdBuf (ArgusSourceTask);
 
-   if (ArgusSourceTask->ArgusCmdBuf != NULL)
-      ArgusSourceTask->ArgusInputFilter = strdup(ArgusSourceTask->ArgusCmdBuf);
+   if (ArgusSourceTask->ArgusCmdBuf != NULL) {
+      free(ArgusSourceTask->ArgusInputFilter);
+      ArgusSourceTask->ArgusInputFilter = ArgusSourceTask->ArgusCmdBuf;
+      ArgusSourceTask->ArgusCmdBuf = NULL;
+   }
 
    if (getArgusrfile(ArgusSourceTask) != NULL) {
       ArgusSourceTask->ArgusReadingOffLine++;
@@ -1622,9 +1625,11 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                               setArgusOflag  (ArgusSourceTask, 0);
                            break;
 
-                        case ARGUS_FILTER:
-                           if ((ArgusSourceTask->ArgusInputFilter = ArgusCalloc (1, MAXSTRLEN)) != NULL) {
-                              char *ptr = ArgusSourceTask->ArgusInputFilter;
+                        case ARGUS_FILTER: {
+                           char *filter = calloc(1, MAXSTRLEN);
+
+                           if (filter != NULL) {
+                              char *ptr = filter;
                               char *ptrend = ptr + MAXSTRLEN - 1;
                               char contbuf[MAXSTRLEN];
                               str = optarg;
@@ -1655,11 +1660,14 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                                     str++;
                               }
                               *ptr = '\0';
+                              free(ArgusSourceTask->ArgusInputFilter);
+                              ArgusSourceTask->ArgusInputFilter = filter;
 #ifdef ARGUSDEBUG
                            ArgusDebug (1, "ArgusParseResourceFile: ArgusFilter \"%s\" \n", ArgusSourceTask->ArgusInputFilter);
 #endif 
                            }
                            break;
+                        }
 
                         case ARGUS_PACKET_CAPTURE_FILE:
                            if (*optarg != '\0') {
@@ -2094,7 +2102,7 @@ clearArgusConfiguration (struct ArgusModelerStruct *model)
    }
 
    if (ArgusSourceTask->ArgusInputFilter) {
-      ArgusFree(ArgusSourceTask->ArgusInputFilter);
+      free(ArgusSourceTask->ArgusInputFilter);
       ArgusSourceTask->ArgusInputFilter = NULL;
    }
 
@@ -2379,4 +2387,3 @@ ArgusCopyArgv (char **argv)
 
    return buf;
 }
-

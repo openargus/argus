@@ -1,8 +1,9 @@
 # Security-review regression tests (sensor repo)
 
-This directory holds small, targeted regression tests for specific fixes made during the
-2026-09 security review (see `../findings-log.md` and `../SECURITY-REVIEW-REPORT.md`). It is
-separate from `../fuzz/`, which fuzzes/replays a corpus against the single `ArgusProcessPacket()`
+This directory holds small, targeted regression tests for specific fixes and hardening changes
+from the 2026-09 security review and later follow-up work (see `../findings-log.md` and
+`../SECURITY-REVIEW-REPORT.md`). It is separate from `../fuzz/`, which
+fuzzes/replays a corpus against the single `ArgusProcessPacket()`
 choke point. These tests exist because several of the review's fixes are in code paths that
 harness never reaches (signal handling, resource-file parsing, output-filter setup, the sFlow
 read loop, and DLT_LINUX_SLL packet dispatch), so the fuzz-regression job alone does not exercise
@@ -23,7 +24,18 @@ Each fix falls into one of two categories:
   iterations. This substantially increases the odds of catching a reintroduced race, but -
   being a race - it is not guaranteed to fail every time the underlying bug is reintroduced.
   There is no claim here that this is a substitute for careful code review of any future change
-  to this code.
+   to this code.
+
+- **Access-port exposure policy**: `test_access_port_loopback_default.sh` verifies that a positive
+  access port with no explicit bind address listens only on IPv4 and IPv6 loopback. An explicit
+  bind address remains the required configuration for external TCP access.
+
+- **Input-filter cleanup**: `test_input_filter_cleanup.sh` verifies that resource-file and
+  command-line filters are released cleanly after offline processing. The CI job enables
+  `ARGUSMEMDEBUG` so allocation-family mismatches fail this test.
+
+- **GRE capture bounds**: `test_gre_capture_bounds.sh` verifies that a truncated GRE routing
+  header cannot advance Argus past captured packet data. The ASan/UBSan CI job runs this test.
 
 F-41 (encaps-capture buffer lifecycle) and F-49 (Makefile failure-masking) are not covered by
 tests in this directory: F-41 is not yet merged, and F-49 was verified via `make`-level fault
@@ -44,8 +56,8 @@ also be run standalone; see the comment header in each file for what it checks a
 
 ## Fixtures
 
-`fixtures/babel.pcap`, `fixtures/bgp-infinite-loop.pcap`, and `fixtures/lsp-ping-timestamp.pcap`
-are copied from tcpdump's own public, BSD-licensed regression-test corpus
-(https://github.com/the-tcpdump-group/tcpdump, `tests/` directory) — all three are
-`DLT_LINUX_SLL`-linktype captures, tiny (116 bytes - 3.3 KB), and safe to redistribute. No
+`fixtures/babel.pcap`, `fixtures/bgp-infinite-loop.pcap`, `fixtures/gre-heapoverflow-2.pcap`, and
+`fixtures/lsp-ping-timestamp.pcap` are copied from tcpdump's own public, BSD-licensed regression-test corpus
+(https://github.com/the-tcpdump-group/tcpdump, `tests/` directory). They are tiny (116 bytes -
+3.3 KB) and safe to redistribute. No
 proprietary, customer, or otherwise sensitive capture data is used anywhere in this directory.
