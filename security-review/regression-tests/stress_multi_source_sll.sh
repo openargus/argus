@@ -30,7 +30,8 @@
 # every DLT_LINUX_SLL pcap fixture in this directory simultaneously (as
 # "-r file1 file2 ... fileN", which argus opens as independent concurrent
 # per-source capture threads) for several iterations, checking each run's
-# output for any ASan/UBSan error report.
+# output for any ASan/UBSan error report. Set RUN_NETFLOW_REGRESSION=1 to
+# also run the NetFlow datagram-bounds suite against that instrumented binary.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
@@ -83,6 +84,13 @@ ASAN_ARGUS="$BUILD_DIR/src/bin/argus"
 if [ ! -x "$ASAN_ARGUS" ]; then
    echo "error: expected ASan binary not found at $ASAN_ARGUS" >&2
    exit 2
+fi
+
+if [ "${RUN_NETFLOW_REGRESSION:-0}" = "1" ]; then
+   echo "Running NetFlow datagram-bounds regression under ASan/UBSan..."
+   if ! ARGUS_BIN="$ASAN_ARGUS" sh "$SCRIPT_DIR/test_netflow_datagram_bounds.sh"; then
+      fail "NetFlow datagram-bounds regression failed under ASan/UBSan"
+   fi
 fi
 
 echo "Running $ITERATIONS iterations of an $(echo $SLL_FIXTURES | wc -w | tr -d ' ')-source concurrent SLL playback..."

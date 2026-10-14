@@ -51,6 +51,7 @@ void ArgusParseCiscoRecordV6 (struct ArgusModelerStruct *, void *);
 void ArgusParseCiscoRecordV7 (struct ArgusModelerStruct *, void *);
 void ArgusParseCiscoRecordV8 (struct ArgusModelerStruct *, void *);
 void ArgusParseCiscoRecordV9 (struct ArgusModelerStruct *, void *);
+void ArgusDeleteCiscoTemplateCache(struct ArgusModelerStruct *);
 
 #else
 extern void ArgusParseCiscoRecord (struct ArgusModelerStruct *, void *);
@@ -60,4 +61,5 @@ extern void ArgusParseCiscoRecordV6 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV7 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV8 (struct ArgusModelerStruct *, void *);
 extern void ArgusParseCiscoRecordV9 (struct ArgusModelerStruct *, void *);
+extern void ArgusDeleteCiscoTemplateCache(struct ArgusModelerStruct *);
 #endif

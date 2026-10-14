@@ -48,6 +48,7 @@
 #include <ctype.h>
 
 #include <argus.h>
+#include <ArgusNetflow.h>
 
 #include <argus/bootp.h>
 #include <signal.h>
@@ -148,6 +149,7 @@ ArgusCloneModeler(struct ArgusModelerStruct *src)
    retn->ArgusHashTable     = NULL;
    retn->hstruct            = NULL;
    retn->ArgusStatusQueue   = NULL;
+   retn->ArgusCiscoTemplateQueue = NULL;
    retn->ArgusTimeOutQueues = NULL;
    retn->ArgusThisFlow      = NULL;
    retn->ArgusOutputList    = NULL;
@@ -362,6 +364,7 @@ ArgusCloseModeler(struct ArgusModelerStruct *model)
          ArgusFree(model->ArgusThisFlow);
          model->ArgusThisFlow = NULL;
       }
+      ArgusDeleteCiscoTemplateCache(model);
       if (model->ArgusStatusQueue != NULL) {
          ArgusDeleteQueue(model->ArgusStatusQueue);
          model->ArgusStatusQueue = NULL;
