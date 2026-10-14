@@ -234,6 +234,7 @@ struct ArgusModelerStruct {
 
    struct ArgusSourceStruct *ArgusSrc;
    struct ArgusQueueStruct *ArgusStatusQueue;
+   struct ArgusQueueStruct *ArgusCiscoTemplateQueue;
    struct ArgusListStruct *ArgusOutputList;
    struct ArgusHashTable *ArgusHashTable;
    struct ArgusSystemFlow  *ArgusThisFlow;

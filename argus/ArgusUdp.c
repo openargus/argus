@@ -45,6 +45,7 @@
 #include <argus_compat.h>
 #include <ArgusModeler.h>
 
+#include <arpa/inet.h>
 #include <argus/bootp.h>
 
 void ArgusUpdateUDPState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
@@ -52,20 +53,51 @@ void ArgusUpdateUDPState (struct ArgusModelerStruct *, struct ArgusFlowStruct *,
 void
 ArgusUpdateUDPState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flowstr, unsigned char *state)
 {
-   struct udphdr *up = (struct udphdr *) model->ArgusThisUpHdr;
-   u_char *nxtHdr = (u_char *)(up + 1);
+   struct udphdr *up;
+   u_char *nxtHdr;
+   unsigned int payload_length;
 
-   if (STRUCTCAPTURED(model, *up)) {
-      model->ArgusThisLength -= sizeof(*up);
-      model->ArgusSnapLength -= sizeof(*up);
+   if (model == NULL || model->ArgusThisUpHdr == NULL ||
+       model->ArgusThisSnapEnd == NULL ||
+       model->ArgusThisLength < (int)sizeof(*up) ||
+       model->ArgusSnapLength < (int)sizeof(*up) ||
+       !STRUCTCAPTURED(model, *(struct udphdr *)model->ArgusThisUpHdr)) {
+      if (model != NULL) {
+         model->ArgusThisLength = 0;
+         model->ArgusSnapLength = 0;
+      }
+      return;
+   }
+
+   up = (struct udphdr *)model->ArgusThisUpHdr;
+   nxtHdr = (u_char *)(up + 1);
+   payload_length = ntohs(up->uh_ulen);
+   if (payload_length < sizeof(*up)) {
+      model->ArgusThisLength = 0;
+      model->ArgusSnapLength = 0;
       model->ArgusThisUpHdr = nxtHdr;
+      model->ArgusThisSnapEnd = nxtHdr;
+      return;
+   }
 
-      if (*state == ARGUS_START) {
+   payload_length -= sizeof(*up);
+   model->ArgusThisLength -= sizeof(*up);
+   model->ArgusSnapLength -= sizeof(*up);
+   if ((unsigned int)model->ArgusThisLength > payload_length)
+      model->ArgusThisLength = payload_length;
+   if ((unsigned int)model->ArgusSnapLength > payload_length)
+      model->ArgusSnapLength = payload_length;
+   model->ArgusThisUpHdr = nxtHdr;
 
-      } else {
-         if ((flowstr->canon.metric.src.pkts + flowstr->canon.metric.dst.pkts) > 2) {
-            flowstr->timeout = ARGUS_IPTIMEOUT;
-         }
+   /* Keep application decoders inside the UDP payload, not capture padding. */
+   if (model->ArgusThisSnapEnd > (nxtHdr + model->ArgusSnapLength))
+      model->ArgusThisSnapEnd = nxtHdr + model->ArgusSnapLength;
+
+   if (*state == ARGUS_START) {
+
+   } else {
+      if ((flowstr->canon.metric.src.pkts + flowstr->canon.metric.dst.pkts) > 2) {
+         flowstr->timeout = ARGUS_IPTIMEOUT;
       }
    }
 

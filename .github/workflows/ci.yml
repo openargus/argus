@@ -73,6 +73,7 @@ jobs:
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_enc_null_capture_bounds.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_fddi_capture_bounds.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_sflow_datagram_bounds.sh
+          ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_netflow_datagram_bounds.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_ppp_hdlc_capture_bounds.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_ppp_slip_capture_bounds.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_radiotap_capture_bounds.sh

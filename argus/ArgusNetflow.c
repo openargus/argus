@@ -51,57 +51,478 @@
 
 #include <arpa/inet.h>
 
-struct ArgusRecord *ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *, struct ArgusModelerStruct *, struct ArgusQueueStruct *, u_char *, int *);
-struct ArgusRecord *ArgusParseCiscoRecordV9Template (struct ArgusModelerStruct *, struct ArgusQueueStruct *, u_char *, int);
-struct ArgusRecord *ArgusParseCiscoRecordV9OptionTemplate (struct ArgusModelerStruct *, struct ArgusQueueStruct *, u_char *, int);
+struct ArgusCiscoHeaderContext;
 
+static struct ArgusRecord *ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *, struct ArgusModelerStruct *, struct ArgusQueueStruct *, struct ArgusCiscoHeaderContext *, u_char *, int);
+static int ArgusParseCiscoRecordV9Template (struct ArgusModelerStruct *, struct ArgusQueueStruct *, struct ArgusCiscoHeaderContext *, u_char *, int);
+static int ArgusParseCiscoRecordV9OptionTemplate (struct ArgusModelerStruct *, struct ArgusQueueStruct *, u_char *, int);
 
-unsigned char *ArgusNetFlowRecordHeader = NULL;
-
-unsigned char ArgusNetFlowArgusRecordBuf[4098];
-struct ArgusRecord *ArgusNetFlowArgusRecord = (struct ArgusRecord *) ArgusNetFlowArgusRecordBuf;
-
+#define ARGUS_CISCO_TEMPLATE_HASH_SIZE 257
 
 struct ArgusCiscoTemplateStruct {
+   struct ArgusCiscoTemplateStruct *next;
+   struct ArgusCiscoTemplateStruct *hash_next;
+   uint16_t template_id;
    int length, count;
+   size_t record_length;
    struct timeval lasttime;
-   CiscoFlowTemplateFlowEntryV9_t **tHdr;
+   CiscoFlowTemplateHeaderV9_t *tHdr;
 };
 
 struct ArgusCiscoSourceStruct {
    struct ArgusQueueHeader qhdr;
-   struct ArgusHashTableHeader htblbuf, *htblhdr;
-   unsigned int srcid, saddr;
-   struct timeval startime, lasttime;
-   struct ArgusCiscoTemplateStruct templates[0x10000];
+   uint32_t srcid;
+   unsigned char address_type;
+   unsigned char saddr[16];
+    struct timeval startime, lasttime;
+    struct ArgusCiscoTemplateStruct *templates;
+   struct ArgusCiscoTemplateStruct *template_hash[ARGUS_CISCO_TEMPLATE_HASH_SIZE];
 };
 
-int ArgusCounter;
-unsigned int ArgusFlowSeq = 0;
-unsigned int ArgusCiscoSrcId = 0;
-unsigned int ArgusCiscoSrcAddr = 0;
-unsigned int ArgusSysUptime = 0;
-struct timeval ArgusCiscoTvpBuf, *ArgusCiscoTvp = &ArgusCiscoTvpBuf;
-struct ArgusQueueStruct *ArgusTemplateQueue = NULL;
+struct ArgusCiscoTemplateUpdate {
+   struct ArgusCiscoTemplateUpdate *next;
+   uint16_t template_id;
+   int length, count;
+   size_t record_length;
+   CiscoFlowTemplateHeaderV9_t *tHdr;
+};
+
+struct ArgusCiscoHeaderContext {
+   int counter;
+   unsigned int data_flowsets;
+   unsigned int data_records;
+   unsigned int template_updates;
+   uint32_t flow_sequence;
+   uint32_t source_id;
+   uint32_t sys_uptime;
+   unsigned char source_address_type;
+   unsigned char source_address[16];
+   struct ArgusCiscoSourceStruct *source;
+   struct timeval export_time;
+};
+
+#define ARGUS_TEMPLATE_TIMEOUT 1800
+#ifndef ARGUS_CISCO_TEMPLATE_SOURCE_MAX
+#define ARGUS_CISCO_TEMPLATE_SOURCE_MAX 256
+#endif
+#ifndef ARGUS_CISCO_TEMPLATE_MAX
+#define ARGUS_CISCO_TEMPLATE_MAX 1024
+#endif
+#ifndef ARGUS_CISCO_TEMPLATE_FLOWSET_MAX
+#define ARGUS_CISCO_TEMPLATE_FLOWSET_MAX 128
+#endif
+#ifndef ARGUS_CISCO_TEMPLATE_DATAGRAM_MAX
+#define ARGUS_CISCO_TEMPLATE_DATAGRAM_MAX ARGUS_CISCO_TEMPLATE_FLOWSET_MAX
+#endif
+#ifndef ARGUS_CISCO_DATA_RECORD_FLOWSET_MAX
+#define ARGUS_CISCO_DATA_RECORD_FLOWSET_MAX 1024
+#endif
+#ifndef ARGUS_CISCO_DATA_RECORD_DATAGRAM_MAX
+#define ARGUS_CISCO_DATA_RECORD_DATAGRAM_MAX ARGUS_CISCO_DATA_RECORD_FLOWSET_MAX
+#endif
+#ifndef ARGUS_CISCO_DATA_FLOWSET_DATAGRAM_MAX
+#define ARGUS_CISCO_DATA_FLOWSET_DATAGRAM_MAX 128
+#endif
+#define ARGUS_CISCO_V9_RECORD_MAX (UINT16_MAX - sizeof(CiscoFlowEntryV9_t))
+#ifndef ARGUS_CISCO_TEMPLATE_CACHE_BYTES_MAX
+#define ARGUS_CISCO_TEMPLATE_CACHE_BYTES_MAX (16U * 1024U * 1024U)
+#endif
+#define ARGUS_CISCO_TEMPLATE_CACHE_LIMIT_LOGGED 0x40000000
+#define ARGUS_CISCO_DATA_RECORD_LIMIT_LOGGED 0x20000000
+#define ARGUS_CISCO_DATA_FLOWSET_LIMIT_LOGGED 0x10000000
+
+static int
+ArgusNetflowHasBytes(const u_char *ptr, const u_char *end, size_t length)
+{
+   return (ptr != NULL && end != NULL && ptr <= end &&
+           length <= (size_t)(end - ptr));
+}
+
+static uint16_t
+ArgusNetflowGet16(const u_char *ptr)
+{
+   uint16_t value;
+
+   memcpy(&value, ptr, sizeof(value));
+   return ntohs(value);
+}
+
+static uint32_t
+ArgusNetflowGet32(const u_char *ptr)
+{
+   uint32_t value;
+
+   memcpy(&value, ptr, sizeof(value));
+   return ntohl(value);
+}
+
+static uint64_t
+ArgusNetflowGet64(const u_char *ptr)
+{
+   return ((uint64_t)ArgusNetflowGet32(ptr) << 32) |
+           ArgusNetflowGet32(ptr + sizeof(uint32_t));
+}
+
+static size_t
+ArgusCiscoAddressLength(unsigned char address_type)
+{
+   switch (address_type) {
+      case ARGUS_TYPE_IPV4:
+         return sizeof(uint32_t);
+      case ARGUS_TYPE_IPV6:
+         return 16;
+      default:
+         return 0;
+   }
+}
+
+static void
+ArgusSetCiscoExporter(struct ArgusCiscoHeaderContext *context,
+                      const struct ArgusModelerStruct *model)
+{
+   const struct ArgusSystemFlow *flow;
+   int reverse;
+
+   if (context == NULL)
+      return;
+
+   context->source_address_type = 0;
+   bzero(context->source_address, sizeof(context->source_address));
+   if (model == NULL || (flow = model->ArgusThisFlow) == NULL)
+      return;
+
+   reverse = (flow->hdr.subtype & ARGUS_REVERSE) != 0;
+   switch (flow->hdr.argus_dsrvl8.qual) {
+      case ARGUS_TYPE_IPV4:
+         context->source_address_type = ARGUS_TYPE_IPV4;
+         bcopy(reverse ? &flow->ip_flow.ip_dst : &flow->ip_flow.ip_src,
+               context->source_address, sizeof(flow->ip_flow.ip_src));
+         break;
+      case ARGUS_TYPE_IPV6:
+         context->source_address_type = ARGUS_TYPE_IPV6;
+         bcopy(reverse ? flow->ipv6_flow.ip_dst : flow->ipv6_flow.ip_src,
+               context->source_address, sizeof(flow->ipv6_flow.ip_src));
+         break;
+   }
+}
+
+static int
+ArgusCiscoSourceMatches(const struct ArgusCiscoSourceStruct *src,
+                        const struct ArgusCiscoHeaderContext *context)
+{
+   size_t address_length;
+
+   if (src == NULL || context == NULL || src->srcid != context->source_id ||
+       src->address_type != context->source_address_type)
+      return 0;
+
+   address_length = ArgusCiscoAddressLength(src->address_type);
+   return address_length == 0 ||
+          memcmp(src->saddr, context->source_address, address_length) == 0;
+}
+
+static struct ArgusCiscoSourceStruct *
+ArgusFindCiscoSource(struct ArgusQueueStruct *tqueue,
+                     const struct ArgusCiscoHeaderContext *context)
+{
+   struct ArgusCiscoSourceStruct *retn = NULL;
+   int i, count;
+
+   if (tqueue == NULL || context == NULL)
+      return(retn);
+
+   count = tqueue->count;
+   for (i = 0; i < count; i++) {
+      struct ArgusCiscoSourceStruct *src =
+         (struct ArgusCiscoSourceStruct *)ArgusPopQueue(tqueue, ARGUS_LOCK);
+
+      if (src == NULL)
+         break;
+       if (ArgusCiscoSourceMatches(src, context))
+          retn = src;
+      ArgusAddToQueue(tqueue, &src->qhdr, ARGUS_LOCK);
+      if (retn != NULL)
+         break;
+   }
+
+   return(retn);
+}
+
+static struct ArgusCiscoTemplateStruct *
+ArgusFindCiscoTemplate(struct ArgusCiscoSourceStruct *src, uint16_t template_id)
+{
+   struct ArgusCiscoTemplateStruct *template;
+
+   if (src == NULL)
+      return NULL;
+
+   for (template = src->template_hash[template_id % ARGUS_CISCO_TEMPLATE_HASH_SIZE];
+        template != NULL; template = template->hash_next) {
+      if (template->template_id == template_id)
+         return template;
+   }
+
+   return NULL;
+}
+
+static void
+ArgusUnlinkCiscoTemplateHash(struct ArgusCiscoSourceStruct *src,
+                             struct ArgusCiscoTemplateStruct *old)
+{
+   struct ArgusCiscoTemplateStruct **template;
+
+   if (src == NULL || old == NULL)
+      return;
+
+   for (template = &src->template_hash[old->template_id % ARGUS_CISCO_TEMPLATE_HASH_SIZE];
+        *template != NULL; template = &(*template)->hash_next) {
+      if (*template == old) {
+         *template = old->hash_next;
+         return;
+      }
+   }
+}
+
+static void
+ArgusRemoveCiscoTemplate(struct ArgusCiscoSourceStruct *src, uint16_t template_id)
+{
+   struct ArgusCiscoTemplateStruct **template;
+   struct ArgusCiscoTemplateStruct *old;
+
+   if (src == NULL)
+      return;
+
+   old = ArgusFindCiscoTemplate(src, template_id);
+   if (old == NULL)
+      return;
+
+   for (template = &src->templates; *template != NULL; template = &(*template)->next) {
+      if (*template == old) {
+         *template = old->next;
+         break;
+      }
+   }
+   ArgusUnlinkCiscoTemplateHash(src, old);
+   if (old->tHdr != NULL)
+      ArgusFree(old->tHdr);
+   ArgusFree(old);
+}
+
+static void
+ArgusFreeCiscoSource(struct ArgusCiscoSourceStruct *src)
+{
+   if (src == NULL)
+      return;
+
+   while (src->templates != NULL) {
+      struct ArgusCiscoTemplateStruct *template = src->templates;
+
+      src->templates = template->next;
+      if (template->tHdr != NULL)
+         ArgusFree(template->tHdr);
+      ArgusFree(template);
+   }
+   ArgusFree(src);
+}
+
+static void
+ArgusExpireCiscoTemplateCache(struct ArgusQueueStruct *tqueue, const struct timeval *now)
+{
+   int i, count;
+
+   if (tqueue == NULL || now == NULL)
+      return;
+
+   count = tqueue->count;
+   for (i = 0; i < count; i++) {
+      struct ArgusCiscoSourceStruct *src =
+         (struct ArgusCiscoSourceStruct *)ArgusPopQueue(tqueue, ARGUS_LOCK);
+
+      if (src == NULL)
+         break;
+      {
+         struct ArgusCiscoTemplateStruct **template = &src->templates;
+
+         while (*template != NULL) {
+            if (now->tv_sec >= (*template)->lasttime.tv_sec &&
+                (now->tv_sec - (*template)->lasttime.tv_sec) >= ARGUS_TEMPLATE_TIMEOUT) {
+                struct ArgusCiscoTemplateStruct *old = *template;
+
+                *template = old->next;
+                ArgusUnlinkCiscoTemplateHash(src, old);
+                if (old->tHdr != NULL)
+                  ArgusFree(old->tHdr);
+               ArgusFree(old);
+            } else
+               template = &(*template)->next;
+         }
+      }
+      if (src->templates == NULL)
+         ArgusFreeCiscoSource(src);
+      else
+         ArgusAddToQueue(tqueue, &src->qhdr, ARGUS_LOCK);
+   }
+}
+
+static void
+ArgusCiscoTemplateCacheUsage(struct ArgusQueueStruct *tqueue, size_t *bytes, unsigned int *templates)
+{
+   int i, count;
+
+   if (bytes != NULL)
+      *bytes = 0;
+   if (templates != NULL)
+      *templates = 0;
+   if (tqueue == NULL || bytes == NULL || templates == NULL)
+      return;
+
+   count = tqueue->count;
+   for (i = 0; i < count; i++) {
+      struct ArgusCiscoSourceStruct *src =
+         (struct ArgusCiscoSourceStruct *)ArgusPopQueue(tqueue, ARGUS_LOCK);
+      struct ArgusCiscoTemplateStruct *template;
+
+      if (src == NULL)
+         break;
+      for (template = src->templates; template != NULL; template = template->next) {
+         if (template->length > 0) {
+            if ((size_t)template->length > (size_t)-1 - *bytes)
+               *bytes = (size_t)-1;
+            else
+               *bytes += template->length;
+         }
+         if (*templates != (unsigned int)-1)
+            (*templates)++;
+      }
+      ArgusAddToQueue(tqueue, &src->qhdr, ARGUS_LOCK);
+   }
+}
+
+static int
+ArgusCiscoTemplateUpdateHasLater(const struct ArgusCiscoTemplateUpdate *update)
+{
+   const struct ArgusCiscoTemplateUpdate *next;
+
+   if (update == NULL)
+      return 0;
+
+   for (next = update->next; next != NULL; next = next->next) {
+      if (next->template_id == update->template_id)
+         return 1;
+   }
+
+   return 0;
+}
+
+static void
+ArgusLogCiscoTemplateCacheLimit(struct ArgusQueueStruct *tqueue)
+{
+   if (tqueue != NULL && !(tqueue->status & ARGUS_CISCO_TEMPLATE_CACHE_LIMIT_LOGGED)) {
+      ArgusLog(LOG_WARNING,
+         "Argus NetFlow v9 template cache limit reached (sources=%u templates=%u bytes=%zu); rejecting new templates\n",
+         (unsigned int)ARGUS_CISCO_TEMPLATE_SOURCE_MAX,
+         (unsigned int)ARGUS_CISCO_TEMPLATE_MAX,
+         (size_t)ARGUS_CISCO_TEMPLATE_CACHE_BYTES_MAX);
+      tqueue->status |= ARGUS_CISCO_TEMPLATE_CACHE_LIMIT_LOGGED;
+   }
+}
+
+static void
+ArgusLogCiscoDataRecordLimit(struct ArgusQueueStruct *tqueue)
+{
+   if (tqueue != NULL && !(tqueue->status & ARGUS_CISCO_DATA_RECORD_LIMIT_LOGGED)) {
+      ArgusLog(LOG_WARNING,
+         "Argus NetFlow v9 data record limit reached (flowset=%u datagram=%u); skipping remaining records\n",
+         (unsigned int)ARGUS_CISCO_DATA_RECORD_FLOWSET_MAX,
+         (unsigned int)ARGUS_CISCO_DATA_RECORD_DATAGRAM_MAX);
+      tqueue->status |= ARGUS_CISCO_DATA_RECORD_LIMIT_LOGGED;
+   }
+}
+
+static void
+ArgusLogCiscoDataFlowsetLimit(struct ArgusQueueStruct *tqueue)
+{
+   if (tqueue != NULL && !(tqueue->status & ARGUS_CISCO_DATA_FLOWSET_LIMIT_LOGGED)) {
+      ArgusLog(LOG_WARNING,
+         "Argus NetFlow v9 data FlowSet limit reached (datagram=%u); skipping remaining FlowSets\n",
+         (unsigned int)ARGUS_CISCO_DATA_FLOWSET_DATAGRAM_MAX);
+      tqueue->status |= ARGUS_CISCO_DATA_FLOWSET_LIMIT_LOGGED;
+   }
+}
+
+static void
+ArgusFreeCiscoTemplateUpdates(struct ArgusCiscoTemplateUpdate *updates)
+{
+   while (updates != NULL) {
+      struct ArgusCiscoTemplateUpdate *next = updates->next;
+
+      if (updates->tHdr != NULL)
+         ArgusFree(updates->tHdr);
+      ArgusFree(updates);
+      updates = next;
+   }
+}
 
 void
-ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
+ArgusDeleteCiscoTemplateCache(struct ArgusModelerStruct *model)
+{
+   struct ArgusQueueStruct *tqueue;
+   struct ArgusCiscoSourceStruct *src;
+
+   if (model == NULL || (tqueue = model->ArgusCiscoTemplateQueue) == NULL)
+      return;
+
+   while ((src = (struct ArgusCiscoSourceStruct *)ArgusPopQueue(tqueue, ARGUS_LOCK)) != NULL)
+      ArgusFreeCiscoSource(src);
+   ArgusDeleteQueue(tqueue);
+   model->ArgusCiscoTemplateQueue = NULL;
+}
+
+void
+ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *input)
 {
    int ArgusReadSocketState = ARGUS_READINGPREHDR;
    int ArgusReadSocketSize = 0;
-
-   unsigned short ArgusReadCiscoVersion;
+   unsigned short ArgusReadCiscoVersion = 0;
+   unsigned int ArgusRecordsRemaining = 0;
+   size_t input_length;
+   struct ArgusCiscoHeaderContext context;
+   u_char *ptr = input;
+   u_char *end;
 // unsigned short ArgusReadSocketNum;
 
-   if (ArgusTemplateQueue == NULL) 
-      if ((ArgusTemplateQueue = ArgusNewQueue()) == NULL)
-         ArgusLog (LOG_ERR, "ArgusParseCiscoRecord () ArgusNewQueue error %s\n", strerror(errno));
+   if (model == NULL || ptr == NULL || model->ArgusThisSnapEnd == NULL ||
+       model->ArgusThisLength < 0 || model->ArgusSnapLength < 0)
+      return;
 
-   while ((char *)ptr < (char *)model->ArgusThisSnapEnd) {
+   input_length = (size_t)model->ArgusThisLength;
+   if (input_length > (size_t)model->ArgusSnapLength)
+      input_length = (size_t)model->ArgusSnapLength;
+   if (!ArgusNetflowHasBytes(ptr, model->ArgusThisSnapEnd, input_length))
+      return;
+   end = ptr + input_length;
+
+    if (ptr == end)
+       return;
+
+    bzero(&context, sizeof(context));
+    if (model->ArgusCiscoTemplateQueue == NULL) {
+       if ((model->ArgusCiscoTemplateQueue = ArgusNewQueue()) == NULL) {
+          ArgusLog (LOG_ERR, "ArgusParseCiscoRecord () ArgusNewQueue error %s\n", strerror(errno));
+          return;
+       }
+    }
+    ArgusExpireCiscoTemplateCache(model->ArgusCiscoTemplateQueue,
+                                  &model->ArgusGlobalTime);
+
+   while (ptr < end) {
       switch (ArgusReadSocketState) {
          case ARGUS_READINGPREHDR: {
-            unsigned short *sptr = (unsigned short *) ptr;
-            ArgusReadCiscoVersion = ntohs(*sptr++);
+            if (!ArgusNetflowHasBytes(ptr, end, sizeof(ArgusReadCiscoVersion)))
+               return;
+
+            memcpy(&ArgusReadCiscoVersion, ptr, sizeof(ArgusReadCiscoVersion));
+            ArgusReadCiscoVersion = ntohs(ArgusReadCiscoVersion);
 //          ArgusReadSocketNum  = ntohs(*sptr);
             ArgusReadSocketState = ARGUS_READINGHDR;
             break;
@@ -113,73 +534,110 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
 #endif
             switch (ArgusReadCiscoVersion) {
                case CISCO_VERSION_1: {
-                  CiscoFlowHeaderV1_t *ArgusNetFlow = (CiscoFlowHeaderV1_t *) ptr;
-                  ArgusReadSocketSize  = sizeof(*ArgusNetFlow);
+                  CiscoFlowHeaderV1_t header, *ArgusNetFlow = &header;
 
-                  ArgusSysUptime  = ntohl(ArgusNetFlow->sysUptime);
-                  ArgusCounter  =  ntohs(ArgusNetFlow->count);
-                  ArgusCiscoTvp->tv_sec  = ntohl(ArgusNetFlow->unix_secs);
-                  ArgusCiscoTvp->tv_usec = ntohl(ArgusNetFlow->unix_nsecs)/1000;
-                  break;
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
+                   ArgusReadSocketSize  = sizeof(*ArgusNetFlow);
+
+                    context.sys_uptime  = ntohl(ArgusNetFlow->sysUptime);
+                    ArgusRecordsRemaining = ntohs(ArgusNetFlow->count);
+                    context.counter  = ArgusRecordsRemaining;
+                    context.export_time.tv_sec  = ntohl(ArgusNetFlow->unix_secs);
+                    context.export_time.tv_usec = ntohl(ArgusNetFlow->unix_nsecs)/1000;
+                   if (ArgusRecordsRemaining >
+                       (size_t)(end - (ptr + ArgusReadSocketSize)) / sizeof(CiscoFlowEntryV1_t))
+                      return;
+                   break;
                }
 
                case CISCO_VERSION_5: {
-                  CiscoFlowHeaderV5_t *ArgusNetFlow = (CiscoFlowHeaderV5_t *) ptr;
+                  CiscoFlowHeaderV5_t header, *ArgusNetFlow = &header;
+
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
                   ArgusReadSocketSize  = sizeof(*ArgusNetFlow);
 
-                  ArgusSysUptime  = ntohl(ArgusNetFlow->sysUptime);
-                  ArgusFlowSeq  = ntohl(ArgusNetFlow->flow_sequence);
-                  ArgusCounter  =  ntohs(ArgusNetFlow->count);
-                  ArgusCiscoTvp->tv_sec  = ntohl(ArgusNetFlow->unix_secs);
-                  ArgusCiscoTvp->tv_usec = ntohl(ArgusNetFlow->unix_nsecs)/1000;
-                  break;
+                    context.sys_uptime  = ntohl(ArgusNetFlow->sysUptime);
+                    context.flow_sequence  = ntohl(ArgusNetFlow->flow_sequence);
+                    ArgusRecordsRemaining = ntohs(ArgusNetFlow->count);
+                    context.counter  = ArgusRecordsRemaining;
+                    context.export_time.tv_sec  = ntohl(ArgusNetFlow->unix_secs);
+                    context.export_time.tv_usec = ntohl(ArgusNetFlow->unix_nsecs)/1000;
+                   if (ArgusRecordsRemaining >
+                       (size_t)(end - (ptr + ArgusReadSocketSize)) / sizeof(CiscoFlowEntryV5_t))
+                      return;
+                   break;
                }
 
-               case CISCO_VERSION_6: {
-                  CiscoFlowHeaderV6_t *ArgusNetFlow = (CiscoFlowHeaderV6_t *) ptr;
+                case CISCO_VERSION_6: {
+                  CiscoFlowHeaderV6_t header, *ArgusNetFlow = &header;
+
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
                   ArgusReadSocketSize  = sizeof(*ArgusNetFlow);
 
-                  ArgusSysUptime  = ntohl(ArgusNetFlow->sysUptime);
-                  ArgusFlowSeq  = ntohl(ArgusNetFlow->flow_sequence);
-                  ArgusCounter  =  0;
-                  ArgusCiscoTvp->tv_sec  = ntohl(ArgusNetFlow->unix_secs);
-                  ArgusCiscoTvp->tv_usec = ntohl(ArgusNetFlow->unix_nsecs)/1000;
-                  break;
+                    context.sys_uptime  = ntohl(ArgusNetFlow->sysUptime);
+                    context.flow_sequence  = ntohl(ArgusNetFlow->flow_sequence);
+                    ArgusRecordsRemaining = ntohs(ArgusNetFlow->count);
+                    context.counter  =  0;
+                    context.export_time.tv_sec  = ntohl(ArgusNetFlow->unix_secs);
+                    context.export_time.tv_usec = ntohl(ArgusNetFlow->unix_nsecs)/1000;
+                   if (ArgusRecordsRemaining >
+                       (size_t)(end - (ptr + ArgusReadSocketSize)) / sizeof(CiscoFlowEntryV6_t))
+                      return;
+                   break;
                }
 
                case CISCO_VERSION_7: {
-                  CiscoFlowHeaderV7_t *ArgusNetFlow = (CiscoFlowHeaderV7_t *) ptr;
+                  CiscoFlowHeaderV7_t header, *ArgusNetFlow = &header;
+
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
                   ArgusReadSocketSize  = sizeof(*ArgusNetFlow);
 
-                  ArgusSysUptime  = ntohl(ArgusNetFlow->sysUptime);
-                  ArgusFlowSeq    = ntohl(ArgusNetFlow->flow_sequence);
-                  ArgusCounter    =  0;
-                  ArgusCiscoTvp->tv_sec     = ntohl(ArgusNetFlow->unix_secs);
-                  ArgusCiscoTvp->tv_usec    = ntohl(ArgusNetFlow->unix_nsecs)/1000;
-                  break;
+                    context.sys_uptime  = ntohl(ArgusNetFlow->sysUptime);
+                    context.flow_sequence    = ntohl(ArgusNetFlow->flow_sequence);
+                    ArgusRecordsRemaining = ntohs(ArgusNetFlow->count);
+                    context.counter    =  0;
+                    context.export_time.tv_sec     = ntohl(ArgusNetFlow->unix_secs);
+                    context.export_time.tv_usec    = ntohl(ArgusNetFlow->unix_nsecs)/1000;
+                   if (ArgusRecordsRemaining >
+                       (size_t)(end - (ptr + ArgusReadSocketSize)) / sizeof(CiscoFlowEntryV7_t))
+                      return;
+                   break;
                }
 
                case CISCO_VERSION_8: {
-                  CiscoFlowHeaderV8_t *ArgusNetFlow = (CiscoFlowHeaderV8_t *) ptr;
-                  ArgusReadSocketSize  = sizeof(*ArgusNetFlow);
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(CiscoFlowHeaderV8_t)))
+                     return;
+                  ArgusReadSocketSize = sizeof(CiscoFlowHeaderV8_t);
                   break;
                }
 
                case CISCO_VERSION_9: {
-                  CiscoFlowHeaderV9_t *ArgusNetFlow = (CiscoFlowHeaderV9_t *) ptr;
+                  CiscoFlowHeaderV9_t header, *ArgusNetFlow = &header;
+
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
                   ArgusReadSocketSize  = sizeof(*ArgusNetFlow);
 
-                  ArgusSysUptime         = ntohl(ArgusNetFlow->sysUptime);
-                  ArgusCiscoTvp->tv_sec  = ntohl(ArgusNetFlow->unix_secs);
-                  ArgusCiscoTvp->tv_usec = 0;
-                  ArgusFlowSeq           = ntohl(ArgusNetFlow->package_sequence);
-                  ArgusCounter           = ntohs(ArgusNetFlow->count);
-                  ArgusCiscoSrcId        = ntohl(ArgusNetFlow->source_id);
-
-                  if (model->state & ARGUS_REVERSE)
-                     ArgusCiscoSrcAddr   = model->ArgusThisFlow->flow_un.ip.ip_src;
-                  else
-                     ArgusCiscoSrcAddr   = model->ArgusThisFlow->flow_un.ip.ip_dst;
+                   context.sys_uptime         = ntohl(ArgusNetFlow->sysUptime);
+                   context.export_time.tv_sec  = ntohl(ArgusNetFlow->unix_secs);
+                   context.export_time.tv_usec = 0;
+                   context.flow_sequence       = ntohl(ArgusNetFlow->package_sequence);
+                   context.counter             = ntohs(ArgusNetFlow->count);
+                   context.source_id           = ntohl(ArgusNetFlow->source_id);
+                   context.data_flowsets       = 0;
+                   context.data_records        = 0;
+                   context.template_updates    = 0;
+                   context.source              = NULL;
+                   ArgusSetCiscoExporter(&context, model);
 
                   break;
                }
@@ -188,6 +646,7 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
 #ifdef ARGUSDEBUG
                   ArgusDebug (7, "ArgusReadCiscoStreamSocket (%p) read header\n", ptr);
 #endif
+                  return;
                }
             }
             ptr += ArgusReadSocketSize;
@@ -195,17 +654,26 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
             break;
          }
 
-         case ARGUS_READINGBLOCK: {
-            struct ArgusSystemFlow flowbuf, *sflow = &flowbuf;
-            struct ArgusHashStruct hbuf, *hstruct = &hbuf;
-            struct ArgusFlowStruct *flow = NULL;
+          case ARGUS_READINGBLOCK: {
+             struct ArgusSystemFlow flowbuf, *sflow = &flowbuf;
+             struct ArgusHashStruct hbuf, *hstruct = &hbuf;
+             struct ArgusFlowStruct *flow = NULL;
+
+             if (ArgusReadCiscoVersion >= CISCO_VERSION_1 &&
+                 ArgusReadCiscoVersion <= CISCO_VERSION_7 &&
+                 ArgusRecordsRemaining == 0)
+                return;
 
 #ifdef ARGUSDEBUG
             ArgusDebug (7, "ArgusReadCiscoStreamSocket (%p, %p) read record complete\n", model, ptr);
 #endif
             switch (ArgusReadCiscoVersion) {
                case CISCO_VERSION_1: {
-                  CiscoFlowEntryV1_t *ArgusNetFlow = (CiscoFlowEntryV1_t *) ptr;
+                  CiscoFlowEntryV1_t entry, *ArgusNetFlow = &entry;
+
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
                   bzero(sflow, sizeof(*sflow));
                   bzero(hstruct, sizeof(*hstruct));
 
@@ -242,11 +710,11 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      time->hdr.argus_dsrvl8.len   = 5;               
 
                      timeval = ntohl(ArgusNetFlow->first);
-                     time->src.start.tv_sec   = (timeval - (long)ArgusSysUptime)/1000; 
-                     time->src.start.tv_sec  += ArgusCiscoTvp->tv_sec;
+                      time->src.start.tv_sec   = (timeval - (long)context.sys_uptime)/1000;
+                      time->src.start.tv_sec  += context.export_time.tv_sec;
 
-                     time->src.start.tv_usec  = ((timeval - (long)ArgusSysUptime)%1000) * 1000; 
-                     time->src.start.tv_usec += ArgusCiscoTvp->tv_usec;
+                      time->src.start.tv_usec  = ((timeval - (long)context.sys_uptime)%1000) * 1000;
+                      time->src.start.tv_usec += context.export_time.tv_usec;
 
                      if (time->src.start.tv_usec >= 1000000) {
                         time->src.start.tv_sec++;
@@ -254,11 +722,11 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      }
 
                      timeval = ntohl(ArgusNetFlow->last);
-                     time->src.end.tv_sec   = (timeval - (long)ArgusSysUptime)/1000;
-                     time->src.end.tv_sec  += ArgusCiscoTvp->tv_sec;
+                      time->src.end.tv_sec   = (timeval - (long)context.sys_uptime)/1000;
+                      time->src.end.tv_sec  += context.export_time.tv_sec;
 
-                     time->src.end.tv_usec  = ((timeval - (long)ArgusSysUptime)%1000) * 1000;
-                     time->src.end.tv_usec += ArgusCiscoTvp->tv_usec;
+                      time->src.end.tv_usec  = ((timeval - (long)context.sys_uptime)%1000) * 1000;
+                      time->src.end.tv_usec += context.export_time.tv_usec;
 
                      if (time->src.end.tv_usec >= 1000000) {
                         time->src.end.tv_sec++;
@@ -345,7 +813,7 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                                                                 model->ArgusThisFlow->ip_flow.ip_dst :
                                                                 model->ArgusThisFlow->ip_flow.ip_src ;
 
-                        trans->seqnum                        = ArgusFlowSeq + ArgusCounter++;
+                         trans->seqnum                        = context.flow_sequence + context.counter++;
                         flow->dsrindex                      |= 1 << ARGUS_TRANSPORT_INDEX;
                         flow->dsrs[ARGUS_TRANSPORT_INDEX]    = (void *)trans;
                      }
@@ -364,12 +832,17 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      ArgusSendFlowRecord (model, flow, ARGUS_STATUS);
                   }
 
-                  ptr += sizeof(*ArgusNetFlow);
+                   ArgusRecordsRemaining--;
+                   ptr += sizeof(*ArgusNetFlow);
                   break;
                }
 
                case CISCO_VERSION_5: {
-                  CiscoFlowEntryV5_t *ArgusNetFlow = (CiscoFlowEntryV5_t *) ptr;
+                  CiscoFlowEntryV5_t entry, *ArgusNetFlow = &entry;
+
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
                   bzero(sflow, sizeof(*sflow));
                   bzero(hstruct, sizeof(*hstruct));
 
@@ -409,8 +882,8 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      time->hdr.argus_dsrvl8.len   = 5;               
 
                      timeval = ntohl(ArgusNetFlow->first);
-                     secs  = ArgusCiscoTvp->tv_sec  + ((timeval - (int)ArgusSysUptime) / 1000);
-                     usecs = ArgusCiscoTvp->tv_usec + ((timeval - (int)ArgusSysUptime) % 1000) * 1000;
+                      secs  = context.export_time.tv_sec  + ((timeval - (int)context.sys_uptime) / 1000);
+                      usecs = context.export_time.tv_usec + ((timeval - (int)context.sys_uptime) % 1000) * 1000;
 
                      time->src.start.tv_sec  = secs;
 
@@ -425,8 +898,8 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      time->src.start.tv_usec = usecs;
 
                      timeval = ntohl(ArgusNetFlow->last);
-                     secs  = ArgusCiscoTvp->tv_sec  + ((timeval - (int)ArgusSysUptime) / 1000);
-                     usecs = ArgusCiscoTvp->tv_usec + ((timeval - (int)ArgusSysUptime) % 1000) * 1000;
+                      secs  = context.export_time.tv_sec  + ((timeval - (int)context.sys_uptime) / 1000);
+                      usecs = context.export_time.tv_usec + ((timeval - (int)context.sys_uptime) % 1000) * 1000;
 
                      time->src.end.tv_sec  = secs;
 
@@ -530,7 +1003,7 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                                                                 model->ArgusThisFlow->ip_flow.ip_dst :
                                                                 model->ArgusThisFlow->ip_flow.ip_src ;
 
-                        trans->seqnum                        = ArgusFlowSeq + ArgusCounter++;
+                         trans->seqnum                        = context.flow_sequence + context.counter++;
                         flow->dsrindex                      |= 1 << ARGUS_TRANSPORT_INDEX;
                         flow->dsrs[ARGUS_TRANSPORT_INDEX]    = (void *)trans;
                      }
@@ -549,12 +1022,17 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      ArgusSendFlowRecord (model, flow, ARGUS_STATUS);
                   }
 
-                  ptr += sizeof(*ArgusNetFlow);
+                   ArgusRecordsRemaining--;
+                   ptr += sizeof(*ArgusNetFlow);
                   break;
                }
 
                case CISCO_VERSION_6: {
-                  CiscoFlowEntryV6_t *ArgusNetFlow = (CiscoFlowEntryV6_t *) ptr;
+                  CiscoFlowEntryV6_t entry, *ArgusNetFlow = &entry;
+
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
                   bzero(sflow, sizeof(*sflow));
                   bzero(hstruct, sizeof(*hstruct));
 
@@ -594,11 +1072,11 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      time->hdr.argus_dsrvl8.len   = 5;               
 
                      timeval = ntohl(ArgusNetFlow->first);
-                     time->src.start.tv_sec   = (timeval - (long)ArgusSysUptime)/1000; 
-                     time->src.start.tv_sec  += ArgusCiscoTvp->tv_sec;
+                      time->src.start.tv_sec   = (timeval - (long)context.sys_uptime)/1000;
+                      time->src.start.tv_sec  += context.export_time.tv_sec;
 
-                     time->src.start.tv_usec  = ((timeval - (long)ArgusSysUptime)%1000) * 1000; 
-                     time->src.start.tv_usec += ArgusCiscoTvp->tv_usec;
+                      time->src.start.tv_usec  = ((timeval - (long)context.sys_uptime)%1000) * 1000;
+                      time->src.start.tv_usec += context.export_time.tv_usec;
 
                      if (time->src.start.tv_usec >= 1000000) {
                         time->src.start.tv_sec++;
@@ -606,11 +1084,11 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      }
 
                      timeval = ntohl(ArgusNetFlow->last);
-                     time->src.end.tv_sec   = (timeval - (long)ArgusSysUptime)/1000;
-                     time->src.end.tv_sec  += ArgusCiscoTvp->tv_sec;
+                      time->src.end.tv_sec   = (timeval - (long)context.sys_uptime)/1000;
+                      time->src.end.tv_sec  += context.export_time.tv_sec;
 
-                     time->src.end.tv_usec  = ((timeval - (long)ArgusSysUptime)%1000) * 1000;
-                     time->src.end.tv_usec += ArgusCiscoTvp->tv_usec;
+                      time->src.end.tv_usec  = ((timeval - (long)context.sys_uptime)%1000) * 1000;
+                      time->src.end.tv_usec += context.export_time.tv_usec;
 
                      if (time->src.end.tv_usec >= 1000000) {
                         time->src.end.tv_sec++;
@@ -709,7 +1187,7 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                                                                 model->ArgusThisFlow->ip_flow.ip_dst :
                                                                 model->ArgusThisFlow->ip_flow.ip_src ;
 
-                        trans->seqnum                        = ArgusFlowSeq + ArgusCounter++;
+                         trans->seqnum                        = context.flow_sequence + context.counter++;
                         flow->dsrindex                      |= 1 << ARGUS_TRANSPORT_INDEX;
                         flow->dsrs[ARGUS_TRANSPORT_INDEX]    = (void *)trans;
                      }
@@ -728,12 +1206,17 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      ArgusSendFlowRecord (model, flow, ARGUS_STATUS);
                   }
 
-                  ptr += sizeof(*ArgusNetFlow);
+                   ArgusRecordsRemaining--;
+                   ptr += sizeof(*ArgusNetFlow);
                   break;
                }
 
-               case CISCO_VERSION_7: {
-                  CiscoFlowEntryV7_t *ArgusNetFlow = (CiscoFlowEntryV7_t *) ptr;
+                case CISCO_VERSION_7: {
+                  CiscoFlowEntryV7_t entry, *ArgusNetFlow = &entry;
+
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(*ArgusNetFlow)))
+                     return;
+                  memcpy(ArgusNetFlow, ptr, sizeof(*ArgusNetFlow));
                   bzero(sflow, sizeof(*sflow));
                   bzero(hstruct, sizeof(*hstruct));
 
@@ -773,11 +1256,11 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      time->hdr.argus_dsrvl8.len   = 5;               
 
                      timeval = ntohl(ArgusNetFlow->first);
-                     time->src.start.tv_sec   = (timeval - (long)ArgusSysUptime)/1000; 
-                     time->src.start.tv_sec  += ArgusCiscoTvp->tv_sec;
+                      time->src.start.tv_sec   = (timeval - (long)context.sys_uptime)/1000;
+                      time->src.start.tv_sec  += context.export_time.tv_sec;
 
-                     time->src.start.tv_usec  = ((timeval - (long)ArgusSysUptime)%1000) * 1000; 
-                     time->src.start.tv_usec += ArgusCiscoTvp->tv_usec;
+                      time->src.start.tv_usec  = ((timeval - (long)context.sys_uptime)%1000) * 1000;
+                      time->src.start.tv_usec += context.export_time.tv_usec;
 
                      if (time->src.start.tv_usec >= 1000000) {
                         time->src.start.tv_sec++;
@@ -785,11 +1268,11 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      }
 
                      timeval = ntohl(ArgusNetFlow->last);
-                     time->src.end.tv_sec   = (timeval - (long)ArgusSysUptime)/1000;
-                     time->src.end.tv_sec  += ArgusCiscoTvp->tv_sec;
+                      time->src.end.tv_sec   = (timeval - (long)context.sys_uptime)/1000;
+                      time->src.end.tv_sec  += context.export_time.tv_sec;
 
-                     time->src.end.tv_usec  = ((timeval - (long)ArgusSysUptime)%1000) * 1000;
-                     time->src.end.tv_usec += ArgusCiscoTvp->tv_usec;
+                      time->src.end.tv_usec  = ((timeval - (long)context.sys_uptime)%1000) * 1000;
+                      time->src.end.tv_usec += context.export_time.tv_usec;
 
                      if (time->src.end.tv_usec >= 1000000) {
                         time->src.end.tv_sec++;
@@ -888,7 +1371,7 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                                                                 model->ArgusThisFlow->ip_flow.ip_dst :
                                                                 model->ArgusThisFlow->ip_flow.ip_src ;
 
-                        trans->seqnum                        = ArgusFlowSeq + ArgusCounter++;
+                         trans->seqnum                        = context.flow_sequence + context.counter++;
                         flow->dsrindex                      |= 1 << ARGUS_TRANSPORT_INDEX;
                         flow->dsrs[ARGUS_TRANSPORT_INDEX]    = (void *)trans;
                      }
@@ -907,46 +1390,55 @@ ArgusParseCiscoRecord (struct ArgusModelerStruct *model, void *ptr)
                      ArgusSendFlowRecord (model, flow, ARGUS_STATUS);
                   }
 
-                  ptr += sizeof(*ArgusNetFlow);
+                   ArgusRecordsRemaining--;
+                   ptr += sizeof(*ArgusNetFlow);
                   break;
                }
 
                case CISCO_VERSION_8: {
-//                ptr += sizeof(CiscoFlowEntryV8_t);
-                  break;
+                  return;
                }
 
                case CISCO_VERSION_9: {
-                  CiscoFlowEntryV9_t *ArgusNetFlow = (CiscoFlowEntryV9_t *) ptr;
-                  int flowset_id, flowset_len;
+                  CiscoFlowEntryV9_t flowset;
+                  uint16_t flowset_id, flowset_len;
 
-                  flowset_id  = ntohs(ArgusNetFlow->flowset_id);
-                  if ((flowset_len = ntohs(ArgusNetFlow->length)) > 0) {
-                     switch (flowset_id) {
-                        case k_CiscoV9TemplateFlowsetId: {
-                           if (ArgusParseCiscoRecordV9Template(model, ArgusTemplateQueue, (u_char *)(ArgusNetFlow + 1), (flowset_len - sizeof(*ArgusNetFlow))) == NULL) {
-                           }
-                           break;
-                        }
+                  if (!ArgusNetflowHasBytes(ptr, end, sizeof(flowset)))
+                     return;
+                  memcpy(&flowset, ptr, sizeof(flowset));
 
-                        case k_CiscoV9OptionsFlowsetId: {
-                           if (ArgusParseCiscoRecordV9OptionTemplate(model, ArgusTemplateQueue, (u_char *)(ArgusNetFlow + 1), (flowset_len - sizeof(*ArgusNetFlow))) == NULL) {
-                           }
-                           break;
-                        }
+                  flowset_id = ntohs(flowset.flowset_id);
+                  flowset_len = ntohs(flowset.length);
+                  if (flowset_len < sizeof(flowset) ||
+                      !ArgusNetflowHasBytes(ptr, end, flowset_len))
+                     return;
 
-                        default: {
-                           if (flowset_id >= k_CiscoV9MinRecordFlowsetId) {
-                              ArgusParseCiscoRecordV9Data(ArgusParser, model, ArgusTemplateQueue, (u_char *) ptr, &ArgusCounter);
-                           }
-                           break;
-                        }
-                     }
-                     ptr += flowset_len;
-                     break;
+                  switch (flowset_id) {
+                     case k_CiscoV9TemplateFlowsetId:
+                         if (!ArgusParseCiscoRecordV9Template(model, model->ArgusCiscoTemplateQueue,
+                               &context, ptr + sizeof(flowset), flowset_len - sizeof(flowset)))
+                           return;
+                        break;
 
+                     case k_CiscoV9OptionsFlowsetId:
+                         if (!ArgusParseCiscoRecordV9OptionTemplate(model, model->ArgusCiscoTemplateQueue,
+                              ptr + sizeof(flowset), flowset_len - sizeof(flowset)))
+                           return;
+                        break;
+
+                     default:
+                        if (flowset_id >= k_CiscoV9MinRecordFlowsetId)
+                           ArgusParseCiscoRecordV9Data(ArgusParser, model,
+                               model->ArgusCiscoTemplateQueue, &context, ptr, flowset_len);
+                        break;
                   }
+
+                  ptr += flowset_len;
+                  break;
                }
+
+               default:
+                  return;
             }
             break;
          }
@@ -988,54 +1480,84 @@ typedef struct value {
 } value_t;
 
 
-struct ArgusRecord *
-ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModelerStruct *model, struct ArgusQueueStruct *tqueue, u_char *ptr, int *cnt)
+static struct ArgusRecord *
+ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModelerStruct *model, struct ArgusQueueStruct *tqueue, struct ArgusCiscoHeaderContext *context, u_char *ptr, int len)
 {
    struct ArgusRecord *retn = NULL;
-   struct ArgusCiscoTemplateStruct *templates = NULL;
-   struct ArgusCiscoSourceStruct *src;
+   struct ArgusCiscoTemplateStruct *template = NULL;
+   struct ArgusCiscoSourceStruct *src = NULL;
    int ArgusParsingIPv6 = 0;
-   u_char *tptr = ptr;
+   const u_char *end;
+   uint16_t flowset_id, length;
 
-   if (tqueue != NULL) {
-      int i, count = tqueue->count;
-      for (i = 0; (i < count) && (templates == NULL); i++) {
-         src = (struct ArgusCiscoSourceStruct *)ArgusPopQueue (tqueue, ARGUS_LOCK);
-         if ((src->srcid == ArgusCiscoSrcId) && (src->saddr == ArgusCiscoSrcAddr))
-            templates = src->templates;
-         ArgusAddToQueue(tqueue, &src->qhdr, ARGUS_LOCK);
-      }
-   }
-
-   if (templates == NULL) 
+   if (model == NULL || tqueue == NULL || context == NULL || ptr == NULL ||
+       len < (int)sizeof(CiscoFlowEntryV9_t))
       return(retn);
+
+   end = ptr + len;
+   if (!ArgusNetflowHasBytes(ptr, end, sizeof(CiscoFlowEntryV9_t)))
+      return(retn);
+
+   flowset_id = ArgusNetflowGet16(ptr);
+   length = ArgusNetflowGet16(ptr + sizeof(uint16_t));
+   if (length < sizeof(CiscoFlowEntryV9_t) || (size_t)length > (size_t)len)
+      return(retn);
+
+   end = ptr + length;
+   if (context->data_flowsets >= ARGUS_CISCO_DATA_FLOWSET_DATAGRAM_MAX) {
+      ArgusLogCiscoDataFlowsetLimit(tqueue);
+      return(retn);
+   }
+   context->data_flowsets++;
+
+   src = context->source;
+   if (src == NULL || !ArgusCiscoSourceMatches(src, context)) {
+      src = ArgusFindCiscoSource(tqueue, context);
+      context->source = src;
+   }
+   if (src == NULL)
+      return(retn);
+   template = ArgusFindCiscoTemplate(src, flowset_id);
 
 //  using the matching template, parse out a single record.  we need to update ptr and
 //  len so that they represent marching through the buffer, parsing out the records.
 //  
 
    {
-      CiscoFlowEntryV9_t *cflow = (CiscoFlowEntryV9_t *) tptr;
       CiscoFlowTemplateHeaderV9_t *tHdr = NULL;
       CiscoFlowTemplateFlowEntryV9_t *tData;
 
-      int flowset_id = ntohs(cflow->flowset_id);
-      int length = ntohs(cflow->length);
+       if (template != NULL && (tHdr = template->tHdr) != NULL) {
+          size_t template_len = template->length;
+         size_t expected_template_len;
 
-      if (length) {
-#define ARGUS_TEMPLATE_TIMEOUT	1800
+          if (template_len < sizeof(*tHdr) ||
+              tHdr->count > ((template_len - sizeof(*tHdr)) / sizeof(*tData)))
+             return(retn);
 
-         if ((tHdr = (CiscoFlowTemplateHeaderV9_t *) templates[flowset_id].tHdr) != NULL) {
-            if ((templates[flowset_id].lasttime.tv_sec + ARGUS_TEMPLATE_TIMEOUT) > model->ArgusGlobalTime.tv_sec) {
-               int i, count = tHdr->count, nflowPad = 3;
-               struct ArgusFlowStruct flowbuf, *flow = &flowbuf;
-               u_char *sptr = (u_char *)(cflow + 1);
-               u_char *eptr = sptr + (length - sizeof(*cflow));
+         expected_template_len = sizeof(*tHdr) +
+            ((size_t)tHdr->count * sizeof(*tData));
+         if (template_len != expected_template_len)
+            return(retn);
+
+          if ((template->lasttime.tv_sec + ARGUS_TEMPLATE_TIMEOUT) > model->ArgusGlobalTime.tv_sec) {
+               int i, count = tHdr->count;
+               unsigned int flowset_records = 0;
+               size_t record_len = template->record_length;
+              struct ArgusFlowStruct flowbuf, *flow = &flowbuf;
+              u_char *sptr = ptr + sizeof(CiscoFlowEntryV9_t);
+
+              if (record_len == 0 || record_len > ARGUS_CISCO_V9_RECORD_MAX ||
+                  record_len > (size_t)(end - sptr))
+                 return(retn);
 
 // process an entire flow set
 
-               while (sptr < (eptr - nflowPad)) {
-                  struct ArgusDSRHeader *dsr = (struct ArgusDSRHeader *) &ArgusNetFlowArgusRecordBuf[4];
+               while (record_len <= (size_t)(end - sptr) &&
+                      flowset_records < ARGUS_CISCO_DATA_RECORD_FLOWSET_MAX &&
+                      context->data_records < ARGUS_CISCO_DATA_RECORD_DATAGRAM_MAX) {
+                   unsigned char recordbuf[4098];
+                   struct ArgusDSRHeader *dsr = (struct ArgusDSRHeader *) &recordbuf[4];
                   bzero(flow, sizeof(*flow));
 
                   tData = (CiscoFlowTemplateFlowEntryV9_t *)(tHdr + 1);
@@ -1044,15 +1566,15 @@ ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModel
                   for (i = 0; i < count; i++) {
                      value_t value;
 
-                     bzero(&value, sizeof(value));
-                     
-                     switch (tData->length) {
+                      bzero(&value, sizeof(value));
+
+                      switch (tData->length) {
                         case  1: value.val8[0] = *sptr; break;
-                        case  2: value.val16[0] = EXTRACT_16BITS(sptr); break;
-                        case  4: value.val32[0] = EXTRACT_32BITS(sptr); break;
-                        case  8: value.val64[0] = EXTRACT_64BITS(sptr); break;
+                        case  2: value.val16[0] = ArgusNetflowGet16(sptr); break;
+                        case  4: value.val32[0] = ArgusNetflowGet32(sptr); break;
+                        case  8: value.val64[0] = ArgusNetflowGet64(sptr); break;
                         case 16: bcopy(sptr, &value.val128, 16); break;
-                     }
+                      }
                      sptr += tData->length;
 
                      switch (tData->type) {
@@ -1203,15 +1725,15 @@ ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModel
                            long timeval = (tData->length == 2) ? value.val16[0] : value.val32[0];
                            int secs, usecs;
 
-                           secs  = ((timeval - ArgusSysUptime) / 1000);
-                           usecs = ((timeval - ArgusSysUptime) % 1000) * 1000;
+                            secs  = ((timeval - context->sys_uptime) / 1000);
+                            usecs = ((timeval - context->sys_uptime) % 1000) * 1000;
 
-                           flow->canon.time.src.end.tv_sec   = ArgusCiscoTvp->tv_sec  + secs;
+                            flow->canon.time.src.end.tv_sec   = context->export_time.tv_sec  + secs;
                            if (usecs < 0) {
                               flow->canon.time.src.end.tv_sec--;
                               usecs += 1000000;
                            }
-                           flow->canon.time.src.end.tv_usec  = ArgusCiscoTvp->tv_usec + usecs;
+                            flow->canon.time.src.end.tv_usec  = context->export_time.tv_usec + usecs;
 
                            flow->dsrindex |= 1 << ARGUS_TIME_INDEX;
                            flow->dsrs[ARGUS_TIME_INDEX] = &flow->canon.time.hdr;
@@ -1221,15 +1743,15 @@ ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModel
                            long timeval = (tData->length == 2) ? value.val16[0] : value.val32[0];
                            int secs, usecs;
 
-                           secs  = ((timeval - ArgusSysUptime) / 1000);
-                           usecs = ((timeval - ArgusSysUptime) % 1000) * 1000;
+                            secs  = ((timeval - context->sys_uptime) / 1000);
+                            usecs = ((timeval - context->sys_uptime) % 1000) * 1000;
 
-                           flow->canon.time.src.start.tv_sec   = ArgusCiscoTvp->tv_sec  + secs;
+                            flow->canon.time.src.start.tv_sec   = context->export_time.tv_sec  + secs;
                            if (usecs < 0) {
                               flow->canon.time.src.start.tv_sec--;
                               usecs += 1000000;
                            }
-                           flow->canon.time.src.start.tv_usec  = ArgusCiscoTvp->tv_usec + usecs;
+                            flow->canon.time.src.start.tv_usec  = context->export_time.tv_usec + usecs;
 
                            flow->dsrindex |= 1 << ARGUS_TIME_INDEX;
                            flow->dsrs[ARGUS_TIME_INDEX] = &flow->canon.time.hdr;
@@ -1529,8 +2051,8 @@ ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModel
 
                      if (!(flow->dsrindex & (1 << ARGUS_TIME_INDEX))) {
                         struct ArgusTimeObject *ato = &flow->canon.time;
-                        ato->src.start.tv_sec   = ArgusCiscoTvp->tv_sec;
-                        ato->src.start.tv_usec  = ((long)(ArgusSysUptime)%1000) * 1000;
+                         ato->src.start.tv_sec   = context->export_time.tv_sec;
+                         ato->src.start.tv_usec  = ((long)(context->sys_uptime)%1000) * 1000;
  
                         if (ato->src.start.tv_usec >= 1000000) {
                            ato->src.start.tv_sec++;
@@ -1671,148 +2193,223 @@ ArgusParseCiscoRecordV9Data (struct ArgusParserStruct *parser, struct ArgusModel
 
                      ArgusSendFlowRecord (model, flow, ARGUS_STATUS);
 #ifdef ARGUSDEBUG
-                     ArgusDebug (4, "ArgusParseCiscoRecordV9Data (%p, %p, %p, %p, %d) new flow %p\n", parser, model, tqueue, ptr, *cnt, retn);
+                      ArgusDebug (4, "ArgusParseCiscoRecordV9Data (%p, %p, %p, %p, %d) new flow %p\n", parser, model, tqueue, ptr, context->counter, retn);
 #endif
-                  }
-                  ArgusParsingIPv6 = 0;
-                  *cnt = *cnt - 1;
-               }
-               src->lasttime = model->ArgusGlobalTime;
+                   }
+                   ArgusParsingIPv6 = 0;
+                    context->counter = context->counter - 1;
+                   flowset_records++;
+                   context->data_records++;
+              }
+              if (record_len <= (size_t)(end - sptr) &&
+                  (flowset_records >= ARGUS_CISCO_DATA_RECORD_FLOWSET_MAX ||
+                   context->data_records >= ARGUS_CISCO_DATA_RECORD_DATAGRAM_MAX))
+                 ArgusLogCiscoDataRecordLimit(tqueue);
+                src->lasttime = model->ArgusGlobalTime;
 
             } else {
-               if (templates[flowset_id].tHdr != NULL) {
-                  ArgusFree(templates[flowset_id].tHdr);
-                  bzero(&templates[flowset_id], sizeof(struct ArgusCiscoTemplateStruct));
-                  templates[flowset_id].tHdr = NULL;
-               }
+                ArgusRemoveCiscoTemplate(src, flowset_id);
             }
          }
-      }
-   }
+    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (5, "ArgusParseCiscoRecordV9Data (%p, %p, %p, %p, %d) returning %p\n", parser, model, tqueue, ptr, *cnt, retn);
+    ArgusDebug (5, "ArgusParseCiscoRecordV9Data (%p, %p, %p, %p, %d) returning %p\n", parser, model, tqueue, ptr, context->counter, retn);
 #endif
    return(retn);
 }
 
-struct ArgusRecord *
-ArgusParseCiscoRecordV9Template (struct ArgusModelerStruct *model, struct ArgusQueueStruct *tqueue, u_char *ptr, int len)
+static int
+ArgusParseCiscoRecordV9Template (struct ArgusModelerStruct *model, struct ArgusQueueStruct *tqueue, struct ArgusCiscoHeaderContext *context, u_char *ptr, int len)
 {
-   struct ArgusCiscoTemplateStruct *templates = NULL;
-   struct ArgusRecord *retn = NULL;
-   struct ArgusCiscoSourceStruct *src;
-   int i, done = 0;
+   struct ArgusCiscoTemplateUpdate *updates = NULL, *last = NULL;
+   struct ArgusCiscoSourceStruct *src = NULL;
+   struct ArgusCiscoTemplateStruct *template;
+   const u_char *end;
+   size_t cache_bytes, projected_bytes;
+   unsigned int cache_templates, projected_templates;
+   unsigned int update_count = 0;
+   int retn = 0;
 
-   if (tqueue != NULL) {
-      int cnt = tqueue->count;
-      for (i = 0; (i < cnt) && (templates == NULL); i++) {
-         src = (struct ArgusCiscoSourceStruct *)ArgusPopQueue (tqueue, ARGUS_LOCK);
-         if ((src->srcid == ArgusCiscoSrcId) && (src->saddr == ArgusCiscoSrcAddr))
-            templates = src->templates;
-         ArgusAddToQueue(tqueue, &src->qhdr, ARGUS_LOCK);
+   if (model == NULL || tqueue == NULL || context == NULL || ptr == NULL || len < 0)
+      return(retn);
+
+   end = ptr + len;
+   while (ptr < end) {
+      struct ArgusCiscoTemplateUpdate *update;
+      CiscoFlowTemplateHeaderV9_t *tHdr;
+       CiscoFlowTemplateFlowEntryV9_t *tData;
+       uint16_t template_id, count;
+       size_t slen, record_length = 0;
+      int i;
+
+      if (!ArgusNetflowHasBytes(ptr, end, sizeof(CiscoFlowTemplateHeaderV9_t)))
+         goto done;
+
+      template_id = ArgusNetflowGet16(ptr);
+      count = ArgusNetflowGet16(ptr + sizeof(uint16_t));
+       if (count == 0 ||
+           count > ((size_t)(end - (ptr + sizeof(CiscoFlowTemplateHeaderV9_t))) /
+                    sizeof(CiscoFlowTemplateFlowEntryV9_t)))
+          goto done;
+       if (update_count >= ARGUS_CISCO_TEMPLATE_FLOWSET_MAX ||
+           context->template_updates >= ARGUS_CISCO_TEMPLATE_DATAGRAM_MAX)
+          goto done;
+
+      slen = sizeof(*tHdr) + ((size_t)count * sizeof(*tData));
+      if ((tHdr = (CiscoFlowTemplateHeaderV9_t *)ArgusCalloc(1, slen)) == NULL) {
+         ArgusLog(LOG_ERR, "ArgusCalloc(%d, %zu) error %s\n", count, slen, strerror(errno));
+         goto done;
       }
+
+      tHdr->template_id = template_id;
+      tHdr->count = count;
+      tData = (CiscoFlowTemplateFlowEntryV9_t *)(tHdr + 1);
+      for (i = 0; i < count; i++) {
+         const u_char *field = ptr + sizeof(*tHdr) + (i * sizeof(*tData));
+
+          tData[i].type = ArgusNetflowGet16(field);
+          tData[i].length = ArgusNetflowGet16(field + sizeof(uint16_t));
+          if (tData[i].length == 0 ||
+              tData[i].length > ARGUS_CISCO_V9_RECORD_MAX - record_length) {
+             ArgusFree(tHdr);
+             goto done;
+          }
+          record_length += tData[i].length;
+      }
+
+      if ((update = (struct ArgusCiscoTemplateUpdate *)ArgusCalloc(1, sizeof(*update))) == NULL) {
+         ArgusLog(LOG_ERR, "ArgusCalloc(%d, %zu) error %s\n", 1, sizeof(*update), strerror(errno));
+         ArgusFree(tHdr);
+         goto done;
+      }
+      update->template_id = template_id;
+       update->length = slen;
+       update->count = count;
+       update->record_length = record_length;
+       update->tHdr = tHdr;
+      if (last != NULL)
+         last->next = update;
+      else
+         updates = update;
+       last = update;
+       update_count++;
+       context->template_updates++;
+       ptr += slen;
    }
 
-   if (templates == NULL) {
-      if ((src = (struct ArgusCiscoSourceStruct *)ArgusCalloc (1, sizeof(*src))) == NULL)
-         ArgusLog(LOG_ERR, "ArgusParseCiscoRecordV9Template: ArgusCalloc(%d, %zu) error %s\n", 1, sizeof(*src), strerror(errno));
-
-      src->srcid = ArgusCiscoSrcId;
-      src->saddr = ArgusCiscoSrcAddr;
-      src->startime = model->ArgusGlobalTime;
-      src->lasttime = model->ArgusGlobalTime;
-      templates = src->templates;
-      ArgusAddToQueue (tqueue, &src->qhdr, ARGUS_LOCK);
+   if (updates == NULL) {
+      retn = 1;
+      goto done;
    }
 
-   if (templates) {
-      while (!done) {
-         CiscoFlowTemplateHeaderV9_t *tHdr = (CiscoFlowTemplateHeaderV9_t *) ptr;
-         CiscoFlowTemplateFlowEntryV9_t *tData = (CiscoFlowTemplateFlowEntryV9_t *)(tHdr + 1);
-         CiscoFlowTemplateFlowEntryV9_t **dArray = NULL;
-         int slen = 0;
+   src = ArgusFindCiscoSource(tqueue, context);
+   ArgusCiscoTemplateCacheUsage(tqueue, &cache_bytes, &cache_templates);
+   if (src == NULL && tqueue->count >= ARGUS_CISCO_TEMPLATE_SOURCE_MAX) {
+      ArgusLogCiscoTemplateCacheLimit(tqueue);
+      goto done;
+   }
 
-         tHdr->template_id = ntohs(tHdr->template_id);
-         tHdr->count = ntohs(tHdr->count);
-
-         slen = (sizeof(*tData) * tHdr->count) + sizeof(*tHdr);
-         
-         if (templates[tHdr->template_id].tHdr != NULL) {
-
-#ifdef ARGUSDEBUG
-            unsigned long addr = htonl(ArgusCiscoSrcAddr);
-            char *srcAddr = (inet_ntoa(*(struct in_addr *)&addr));
-
-            ArgusDebug (3, "ArgusParseCiscoRecordV9Template: pkt %d changing template src %s srcid %d tid %d \n", 
-               model->ArgusTotalPacket, srcAddr, ArgusCiscoSrcId, tHdr->template_id);
-#endif
-            ArgusFree(templates[tHdr->template_id].tHdr);
-            templates[tHdr->template_id].tHdr =  NULL;
-
-            templates[tHdr->template_id].length = slen + 4;
-            templates[tHdr->template_id].count = tHdr->count;
-
-         }  else {
-#ifdef ARGUSDEBUG
-            unsigned long addr = htonl(ArgusCiscoSrcAddr);
-            char *srcAddr = (inet_ntoa(*(struct in_addr *)&addr));
-
-            ArgusDebug (3, "ArgusParseCiscoRecordV9Template: pkt %d new template src %s srcid %d tid %d \n",
-               model->ArgusTotalPacket, srcAddr, ArgusCiscoSrcId, tHdr->template_id);
-#endif
-         }
-
-         if ((dArray = ArgusCalloc(1, slen + 4)) == NULL)
-            ArgusLog(LOG_ERR, "ArgusCalloc(%d, %zu) error %s\n", tHdr->count, sizeof(*tData), strerror(errno));
-
-         for (i = 0; i < tHdr->count; i++) {
-            tData->type   = ntohs(tData->type);
-            tData->length = ntohs(tData->length);
-            tData++;
-         }
-
-         bcopy(tHdr, dArray, slen);
-         templates[tHdr->template_id].tHdr = dArray;
-         templates[tHdr->template_id].lasttime = model->ArgusGlobalTime;
-
-         if ((len - slen) > 0) {
-            ptr += slen;
-            len -= slen;
+   projected_bytes = cache_bytes;
+   projected_templates = cache_templates;
+   for (last = updates; last != NULL; last = last->next) {
+      if (!ArgusCiscoTemplateUpdateHasLater(last)) {
+         template = (src == NULL) ? NULL :
+            ArgusFindCiscoTemplate(src, last->template_id);
+         if (template != NULL) {
+            if ((size_t)template->length > projected_bytes) {
+               ArgusLogCiscoTemplateCacheLimit(tqueue);
+               goto done;
+            }
+            projected_bytes -= template->length;
+         } else if (projected_templates == (unsigned int)-1) {
+            ArgusLogCiscoTemplateCacheLimit(tqueue);
+            goto done;
          } else
-            done = 1;
+            projected_templates++;
+
+         if (last->length > (size_t)-1 - projected_bytes) {
+            ArgusLogCiscoTemplateCacheLimit(tqueue);
+            goto done;
+         }
+         projected_bytes += last->length;
       }
    }
+   if (projected_templates > ARGUS_CISCO_TEMPLATE_MAX ||
+       projected_bytes > ARGUS_CISCO_TEMPLATE_CACHE_BYTES_MAX) {
+      ArgusLogCiscoTemplateCacheLimit(tqueue);
+      goto done;
+   }
 
+   if (src == NULL) {
+       if ((src = (struct ArgusCiscoSourceStruct *)ArgusCalloc(1, sizeof(*src))) == NULL) {
+          ArgusLog(LOG_ERR, "ArgusParseCiscoRecordV9Template: ArgusCalloc(%d, %zu) error %s\n", 1, sizeof(*src), strerror(errno));
+          goto done;
+       }
+       src->srcid = context->source_id;
+       src->address_type = context->source_address_type;
+       bcopy(context->source_address, src->saddr, sizeof(src->saddr));
+       src->startime = model->ArgusGlobalTime;
+      src->lasttime = model->ArgusGlobalTime;
+      if (!ArgusAddToQueue(tqueue, &src->qhdr, ARGUS_LOCK)) {
+         ArgusFreeCiscoSource(src);
+         src = NULL;
+         goto done;
+       }
+    }
+   context->source = src;
+
+   while (updates != NULL) {
+       struct ArgusCiscoTemplateUpdate *update = updates;
+
+       updates = update->next;
+      if (ArgusCiscoTemplateUpdateHasLater(update)) {
+         ArgusFree(update->tHdr);
+         ArgusFree(update);
+         continue;
+      }
+      template = ArgusFindCiscoTemplate(src, update->template_id);
+      if (template == NULL) {
+         if ((template = (struct ArgusCiscoTemplateStruct *)ArgusCalloc(1, sizeof(*template))) == NULL) {
+            ArgusLog(LOG_ERR, "ArgusParseCiscoRecordV9Template: ArgusCalloc(%d, %zu) error %s\n", 1, sizeof(*template), strerror(errno));
+            updates = update;
+            goto done;
+          }
+          template->template_id = update->template_id;
+          template->next = src->templates;
+          template->hash_next = src->template_hash[template->template_id % ARGUS_CISCO_TEMPLATE_HASH_SIZE];
+          src->templates = template;
+          src->template_hash[template->template_id % ARGUS_CISCO_TEMPLATE_HASH_SIZE] = template;
+       }
+      if (template->tHdr != NULL)
+         ArgusFree(template->tHdr);
+      template->tHdr = update->tHdr;
+       template->length = update->length;
+       template->count = update->count;
+       template->record_length = update->record_length;
+       template->lasttime = model->ArgusGlobalTime;
+      update->tHdr = NULL;
+      ArgusFree(update);
+   }
+   src->lasttime = model->ArgusGlobalTime;
+   retn = 1;
+
+done:
+   ArgusFreeCiscoTemplateUpdates(updates);
 #ifdef ARGUSDEBUG
-   ArgusDebug (5, "ArgusParseCiscoRecordV9Template (%p, %p, %d, %p) returning %p\n", model, templates, ptr, len);
+   ArgusDebug(5, "ArgusParseCiscoRecordV9Template (%p, %p, %p, %d) returning %d\n",
+      model, src, ptr, len, retn);
 #endif
    return(retn);
 }
 
-struct ArgusRecord *
+static int
 ArgusParseCiscoRecordV9OptionTemplate (struct ArgusModelerStruct *model, struct ArgusQueueStruct *tqueue, u_char *ptr, int len)
 {
-   struct ArgusCiscoTemplateStruct *templates = NULL;
-   struct ArgusRecord *retn = NULL;
-   struct ArgusCiscoSourceStruct *src;
-   int i;
-
-   if (tqueue != NULL) {
-      int cnt = tqueue->count;
-      for (i = 0; (i < cnt) && (templates == NULL); i++) {
-         src = (struct ArgusCiscoSourceStruct *)ArgusPopQueue (tqueue, ARGUS_LOCK);
-         if ((src->srcid == ArgusCiscoSrcId) && (src->saddr == ArgusCiscoSrcAddr))
-            templates = src->templates;
-         ArgusAddToQueue(tqueue, &src->qhdr, ARGUS_LOCK);
-      }
-   }
-
-   if (templates) {
-   }
+   int retn = (model != NULL && tqueue != NULL && ptr != NULL && len >= 0);
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (5, "ArgusParseCiscoRecordV9OptionTemplate (%p, %p) returning %p\n", model, ptr, retn);
+   ArgusDebug(5, "ArgusParseCiscoRecordV9OptionTemplate (%p, %p) returning %d\n", model, ptr, retn);
 #endif
    return(retn);
 }
