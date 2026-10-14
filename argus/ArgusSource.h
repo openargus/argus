@@ -1048,7 +1048,7 @@ char *getArgusrfile(struct ArgusSourceStruct *);
 
 void clearArgusDevice(struct ArgusSourceStruct *);
 
-int ArgusCreatePktFromFddi(const struct fddi_header *, struct ether_header *, int);
+int ArgusCreatePktFromFddi(const struct fddi_header *, struct ether_header *, unsigned int, unsigned int, unsigned int);
 
 
 #else /* defined(ArgusSource) */

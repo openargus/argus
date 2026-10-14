@@ -54,6 +54,7 @@
 #include <sys/ioctl.h>
 
 #include <stdlib.h>
+#include <limits.h>
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H
@@ -4223,6 +4224,7 @@ static int   fddi_bitswap = 1;
 int fddipad = FDDIPAD;
 
 #define FDDI_HDRLEN (sizeof(struct fddi_header))
+#define FDDI_LLC_HDRLEN (FDDI_HDRLEN + sizeof(struct argus_llc))
 
 static u_char fddi_bit_swap[] = {
    0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,
@@ -4279,23 +4281,39 @@ Argusextract_fddi_addrs(const struct fddi_header *fp, struct ether_header *ehdr)
 }
 
 int
-ArgusCreatePktFromFddi(const struct fddi_header *fp, struct ether_header *ep, int length)
+ArgusCreatePktFromFddi(const struct fddi_header *fp, struct ether_header *ep,
+                       unsigned int caplen, unsigned int length,
+                       unsigned int buffer_len)
 {
    unsigned char *ptr;
    unsigned int retn = 0;
+   unsigned int payload_caplen;
+   unsigned int payload_length;
    struct argus_llc *llc;
- 
+
+   if ((fp == NULL) || (ep == NULL) ||
+       (caplen < FDDI_LLC_HDRLEN) || (length < FDDI_LLC_HDRLEN) ||
+       (caplen > length) || (buffer_len < sizeof(*ep)))
+      return (0);
+
    if ((fp->fddi_fc & FDDIFC_CLFF) == FDDIFC_LLC_ASYNC) {
       Argusextract_fddi_addrs (fp, ep);
 
       llc = (struct argus_llc *)(fp + 1);
- 
+
       if (llc->ssap == LLCSAP_SNAP && llc->dsap == LLCSAP_SNAP && llc->llcui == LLC_UI) {
+         payload_caplen = caplen - FDDI_LLC_HDRLEN;
+         payload_length = length - FDDI_LLC_HDRLEN;
+
+         if ((payload_caplen > (buffer_len - sizeof(*ep))) ||
+             (payload_length > (unsigned int)(INT_MAX - sizeof(*ep))))
+            return (0);
+
          ((struct ether_header *) ep)->ether_type = EXTRACT_16BITS(&llc->ethertype[0]);
          ptr = (unsigned char *)(llc + 1);
-         length -= (sizeof(struct fddi_header) + sizeof(struct argus_llc));
-         bcopy ((char *)ptr, (char *)(ep + 1), length);
-         retn = length + sizeof(struct ether_header);
+         if (payload_caplen)
+            bcopy ((char *)ptr, (char *)(ep + 1), payload_caplen);
+         retn = payload_length + sizeof(struct ether_header);
       }
    }
 
@@ -4306,18 +4324,33 @@ void
 ArgusFddiPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
    struct ArgusSourceStruct *src = (struct ArgusSourceStruct *) user;
-   const struct fddi_header *fp = (struct fddi_header *)p;
+   const struct fddi_header *fp;
    struct timeval tvpbuf, *tvp = &tvpbuf;
-   int ind = src->ArgusThisIndex;
-   unsigned int length = h->len;
-   unsigned int caplen = h->caplen;
+   int ind;
+   int converted_length;
+   unsigned int length;
+   unsigned int caplen;
+   unsigned int converted_caplen;
    struct ether_header *ep;
 
+   if ((src == NULL) || (h == NULL) || (p == NULL))
+      return;
+
+   ind = src->ArgusThisIndex;
+   length = h->len;
+   caplen = h->caplen;
+
+   if ((caplen < FDDI_LLC_HDRLEN) || (length < FDDI_LLC_HDRLEN) ||
+       (caplen > length))
+      return;
+
+   fp = (const struct fddi_header *)p;
    ArgusGetPcapPkthdrTime(src, h, tvp);
 
    if (ArgusDumpTask->ArgusDumpPacket)
       ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
 
+   src->ArgusInterface[ind].ArgusPacketBuffer = src->ArgusInterface[ind].ArgusPacketBufferBuffer;
    ep = (struct ether_header *) src->ArgusInterface[ind].ArgusPacketBuffer;
 
    if (src->ArgusReadingOffLine)
@@ -4325,23 +4358,24 @@ ArgusFddiPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
    ArgusModel->ArgusGlobalTime = *tvp;
    src->ArgusModel->ArgusGlobalTime  = *tvp;
-   src->ArgusModel->ArgusThisLength  = length;
-   src->ArgusModel->ArgusSnapLength  = caplen;
-   src->ArgusModel->ArgusThisSnapEnd = ((u_char *)ep) + caplen;
    src->ArgusModel->ArgusThisEncaps  = ARGUS_ENCAPS_FDDI;
 
    src->ArgusModel->ArgusMatchProtocol = 0;
 
-   src->ArgusInterface[ind].ArgusPacketBuffer = src->ArgusInterface[ind].ArgusPacketBufferBuffer;
-   if (p && (length = ArgusCreatePktFromFddi(fp, ep, length))) {
-      if (p && length) {
-         if (ArgusProcessPacket (src, (char *)ep, length, tvp, ARGUS_ETHER_HDR)) {
-            if (ArgusDumpTask->ArgusDumpPacketOnError)
-               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
-         } else
-            if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
-               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
-      }
+   converted_length = ArgusCreatePktFromFddi(fp, ep, caplen, length,
+                                              sizeof(src->ArgusInterface[ind].ArgusPacketBufferBuffer));
+   if (converted_length) {
+      converted_caplen = caplen - FDDI_LLC_HDRLEN + sizeof(*ep);
+      src->ArgusModel->ArgusThisLength  = converted_length;
+      src->ArgusModel->ArgusSnapLength  = converted_caplen;
+      src->ArgusModel->ArgusThisSnapEnd = ((u_char *)ep) + converted_caplen;
+
+      if (ArgusProcessPacket (src, (char *)ep, converted_length, tvp, ARGUS_ETHER_HDR)) {
+         if (ArgusDumpTask->ArgusDumpPacketOnError)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
+      } else
+         if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
    }
 
 #ifdef ARGUSDEBUG

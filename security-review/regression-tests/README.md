@@ -54,6 +54,11 @@ Each fix falls into one of two categories:
   that the callbacks reject them before fixed-header access or length subtraction. The ASan/UBSan
   CI job runs this test.
 
+- **FDDI conversion bounds**: `test_fddi_capture_bounds.sh` creates short, inconsistent,
+  truncated-payload, and oversized `DLT_FDDI` captures, plus a valid IPv4 frame. It verifies that
+  FDDI conversion rejects unsafe input before FDDI/LLC access or copying while retaining normal
+  conversion behavior. The ASan/UBSan CI job runs this test.
+
 - **Radiotap capture bounds**: `test_radiotap_capture_bounds.sh` verifies that a truncated
   radiotap present-bitmap extension cannot be read past captured packet data. The ASan/UBSan CI
   job runs this test.
