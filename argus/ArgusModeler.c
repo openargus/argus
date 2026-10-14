@@ -3127,7 +3127,7 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
    if (model->ArgusGenerateTime) {
       struct ArgusTimeStat  *ArgusThisTime;
       struct ArgusTimeStats *ArgusThisTimeStat;
-      unsigned long long ArgusThisInterval, tout;
+      unsigned long long ArgusThisInterval, ArgusThisJitter, tout;
       struct timeval timeout;
 
       if (model->ArgusThisDir) {
@@ -3155,14 +3155,19 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
 
                if (tout > 0) {
                   if (ArgusThisInterval < (tout * 2)) {
-                     if (ArgusThisTimeStat->minval > ArgusThisInterval)
-                        ArgusThisTimeStat->minval = ArgusThisInterval;
+                     ArgusThisJitter = ArgusThisInterval;
+#if defined(ARGUS_NANOSECONDS)
+                     ArgusThisJitter /= 1000;
+#endif
 
-                     if (ArgusThisTimeStat->maxval < ArgusThisInterval)
-                        ArgusThisTimeStat->maxval = ArgusThisInterval;
+                     if (ArgusThisTimeStat->minval > ArgusThisJitter)
+                        ArgusThisTimeStat->minval = ArgusThisJitter;
 
-                     ArgusThisTimeStat->sum     += ArgusThisInterval;
-                     ArgusThisTimeStat->sumsqrd += (double)ArgusThisInterval * (double)ArgusThisInterval;
+                     if (ArgusThisTimeStat->maxval < ArgusThisJitter)
+                        ArgusThisTimeStat->maxval = ArgusThisJitter;
+
+                     ArgusThisTimeStat->sum     += ArgusThisJitter;
+                     ArgusThisTimeStat->sumsqrd += ArgusThisJitter * ArgusThisJitter;
                      ArgusThisTimeStat->n++;
                   }
                }
@@ -5760,4 +5765,3 @@ setArgusTimeReport(struct ArgusModelerStruct *model, int value)
 {
    model->ArgusReportAllTime = value;
 }
-
