@@ -4056,7 +4056,10 @@ Argus802_11RadioPacket (u_char *user, const struct pcap_pkthdr *h, const u_char 
    int bit0;
    u_char *iter;
 
-   if ((rthdr_len = rthdr->it_len) < 8)
+   if ((p == NULL) || (h->caplen < sizeof(*rthdr)))
+      return;
+
+   if ((rthdr_len = rthdr->it_len) < sizeof(*rthdr))
       return;
 
    bzero(&src->ArgusThisRadioTap, sizeof(src->ArgusThisRadioTap));
@@ -4064,10 +4067,13 @@ Argus802_11RadioPacket (u_char *user, const struct pcap_pkthdr *h, const u_char 
    if (h->caplen < rthdr_len)
       return;
 
-   for (last_presentp = &rthdr->it_present; IS_EXTENDED(last_presentp) && (u_char*)(last_presentp + 1) <= p + rthdr_len; last_presentp++);
+   for (last_presentp = &rthdr->it_present;
+        (u_char *)(last_presentp + 1) <= p + rthdr_len &&
+        IS_EXTENDED(last_presentp);
+        last_presentp++);
 
    /* are there more bitmap extensions than bytes in header? */
-   if (IS_EXTENDED(last_presentp))
+   if ((u_char *)(last_presentp + 1) > p + rthdr_len)
       return;
 
    iter = (u_char*)(last_presentp + 1);

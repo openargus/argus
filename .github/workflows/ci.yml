@@ -71,6 +71,7 @@ jobs:
         run: |
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_gre_capture_bounds.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_ppp_hdlc_capture_bounds.sh
+          ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_radiotap_capture_bounds.sh
 
       - name: Replay corpus and crash regression set
         run: |
