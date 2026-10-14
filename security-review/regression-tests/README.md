@@ -34,6 +34,10 @@ Each fix falls into one of two categories:
   command-line filters are released cleanly after offline processing. The CI job enables
   `ARGUSMEMDEBUG` so allocation-family mismatches fail this test.
 
+- **DHCP jitter statistics**: `test_dhcp_time_overflow.sh` verifies that a long DHCP replay
+  interval does not overflow the microsecond jitter sum of squares. The ASan/UBSan CI job runs
+  this test.
+
 - **GRE capture bounds**: `test_gre_capture_bounds.sh` verifies that a truncated GRE routing
   header cannot advance Argus past captured packet data. The ASan/UBSan CI job runs this test.
 
@@ -63,10 +67,10 @@ also be run standalone; see the comment header in each file for what it checks a
 
 ## Fixtures
 
-`fixtures/babel.pcap`, `fixtures/bgp-infinite-loop.pcap`, `fixtures/gre-heapoverflow-2.pcap`,
-`fixtures/heapoverflow-ppp_hdlc_if_print.pcap`, `fixtures/lsp-ping-timestamp.pcap`, and
-`fixtures/radiotap-heapoverflow.pcap` are copied from tcpdump's own public, BSD-licensed
-regression-test corpus
-(https://github.com/the-tcpdump-group/tcpdump, `tests/` directory). They are tiny (42 bytes - 3.3
+`fixtures/babel.pcap`, `fixtures/bgp-infinite-loop.pcap`, `fixtures/dhcp-rfc4388.pcap`,
+`fixtures/gre-heapoverflow-2.pcap`, `fixtures/heapoverflow-ppp_hdlc_if_print.pcap`,
+`fixtures/lsp-ping-timestamp.pcap`, and `fixtures/radiotap-heapoverflow.pcap` are copied from
+tcpdump's own public, BSD-licensed regression-test corpus
+(https://github.com/the-tcpdump-group/tcpdump, `tests/` directory). They are tiny (42 bytes - 14
 KB) and safe to redistribute. No
 proprietary, customer, or otherwise sensitive capture data is used anywhere in this directory.
