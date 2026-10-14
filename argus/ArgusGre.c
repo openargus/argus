@@ -54,7 +54,10 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
       hlen += sizeof(*ipv6);
    } 
 
-   if (pass) {
+   if (!pass || !BYTESCAPTURED(model, *ip, hlen))
+      return (0);
+
+   {
       char *bp = ((char *)ip + hlen);
       unsigned short flags;
 
@@ -75,21 +78,25 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
       retn = EXTRACT_16BITS(bp);
       bp += sizeof(unsigned short);
 
-      model->ArgusThisEncaps |= ARGUS_ENCAPS_GRE;
-
       switch(flags & GRE_VERS_MASK) {
          case 0: {
-            if ((flags & GRE_CP) | (flags & GRE_RP)) {
+            if (flags & (GRE_CP | GRE_RP)) {
+               if (!BYTESCAPTURED(model, *bp, 4))
+                  return (0);
                grelen += 4;
                bp += 4;
             }
 
             if (flags & GRE_KP) {
+               if (!BYTESCAPTURED(model, *bp, 4))
+                  return (0);
                bp += 4;
                grelen -= 4;
             }
 
             if (flags & GRE_SP) {
+               if (!BYTESCAPTURED(model, *bp, 4))
+                  return (0);
                bp += 4;
                grelen += 4;
             }
@@ -108,11 +115,13 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
                      if (af == 0 && srelen == 0)
                         break;
 
+                     if (!BYTESCAPTURED(model, *bp, srelen))
+                        return (0);
                      bp += srelen;
                      grelen += srelen;
 
                   } else
-                     break;
+                     return (0);
                }
             }
             break;
@@ -120,16 +129,22 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
 
          case 1: {
             if (flags & GRE_KP) {
+               if (!BYTESCAPTURED(model, *bp, 4))
+                  return (0);
                bp += 4;
                grelen -= 4;
             }
 
             if (flags & GRE_SP) {
+               if (!BYTESCAPTURED(model, *bp, 4))
+                  return (0);
                bp += 4;
                grelen += 4;
             }
 
             if (flags & GRE_AP) {
+               if (!BYTESCAPTURED(model, *bp, 4))
+                  return (0);
                bp += 4;
                grelen += 4;
             }
@@ -139,6 +154,7 @@ ArgusParseGre (struct ArgusModelerStruct *model, struct ip *ip, int length)
       gre->flags = flags;
       gre->proto = retn;
 
+      model->ArgusThisEncaps |= ARGUS_ENCAPS_GRE;
       model->ArgusThisUpHdr  = (unsigned char *) bp;
       model->ArgusThisLength -= grelen;
       model->ArgusSnapLength -= grelen;

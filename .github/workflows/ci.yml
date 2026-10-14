@@ -62,10 +62,13 @@ jobs:
         run: brew install libpcap zlib bison flex
 
       - name: Configure
-        run: ./configure
+        run: CC=clang CFLAGS="-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize=alignment -fno-sanitize-recover=all" ./configure
 
       - name: Build ASan/UBSan instrumented sensor + harness
-        run: sh security-review/fuzz/build.sh plain
+        run: make -j4 && sh security-review/fuzz/build.sh plain
+
+      - name: Run malformed-capture regression tests
+        run: ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_gre_capture_bounds.sh
 
       - name: Replay corpus and crash regression set
         run: |
