@@ -52,6 +52,23 @@ jobs:
       - name: Build
         run: make -j4
 
+  sflow-no-threads-regression:
+    name: sFlow registry without threads
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev zlib1g-dev bison flex
+
+      - name: Configure without threads
+        run: ./configure --without-threads
+
+      - name: Build and test exporter registry
+        run: make -j4 && sh security-review/regression-tests/test_sflow_exporter_registry.sh
+
   fuzz-regression:
     name: Fuzz corpus regression
     runs-on: macos-latest
@@ -74,6 +91,7 @@ jobs:
            ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_fddi_capture_bounds.sh
            ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_erf_dag_bounds.sh
            ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_sflow_datagram_bounds.sh
+           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_sflow_exporter_registry.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_netflow_datagram_bounds.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_ppp_hdlc_capture_bounds.sh
           ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 sh security-review/regression-tests/test_ppp_slip_capture_bounds.sh

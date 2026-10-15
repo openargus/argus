@@ -38,6 +38,7 @@
 #include <argus/sflow.h>
 
 void ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr);
+void ArgusCloseSflowExporters (struct ArgusSourceStruct *);
 
 static void SFLengthCheck(SFSample *, u_char *, uint32_t);
 

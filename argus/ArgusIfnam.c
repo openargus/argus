@@ -31,7 +31,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#if defined(ARGUS_THREADS)
 #include <pthread.h>
+#endif
 #include "argus_compat.h"
 #include "ArgusModeler.h"
 #include "ArgusSource.h"
@@ -104,7 +106,9 @@ shortname_ethdev_check(char *ifnam, struct ArgusListStruct *ArgusDeviceList)
    struct ArgusDeviceStruct *dev;
    int ret = 0;
 
+#if defined(ARGUS_THREADS)
    pthread_mutex_lock(&ArgusDeviceList->lock);
+#endif
    dev = (struct ArgusDeviceStruct *)ArgusDeviceList->start;
    if (dev) {
       for (; dev; dev = (struct ArgusDeviceStruct *)dev->nxt) {
@@ -118,7 +122,9 @@ shortname_ethdev_check(char *ifnam, struct ArgusListStruct *ArgusDeviceList)
          }
       }
     }
+#if defined(ARGUS_THREADS)
    pthread_mutex_unlock(&ArgusDeviceList->lock);
+#endif
    return ret;
 }
 

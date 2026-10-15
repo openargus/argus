@@ -71,6 +71,12 @@ Each fix falls into one of two categories:
   and Ethernet headers, while retaining a valid sFlow v5 sampled-packet path. The ASan/UBSan CI
   job runs this test.
 
+- **sFlow exporter registry bounds**: `test_sflow_exporter_registry.sh` configures a two-exporter
+  offline source limit, retains IPv4 and full IPv6 identities, drops a third identity before source
+  allocation, verifies realtime offline replay, and verifies independent capacity for two offline
+  sFlow inputs. The ASan/UBSan CI job runs this test, and the
+  `sflow-no-threads-regression` CI job repeats it after `./configure --without-threads`.
+
 - **Cisco NetFlow datagram bounds**: `test_netflow_datagram_bounds.sh` sends malformed Ethernet,
    IPv4, and UDP payloads through the offline `cisco:<pcap>` path. It covers short version headers,
    version-specific entries, count mismatches, UDP payload limits, v9 FlowSet lengths, transactional
@@ -91,16 +97,17 @@ injection, not a program input, and doesn't fit this directory's per-fix-test pa
 ./configure
 sh security-review/fuzz/build.sh plain   # builds an ASan/UBSan sensor into security-review/fuzz/build/
 sh security-review/regression-tests/run_all.sh
-RUN_NETFLOW_REGRESSION=1 RUN_ERF_REGRESSION=1 STRESS_ITERATIONS=5 sh security-review/regression-tests/stress_multi_source_sll.sh
+RUN_NETFLOW_REGRESSION=1 RUN_ERF_REGRESSION=1 RUN_SFLOW_EXPORTER_REGRESSION=1 STRESS_ITERATIONS=5 sh security-review/regression-tests/stress_multi_source_sll.sh
 ```
 
 `run_all.sh` builds a plain (non-sanitized) `bin/argus` via the normal top-level `make`, plus
 reuses the ASan build from `security-review/fuzz/build.sh` for the tests that need it, and runs
 every `test_*.sh` script in this directory, reporting a final pass/fail summary. Each script can
 also be run standalone; see the comment header in each file for what it checks and why.
-`RUN_NETFLOW_REGRESSION=1` and `RUN_ERF_REGRESSION=1` additionally run the NetFlow and ERF/DAG
-suites against the scratch ASan/UBSan binary built by the SLL stress script; `STRESS_ITERATIONS`
-controls its best-effort concurrency runs.
+`RUN_NETFLOW_REGRESSION=1`, `RUN_ERF_REGRESSION=1`, and `RUN_SFLOW_EXPORTER_REGRESSION=1`
+additionally run the NetFlow, ERF/DAG, and sFlow exporter-registry suites against the scratch
+ASan/UBSan binary built by the SLL stress script; `STRESS_ITERATIONS` controls its best-effort
+concurrency runs.
 
 ## Fixtures
 

@@ -277,23 +277,237 @@ ArgusParseSFCountersSample(struct ArgusSourceStruct *src, SFSample *sptr, int st
    }
 }
 
-extern unsigned int ArgusSourceCount;
+static size_t
+ArgusSflowAddressLength(const SFLAddress *address)
+{
+   switch (address->type) {
+      case SFLADDRESSTYPE_IP_V4:
+         return sizeof(address->address.ip_v4.addr);
+      case SFLADDRESSTYPE_IP_V6:
+         return sizeof(address->address.ip_v6.addr);
+      default:
+         return 0;
+   }
+}
+
+static const void *
+ArgusSflowAddressPointer(const SFLAddress *address)
+{
+   switch (address->type) {
+      case SFLADDRESSTYPE_IP_V4:
+         return &address->address.ip_v4.addr;
+      case SFLADDRESSTYPE_IP_V6:
+         return address->address.ip_v6.addr;
+      default:
+         return NULL;
+   }
+}
+
+static void
+ArgusSetSflowExporterID(struct ArgusSourceStruct *src, const SFLAddress *address,
+                        size_t address_len)
+{
+   unsigned char source_id[sizeof(struct ArgusAddrStruct)];
+   const void *address_ptr = ArgusSflowAddressPointer(address);
+
+   bzero(source_id, sizeof(source_id));
+   bcopy(address_ptr, source_id, address_len);
+   bcopy("sfl0", source_id + address_len, 4);
+   setArgusID(src, source_id, address_len + 4,
+              address->type == SFLADDRESSTYPE_IP_V4 ?
+              ARGUS_TYPE_IPV4 | ARGUS_TYPE_INTERFACE :
+              ARGUS_TYPE_IPV6 | ARGUS_TYPE_INTERFACE);
+}
+
+static struct ArgusSourceStruct *
+ArgusCreateSflowExporter(struct ArgusSourceStruct *stask,
+                         unsigned int input_index,
+                         const SFLAddress *address, size_t address_len)
+{
+   struct ArgusSourceStruct *src;
+   struct ArgusDeviceStruct *input_device, *device;
+
+   if (input_index >= stask->ArgusInterfaces ||
+       (input_device = stask->ArgusInterface[input_index].ArgusDevice) == NULL) {
+      ArgusLog(LOG_WARNING, "%s: sFlow input has no source device\n", __func__);
+      return NULL;
+   }
+   if (ArgusSflowModelTemplate == NULL) {
+      ArgusLog(LOG_WARNING, "%s: sFlow model template is unavailable\n", __func__);
+      return NULL;
+   }
+
+   src = ArgusCloneSource(stask);
+
+   /* Exporter sources retain only the input interface that received the datagram. */
+   clearArgusDevice(src);
+   if (src->ArgusDeviceList != NULL) {
+      ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
+      src->ArgusDeviceList = NULL;
+   }
+   bzero(src->ArgusInterface, sizeof(src->ArgusInterface));
+   src->ArgusInterfaces = 1;
+   src->ArgusInterfaceIndex = 0;
+   src->ArgusThisIndex = 0;
+   src->ArgusInterface[0].ArgusDevice = ArgusCloneDevice(input_device);
+   device = src->ArgusInterface[0].ArgusDevice;
+   device->src = src;
+
+   ArgusSetSflowExporterID(src, address, address_len);
+   device->trans = src->trans;
+   device->idtype = src->type;
+
+   /* This template is frozen before worker threads can update ArgusModel. */
+   src->ArgusModel = ArgusCloneModeler(ArgusSflowModelTemplate);
+   src->ArgusModel->ArgusSrc = src;
+   ArgusInitModeler(src->ArgusModel);
+
+   return src;
+}
+
+static struct ArgusSourceStruct *
+ArgusGetSflowExporter(struct ArgusSourceStruct *stask,
+                      struct ArgusModelerStruct *model,
+                      const SFLAddress *address)
+{
+   struct ArgusSourceStruct *src = NULL;
+   struct ArgusSflowExporterStruct *exporter;
+   const void *address_ptr;
+   size_t address_len;
+   unsigned int i, input_index, limit;
+   struct ArgusSflowExporterRegistry *registry;
+
+   if (stask == NULL || model == NULL || address == NULL ||
+       (address_len = ArgusSflowAddressLength(address)) == 0 ||
+       (address_ptr = ArgusSflowAddressPointer(address)) == NULL)
+      return NULL;
+
+   input_index = model->ArgusThisInterface;
+   if (input_index >= stask->ArgusInterfaces)
+      return NULL;
+
+#if defined(ARGUS_THREADS)
+   pthread_mutex_lock(&stask->lock);
+#endif
+
+   registry = stask->ArgusInterface[input_index].ArgusSflowExporterRegistry;
+   if (registry == NULL) {
+      registry = ArgusCalloc(1, sizeof(*registry));
+      stask->ArgusInterface[input_index].ArgusSflowExporterRegistry = registry;
+   }
+
+   if (registry != NULL) {
+      for (i = 0; i < registry->count; i++) {
+         exporter = &registry->exporters[i];
+         if (exporter->source != NULL && exporter->type == address->type &&
+             !memcmp(exporter->address, address_ptr, address_len)) {
+            src = exporter->source;
+            break;
+         }
+      }
+
+      if (src == NULL) {
+         limit = stask->ArgusSflowExporterLimit;
+         if (limit == 0 || limit > ARGUS_MAX_SFLOW_EXPORTERS)
+            limit = ARGUS_MAX_SFLOW_EXPORTERS;
+
+         if (registry->count >= limit) {
+            if (!registry->limitLogged) {
+               ArgusLog(LOG_WARNING,
+                        "ArgusParseSflowRecord: sFlow exporter limit %u reached; dropping unregistered exporter\n",
+                        limit);
+               registry->limitLogged = 1;
+            }
+         } else if ((src = ArgusCreateSflowExporter(stask, input_index, address,
+                                                      address_len)) != NULL) {
+            exporter = &registry->exporters[registry->count++];
+            exporter->type = address->type;
+            bzero(exporter->address, sizeof(exporter->address));
+            bcopy(address_ptr, exporter->address, address_len);
+            exporter->source = src;
+         }
+      }
+   }
+
+#if defined(ARGUS_THREADS)
+   pthread_mutex_unlock(&stask->lock);
+#endif
+
+   return src;
+}
+
+static void
+ArgusFreeSflowExporter(struct ArgusSourceStruct *src)
+{
+   struct ArgusDeviceStruct *device;
+
+   if (src == NULL)
+      return;
+
+   if (src->ArgusModel != NULL) {
+      /* Flush this exporter's flows without sending a process-wide STOP record. */
+      ArgusModelerCleanUp(src->ArgusModel);
+      src->ArgusModel->ArgusOutputList = NULL;
+      ArgusCloseModeler(src->ArgusModel);
+      ArgusFree(src->ArgusModel);
+      src->ArgusModel = NULL;
+   }
+
+   device = src->ArgusInterface[0].ArgusDevice;
+   src->ArgusInterface[0].ArgusDevice = NULL;
+   if (device != NULL) {
+      if (device->name != NULL)
+         free(device->name);
+      if (device->dltname != NULL)
+         free(device->dltname);
+      ArgusFree(device);
+   }
+
+   if (src->ArgusInputFilter != NULL)
+      free(src->ArgusInputFilter);
+   if (src->ArgusDeviceList != NULL)
+      ArgusDeleteList(src->ArgusDeviceList, ARGUS_DEVICE_LIST);
+
+   ArgusFree(src);
+}
+
+void
+ArgusCloseSflowExporters(struct ArgusSourceStruct *stask)
+{
+   unsigned int i, j;
+
+   if (stask == NULL)
+      return;
+
+   for (i = 0; i < stask->ArgusInterfaces; i++) {
+      struct ArgusSflowExporterRegistry *registry;
+
+#if defined(ARGUS_THREADS)
+      pthread_mutex_lock(&stask->lock);
+#endif
+
+      registry = stask->ArgusInterface[i].ArgusSflowExporterRegistry;
+      stask->ArgusInterface[i].ArgusSflowExporterRegistry = NULL;
+
+#if defined(ARGUS_THREADS)
+      pthread_mutex_unlock(&stask->lock);
+#endif
+
+      if (registry != NULL) {
+         for (j = 0; j < registry->count; j++)
+            ArgusFreeSflowExporter(registry->exporters[j].source);
+         ArgusFree(registry);
+      }
+   }
+}
 
 void
 ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
 {
    struct ArgusSourceStruct *stask, *src = NULL;
    SFSample sample, *sptr = &sample;
-   uint32_t count, cnt, srcid;
+   uint32_t count, cnt;
    int i;
-
-/*
-   if (ArgusSflowModel == NULL)
-      if ((ArgusSflowModel = ArgusNewModeler()) == NULL)
-         ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
-
-   bcopy(model, ArgusSflowModel, sizeof(*model));
-*/
 
    if ((model == NULL) || (ptr == NULL) || (model->ArgusThisSnapEnd == NULL) ||
        ((u_char *)ptr > model->ArgusThisSnapEnd))
@@ -333,66 +547,9 @@ ArgusParseSflowRecord (struct ArgusModelerStruct *model, void *ptr)
       sptr->agentSubId = SFGetData32 (sptr);
    }
 
-   srcid = sptr->agent_addr.address.ip_v4.addr;
-/*
-  if(address->type == SFLADDRESSTYPE_IP_V4)
-    address->address.ip_v4.addr = SFGetData32_nobswap(sample);
-  else {
-    memcpy(&address->address.ip_v6.addr, sample->datap, 16);
-    SFSkipBytes(sample, 16);
-  } 
-*/
-   for (i = 1; i < ArgusSourceCount; i++) {
-      struct ArgusSourceStruct *st = stask->srcs[i];
-      if (st != NULL) {
-         if (sptr->agent_addr.type == SFLADDRESSTYPE_IP_V4) {
-            if (st->trans.srcid.a_un.ipv4 == ntohl(srcid)) {
-               src = st;
-               break;
-	    }
-	 }
-      } else
-         break;
-   }
-
-   if (src == NULL) {
-#ifdef ARGUSDEBUG
-      ArgusDebug (1, "ArgusProcessSflowDatagram (%p, %p) Sflow srcid '%s' not found.\n", model, ptr, inet_ntoa(*(struct in_addr *)&srcid));
-#endif
-      if (ArgusSourceCount < ARGUS_MAXINTERFACE) {
-         struct ArgusDeviceStruct *device = NULL;
-         unsigned char buf[32];
-         int slen = 0;
-
-         bzero(buf, 32);
-         src = ArgusCloneSource(stask);
-         if ((src->ArgusModel = ArgusNewModeler()) == NULL)
-            ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
-
-         src->ArgusModel->ArgusSrc = src;
-         src->ArgusThisIndex = 0;
-         ArgusInitModeler(src->ArgusModel);
-
-         if (sptr->agent_addr.type == SFLADDRESSTYPE_IP_V4)
-            src->trans.srcid.a_un.ipv4 = ntohl(srcid);
-
-         pthread_mutex_lock(&stask->lock);
-         stask->srcs[ArgusSourceCount++] = src;
-         pthread_mutex_unlock(&stask->lock);
-
-         slen = sizeof(src->trans.srcid.a_un.ipv4);
-         bcopy(&srcid, buf, slen);
-         setArgusID (src, buf, slen, ARGUS_TYPE_IPV4);
-	 bcopy("sfl0", src->trans.srcid.inf, 4);
-	 src->trans.hdr.argus_dsrvl8.qual |= ARGUS_TYPE_INTERFACE;
-
-         device = src->ArgusInterface[0].ArgusDevice;
-         device->trans = src->trans;
-
-      } else {
-         ArgusLog (LOG_ERR, "ArgusParseSflowRecord: Too many Sflow Source Id's\n");
-      }
-   }
+   src = ArgusGetSflowExporter(stask, model, &sptr->agent_addr);
+   if (src == NULL)
+      return;
 
    sptr->sequenceNo = SFGetData32 (sptr);
    sptr->sysUpTime = SFGetData32 (sptr);

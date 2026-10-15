@@ -165,6 +165,20 @@ int pcap_offline_read(pcap_t *, int, pcap_handler, u_char *);
 
 
 #define ARGUS_MAXINTERFACE	128
+#define ARGUS_MAX_SFLOW_EXPORTERS ARGUS_MAXINTERFACE
+#define ARGUS_DEFAULT_SFLOW_EXPORTERS 8
+
+struct ArgusSflowExporterStruct {
+   unsigned int type;
+   unsigned char address[16];
+   struct ArgusSourceStruct *source;
+};
+
+struct ArgusSflowExporterRegistry {
+   unsigned int count;
+   unsigned int limitLogged;
+   struct ArgusSflowExporterStruct exporters[ARGUS_MAX_SFLOW_EXPORTERS];
+};
 
 #define ARGUS_TYPE_IND		0x01
 #define ARGUS_TYPE_BOND		0x02
@@ -273,6 +287,7 @@ struct arguspcap {
 struct ArgusInterfaceStruct {
    struct ArgusDeviceStruct *ArgusDevice;
    struct ArgusDumpStruct *ArgusDump;
+   struct ArgusSflowExporterRegistry *ArgusSflowExporterRegistry;
    pcap_t *ArgusPd;
    struct bpf_program ArgusFilter;
    int state, index, ArgusInterfaceType;
@@ -820,9 +835,11 @@ struct ArgusSourceStruct {
    pcap_if_t *ArgusPacketDevices;
    pcap_if_t *ArgusDevice;
 
-   int ArgusInterfaceIndex, ArgusThisIndex, ArgusInterfaces;
-   struct ArgusInterfaceStruct ArgusInterface[ARGUS_MAXINTERFACE];
-   struct ArgusSourceStruct *srcs[ARGUS_MAXINTERFACE];
+     int ArgusInterfaceIndex, ArgusThisIndex, ArgusInterfaces;
+     struct ArgusInterfaceStruct ArgusInterface[ARGUS_MAXINTERFACE];
+     struct ArgusSourceStruct *srcs[ARGUS_MAXINTERFACE];
+     /* This cap applies independently to each offline sFlow input. */
+     unsigned int ArgusSflowExporterLimit;
 
 #if defined(ARGUS_TILERA)
   netio_queue_t queue;
@@ -843,6 +860,8 @@ struct ArgusSourceStruct {
 
 
 int setArgusListInterfaces (struct ArgusSourceStruct *, int);
+void setArgusSflowExporterLimit (struct ArgusSourceStruct *, int);
+void ArgusCloseSflowExporters (struct ArgusSourceStruct *);
 int setArgusTimestampType(char *);
 int setArgusDeDup(char *);
 
