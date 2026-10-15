@@ -1042,7 +1042,8 @@ ArgusInitSource (struct ArgusSourceStruct *src)
                break;
 
             case ARGUS_FILE_DEVICE:
-               src->ArgusInterfaces += ArgusOpenInputPacketFile(src, device, &src->ArgusInterface[i]);
+               src->ArgusInterfaces += ArgusOpenInputPacketFile(src, device,
+                                                                 &src->ArgusInterface[src->ArgusInterfaces]);
                break;
          }
       }
@@ -1137,6 +1138,11 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
          if (src->ArgusInterface[j].ArgusPd) {
             pcap_close(src->ArgusInterface[j].ArgusPd);
             src->ArgusInterface[j].ArgusPd = NULL;
+         }
+         if (src->ArgusInterface[j].ArgusInterfaceType == ARGUSERFPKTFILE &&
+             src->ArgusInterface[j].ArgusPcap.fd >= 0) {
+            close(src->ArgusInterface[j].ArgusPcap.fd);
+            src->ArgusInterface[j].ArgusPcap.fd = -1;
          }
       }
 
@@ -2213,50 +2219,125 @@ ArgusSnoopRead (struct ArgusSourceStruct *src)
 
 
 #include <argus_dag.h>
+#include <argus/extract.h>
 
-#define ERF_REC_LEN_MAX         (1<<16)
+/* ERF headers are fixed wire fields, not native C structs. */
+#define DAG_REC_SIZE            dag_record_size
+#define ERF_REC_LEN_MAX         ARGUS_MAXSNAPLEN
+#define DAG_REC_TYPE_OFFSET     8
+#define DAG_REC_RLEN_OFFSET     10
+#define DAG_REC_WLEN_OFFSET     14
 
 int ArgusErfRead (struct ArgusSourceStruct *);
+static void ArgusDagPacketRecord(struct ArgusSourceStruct *, uint8_t, uint64_t,
+                                 unsigned int, const u_char *, size_t);
+
+static ssize_t
+ArgusErfReadFully(int fd, void *buffer, size_t length)
+{
+   size_t received = 0;
+
+   while (received < length) {
+      ssize_t retn = read(fd, (u_char *)buffer + received, length - received);
+
+      if (retn > 0) {
+         received += retn;
+      } else if (retn == 0) {
+         break;
+      } else if (errno != EINTR) {
+         return -1;
+      }
+   }
+
+   return received;
+}
 
 int
 ArgusErfRead (struct ArgusSourceStruct *src)
 {
-   int retn = 0, len = 0;
+   ssize_t retn = 0;
+   int ind;
+   size_t len;
+   unsigned int record_len;
    unsigned char *ArgusPacketBuf = NULL;
-   dag_record_t DagPktHdr;
+   unsigned char DagPktHdr[DAG_REC_SIZE];
+   struct ArgusInterfaceStruct *inf;
 
-#define DAG_REC_SIZE      16
+   if (src == NULL || (ind = src->ArgusThisIndex) < 0 ||
+       ind >= src->ArgusInterfaces || ind >= ARGUS_MAXINTERFACE)
+      return -1;
 
-   if (src->ArgusInterface[0].ArgusPacketBuffer == NULL) 
-      src->ArgusInterface[0].ArgusPacketBuffer = src->ArgusInterface[0].ArgusPacketBufferBuffer; 
+   inf = &src->ArgusInterface[ind];
+   if (inf->ArgusPcap.fd < 0)
+      return -1;
 
-   if ((ArgusPacketBuf = src->ArgusInterface[0].ArgusPacketBuffer) != NULL) {
-      if ((retn = read(src->ArgusInterface[0].ArgusPcap.fd, &DagPktHdr, DAG_REC_SIZE)) == DAG_REC_SIZE) {
+   if (inf->ArgusPacketBuffer == NULL)
+      inf->ArgusPacketBuffer = inf->ArgusPacketBufferBuffer;
 
-         len = ntohs(DagPktHdr.rlen) - DAG_REC_SIZE;
-
-         if ((retn = read(src->ArgusInterface[0].ArgusPcap.fd, ArgusPacketBuf, len)) == len) {
-            ArgusDagPacket ((void *)src, (void *)&DagPktHdr, (const u_char *)ArgusPacketBuf);
-         } else {
-            if (retn == 0) 
-               close(src->ArgusInterface[0].ArgusPcap.fd);
-            else
-               ArgusLog(LOG_ERR, "ArgusErfRead: read error %s", strerror(errno));
+   if ((ArgusPacketBuf = inf->ArgusPacketBuffer) != NULL) {
+      if ((retn = ArgusErfReadFully(inf->ArgusPcap.fd, DagPktHdr, DAG_REC_SIZE)) == DAG_REC_SIZE) {
+         record_len = EXTRACT_16BITS(DagPktHdr + DAG_REC_RLEN_OFFSET);
+         if (record_len < DAG_REC_SIZE || record_len > ERF_REC_LEN_MAX) {
+            ArgusLog(LOG_WARNING, "ArgusErfRead: invalid ERF record length %u\n", record_len);
+            close(inf->ArgusPcap.fd);
+            inf->ArgusPcap.fd = -1;
+            return -1;
          }
-      } else
-         if (retn == 0) 
-            close(src->ArgusInterface[0].ArgusPcap.fd);
-         else
-            ArgusLog(LOG_ERR, "ArgusErfRead: read error %s", strerror(errno));
 
-   } else
-      close(src->ArgusInterface[0].ArgusPcap.fd);
+         len = record_len - DAG_REC_SIZE;
+         if (len > sizeof(inf->ArgusPacketBufferBuffer)) {
+            ArgusLog(LOG_WARNING, "ArgusErfRead: ERF payload length %zu exceeds packet buffer\n", len);
+            close(inf->ArgusPcap.fd);
+            inf->ArgusPcap.fd = -1;
+            return -1;
+         }
+
+         if (len == 0) {
+            if (DagPktHdr[DAG_REC_TYPE_OFFSET] != TYPE_PAD ||
+                EXTRACT_16BITS(DagPktHdr + DAG_REC_WLEN_OFFSET) != 0) {
+               ArgusLog(LOG_WARNING, "ArgusErfRead: invalid empty ERF record\n");
+               close(inf->ArgusPcap.fd);
+               inf->ArgusPcap.fd = -1;
+               return -1;
+            }
+            return DAG_REC_SIZE;
+         }
+
+         if ((retn = ArgusErfReadFully(inf->ArgusPcap.fd, ArgusPacketBuf, len)) == (ssize_t)len) {
+            ArgusDagPacketRecord(src, DagPktHdr[DAG_REC_TYPE_OFFSET],
+                                  EXTRACT_LE_64BITS(DagPktHdr),
+                                  EXTRACT_16BITS(DagPktHdr + DAG_REC_WLEN_OFFSET),
+                                  (const u_char *)ArgusPacketBuf, len);
+         } else {
+            if (retn < 0)
+               ArgusLog(LOG_ERR, "ArgusErfRead: read error %s", strerror(errno));
+            else
+               ArgusLog(LOG_WARNING, "ArgusErfRead: truncated ERF payload\n");
+            close(inf->ArgusPcap.fd);
+            inf->ArgusPcap.fd = -1;
+            return -1;
+         }
+      } else {
+         if (retn < 0)
+            ArgusLog(LOG_ERR, "ArgusErfRead: read error %s", strerror(errno));
+         else if (retn > 0)
+            ArgusLog(LOG_WARNING, "ArgusErfRead: truncated ERF record header\n");
+         close(inf->ArgusPcap.fd);
+         inf->ArgusPcap.fd = -1;
+         return (retn == 0) ? 0 : -1;
+      }
+
+   } else {
+      close(inf->ArgusPcap.fd);
+      inf->ArgusPcap.fd = -1;
+      return -1;
+   }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (5, "ArgusErfRead() returning %d\n", retn);
+   ArgusDebug (5, "ArgusErfRead() returning %d\n", (int)retn);
 #endif
 
-   return (retn);
+   return (int)retn;
 }
 
 
@@ -2784,54 +2865,33 @@ ArgusEtherPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #endif
 }
 
-#define TYPE_LEGACY       0
-#define TYPE_HDLC_POS     1
-#define TYPE_ETH          2
-#define TYPE_ATM          3
-#define TYPE_AAL5         4
-
-#if !defined(ntohll)
-#if defined(_LITTLE_ENDIAN)
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__sun__)
-#include <argus/extract.h>
-#define ntohll(x) EXTRACT_64BITS(&x)
-#define htonll(x) EXTRACT_64BITS(&x)
-#else
-#if defined(HAVE_SOLARIS)
-#include <byteswap.h>
-#define ntohll(x) bswap_64(x)
-#define htonll(x) bswap_64(x)
-#endif
-#endif
-#else
-#define ntohll(x) x
-#define htonll(x) x
-#endif
-#endif
-
-
-void 
-ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+static void
+ArgusDagPacketRecord(struct ArgusSourceStruct *src, uint8_t type, uint64_t ts,
+                     unsigned int length, const u_char *p, size_t payload_len)
 {
-   struct ArgusSourceStruct *src = (void *) user;
-   dag_record_t *hdr = (void *) h;
    struct timeval tvpbuf, *tvp = &tvpbuf;
-   unsigned int length, caplen;
-   unsigned long long ts;
-   int ind = src->ArgusThisIndex;
+   struct pcap_pkthdr pcap_hdr;
+   unsigned int caplen;
+   int ind;
 
-   length = ntohs(hdr->wlen);
-   caplen = ntohs(hdr->rlen) - DAG_REC_SIZE;
+   if (src == NULL || src->ArgusModel == NULL || p == NULL ||
+       (ind = src->ArgusThisIndex) < 0 || ind >= src->ArgusInterfaces ||
+       ind >= ARGUS_MAXINTERFACE)
+      return;
+
+   if (payload_len == 0 || payload_len > ERF_REC_LEN_MAX - DAG_REC_SIZE)
+      return;
+   if (length == 0)
+      return;
+   caplen = payload_len;
 
    src->ArgusInterface[ind].ArgusTotalPkts++;
    src->ArgusInterface[ind].ArgusTotalBytes += length;
 
-   ts = hdr->ts;
-
-   tvp->tv_sec  = (ts >> 32);
+   tvp->tv_sec = (ts >> 32);
 
 #if defined(ARGUS_NANOSECONDS)
-   ts = (ts & 0xfffffffcULL) * 1000000000; 
+   ts = (ts & 0xfffffffcULL) * 1000000000;
    tvp->tv_usec = (int)(ts >> 32);
 #else
    ts = (ts & 0xffffffffULL) * 1000000;
@@ -2843,142 +2903,174 @@ ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p)
    }
 #endif
 
-   if (src->ArgusReadingOffLine)
-      src->ArgusInputOffset = ftell(src->ArgusPacketInput);
+   if (src->ArgusReadingOffLine) {
+      off_t offset = lseek(src->ArgusInterface[ind].ArgusPcap.fd, 0, SEEK_CUR);
+      if (offset >= 0)
+         src->ArgusInputOffset = (long)offset;
+   }
 
    ArgusModel->ArgusGlobalTime = *tvp;
-   src->ArgusModel->ArgusGlobalTime  = *tvp;
+   src->ArgusModel->ArgusGlobalTime = *tvp;
    src->lasttime = *tvp;
-
    src->ArgusModel->ArgusMatchProtocol = 0;
 
-   if (p && length) {
-      switch (hdr->type) {
-         case TYPE_LEGACY:
-            break;
+   switch (type) {
+      case TYPE_LEGACY:
+         break;
 
-         case TYPE_HDLC_POS: {
-            int retn = 0, offset = 0, linktype = 0;
-            unsigned short proto = 0;
-            unsigned short value;
+      case TYPE_HDLC_POS: {
+         int retn = 0, linktype;
+         unsigned short proto = 0, value;
 
+         src->ArgusModel->ArgusThisEncaps = ARGUS_ENCAPS_HDLC;
+         if (caplen > length)
+            caplen = length;
+         if (caplen < sizeof(value) || length < sizeof(value))
+            return;
+
+         memcpy(&value, p, sizeof(value));
 #if defined(_LITTLE_ENDIAN)
-            value = ntohs(*(unsigned short *)p);
-#else
-            value = (*(unsigned short *)p);
+         value = ntohs(value);
 #endif
 
-            if (value == 0xFF03) {
-               linktype = DLT_PPP_SERIAL;
-               if ((p[0] == PPP_ADDRESS) && (p[1] == PPP_CONTROL)) {
-                  p += 2; length -= 2;
-               }
-               if (*p & 01) {
-                  proto = *p; p++; length -= 1;
-               } else {
-#if defined(_LITTLE_ENDIAN)
-                  proto = ntohs(*(u_short *)p);
-#else
-                  proto = *(u_short *)p;
-#endif
-                  p += 2; length -= 2;
-               }
- 
+          if (value == 0xFF03) {
+             linktype = DLT_PPP_SERIAL;
+             src->ArgusModel->ArgusThisEncaps |= ARGUS_ENCAPS_PPP;
+             p += sizeof(value);
+            caplen -= sizeof(value);
+            length -= sizeof(value);
+
+            if (caplen < 1 || length < 1)
+               return;
+            if (*p & 01) {
+               proto = *p;
+               p++;
+               caplen--;
+               length--;
             } else {
-               linktype = DLT_CHDLC;
+               if (caplen < sizeof(proto) || length < sizeof(proto))
+                  return;
+               memcpy(&proto, p, sizeof(proto));
 #if defined(_LITTLE_ENDIAN)
-               proto = ntohs(*(u_short *)&p[2]);
-#else
-               proto = *(u_short *)p;
+               proto = ntohs(proto);
 #endif
+               p += sizeof(proto);
+               caplen -= sizeof(proto);
+               length -= sizeof(proto);
+            }
 
+          } else {
+             linktype = DLT_CHDLC;
+             src->ArgusModel->ArgusThisEncaps = ARGUS_ENCAPS_CHDLC;
 #if !defined(CHDLC_HDRLEN)
 #define CHDLC_HDRLEN      4
 #endif
-               offset = CHDLC_HDRLEN;
-               p = src->ArgusInterface[ind].ArgusPacketBuffer + offset;
-               length -= offset;
-            }
-
-            if (src->ArgusInterface[ind].ArgusTotalPkts == 1)
-               src->ArgusInterface[ind].ArgusPcap.linktype = linktype;
-
-            src->ArgusModel->ArgusThisLength  = length;
-            src->ArgusModel->ArgusSnapLength  = caplen;
-            src->ArgusModel->ArgusThisSnapEnd = src->ArgusInterface[ind].ArgusPacketBuffer + caplen;
-
-            switch (proto) {
-               case PPP_LCP:
-                  retn = ArgusProcessLcpPacket (src, (struct lcp_hdr *)p, length, tvp);
-                  break;
-
-               case ETHERTYPE_IP:      /*XXX*/
-               case PPP_IP:
-                  retn = ArgusProcessPacket (src, (char *)p, length, tvp, ETHERTYPE_IP);
-                  break;
-
-               case PPP_IPV6:
-               case ETHERTYPE_IPV6:    /*XXX*/
-                  retn = ArgusProcessPacket (src, (char *)p, length, tvp, ETHERTYPE_IPV6);
-                  break;
-
-               case ETHERTYPE_MPLS:
-                  retn = ArgusProcessPacket (src, (char *)p, length, tvp, ETHERTYPE_MPLS);
-                  break;
-
-               case ETHERTYPE_MPLS_MULTI:
-                  retn = ArgusProcessPacket (src, (char *)p, length, tvp, ETHERTYPE_MPLS_MULTI);
-                  break;
-
-               default:
-                  break;
-            }
-
-            if (retn) {
-               if (ArgusDumpTask->ArgusDumpPacketOnError)
-                  ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
-            } else
-               if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
-                  ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
-            break;
+            if (caplen < CHDLC_HDRLEN || length < CHDLC_HDRLEN)
+               return;
+            memcpy(&proto, p + sizeof(value), sizeof(proto));
+#if defined(_LITTLE_ENDIAN)
+            proto = ntohs(proto);
+#endif
+            p += CHDLC_HDRLEN;
+            caplen -= CHDLC_HDRLEN;
+            length -= CHDLC_HDRLEN;
          }
 
-         case TYPE_ETH: {
-            if (src->ArgusInterface[ind].ArgusTotalPkts == 1)
-               src->ArgusInterface[ind].ArgusPcap.linktype = DLT_EN10MB;
+         if (caplen == 0 || length == 0)
+            return;
+         if (src->ArgusInterface[ind].ArgusTotalPkts == 1)
+            src->ArgusInterface[ind].ArgusPcap.linktype = linktype;
 
-            p += 2;
+         src->ArgusModel->ArgusThisLength = length;
+         src->ArgusModel->ArgusSnapLength = caplen;
+         src->ArgusModel->ArgusThisSnapEnd = (u_char *)p + caplen;
+         bzero(&pcap_hdr, sizeof(pcap_hdr));
+         pcap_hdr.ts = *tvp;
+         pcap_hdr.caplen = caplen;
+         pcap_hdr.len = length;
 
-            src->ArgusModel->ArgusThisLength  = length - 2;
-            src->ArgusModel->ArgusSnapLength  = caplen - 2;
-            src->ArgusModel->ArgusThisSnapEnd = (u_char *)p + (caplen - 2);
+         switch (proto) {
+            case PPP_LCP:
+               retn = ArgusProcessLcpPacket(src, (struct lcp_hdr *)p, length, tvp);
+               break;
 
-            if (ArgusProcessPacket (src, (char *)p, length, tvp, ARGUS_ETHER_HDR)) {
-               if (ArgusDumpTask->ArgusDumpPacketOnError)
-                  ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
-            } else
-               if (ArgusDumpTask->ArgusDumpPacketOnProtocol && src->ArgusModel->ArgusMatchProtocol)
-                  ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, h, p);
-            break;
+            case ETHERTYPE_IP:      /*XXX*/
+            case PPP_IP:
+               retn = ArgusProcessPacket(src, (char *)p, length, tvp, ETHERTYPE_IP);
+               break;
+
+            case PPP_IPV6:
+            case ETHERTYPE_IPV6:    /*XXX*/
+               retn = ArgusProcessPacket(src, (char *)p, length, tvp, ETHERTYPE_IPV6);
+               break;
+
+            case ETHERTYPE_MPLS:
+               retn = ArgusProcessPacket(src, (char *)p, length, tvp, ETHERTYPE_MPLS);
+               break;
+
+            case ETHERTYPE_MPLS_MULTI:
+               retn = ArgusProcessPacket(src, (char *)p, length, tvp, ETHERTYPE_MPLS_MULTI);
+               break;
+
+            default:
+               break;
          }
 
-         case TYPE_ATM:
-         case TYPE_AAL5: {
-            if (src->ArgusInterface[ind].ArgusTotalPkts == 1)
-               src->ArgusInterface[ind].ArgusPcap.linktype = DLT_ATM_RFC1483;
-            break;
+         if (retn) {
+            if (ArgusDumpTask->ArgusDumpPacketOnError)
+               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, &pcap_hdr, p);
+         } else if (ArgusDumpTask->ArgusDumpPacketOnProtocol &&
+                    src->ArgusModel->ArgusMatchProtocol) {
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, &pcap_hdr, p);
          }
-
-         default: {
-            if (src->ArgusInterface[ind].ArgusTotalPkts == 1)
-               src->ArgusInterface[ind].ArgusPcap.linktype = DLT_NULL;
-            break;
-         }
+         break;
       }
+
+      case TYPE_ETH:
+         if (caplen < sizeof(uint16_t))
+            return;
+         p += sizeof(uint16_t);
+         caplen -= sizeof(uint16_t);
+         if (caplen > length)
+            caplen = length;
+         if (caplen < sizeof(struct ether_header) ||
+             length < sizeof(struct ether_header))
+            return;
+          if (src->ArgusInterface[ind].ArgusTotalPkts == 1)
+             src->ArgusInterface[ind].ArgusPcap.linktype = DLT_EN10MB;
+
+          src->ArgusModel->ArgusThisEncaps = ARGUS_ENCAPS_ETHER;
+          src->ArgusModel->ArgusThisLength = length;
+         src->ArgusModel->ArgusSnapLength = caplen;
+         src->ArgusModel->ArgusThisSnapEnd = (u_char *)p + caplen;
+         bzero(&pcap_hdr, sizeof(pcap_hdr));
+         pcap_hdr.ts = *tvp;
+         pcap_hdr.caplen = caplen;
+         pcap_hdr.len = length;
+
+         if (ArgusProcessPacket(src, (char *)p, length, tvp, ARGUS_ETHER_HDR)) {
+            if (ArgusDumpTask->ArgusDumpPacketOnError)
+               ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, &pcap_hdr, p);
+         } else if (ArgusDumpTask->ArgusDumpPacketOnProtocol &&
+                    src->ArgusModel->ArgusMatchProtocol) {
+            ArgusDumpPacket(src->ArgusInterface[ind].ArgusDump, &pcap_hdr, p);
+         }
+         break;
+
+      case TYPE_ATM:
+      case TYPE_AAL5:
+         if (src->ArgusInterface[ind].ArgusTotalPkts == 1)
+            src->ArgusInterface[ind].ArgusPcap.linktype = DLT_ATM_RFC1483;
+         break;
+
+      default:
+         if (src->ArgusInterface[ind].ArgusTotalPkts == 1)
+            src->ArgusInterface[ind].ArgusPcap.linktype = DLT_NULL;
+         break;
    }
 
 #ifdef ARGUSDEBUG
-   ArgusDebug (8, "ArgusDagPacket (%p, %p) returning\n", src, hdr);
+   ArgusDebug(8, "ArgusDagPacketRecord (%p, %u) returning\n", src, type);
 #endif
 }
 
@@ -5371,7 +5463,45 @@ ArgusGetPackets (void *arg)
       for (i = 0; i < ARGUS_MAXINTERFACE; i++)
          fds[i] = -1;
 
-      if (src->ArgusInterface[0].ArgusPd) {
+      for (i = 0; i < src->ArgusInterfaces; i++) {
+         if (src->ArgusInterface[i].ArgusInterfaceType == ARGUSERFPKTFILE)
+            break;
+      }
+
+      if (i < src->ArgusInterfaces) {
+         int erf_inputs = 0;
+
+         for (i = 0; i < src->ArgusInterfaces; i++) {
+            if (src->ArgusInterface[i].ArgusInterfaceType == ARGUSERFPKTFILE)
+               erf_inputs++;
+         }
+
+         if (erf_inputs == src->ArgusInterfaces) {
+            for (i = 0; i < src->ArgusInterfaces; i++) {
+               int erf_read;
+
+               src->ArgusThisIndex = i;
+               while (src->eNflag != 0 && !ArgusShutDownFlag) {
+                  erf_read = ArgusErfRead(src);
+                  if (erf_read < 0) {
+                     noerror = 0;
+                     break;
+                  }
+                  if (erf_read == 0)
+                     break;
+                  if (src->eNflag > 0)
+                     src->eNflag--;
+               }
+
+               if (!noerror || src->eNflag == 0)
+                  break;
+            }
+         } else {
+            ArgusLog(LOG_ERR, "ArgusGetPackets: ERF packet files cannot be mixed with other input types\n");
+            noerror = 0;
+         }
+
+      } else if (src->ArgusInterface[0].ArgusPd) {
          int up = 0;
 
          switch (src->ArgusInterface[0].ArgusInterfaceType) {
@@ -5748,11 +5878,28 @@ ArgusOpenInputPacketFile(struct ArgusSourceStruct *src, struct ArgusDeviceStruct
 {
    int ch, rlen, type;
    int retn = 0;
+   const char *extension;
 
    if (device != NULL) {
       char *readbuf, *errbuf;
 
       inf->ArgusDevice = device;
+
+      extension = strrchr(device->name, '.');
+      if (extension != NULL && strcmp(extension, ".erf") == 0) {
+         if ((inf->ArgusPcap.fd = open(device->name, O_RDONLY)) >= 0) {
+            inf->ArgusPcap.snapshot = 1500;
+            inf->ArgusPcap.linktype = DLT_EN10MB;
+            inf->ArgusInterfaceType = ARGUSERFPKTFILE;
+            src->ArgusInputPacketFileType = ARGUSERFPKTFILE;
+            src->ArgusReadingOffLine++;
+            return 1;
+         }
+
+         ArgusLog(LOG_ERR, "ArgusOpenInputPacketFile(%s) error. %s\n",
+                  device->name, strerror(errno));
+         return 0;
+      }
 
       if ((readbuf = (char *) ArgusMalloc (1024)) == NULL)
          ArgusLog (LOG_ERR, "%s: ArgusMalloc %s\n", __func__, strerror(errno));
@@ -5821,20 +5968,8 @@ pcap_open_offline_with_tstamp_precision() takes an  additional  precision  argum
          } else
             src->ArgusPacketInput = stdin;
 
-         if (src->ArgusPacketInput) {
-            if ((strstr (device->name, ".erf")) != NULL) {
-               if ((inf->ArgusPcap.fd = open (device->name, O_RDONLY)) >= 0) {
-                  inf->ArgusPcap.snapshot = 1500;
-                  inf->ArgusPcap.linktype = DLT_EN10MB;
-                  inf->ArgusInterfaceType = ARGUSERFPKTFILE;
-                  src->ArgusInputPacketFileType = ARGUSERFPKTFILE;
-                  inf->ArgusDevice = device;
-                  src->ArgusReadingOffLine++;
-                  retn = 1;
-               } else
-                  ArgusLog(LOG_ERR, "ArgusOpenInputPacketFile(%s) error. %s\n", device->name, strerror(errno));
-            } else
-            if (getArgusMoatTshFile(src)) {
+          if (src->ArgusPacketInput) {
+             if (getArgusMoatTshFile(src)) {
                if (src->ArgusPacketInput == stdin) {
                   inf->ArgusPcap.fd = 0;
                   inf->ArgusPcap.snapshot = 1500;

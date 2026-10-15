@@ -873,7 +873,6 @@ void ArgusPrismPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *
 void Argus802_11RadioPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void Argus802_11RadioAvsPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusEncPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
-void ArgusDagPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusJuniperPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusIpNetPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
 void ArgusPflogPacket (u_char *user, const struct pcap_pkthdr *h, const u_char *p);
