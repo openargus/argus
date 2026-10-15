@@ -31,7 +31,8 @@
 # "-r file1 file2 ... fileN", which argus opens as independent concurrent
 # per-source capture threads) for several iterations, checking each run's
 # output for any ASan/UBSan error report. Set RUN_NETFLOW_REGRESSION=1 to
-# also run the NetFlow datagram-bounds suite against that instrumented binary.
+# also run the NetFlow and ERF/DAG datagram-bounds suites against that
+# instrumented binary.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
@@ -90,6 +91,13 @@ if [ "${RUN_NETFLOW_REGRESSION:-0}" = "1" ]; then
    echo "Running NetFlow datagram-bounds regression under ASan/UBSan..."
    if ! ARGUS_BIN="$ASAN_ARGUS" sh "$SCRIPT_DIR/test_netflow_datagram_bounds.sh"; then
       fail "NetFlow datagram-bounds regression failed under ASan/UBSan"
+   fi
+fi
+
+if [ "${RUN_ERF_REGRESSION:-0}" = "1" ]; then
+   echo "Running ERF/DAG bounds regression under ASan/UBSan..."
+   if ! ARGUS_BIN="$ASAN_ARGUS" sh "$SCRIPT_DIR/test_erf_dag_bounds.sh"; then
+      fail "ERF/DAG bounds regression failed under ASan/UBSan"
    fi
 fi
 

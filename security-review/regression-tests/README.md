@@ -59,6 +59,12 @@ Each fix falls into one of two categories:
   FDDI conversion rejects unsafe input before FDDI/LLC access or copying while retaining normal
   conversion behavior. The ASan/UBSan CI job runs this test.
 
+- **ERF/DAG record bounds**: `test_erf_dag_bounds.sh` creates raw `.erf` records with invalid
+  record lengths, truncated payloads, short Ethernet/PPP/CHDLC capture data, and inconsistent
+  wire lengths. It also retains valid Ethernet, PPP, CHDLC, padded, and multi-file ERF input
+  processing, and confirms that a pcap filename merely containing `.erf` remains on the libpcap
+  path. The ASan/UBSan CI job runs this test.
+
 - **sFlow datagram bounds**: `test_sflow_datagram_bounds.sh` sends malformed datagrams through
   both offline `sflow:<pcap>` and live `sflow://` sources. It covers a truncated version field,
   IPv6 agent address, oversized encoded string, sampled-header record, and sampled IPv4, IPv6,
@@ -85,15 +91,16 @@ injection, not a program input, and doesn't fit this directory's per-fix-test pa
 ./configure
 sh security-review/fuzz/build.sh plain   # builds an ASan/UBSan sensor into security-review/fuzz/build/
 sh security-review/regression-tests/run_all.sh
-RUN_NETFLOW_REGRESSION=1 STRESS_ITERATIONS=5 sh security-review/regression-tests/stress_multi_source_sll.sh
+RUN_NETFLOW_REGRESSION=1 RUN_ERF_REGRESSION=1 STRESS_ITERATIONS=5 sh security-review/regression-tests/stress_multi_source_sll.sh
 ```
 
 `run_all.sh` builds a plain (non-sanitized) `bin/argus` via the normal top-level `make`, plus
 reuses the ASan build from `security-review/fuzz/build.sh` for the tests that need it, and runs
 every `test_*.sh` script in this directory, reporting a final pass/fail summary. Each script can
 also be run standalone; see the comment header in each file for what it checks and why.
-`RUN_NETFLOW_REGRESSION=1` additionally runs the NetFlow suite against the scratch ASan/UBSan
-binary built by the SLL stress script; `STRESS_ITERATIONS` controls its best-effort concurrency runs.
+`RUN_NETFLOW_REGRESSION=1` and `RUN_ERF_REGRESSION=1` additionally run the NetFlow and ERF/DAG
+suites against the scratch ASan/UBSan binary built by the SLL stress script; `STRESS_ITERATIONS`
+controls its best-effort concurrency runs.
 
 ## Fixtures
 
