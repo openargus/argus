@@ -1087,5 +1087,17 @@ recommend > 10M (0x1000000) for the hash table.
 \fBARGUS_HASHTABLE_SIZE=\fP4096
 
 .RE
+.SH ARGUS_SFLOW_MAX_EXPORTERS
+
+Limits the logical exporter sources created for each offline \fBsflow:<pcap>\fP
+input. Once the limit is reached, Argus continues to process exporters already
+registered for that input and drops datagrams from new exporter identities before
+allocating another source or model. The value must be between 1 and 128; the
+default is 8.
+
+.nf
+\fBARGUS_SFLOW_MAX_EXPORTERS=\fP8
+.fi
+
 .SH SEE ALSO
 .BR argus (8)

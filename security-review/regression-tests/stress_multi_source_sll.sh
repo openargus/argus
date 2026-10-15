@@ -30,9 +30,9 @@
 # every DLT_LINUX_SLL pcap fixture in this directory simultaneously (as
 # "-r file1 file2 ... fileN", which argus opens as independent concurrent
 # per-source capture threads) for several iterations, checking each run's
-# output for any ASan/UBSan error report. Set RUN_NETFLOW_REGRESSION=1 to
-# also run the NetFlow and ERF/DAG datagram-bounds suites against that
-# instrumented binary.
+# output for any ASan/UBSan error report. Set RUN_NETFLOW_REGRESSION=1,
+# RUN_ERF_REGRESSION=1, or RUN_SFLOW_EXPORTER_REGRESSION=1 to also run the
+# corresponding targeted suite against that instrumented binary.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
@@ -98,6 +98,13 @@ if [ "${RUN_ERF_REGRESSION:-0}" = "1" ]; then
    echo "Running ERF/DAG bounds regression under ASan/UBSan..."
    if ! ARGUS_BIN="$ASAN_ARGUS" sh "$SCRIPT_DIR/test_erf_dag_bounds.sh"; then
       fail "ERF/DAG bounds regression failed under ASan/UBSan"
+   fi
+fi
+
+if [ "${RUN_SFLOW_EXPORTER_REGRESSION:-0}" = "1" ]; then
+   echo "Running sFlow exporter-registry regression under ASan/UBSan..."
+   if ! ARGUS_BIN="$ASAN_ARGUS" sh "$SCRIPT_DIR/test_sflow_exporter_registry.sh"; then
+      fail "sFlow exporter-registry regression failed under ASan/UBSan"
    fi
 fi
 

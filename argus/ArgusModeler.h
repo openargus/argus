@@ -445,7 +445,7 @@ unsigned char ArgusAlignBuffer[ARGUS_MAXALIGNBUF], *ArgusAlignBuf = ArgusAlignBu
 #endif
 
 struct ArgusModelerStruct *ArgusModel = NULL;
-struct ArgusModelerStruct *ArgusSflowModel = NULL;
+struct ArgusModelerStruct *ArgusSflowModelTemplate = NULL;
 
 struct argus_llc ArgusThisLLCBuffer;
 
@@ -679,6 +679,7 @@ RaPortAlgorithmTable[MAX_PORT_ALG_TYPES] = {
 #else /* #if defined(ArgusModeler) */
 
 extern struct ArgusModelerStruct *ArgusModel;
+extern struct ArgusModelerStruct *ArgusSflowModelTemplate;
 extern struct argus_llc ArgusThisLLCBuffer;
 extern struct ArgusTransportRoutines RaPortAlgorithmTable[];
 
@@ -882,7 +883,5 @@ extern struct ArgusRecordStruct *ArgusCopyRecordStruct (struct ArgusRecordStruct
 
 
 #endif /* #if defined(ArgusModeler) else */
-
-extern struct ArgusModelerStruct *ArgusSflowModel;
 
 #endif /* #ifndef ArgusModeler_h */

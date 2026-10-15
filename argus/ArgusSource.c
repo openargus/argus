@@ -296,14 +296,17 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
    retn->status = src->status;
    retn->mode   = src->mode;
 
-   retn->ArgusPcapBufSize   = src->ArgusPcapBufSize;
+   retn->ArgusPcapBufSize = src->ArgusPcapBufSize;
    retn->ArgusPcapDispatchNum = src->ArgusPcapDispatchNum;
    retn->ArgusInterfaceScanInterval = src->ArgusInterfaceScanInterval;
+   retn->ArgusSflowExporterLimit = src->ArgusSflowExporterLimit;
 
    if (src->ArgusDeviceList) {
       struct ArgusDeviceStruct *device;
 
+#if defined(ARGUS_THREADS)
       pthread_mutex_lock(&src->ArgusDeviceList->lock);
+#endif
       retn->ArgusDeviceList = ArgusNewList();
       for (device = (struct ArgusDeviceStruct *)src->ArgusDeviceList->start;
            device;
@@ -318,7 +321,9 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
          ArgusPushBackList(retn->ArgusDeviceList, (struct ArgusListRecord *)dev,
                            ARGUS_NOLOCK);
       }
+#if defined(ARGUS_THREADS)
       pthread_mutex_unlock(&src->ArgusDeviceList->lock);
+#endif
    }
 
    if (src->ArgusInputFilter)
@@ -353,6 +358,12 @@ ArgusCloneSource(struct ArgusSourceStruct *src)
    else
       for (i = 0; i < src->ArgusInterfaceIndex; i++)
          bcopy(&src->ArgusInterface[i], &retn->ArgusInterface[i], sizeof(src->ArgusInterface[i]));
+
+   if (src->ArgusInterfaceIndex == 0)
+      retn->ArgusInterface[0].ArgusSflowExporterRegistry = NULL;
+   else
+      for (i = 0; i < src->ArgusInterfaceIndex; i++)
+         retn->ArgusInterface[i].ArgusSflowExporterRegistry = NULL;
 
    retn->ArgusInputPacketFileType = src->ArgusInputPacketFileType;
    retn->ArgusReadingOffLine = src->ArgusReadingOffLine;
@@ -391,6 +402,7 @@ ArgusNewSource(struct ArgusModelerStruct *model)
    retn->ArgusSnapLen = ARGUS_MINSNAPLEN;
    retn->ArgusPcapDispatchNum = 1;
    retn->ArgusInterfaceScanInterval = 2;
+   retn->ArgusSflowExporterLimit = ARGUS_DEFAULT_SFLOW_EXPORTERS;
 
 #if defined(ARGUS_THREADS)
    if (pthread_mutex_init(&retn->lock, NULL))
@@ -1029,7 +1041,9 @@ ArgusInitSource (struct ArgusSourceStruct *src)
    if (src->ArgusDeviceList) {
       struct ArgusDeviceStruct *device;
 
+#if defined(ARGUS_THREADS)
       pthread_mutex_lock(&src->ArgusDeviceList->lock);
+#endif
       for (device = (struct ArgusDeviceStruct *)src->ArgusDeviceList->start;
            device;
            device = (struct ArgusDeviceStruct *)device->nxt) {
@@ -1047,7 +1061,9 @@ ArgusInitSource (struct ArgusSourceStruct *src)
                break;
          }
       }
+#if defined(ARGUS_THREADS)
       pthread_mutex_unlock(&src->ArgusDeviceList->lock);
+#endif
    }
 
    if (src->ArgusInterfaces > 0) {
@@ -1133,6 +1149,8 @@ ArgusCloseOneSource(struct ArgusSourceStruct *src)
          src->thread = 0;
       }
 #endif
+
+      ArgusCloseSflowExporters(src);
 
       for (j = 0; j < src->ArgusInterfaces; j++) {
          if (src->ArgusInterface[j].ArgusPd) {
@@ -1355,6 +1373,24 @@ setArgusPcapBufSize (struct ArgusSourceStruct *src, int size)
 }
 
 void
+setArgusSflowExporterLimit(struct ArgusSourceStruct *src, int value)
+{
+   if (src != NULL) {
+      if (value < 1) {
+         ArgusLog(LOG_WARNING, "%s: sFlow exporter limit must be positive; using 1\n",
+                  __func__);
+         value = 1;
+      } else if (value > ARGUS_MAX_SFLOW_EXPORTERS) {
+         ArgusLog(LOG_WARNING, "%s: limiting sFlow exporters to %d\n", __func__,
+                  ARGUS_MAX_SFLOW_EXPORTERS);
+         value = ARGUS_MAX_SFLOW_EXPORTERS;
+      }
+
+      src->ArgusSflowExporterLimit = value;
+   }
+}
+
+void
 setArgusPcapDispatchNumber (struct ArgusSourceStruct *src, int num)
 {
    if (src != NULL) {
@@ -1468,13 +1504,17 @@ getArgusDevice (struct ArgusSourceStruct *src)
    char *retn = NULL;
 
    if (src->ArgusDeviceList != NULL) {
+#if defined(ARGUS_THREADS)
       pthread_mutex_lock(&src->ArgusDeviceList->lock);
+#endif
 
       device = (struct ArgusDeviceStruct *)src->ArgusDeviceList->start;
       if (device)
          retn = strdup(device->name);
 
+#if defined(ARGUS_THREADS)
       pthread_mutex_unlock(&src->ArgusDeviceList->lock);
+#endif
    } else {
 #ifdef ARGUSDEBUG
       ArgusDebug (1, "getArgusDevice(%p) src->ArgusDeviceList is NULL\n", src);
@@ -2045,9 +2085,6 @@ setArgusrfile (struct ArgusSourceStruct *src, char *value)
                tok = tptr + 6;
             } else
             if ((tptr = strstr (tok, "sflow:")) != NULL) {
-               if ((ArgusSflowModel = ArgusNewModeler()) == NULL)
-                  ArgusLog (LOG_ERR, "Error Creating Modeler: Exiting.\n");
-
                mode = ARGUS_SFLOW_DATA_SOURCE;
 
                tok = tptr + 6;
@@ -4924,9 +4961,11 @@ unsigned ArgusSourceCount = 0;
 void
 ArgusSourceProcess (struct ArgusSourceStruct *stask)
 {
-   struct timeval tv, stv;
-   struct timeval tvpbuf,  *tvp = &tvpbuf;
+   struct timeval stv;
+#if defined(ARGUS_THREADS)
+   struct timeval tv, tvpbuf, *tvp = &tvpbuf;
    struct timespec ttsbuf, *tts = &ttsbuf;
+#endif
 
    if (stask != NULL) {
 #if defined(ARGUS_THREADS)
@@ -5408,8 +5447,8 @@ ArgusSourceProcess (struct ArgusSourceStruct *stask)
 
          pthread_mutex_unlock(&stask->lock);
       } while (!(stask->status & ARGUS_SHUTDOWN));
-   }
 #endif /* ARGUS_THREADS */
+   }
 }
 
 void *
@@ -6052,12 +6091,16 @@ ArgusGetInterfaceStatus (struct ArgusSourceStruct *src)
       return;
 
    if (src && src->ArgusDeviceList) {
+#if defined(ARGUS_THREADS)
       if (pthread_mutex_lock(&src->ArgusDeviceList->lock) == 0) {
+#endif
          device = (struct ArgusDeviceStruct *)src->ArgusDeviceList->start;
          if (device)
             devicename = strdup(device->name);
+#if defined(ARGUS_THREADS)
          pthread_mutex_unlock(&src->ArgusDeviceList->lock);
       }
+#endif
    }
 
    if (devicename == NULL)

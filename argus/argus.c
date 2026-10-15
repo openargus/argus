@@ -201,6 +201,7 @@ void setArgusEventDataRecord (char *);
 extern void setArgusPcapBufSize (struct ArgusSourceStruct *, int);
 extern void setArgusPcapDispatchNumber (struct ArgusSourceStruct *, int);
 extern void setArgusInterfaceScanInterval (struct ArgusSourceStruct *, int);
+extern void setArgusSflowExporterLimit (struct ArgusSourceStruct *, int);
 extern void setArgusTunnelParsing (struct ArgusModelerStruct *, char *);
 extern void setArgusTunnelInformation (struct ArgusModelerStruct *, char *);
 
@@ -746,7 +747,7 @@ main (int argc, char *argv[])
    pthread_attr_setdetachstate(ArgusAttr, PTHREAD_CREATE_JOINABLE);
 #endif
 
-#if defined(_POSIX_THREAD_ATTR_STACKSIZE)
+#if defined(ARGUS_THREADS) && defined(_POSIX_THREAD_ATTR_STACKSIZE)
 #define ARGUS_MIN_STACKSIZE     0x10000000
  
    if (pthread_attr_getstacksize(ArgusAttr, &stacksize))
@@ -766,6 +767,9 @@ main (int argc, char *argv[])
 #endif                
    }                  
 #endif
+
+   /* Freeze model configuration before output, event, or source workers start. */
+   ArgusSflowModelTemplate = ArgusCloneModeler(ArgusModel);
 
    ArgusInitOutput (ArgusOutputTask);
 
@@ -889,6 +893,8 @@ ArgusComplete ()
 
    ArgusCloseSource (ArgusSourceTask);
    ArgusCloseEvents (ArgusEventsTask);
+   if (ArgusSflowModelTemplate != NULL)
+      ArgusCloseModeler (ArgusSflowModelTemplate);
    ArgusCloseModeler (ArgusModel);
    ArgusCloseOutput (ArgusOutputTask);
 
@@ -902,6 +908,10 @@ ArgusComplete ()
 #endif
 
    ArgusFree(ArgusOutputTask);
+   if (ArgusSflowModelTemplate != NULL) {
+      ArgusFree(ArgusSflowModelTemplate);
+      ArgusSflowModelTemplate = NULL;
+   }
    ArgusFree(ArgusModel);
 
    ArgusDeleteEvents(ArgusEventsTask);
@@ -1100,7 +1110,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				68
+#define ARGUS_RCITEMS				69
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1170,6 +1180,7 @@ getArguspidflag ()
 #define ARGUS_BIND_IP				65
 #define ARGUS_ENCAPS_CAPTURE			66
 #define ARGUS_TCP_FALLOW_TIMEOUT		67
+#define ARGUS_SFLOW_MAX_EXPORTERS		68
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MONITOR_ID=",
@@ -1239,7 +1250,8 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_TUNNEL_INFORMATION=",
    "ARGUS_BIND_IP=",
    "ARGUS_ENCAPS_CAPTURE=",
-   "ARGUS_TCP_FALLOW_TIMEOUT="
+   "ARGUS_TCP_FALLOW_TIMEOUT=",
+   "ARGUS_SFLOW_MAX_EXPORTERS="
 };
 
 
@@ -1994,6 +2006,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
 
                         case ARGUS_HASHTABLE_SIZE: {
                            setArgusHashTableSize (model, atoi(optarg));
+                           break;
+                        }
+                        case ARGUS_SFLOW_MAX_EXPORTERS: {
+                           setArgusSflowExporterLimit(ArgusSourceTask, atoi(optarg));
                            break;
                         }
                         case ARGUS_GENERATE_HASH_METRICS: {
