@@ -2528,15 +2528,19 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    flow->dsrindex |= 1 << ARGUS_TIME_INDEX;
 
    if ((context = (struct ArgusContextStruct *) flow->dsrs[ARGUS_CONTEXT_INDEX]) == NULL) {
-      context = &flow->canon.context;
-      memset(context, 0, sizeof(*context));
-      flow->dsrs[ARGUS_CONTEXT_INDEX] = (struct ArgusDSRHeader *) context;
-      context->hdr.type               = ARGUS_CONTEXT_DSR;
-      context->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
-      context->ctime.tv_sec           = model->ArgusGlobalTime.tv_sec;
-      context->ctime.tv_usec          = model->ArgusGlobalTime.tv_usec;
+      if ((time = (struct ArgusTimeObject *) flow->dsrs[ARGUS_TIME_INDEX]) != NULL) {
+         context = &flow->canon.context;
+         memset(context, 0, sizeof(*context));
+         flow->dsrs[ARGUS_CONTEXT_INDEX] = (struct ArgusDSRHeader *) context;
+         context->hdr.type               = ARGUS_CONTEXT_DSR;
+         context->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
+         context->hdr.argus_dsrvl8.len   = 3;
+         context->ctime.tv_sec           = model->ArgusGlobalTime.tv_sec;
+         context->ctime.tv_usec          = model->ArgusGlobalTime.tv_usec;
+
+         flow->dsrindex |= 1 << ARGUS_CONTEXT_INDEX;
+      }
    }
-   flow->dsrindex |= 1 << ARGUS_CONTEXT_INDEX;
 
    if (getArgusHashflag (model)) {
       struct ArgusFlowHashStruct *hash;
@@ -3362,6 +3366,11 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                                                          dsr->argus_dsrvl8.len  ));
                   switch (i) {
                      default:
+                        for (x = 0; x < len; x++)
+                           *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
+                        break;
+
+                     case ARGUS_CONTEXT_INDEX:
                         for (x = 0; x < len; x++)
                            *dsrptr++ = ((unsigned int *)rec->dsrs[i])[x];
                         break;
@@ -4346,6 +4355,7 @@ ArgusGenerateListRecord (struct ArgusModelerStruct *model, struct ArgusFlowStruc
             for (i = 0; i < ARGUSMAXDSRTYPE; i++) {
                if (flow->dsrs[i] != NULL) {
                   switch (i) {
+                     case ARGUS_CONTEXT_INDEX:     retn->dsrs[i] = &retn->canon.context.hdr; break;
                      case ARGUS_TRANSPORT_INDEX:   retn->dsrs[i] = &retn->canon.trans.hdr; break;
                      case ARGUS_TIME_INDEX:        retn->dsrs[i] = &retn->canon.time.hdr; break;
                      case ARGUS_ENCAPS_INDEX: {
