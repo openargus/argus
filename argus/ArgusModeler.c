@@ -2348,6 +2348,7 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    struct ArgusGreStruct *gre;
    struct ArgusGeneveStruct *gen;
    struct ArgusTimeObject *time;
+   struct ArgusContextStruct *context;
    struct ArgusJitterStruct *jitter;
    model->ArgusTotalUpdates++;
 
@@ -2524,8 +2525,18 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
          time->hdr.subtype  = ARGUS_TIME_ABSOLUTE_RANGE;
       }
    }
-
    flow->dsrindex |= 1 << ARGUS_TIME_INDEX;
+
+   if ((context = (struct ArgusContextStruct *) flow->dsrs[ARGUS_CONTEXT_INDEX]) == NULL) {
+      context = &flow->canon.context;
+      memset(context, 0, sizeof(*context));
+      flow->dsrs[ARGUS_CONTEXT_INDEX] = (struct ArgusDSRHeader *) context;
+      context->hdr.type               = ARGUS_CONTEXT_DSR;
+      context->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
+      context->ctime.tv_sec           = model->ArgusGlobalTime.tv_sec;
+      context->ctime.tv_usec          = model->ArgusGlobalTime.tv_usec;
+   }
+   flow->dsrindex |= 1 << ARGUS_CONTEXT_INDEX;
 
    if (getArgusHashflag (model)) {
       struct ArgusFlowHashStruct *hash;

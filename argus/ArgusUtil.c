@@ -1098,6 +1098,7 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
          switch (i) {
             default:
                flow->dsrs[i] = NULL;
+               flow->dsrindex &= ~(1U << ARGUS_BEHAVIOR_INDEX);
                break;
 
             case ARGUS_FLOW_INDEX: {
@@ -1107,6 +1108,7 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
             }
 
             case ARGUS_TRANSPORT_INDEX:
+            case ARGUS_CONTEXT_INDEX: 
             case ARGUS_MAC_INDEX:
                break;
 
@@ -1213,6 +1215,7 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
                memset (user->array, 0, user->size);
                break;
             }
+
          }
       }
    }

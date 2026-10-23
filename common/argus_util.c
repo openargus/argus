@@ -935,6 +935,12 @@ ArgusHtoN (struct ArgusRecord *argus)
                      actor->keyStroke.dst.n_strokes  = htonl(actor->keyStroke.dst.n_strokes);
                      break;
                   }
+                  case ARGUS_CONTEXT_DSR: {
+                     struct ArgusContextStruct *context = (struct ArgusContextStruct *) dsr;
+                     context->ctime.tv_sec  = htonl(context->ctime.tv_sec);
+                     context->ctime.tv_usec = htonl(context->ctime.tv_usec);
+                     break;
+                  }
                }
 
                if ((cnt = ((dsr->type & 0x80) ? 1 : 

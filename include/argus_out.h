@@ -745,10 +745,16 @@ struct ArgusMetricStruct {
    struct ArgusUniStats src, dst;
 };
    
+struct ArgusContextStruct {
+   struct ArgusDSRHeader hdr;
+   struct ArgusTime ctime;
+};
+
 struct ArgusServiceStruct {
    struct ArgusDSRHeader hdr;
    char name[16];
 };
+
 
 struct ArgusDataStruct {
    struct ArgusDSRHeader hdr;
@@ -1050,6 +1056,7 @@ struct ArgusCanonRecord {
    struct ArgusBehaviorStruct    actor;
    struct ArgusCountryCodeStruct cocode;
    struct ArgusLabelStruct       label;
+   struct ArgusContextStruct     context;
    struct ArgusDataStruct        data;
 };
 
@@ -1069,12 +1076,13 @@ struct ArgusRecordStruct {
    struct ArgusHashTableHdr *hinthdr;
    struct ArgusQueueStruct *nsq;
    struct ArgusRecordHeader hdr;
-   struct ArgusCanonRecord canon;
 
    struct ArgusCorStruct *correlates;
    float srate, drate, sload, dload, dur, mean;
    float pcr, sploss, dploss;
    long long offset;
+
+   struct ArgusCanonRecord canon;
 };
 
 
