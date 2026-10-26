@@ -338,7 +338,7 @@ struct ArgusModelerStruct {
    int ArgusOSFingerPrinting;
    int ArgusUserDataLen;
    int ArgusAflag, ArgusTCPflag, Argusmflag;
-   int ArgusHashflag;
+   int ArgusHashflag, ArgusCreationTime;
    int ArgusSelfSynchronize, vflag;
 
    int ArgusIPTimeout;
@@ -532,6 +532,8 @@ int getArgusTCPflag(struct ArgusModelerStruct *);
 void setArgusTCPflag(struct ArgusModelerStruct *, int);
 int getArgusHashflag(struct ArgusModelerStruct *);
 void setArgusHashflag(struct ArgusModelerStruct *, int);
+int getArgusCreationTime(struct ArgusModelerStruct *);
+void setArgusCreationTime(struct ArgusModelerStruct *, int);
 int getArgusmflag(struct ArgusModelerStruct *);
 void setArgusmflag(struct ArgusModelerStruct *, int);
 int getArgusUserDataLen(struct ArgusModelerStruct *);
@@ -761,6 +763,8 @@ extern int getArgusTCPflag(struct ArgusModelerStruct *);
 extern void setArgusTCPflag(struct ArgusModelerStruct *, int);
 extern int getArgusHashflag(struct ArgusModelerStruct *);
 extern void setArgusHashflag(struct ArgusModelerStruct *, int);
+extern int getArgusCreationTime(struct ArgusModelerStruct *);
+extern void setArgusCreationTime(struct ArgusModelerStruct *, int);
 extern int getArgusmflag(struct ArgusModelerStruct *);
 extern void setArgusmflag(struct ArgusModelerStruct *, int);
 extern int getArgusUserDataLen(struct ArgusModelerStruct *);

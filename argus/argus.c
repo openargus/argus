@@ -1110,7 +1110,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				69
+#define ARGUS_RCITEMS				70
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1181,6 +1181,7 @@ getArguspidflag ()
 #define ARGUS_ENCAPS_CAPTURE			66
 #define ARGUS_TCP_FALLOW_TIMEOUT		67
 #define ARGUS_SFLOW_MAX_EXPORTERS		68
+#define ARGUS_GENERATE_CREATION_TIME		69
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MONITOR_ID=",
@@ -1251,7 +1252,8 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_BIND_IP=",
    "ARGUS_ENCAPS_CAPTURE=",
    "ARGUS_TCP_FALLOW_TIMEOUT=",
-   "ARGUS_SFLOW_MAX_EXPORTERS="
+   "ARGUS_SFLOW_MAX_EXPORTERS=",
+   "ARGUS_GENERATE_CREATION_TIME="
 };
 
 
@@ -2010,6 +2012,13 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                         }
                         case ARGUS_SFLOW_MAX_EXPORTERS: {
                            setArgusSflowExporterLimit(ArgusSourceTask, atoi(optarg));
+                           break;
+                        }
+                        case ARGUS_GENERATE_CREATION_TIME: {
+                           if (!(strncasecmp(optarg, "yes", 3)))
+                              setArgusCreationTime(model, 1);
+                           else
+                              setArgusCreationTime(model, 0);
                            break;
                         }
                         case ARGUS_GENERATE_HASH_METRICS: {

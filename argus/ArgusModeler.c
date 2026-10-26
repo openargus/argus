@@ -175,6 +175,7 @@ ArgusNewModeler()
    retn->ArgusHashTableSize = ARGUS_HASHTABLESIZE;
    setArgusFlowKey (retn, ARGUS_FLOW_KEY_CLASSIC5TUPLE);
    setArgusFlowType (retn, ARGUS_BIDIRECTIONAL);
+   setArgusCreationTime (retn, 1);
 
 #ifdef ARGUSDEBUG
    ArgusDebug (1, "ArgusNewModeler() returning %p\n", retn);
@@ -2527,18 +2528,20 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
    }
    flow->dsrindex |= 1 << ARGUS_TIME_INDEX;
 
-   if ((context = (struct ArgusContextStruct *) flow->dsrs[ARGUS_CONTEXT_INDEX]) == NULL) {
-      if ((time = (struct ArgusTimeObject *) flow->dsrs[ARGUS_TIME_INDEX]) != NULL) {
-         context = &flow->canon.context;
-         memset(context, 0, sizeof(*context));
-         flow->dsrs[ARGUS_CONTEXT_INDEX] = (struct ArgusDSRHeader *) context;
-         context->hdr.type               = ARGUS_CONTEXT_DSR;
-         context->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
-         context->hdr.argus_dsrvl8.len   = 3;
-         context->ctime.tv_sec           = model->ArgusGlobalTime.tv_sec;
-         context->ctime.tv_usec          = model->ArgusGlobalTime.tv_usec;
+   if (getArgusCreationTime (model)) {
+      if ((context = (struct ArgusContextStruct *) flow->dsrs[ARGUS_CONTEXT_INDEX]) == NULL) {
+         if ((time = (struct ArgusTimeObject *) flow->dsrs[ARGUS_TIME_INDEX]) != NULL) {
+            context = &flow->canon.context;
+            memset(context, 0, sizeof(*context));
+            flow->dsrs[ARGUS_CONTEXT_INDEX] = (struct ArgusDSRHeader *) context;
+            context->hdr.type               = ARGUS_CONTEXT_DSR;
+            context->hdr.subtype            = ARGUS_TIME_ABSOLUTE_TIMESTAMP;
+            context->hdr.argus_dsrvl8.len   = 3;
+            context->ctime.tv_sec           = model->ArgusGlobalTime.tv_sec;
+            context->ctime.tv_usec          = model->ArgusGlobalTime.tv_usec;
 
-         flow->dsrindex |= 1 << ARGUS_CONTEXT_INDEX;
+            flow->dsrindex |= 1 << ARGUS_CONTEXT_INDEX;
+         }
       }
    }
 
@@ -4288,6 +4291,7 @@ ArgusCopyRecordStruct (struct ArgusRecordStruct *rec)
                            case ARGUS_MAC_INDEX:       retn->dsrs[i] = &retn->canon.mac.hdr; break;
                            case ARGUS_VLAN_INDEX:      retn->dsrs[i] = &retn->canon.vlan.hdr; break;
                            case ARGUS_GENEVE_INDEX:    retn->dsrs[i] = &retn->canon.gen.hdr; break;
+                           case ARGUS_CONTEXT_INDEX:   retn->dsrs[i] = &retn->canon.context.hdr; break;
                            case ARGUS_GRE_INDEX:       retn->dsrs[i] = &retn->canon.gre.hdr; break;
                            case ARGUS_VXLAN_INDEX:     retn->dsrs[i] = &retn->canon.vxlan.hdr; break;
                            case ARGUS_MPLS_INDEX:      retn->dsrs[i] = &retn->canon.mpls.hdr; break;
@@ -5754,6 +5758,16 @@ setArgusHashflag(struct ArgusModelerStruct *model, int value)
    model->ArgusHashflag = value;
 }
 
+int
+getArgusCreationTime(struct ArgusModelerStruct *model) {
+   return (model->ArgusCreationTime);
+}     
+
+void
+setArgusCreationTime(struct ArgusModelerStruct *model, int value)
+{  
+   model->ArgusCreationTime = value;
+}
 
 int
 getArgusdflag(struct ArgusModelerStruct *model) {
