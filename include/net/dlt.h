@@ -842,7 +842,7 @@
  * frames that include the FCS.
  */
 #define DLT_IEEE802_15_4_WITHFCS	195
-#define DLT_IEEE802_15_4		DLT_IEEE802_15_4_WITHFCS
+#define DLT_IEEE802_15_4		195
 
 /*
  * Various link-layer types, with a pseudo-header, for SITA

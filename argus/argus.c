@@ -383,10 +383,10 @@ main (int argc, char *argv[])
                      if (isdigit((int)*++ptr)) {
                         setArgusdflag (ArgusModel, atoi (ptr));
                      } else {
-                        if (isdigit((int)*argv[i + 1]))
-                           setArgusdflag (ArgusModel, atoi (argv[++i]));
-                        else
-                           break;
+                        if (argv[i + 1] != NULL) {
+                           if (isdigit((int)*argv[i + 1]))
+                              setArgusdflag (ArgusModel, atoi (argv[++i]));
+                        }   
                      }
                      break;
 #if defined(ARGUS_FLEXLM)
