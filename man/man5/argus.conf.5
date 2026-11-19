@@ -690,6 +690,13 @@ and audit is not a requirement.
 
 The default value is to not generate this data.
 
+When enabled, a PRP-1 Ethernet redundancy-control trailer is reported in
+the version 2 MAC DSR extension, including per-flow, per-direction LAN A/B
+sequence observations.  Non-PRP MAC records remain in the original MAC DSR
+format.  PRP trailer recognition runs for processed Ethernet frames whether
+or not this option is enabled; this option controls whether the MAC/PRP data
+is emitted.
+
 Commandline equivalent  -m
 
 .nf

@@ -1719,10 +1719,42 @@ extern "C" {
 #define ARGUS_MAC_DSR                    0x42
 #define ARGUS_MAC_INDEX                  13 
 
+/* MAC DSR subtypes.  The original five-word MAC DSR has subtype zero.
+ * MAC DSR v2 appends PRP-1 observations while retaining that prefix. */
+#define ARGUS_MAC_DSR_BASE                0x00
+#define ARGUS_MAC_DSR_V2                  0x02
+#define ARGUS_MAC_DSR_BASE_LEN            5
+
 /* Argus Mac Layer DSR Qualifier */
 #define ARGUS_MULTIPATH                  0x03
 #define ARGUS_SRC_MULTIPATH              0x01
 #define ARGUS_DST_MULTIPATH              0x02
+#define ARGUS_MAC_SRC_PRP                0x04
+#define ARGUS_MAC_DST_PRP                0x08
+
+/* MAC DSR v2 PRP direction flags. */
+#define ARGUS_MAC_PRP_LAN_A              0x00000001
+#define ARGUS_MAC_PRP_LAN_B              0x00000002
+#define ARGUS_MAC_PRP_MALFORMED_RCT      0x00000004
+#define ARGUS_MAC_PRP_FLOW_SCOPE         0x00000008
+#define ARGUS_MAC_PRP_LAN_A_RESEED       0x00000010
+#define ARGUS_MAC_PRP_LAN_B_RESEED       0x00000020
+#define ARGUS_MAC_PRP_COUNTER_SATURATED  0x00000040
+
+/* IEC 62439-3 PRP-1 redundancy control trailer constants. */
+#define ARGUS_PRP_VERSION_1              1
+#define ARGUS_PRP_RCT_LEN                6
+#define ARGUS_PRP_FCS_LEN                4
+#define ARGUS_PRP_LAN_A_ID               0x0A
+#define ARGUS_PRP_LAN_B_ID               0x0B
+#define ARGUS_PRP_LAN_ID_MASK            0xF000
+#define ARGUS_PRP_LSDU_SIZE_MASK         0x0FFF
+#define ARGUS_PRP_SEQUENCE_IDLE_TIMEOUT  60
+
+/* Per-packet PRP trailer classification. */
+#define ARGUS_PRP_RCT_NONE               0
+#define ARGUS_PRP_RCT_VALID              1
+#define ARGUS_PRP_RCT_INVALID            2
 
 /* Jitter Transport DSR Type */
 #define ARGUS_JITTER_DSR                 0x46
@@ -2567,4 +2599,3 @@ extern "C" {
 }
 #endif
 #endif/*Argus_def_h*/
-

@@ -87,6 +87,11 @@ Each fix falls into one of two categories:
   radiotap present-bitmap extension cannot be read past captured packet data. The ASan/UBSan CI
   job runs this test.
 
+- **PRP-1 MAC-v2 accounting**: `test_prp_mac_v2.sh` generates valid, malformed, VLAN/FCS,
+  truncated, framing-ambiguous, and Linux-SLL PRP traffic. It verifies network-order MAC-v2
+  serialization, flow-local LAN sequence accounting, report-window cursor retention, physical
+  metric totals, and the `-m` / `ARGUS_GENERATE_MAC_DATA` output gate.
+
 F-41 (encaps-capture buffer lifecycle) and F-49 (Makefile failure-masking) are not covered by
 tests in this directory: F-41 is not yet merged, and F-49 was verified via `make`-level fault
 injection, not a program input, and doesn't fit this directory's per-fix-test pattern.

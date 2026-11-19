@@ -159,6 +159,9 @@ extern "C" {
 #ifndef ETHERTYPE_PPPOES
 #define ETHERTYPE_PPPOES	0x8864
 #endif
+#ifndef ETHERTYPE_PRP
+#define ETHERTYPE_PRP           0x88fb
+#endif
 #ifndef	ETHERTYPE_LOOPBACK
 #define	ETHERTYPE_LOOPBACK	0x9000
 #endif
@@ -176,4 +179,3 @@ extern "C" {
 }
 #endif
 #endif
-

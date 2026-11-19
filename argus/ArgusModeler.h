@@ -224,6 +224,15 @@ struct ArgusControlProtocols {
    char udpport[0x10000];
 };
 
+struct ArgusPrpPacketState {
+   /* Per-packet parse result.  It is reset before every modeler entry point;
+    * flow-local sequence cursors live in ArgusMacPrpState instead. */
+   unsigned char status;
+   unsigned char lan_id;
+   unsigned short sequence;
+   unsigned short lan_id_and_lsdu_size;
+};
+
 
 struct ArgusModelerStruct {
    int state, status;
@@ -264,6 +273,7 @@ struct ArgusModelerStruct {
    struct argus_llc *ArgusThisLLC;
    struct argus_gre *ArgusThisGre;
    struct argus_geneve *ArgusThisGeneve;
+   struct ArgusPrpPacketState ArgusThisPrp;
 
    void *ArgusThisMacHdr;
    void *ArgusThisIpHdr; 

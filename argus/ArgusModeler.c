@@ -57,6 +57,7 @@
 #include <errno.h>
 #include <math.h>
 #include <float.h>
+#include <limits.h>
 
 #include <netdb.h>
 #include <net/ppp.h>
@@ -1123,6 +1124,158 @@ ArgusProcessUdpHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 extern unsigned short ArgusParseGre (struct ArgusModelerStruct *, struct ip *, int);
 extern unsigned short ArgusParseGeneve (struct ArgusModelerStruct *, void *);
 
+static void
+ArgusResetPrpPacketState(struct ArgusModelerStruct *model)
+{
+   if (model != NULL)
+      memset(&model->ArgusThisPrp, 0, sizeof(model->ArgusThisPrp));
+}
+
+
+static int
+ArgusPrpVlanEtherType(unsigned short type)
+{
+   return ((type == ETHERTYPE_8021Q) ||
+           (type == 0x88A8) ||       /* IEEE 802.1ad provider bridging */
+           (type == ETHERTYPE_VMAN) ||
+           (type == 0x9200));
+}
+
+
+static int
+ArgusPrpVlanLength(const unsigned char *frame, unsigned int frame_len,
+                   unsigned int *vlan_len)
+{
+   unsigned int offset = ETHER_HDRLEN;
+   unsigned short type;
+
+   if ((frame == NULL) || (frame_len < ETHER_HDRLEN) || (vlan_len == NULL))
+      return (0);
+
+   type = EXTRACT_16BITS(frame + 12);
+   while (ArgusPrpVlanEtherType(type)) {
+      if ((frame_len - offset) < 4)
+         return (0);
+      type = EXTRACT_16BITS(frame + offset + 2);
+      offset += 4;
+   }
+
+   *vlan_len = offset - ETHER_HDRLEN;
+   return (1);
+}
+
+
+/*
+ * Return 0 when this position has no PRP-1 suffix, 1 for a malformed PRP
+ * candidate, and 2 for a fully validated PRP-1 RCT.
+ */
+static int
+ArgusPrpReadRct(const unsigned char *rct, unsigned int expected_lsdu,
+                struct ArgusPrpPacketState *state)
+{
+   unsigned short lan_id_and_lsdu_size, lan_id;
+
+   if ((rct == NULL) || (state == NULL) ||
+       (EXTRACT_16BITS(rct + 4) != ETHERTYPE_PRP))
+      return (0);
+
+   memset(state, 0, sizeof(*state));
+   state->status = ARGUS_PRP_RCT_INVALID;
+   state->sequence = EXTRACT_16BITS(rct);
+   state->lan_id_and_lsdu_size = EXTRACT_16BITS(rct + 2);
+   lan_id_and_lsdu_size = state->lan_id_and_lsdu_size;
+   lan_id = (lan_id_and_lsdu_size & ARGUS_PRP_LAN_ID_MASK) >> 12;
+   state->lan_id = lan_id;
+
+   if (((lan_id == ARGUS_PRP_LAN_A_ID) || (lan_id == ARGUS_PRP_LAN_B_ID)) &&
+       ((lan_id_and_lsdu_size & ARGUS_PRP_LSDU_SIZE_MASK) == expected_lsdu)) {
+      state->status = ARGUS_PRP_RCT_VALID;
+      return (2);
+   }
+
+   return (1);
+}
+
+
+/*
+ * PRP-1's LSDU size includes the RCT and excludes the Ethernet header, VLAN
+ * headers, and (when present) FCS.  A capture has no explicit FCS indicator,
+ * so accept a normal tail or a separately validated RCT-before-FCS tail, but
+ * reject a frame that satisfies both interpretations.
+ */
+static void
+ArgusParsePrpRct(struct ArgusModelerStruct *model, struct ether_header *ep,
+                 int length)
+{
+   const unsigned char *frame, *rct;
+   unsigned int frame_len, capture_len, vlan_len;
+   unsigned int expected_lsdu;
+   int normal = 0, with_fcs = 0;
+   struct ArgusPrpPacketState normal_state, fcs_state;
+
+   ArgusResetPrpPacketState(model);
+
+   if ((model == NULL) || (ep == NULL) || (length <= 0) ||
+       (model->ArgusThisSnapEnd == NULL))
+      return;
+
+   frame = (const unsigned char *)ep;
+   if ((unsigned char *)frame > model->ArgusThisSnapEnd)
+      return;
+
+   capture_len = (unsigned int)(model->ArgusThisSnapEnd - (unsigned char *)frame);
+   frame_len = (unsigned int)length;
+
+   /* DLT_LINUX_SLL has no captured Ethernet header.  ArgusSllPacket()
+    * prepends a synthetic one for the normal Ethernet dispatcher but retains
+    * the original SLL payload length for its physical packet accounting.
+    * Restore that synthetic header only for trailer positioning and LSDU
+    * validation; do not alter model->ArgusThisBytes or metric accounting. */
+   if ((model->ArgusThisEncaps & ARGUS_ENCAPS_SLL) &&
+       !(model->ArgusThisEncaps & ARGUS_ENCAPS_ETHER)) {
+      if (frame_len > (UINT_MAX - ETHER_HDRLEN))
+         return;
+      frame_len += ETHER_HDRLEN;
+   }
+
+   if ((frame_len > capture_len) || (frame_len < (ETHER_HDRLEN + ARGUS_PRP_RCT_LEN)))
+      return;
+
+   if (!ArgusPrpVlanLength(frame, frame_len, &vlan_len))
+      return;
+
+   /* VLAN tags are part of the Ethernet framing, not the LSDU.  Do not let
+    * a short tagged frame make the candidate RCT overlap its VLAN headers. */
+   if (frame_len < (ETHER_HDRLEN + vlan_len + ARGUS_PRP_RCT_LEN))
+      return;
+
+   memset(&normal_state, 0, sizeof(normal_state));
+   memset(&fcs_state, 0, sizeof(fcs_state));
+
+   expected_lsdu = frame_len - ETHER_HDRLEN - vlan_len;
+   rct = frame + frame_len - ARGUS_PRP_RCT_LEN;
+   normal = ArgusPrpReadRct(rct, expected_lsdu, &normal_state);
+
+   if (frame_len >= (ETHER_HDRLEN + vlan_len + ARGUS_PRP_RCT_LEN + ARGUS_PRP_FCS_LEN)) {
+      expected_lsdu = frame_len - ARGUS_PRP_FCS_LEN - ETHER_HDRLEN - vlan_len;
+      rct = frame + frame_len - ARGUS_PRP_FCS_LEN - ARGUS_PRP_RCT_LEN;
+      with_fcs = ArgusPrpReadRct(rct, expected_lsdu, &fcs_state);
+   }
+
+   if ((normal == 2) && (with_fcs == 2)) {
+      /* Do not guess whether four trailing bytes are FCS or payload. */
+      ArgusResetPrpPacketState(model);
+   } else if (normal == 2) {
+      model->ArgusThisPrp = normal_state;
+   } else if (with_fcs == 2) {
+      model->ArgusThisPrp = fcs_state;
+   } else if (normal == 1) {
+      model->ArgusThisPrp = normal_state;
+   } else if (with_fcs == 1) {
+      model->ArgusThisPrp = fcs_state;
+   }
+}
+
 int
 ArgusProcessGreHdr (struct ArgusModelerStruct *model, struct ip *ip, int length)
 {
@@ -1164,8 +1317,12 @@ ArgusProcessEtherHdr (struct ArgusModelerStruct *model, struct ether_header *ep,
    /* Several real dispatch call sites (ArgusSource.c) do not consistently verify
     * length >= sizeof(struct ether_header) before calling this function -- confirm here,
     * defensively, before reading ep->ether_type below. */
+   ArgusResetPrpPacketState(model);
+
    if (!STRUCTCAPTURED(model, *ep))
       return (retn);
+
+   ArgusParsePrpRct(model, ep, length);
 
    length -= len;
    model->ArgusThisEpHdr           = ep;
@@ -1641,6 +1798,7 @@ ArgusProcessLcpPacket (struct ArgusSourceStruct *src, struct lcp_hdr *lcp, int l
    int retn = 0, status = 0;
 
    model->ArgusTotalPacket++;
+   ArgusResetPrpPacketState(model);
    model->state &= ~ARGUS_DIRECTION;
 
    if (!(length) && !(tvp) && !(lcp))
@@ -1714,6 +1872,7 @@ ArgusProcessPacket (struct ArgusSourceStruct *src, char *p, int length, struct t
    int retn = 0;
 
    model->ArgusTotalPacket++;
+   ArgusResetPrpPacketState(model);
 
    if (model->ArgusSrc->sNflag >= model->ArgusTotalPacket)
       return (retn);
@@ -1898,6 +2057,7 @@ ArgusProcessIpPacket (struct ArgusModelerStruct *model, struct ip *ip, int lengt
    int retn = 0, pass = 0, type = ETHERTYPE_IP; 
 
    model->ArgusTotalPacket++;
+   ArgusResetPrpPacketState(model);
 
    while (type > 0)
       if ((type = ArgusProcessPacketHdrs (model, ptr, model->ArgusThisLength, type)) >= 0)
@@ -2008,6 +2168,7 @@ ArgusProcessEtherPacket (struct ArgusModelerStruct *model, struct ether_header *
    char *ptr = (char *)ep;
 
    model->ArgusTotalPacket++;
+   ArgusResetPrpPacketState(model);
 
    if (model->ArgusSrc->sNflag >= model->ArgusTotalPacket)
       return (retn);
@@ -2573,9 +2734,9 @@ ArgusUpdateBasicFlow (struct ArgusModelerStruct *model, struct ArgusFlowStruct *
             memset(mac, 0, sizeof(*mac));
             flow->dsrs[ARGUS_MAC_INDEX] = &mac->hdr;
             mac->hdr.type                = ARGUS_MAC_DSR;
-            mac->hdr.subtype             = 0;
+            mac->hdr.subtype             = ARGUS_MAC_DSR_BASE;
             mac->hdr.argus_dsrvl8.qual   = 0;
-            mac->hdr.argus_dsrvl8.len    = 5;
+            mac->hdr.argus_dsrvl8.len    = ARGUS_MAC_DSR_BASE_LEN;
 
             if (model->ArgusThisDir) {
                bcopy ((char *)model->ArgusThisEpHdr, (char *)&mac->mac.mac_union.ether, sizeof(struct ether_header));
@@ -3206,11 +3367,200 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
 }
 
 
+static int
+ArgusPrpTimeBefore(const struct ArgusTime *left, const struct ArgusTime *right)
+{
+   return ((left->tv_sec < right->tv_sec) ||
+           ((left->tv_sec == right->tv_sec) &&
+            (left->tv_usec < right->tv_usec)));
+}
+
+
+static int
+ArgusPrpTimeAfter(const struct ArgusTime *left, const struct ArgusTime *right)
+{
+   return ((left->tv_sec > right->tv_sec) ||
+           ((left->tv_sec == right->tv_sec) &&
+            (left->tv_usec > right->tv_usec)));
+}
+
+
+static void
+ArgusPrpSetRct(struct ArgusMacPrpRct *rct,
+               const struct ArgusPrpPacketState *packet,
+               const struct timeval *time)
+{
+   rct->sequence = packet->sequence;
+   rct->lan_id_and_lsdu_size = packet->lan_id_and_lsdu_size;
+   rct->time.tv_sec = time->tv_sec;
+   rct->time.tv_usec = time->tv_usec;
+}
+
+
+static void
+ArgusPrpIncrement(unsigned long long *counter, unsigned int *flags)
+{
+   if (*counter == ULLONG_MAX) {
+      *flags |= ARGUS_MAC_PRP_COUNTER_SATURATED;
+   } else {
+      (*counter)++;
+      if (*counter == ULLONG_MAX)
+         *flags |= ARGUS_MAC_PRP_COUNTER_SATURATED;
+   }
+}
+
+
+static void
+ArgusPrpAdd(unsigned long long *counter, unsigned int value, unsigned int *flags)
+{
+   if ((ULLONG_MAX - *counter) < value) {
+      *counter = ULLONG_MAX;
+      *flags |= ARGUS_MAC_PRP_COUNTER_SATURATED;
+   } else {
+      *counter += value;
+      if (*counter == ULLONG_MAX)
+         *flags |= ARGUS_MAC_PRP_COUNTER_SATURATED;
+   }
+}
+
+
+static int
+ArgusPrpSequenceIdle(const struct ArgusModelerStruct *model,
+                     const struct ArgusMacPrpLanState *state)
+{
+   const struct timeval *now = &model->ArgusGlobalTime;
+   unsigned long long seconds;
+
+   if (!state->initialized || (now->tv_sec < 0))
+      return (0);
+
+   if ((unsigned long long)now->tv_sec < state->lasttime.tv_sec)
+      return (0);
+   if (((unsigned long long)now->tv_sec == state->lasttime.tv_sec) &&
+       ((unsigned long long)now->tv_usec < state->lasttime.tv_usec))
+      return (0);
+
+   seconds = (unsigned long long)now->tv_sec - state->lasttime.tv_sec;
+   return ((seconds > ARGUS_PRP_SEQUENCE_IDLE_TIMEOUT) ||
+           ((seconds == ARGUS_PRP_SEQUENCE_IDLE_TIMEOUT) &&
+            ((unsigned long long)now->tv_usec >= state->lasttime.tv_usec)));
+}
+
+
+static void
+ArgusPrpUpdateLastTime(struct ArgusMacPrpLanState *state,
+                       const struct timeval *time)
+{
+   struct ArgusTime now;
+
+   now.tv_sec = time->tv_sec;
+   now.tv_usec = time->tv_usec;
+   if (ArgusPrpTimeAfter(&now, &state->lasttime))
+      state->lasttime = now;
+}
+
+
+static void
+ArgusPrpUpdateLan(struct ArgusModelerStruct *model,
+                  struct ArgusMacPrpDirection *direction,
+                  struct ArgusMacPrpLan *lan,
+                  struct ArgusMacPrpLanState *state,
+                  const struct ArgusPrpPacketState *packet,
+                  unsigned int lan_flag)
+{
+   struct ArgusTime now;
+   unsigned int distance;
+   int reseed = 0;
+
+   now.tv_sec = model->ArgusGlobalTime.tv_sec;
+   now.tv_usec = model->ArgusGlobalTime.tv_usec;
+
+   if (lan->packets == 0) {
+      ArgusPrpSetRct(&lan->first, packet, &model->ArgusGlobalTime);
+      ArgusPrpSetRct(&lan->last,  packet, &model->ArgusGlobalTime);
+   } else {
+      if (ArgusPrpTimeBefore(&now, &lan->first.time))
+         ArgusPrpSetRct(&lan->first, packet, &model->ArgusGlobalTime);
+      if (ArgusPrpTimeAfter(&now, &lan->last.time))
+         ArgusPrpSetRct(&lan->last, packet, &model->ArgusGlobalTime);
+   }
+   ArgusPrpIncrement(&lan->packets, &direction->flags);
+
+   if (state->initialized) {
+      reseed = ArgusPrpSequenceIdle(model, state);
+      if (reseed) {
+         direction->flags |= (lan_flag == ARGUS_MAC_PRP_LAN_A) ?
+                             ARGUS_MAC_PRP_LAN_A_RESEED :
+                             ARGUS_MAC_PRP_LAN_B_RESEED;
+      } else {
+         distance = (unsigned short)(packet->sequence - state->sequence);
+         if (distance == 0) {
+            ArgusPrpIncrement(&lan->duplicates, &direction->flags);
+         } else if (distance < 0x8000) {
+            if (distance > 1)
+               ArgusPrpAdd(&lan->gaps, distance - 1, &direction->flags);
+            state->sequence = packet->sequence;
+         } else {
+            ArgusPrpIncrement(&lan->out_of_order, &direction->flags);
+         }
+      }
+   }
+
+   if (!state->initialized || reseed) {
+      state->sequence = packet->sequence;
+      state->initialized = 1;
+   }
+   ArgusPrpUpdateLastTime(state, &model->ArgusGlobalTime);
+}
+
+
 void ArgusUpdateMACState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 
 void
 ArgusUpdateMACState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flowstr, unsigned char *state)
 {
+   struct ArgusMacStruct *mac;
+   struct ArgusMacPrpDirection *direction;
+
+   (void)state;
+
+   if ((model == NULL) || (flowstr == NULL) || !getArgusmflag(model) ||
+       (model->ArgusThisPrp.status == ARGUS_PRP_RCT_NONE))
+      return;
+
+   if ((mac = (struct ArgusMacStruct *)flowstr->dsrs[ARGUS_MAC_INDEX]) == NULL)
+      return;
+
+   mac->hdr.subtype = ARGUS_MAC_DSR_V2;
+   mac->hdr.argus_dsrvl8.len = ARGUS_MAC_DSR_V2_LEN;
+
+   if (model->ArgusThisDir) {
+      mac->hdr.argus_dsrvl8.qual |= ARGUS_MAC_SRC_PRP;
+      direction = &mac->src_prp;
+   } else {
+      mac->hdr.argus_dsrvl8.qual |= ARGUS_MAC_DST_PRP;
+      direction = &mac->dst_prp;
+   }
+
+   direction->flags |= ARGUS_MAC_PRP_FLOW_SCOPE;
+   if (model->ArgusThisPrp.status == ARGUS_PRP_RCT_INVALID) {
+      direction->flags |= ARGUS_MAC_PRP_MALFORMED_RCT;
+      ArgusPrpIncrement(&direction->malformed_rcts, &direction->flags);
+   } else if (model->ArgusThisPrp.status == ARGUS_PRP_RCT_VALID) {
+      if (model->ArgusThisPrp.lan_id == ARGUS_PRP_LAN_A_ID) {
+         direction->flags |= ARGUS_MAC_PRP_LAN_A;
+         ArgusPrpUpdateLan(model, direction, &direction->lan_a,
+                           model->ArgusThisDir ? &mac->prp_state.src_lan_a :
+                                                 &mac->prp_state.dst_lan_a,
+                           &model->ArgusThisPrp, ARGUS_MAC_PRP_LAN_A);
+      } else if (model->ArgusThisPrp.lan_id == ARGUS_PRP_LAN_B_ID) {
+         direction->flags |= ARGUS_MAC_PRP_LAN_B;
+         ArgusPrpUpdateLan(model, direction, &direction->lan_b,
+                           model->ArgusThisDir ? &mac->prp_state.src_lan_b :
+                                                 &mac->prp_state.dst_lan_b,
+                           &model->ArgusThisPrp, ARGUS_MAC_PRP_LAN_B);
+      }
+   }
 
 }
 

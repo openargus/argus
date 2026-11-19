@@ -12,7 +12,8 @@ reappearing.
   `ArgusProcessPacket()` directly on a raw packet buffer, without needing a
   live capture interface or PCAP file. Compiled with
   `-fsanitize=address,undefined` so it aborts on any memory-safety or
-  undefined-behavior violation, not just on outright segfaults.
+  undefined-behavior violation, not just on outright segfaults. MAC output is
+  enabled in the harness so PRP-1 seeds also execute MAC-v2 accounting.
 - `build.sh` — builds the harness against the real sensor object files.
   Requires `./configure` to have already been run (needs
   `include/argus_config.h`). Two modes:
@@ -20,9 +21,13 @@ reappearing.
     campaigns (`afl-fuzz`) if you have `afl-clang-fast` installed.
   - `build.sh plain` — plain clang build, no AFL instrumentation. This is
     what CI uses to replay saved inputs quickly.
-- `corpus/` — a small set of hand-crafted, valid protocol packets (ARP,
-  ICMP, TCP SYN, UDP/DNS, GRE, IPv6, NetFlow v9, VLAN, IP fragment, etc.)
+- `corpus/` — a small set of hand-crafted, valid and boundary-oriented protocol packets (ARP,
+  ICMP, TCP SYN, UDP/DNS, GRE, IPv6, NetFlow v9, VLAN, PRP-1 RCT variants,
+  IP fragment, etc.)
   used both as an initial AFL seed corpus and as a basic smoke-test set.
+  `prp_valid.bin`, `prp_vlan_fcs.bin`, `prp_malformed_rct.bin`,
+  `prp_truncated_rct.bin`, and `prp_ambiguous_rct.bin` specifically exercise
+  PRP-1 normal, VLAN/FCS, malformed, truncated, and dual-framing paths.
 - `crashes/` — a handful of specific hand-minimized reproducers for early
   findings, kept for readability/documentation purposes.
 - `regression-corpus/` — the deduplicated, accumulated set of every unique

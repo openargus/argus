@@ -1109,8 +1109,24 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
 
             case ARGUS_TRANSPORT_INDEX:
             case ARGUS_CONTEXT_INDEX: 
-            case ARGUS_MAC_INDEX:
+                break;
+
+            case ARGUS_MAC_INDEX: {
+               struct ArgusMacStruct *mac = (struct ArgusMacStruct *)flow->dsrs[i];
+
+               /* The MAC prefix remains sticky as before.  PRP counters and
+                * RCT snapshots are report-window values, while prp_state is
+                * intentionally retained as the flow-local sequence cursor. */
+               if ((mac->hdr.type == ARGUS_MAC_DSR) &&
+                   (mac->hdr.subtype == ARGUS_MAC_DSR_V2)) {
+                  bzero(&mac->src_prp, sizeof(mac->src_prp));
+                  bzero(&mac->dst_prp, sizeof(mac->dst_prp));
+                  mac->hdr.subtype = ARGUS_MAC_DSR_BASE;
+                  mac->hdr.argus_dsrvl8.len = ARGUS_MAC_DSR_BASE_LEN;
+                  mac->hdr.argus_dsrvl8.qual &= ~(ARGUS_MAC_SRC_PRP | ARGUS_MAC_DST_PRP);
+               }
                break;
+            }
 
             case ARGUS_JITTER_INDEX: {
                struct ArgusJitterStruct *jit = (void *)flow->dsrs[i];

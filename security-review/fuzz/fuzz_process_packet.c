@@ -133,6 +133,11 @@ argus_harness_init(void)
     * "model->ArgusOutputList = ArgusOutputTask->ArgusInputList;" dependency. */
    ArgusInitModeler(model);
 
+   /* Keep the MAC DSR enabled so PRP-1 seeds exercise not only trailer
+    * recognition but also MAC-v2 flow-local accounting and its larger
+    * serialized-state allocation path. */
+   setArgusmflag(model, 1);
+
    /* The real capture path (ArgusOpenInterface / ArgusOpenDevice, ArgusSource.c) populates
     * src->ArgusInterface[i].ArgusDevice with a live device's srcid/transport info before any
     * packet ever reaches ArgusProcessPacket -- see e.g. ArgusModeler.c:2276

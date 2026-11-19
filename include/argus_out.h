@@ -699,10 +699,51 @@ struct ArgusJitterStruct {
    struct ArgusJitterObject src, dst;
 };
 
+/*
+ * MAC DSR v2 PRP-1 extension.  All fields through dst_prp are serialized
+ * when hdr.subtype is ARGUS_MAC_DSR_V2.  prp_state is flow-local working
+ * state and deliberately sits beyond the DSR's declared wire length.
+ */
+struct ArgusMacPrpRct {
+   unsigned short sequence;
+   unsigned short lan_id_and_lsdu_size;
+   struct ArgusTime time;
+};
+
+struct ArgusMacPrpLan {
+   unsigned long long packets;
+   unsigned long long gaps;
+   unsigned long long out_of_order;
+   unsigned long long duplicates;
+   struct ArgusMacPrpRct first, last;
+};
+
+struct ArgusMacPrpDirection {
+   unsigned int flags;
+   unsigned long long malformed_rcts;
+   struct ArgusMacPrpLan lan_a, lan_b;
+};
+
+struct ArgusMacPrpLanState {
+   unsigned short sequence;
+   unsigned char initialized;
+   unsigned char pad;
+   struct ArgusTime lasttime;
+};
+
+struct ArgusMacPrpState {
+   struct ArgusMacPrpLanState src_lan_a, src_lan_b;
+   struct ArgusMacPrpLanState dst_lan_a, dst_lan_b;
+};
+
 struct ArgusMacStruct {
    struct ArgusDSRHeader hdr;
    struct ArgusMacFlow mac;
+   struct ArgusMacPrpDirection src_prp, dst_prp;
+   struct ArgusMacPrpState prp_state;
 };
+
+#define ARGUS_MAC_DSR_V2_LEN ((sizeof(struct ArgusMacStruct) - sizeof(struct ArgusMacPrpState)) / 4)
 
 struct ArgusVxLanStruct {
    struct ArgusDSRHeader hdr;
