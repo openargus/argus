@@ -118,7 +118,7 @@ that way.
 | `ARGUS_PACKET_SIZE_HISTOGRAM` | none | Enable packet-size histogram DSR. |
 | `ARGUS_GENERATE_JITTER_DATA` | none | Generate jitter metrics (`ARGUS_JITTER_DSR`). |
 | `ARGUS_JITTER_HISTOGRAM` | none | Jitter histogram variant. |
-| `ARGUS_GENERATE_MAC_DATA` | `-m` | Include the L2 MAC DSR. With PRP-1 Ethernet traffic, this enables MAC-v2 LAN/sequence/RCT accounting; ordinary MAC DSRs remain v0. |
+| `ARGUS_GENERATE_MAC_DATA` | `-m` | Include the L2 MAC DSR. With PRP-1 Ethernet traffic, this enables MAC-v2 directional status and LAN A/B packet totals; ordinary MAC DSRs remain v0. |
 | `ARGUS_GENERATE_APPBYTE_METRIC` | none | Application-byte counting. |
 | `ARGUS_GENERATE_TCP_PERF_METRIC` | none | TCP performance metrics. |
 | `ARGUS_GENERATE_BIDIRECTIONAL_TIMESTAMPS` | none | Separate src/dst timestamps. |
@@ -140,6 +140,10 @@ port scans is client/analyst tooling built on top of the record stream, not a se
 PRP-1 trailers so its packet handling is configuration-independent; `-m` / this setting is required before a
 MAC-v2 PRP observation is included in a flow record. PRP accounting is flow-local and directional, while the
 ordinary Metric DSR continues to count physical packets and bytes without PRP copy suppression.
+
+PRP supervision frames (post-VLAN EtherType `0x88fb`) use the Network DSR and are emitted independently of
+the MAC option. Enable `ARGUS_CAPTURE_FULL_CONTROL_DATA=yes` / `-C` when the bounded supervision metadata
+must be accompanied by the captured supervision payload in the existing User Data DSR.
 
 ### Output
 

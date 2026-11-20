@@ -224,13 +224,34 @@ struct ArgusControlProtocols {
    char udpport[0x10000];
 };
 
-struct ArgusPrpPacketState {
-   /* Per-packet parse result.  It is reset before every modeler entry point;
-    * flow-local sequence cursors live in ArgusMacPrpState instead. */
+struct ArgusPrpRctPacketState {
+   /* Per-packet RCT classification.  This remains distinct from the
+    * supervision sequence carried in the EtherType 0x88fb payload. */
    unsigned char status;
    unsigned char lan_id;
+   unsigned short pad;
+   unsigned int offset;
+   unsigned int frame_length;
+};
+
+struct ArgusPrpSupervisionPacketState {
+   unsigned char status;
+   unsigned char path;
+   unsigned char node_mode;
+   unsigned char pad;
+   unsigned short version;
    unsigned short sequence;
-   unsigned short lan_id_and_lsdu_size;
+   unsigned int flags;
+   unsigned char reporter[6];
+   unsigned char node_a[6];
+   unsigned char node_b[6];
+   unsigned char redbox[6];
+   unsigned char vdan[6];
+};
+
+struct ArgusPrpPacketState {
+   struct ArgusPrpRctPacketState rct;
+   struct ArgusPrpSupervisionPacketState supervision;
 };
 
 

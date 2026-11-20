@@ -89,8 +89,12 @@ Each fix falls into one of two categories:
 
 - **PRP-1 MAC-v2 accounting**: `test_prp_mac_v2.sh` generates valid, malformed, VLAN/FCS,
   truncated, framing-ambiguous, and Linux-SLL PRP traffic. It verifies network-order MAC-v2
-  serialization, flow-local LAN sequence accounting, report-window cursor retention, physical
-  metric totals, and the `-m` / `ARGUS_GENERATE_MAC_DATA` output gate.
+  serialization, directional PRP status and LAN packet totals, report-window reset behavior,
+  physical metric totals, and the `-m` / `ARGUS_GENERATE_MAC_DATA` output gate.
+- **PRP supervision**: `test_prp_supervision.sh` generates direct and VLAN `0x88fb`
+  supervision frames covering PRP-0/PRP-1 TLVs, malformed and truncated bodies, a validated
+  RCT/FCS boundary, role conflicts, and control-plane payload capture. It verifies the fixed
+  Network DSR layout and `-C` User Data DSR retention.
 
 F-41 (encaps-capture buffer lifecycle) and F-49 (Makefile failure-masking) are not covered by
 tests in this directory: F-41 is not yet merged, and F-49 was verified via `make`-level fault

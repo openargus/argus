@@ -1616,6 +1616,39 @@ extern "C" {
 #define ARGUS_TCP_PERF			0x05
 #define ARGUS_NETWORK_SUBTYPE_ARP	0x10
 #define ARGUS_NETWORK_SUBTYPE_FRAG	0x45
+/* Network DSR subtypes are complete octets.  ARGUS_REVERSE is a Flow DSR
+ * subtype flag only; do not apply its 0x40 mask to Network DSR subtypes. */
+#define ARGUS_NETWORK_SUBTYPE_PRP	0x46
+
+/* IEC 62439-3 PRP supervision Network DSR flags.  The MAC addresses in a
+ * supervision frame are unauthenticated observations, not authenticated node
+ * identities. */
+#define ARGUS_PRP_SUPERVISION_PRESENT        0x00000001
+#define ARGUS_PRP_SUPERVISION_VALID          0x00000002
+#define ARGUS_PRP_SUPERVISION_MALFORMED      0x00000004
+#define ARGUS_PRP_SUPERVISION_TRUNCATED      0x00000008
+#define ARGUS_PRP_SUPERVISION_HAS_SEQUENCE   0x00000010
+#define ARGUS_PRP_SUPERVISION_REPORTER       0x00000020
+#define ARGUS_PRP_SUPERVISION_NODE_A         0x00000040
+#define ARGUS_PRP_SUPERVISION_NODE_B         0x00000080
+#define ARGUS_PRP_SUPERVISION_REDBOX         0x00000100
+#define ARGUS_PRP_SUPERVISION_VDAN           0x00000200
+#define ARGUS_PRP_SUPERVISION_EOT            0x00000400
+#define ARGUS_PRP_SUPERVISION_PADDING        0x00000800
+#define ARGUS_PRP_SUPERVISION_CLAIM_CONFLICT 0x00001000
+
+/* The node mode is the raw supervision TLV type, retained separately from
+ * the node MAC claims. */
+#define ARGUS_PRP_SUPERVISION_NODE_DISCARD   20
+#define ARGUS_PRP_SUPERVISION_NODE_ACCEPT    21
+#define ARGUS_PRP_SUPERVISION_TLV_REDBOX     30
+#define ARGUS_PRP_SUPERVISION_TLV_VDAN       31
+#define ARGUS_PRP_SUPERVISION_TLV_EOT        0
+
+/* Per-packet parser state; these values are not serialized. */
+#define ARGUS_PRP_SUPERVISION_PARSE_NONE     0
+#define ARGUS_PRP_SUPERVISION_PARSE_VALID    1
+#define ARGUS_PRP_SUPERVISION_PARSE_INVALID  2
 
 /* Argus Transport DSR Qualifier */
 #define ARGUS_TCP_INIT_V2		0x02
@@ -1736,10 +1769,6 @@ extern "C" {
 #define ARGUS_MAC_PRP_LAN_A              0x00000001
 #define ARGUS_MAC_PRP_LAN_B              0x00000002
 #define ARGUS_MAC_PRP_MALFORMED_RCT      0x00000004
-#define ARGUS_MAC_PRP_FLOW_SCOPE         0x00000008
-#define ARGUS_MAC_PRP_LAN_A_RESEED       0x00000010
-#define ARGUS_MAC_PRP_LAN_B_RESEED       0x00000020
-#define ARGUS_MAC_PRP_COUNTER_SATURATED  0x00000040
 
 /* IEC 62439-3 PRP-1 redundancy control trailer constants. */
 #define ARGUS_PRP_VERSION_1              1
@@ -1749,7 +1778,6 @@ extern "C" {
 #define ARGUS_PRP_LAN_B_ID               0x0B
 #define ARGUS_PRP_LAN_ID_MASK            0xF000
 #define ARGUS_PRP_LSDU_SIZE_MASK         0x0FFF
-#define ARGUS_PRP_SEQUENCE_IDLE_TIMEOUT  60
 
 /* Per-packet PRP trailer classification. */
 #define ARGUS_PRP_RCT_NONE               0

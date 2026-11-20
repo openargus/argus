@@ -1,11 +1,11 @@
 #!/bin/sh
 # Regression test for PRP-1 detection and MAC-DSR v2 accounting.
 #
-# The generated Ethernet capture contains valid LAN A/B RCTs, a VLAN/FCS RCT,
-# same-LAN duplicate/gap/out-of-order sequences, malformed RCTs, a truncated
-# RCT, and an intentionally dual-valid FCS/no-FCS RCT.  It also replays a
-# Linux cooked (SLL) PRP frame. The latter two ambiguity/truncation cases must
-# remain unknown rather than being reported as malformed.
+# The generated Ethernet capture contains valid LAN A/B RCTs, VLAN/FCS RCTs,
+# malformed RCTs, a truncated RCT, and an intentionally dual-valid FCS/no-FCS
+# RCT. It also replays a Linux cooked (SLL) PRP frame. The latter two
+# ambiguity/truncation cases must remain unknown rather than being reported as
+# malformed.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
@@ -148,7 +148,7 @@ add_main(1, 205000, prp(104, 0xB, forward, vlan=True, stacked_vlan=True), "sourc
 # The wire frame contains a PRP suffix, but the capture ends before it.  It is unknown.
 add_main(1, 210000, truncated, "source", len(truncated) - 2)
 add_main(1, 220000, ambiguous_prp(forward), "source")
-# Arrival order differs from timestamp order.  RCT first/last snapshots use time order.
+# Repeated LAN-A traffic must contribute to the aggregate packet total.
 add_main(1, 50000, prp(103, 0xA, forward), "source")
 main.append((1, 230000, ethernet(ordinary, OTHER_SRC_MAC, OTHER_DST_MAC), None))
 
@@ -173,8 +173,6 @@ with open(f"{workdir}/expected.json", "w", encoding="utf-8") as output:
         "source_bytes": sum(map(len, source_frames)),
         "destination_packets": len(destination_frames),
         "destination_bytes": sum(map(len, destination_frames)),
-        "lan_a_size": 0xA000 | (len(forward) + 6),
-        "lan_b_size": 0xB000 | (len(forward) + 6),
         "sll_bytes": len(forward) + len(sll_rct),
     }, output)
 PY
@@ -237,14 +235,12 @@ METER_TYPE = 0x10
 MAC_TYPE = 0x42
 FAR_TYPE = 0x10
 MAC_V2 = 2
-MAC_V2_WORDS = 67
+MAC_V2_WORDS = 11
 MAC_SRC_PRP = 0x04
 MAC_DST_PRP = 0x08
 PRP_LAN_A = 0x01
 PRP_LAN_B = 0x02
 PRP_MALFORMED = 0x04
-PRP_FLOW_SCOPE = 0x08
-PRP_LAN_A_RESEED = 0x10
 
 
 def records(path):
@@ -311,30 +307,12 @@ def matching_flow(path, source, destination, sport, dport):
     return [dsrs for _, dsrs in records(path) if flow_key(dsrs) == wanted]
 
 
-def rct(data, offset):
-    sequence, lan_size, sec, usec = struct.unpack_from("!HHII", data, offset)
-    return {"sequence": sequence, "lan_size": lan_size, "time": (sec, usec)}
-
-
-def lan(data, offset):
-    packets, gaps, out_of_order, duplicates = struct.unpack_from("!QQQQ", data, offset)
-    return {
-        "packets": packets,
-        "gaps": gaps,
-        "out_of_order": out_of_order,
-        "duplicates": duplicates,
-        "first": rct(data, offset + 32),
-        "last": rct(data, offset + 44),
-    }
-
-
 def direction(data, offset):
-    flags, malformed = struct.unpack_from("!IQ", data, offset)
+    flags, lan_a_packets, lan_b_packets = struct.unpack_from("!III", data, offset)
     return {
         "flags": flags,
-        "malformed": malformed,
-        "lan_a": lan(data, offset + 12),
-        "lan_b": lan(data, offset + 68),
+        "lan_a_packets": lan_a_packets,
+        "lan_b_packets": lan_b_packets,
     }
 
 
@@ -350,10 +328,10 @@ def mac(dsrs):
     }
     if item["subtype"] == MAC_V2:
         if item["words"] != MAC_V2_WORDS:
-            raise AssertionError("MAC-v2 DSR did not have the declared 67-word length")
+            raise AssertionError("MAC-v2 DSR did not have the declared 11-word length")
         # Four-byte DSR header plus the legacy 16-byte MAC payload.
         result["source"] = direction(item["data"], item["offset"] + 20)
-        result["destination"] = direction(item["data"], item["offset"] + 144)
+        result["destination"] = direction(item["data"], item["offset"] + 32)
     return result
 
 
@@ -397,14 +375,6 @@ def metric_totals(dsrs):
     return expand(struct.unpack_from(fmt, item["data"], offset))
 
 
-def assert_rct(value, sequence, lan_size, timestamp):
-    # Argus builds may use microsecond or nanosecond timestamp precision; the
-    # extension follows the sensor's selected precision just like TIME_DSR.
-    accepted_times = {timestamp, (timestamp[0], timestamp[1] * 1000)}
-    assert value["sequence"] == sequence and value["lan_size"] == lan_size and \
-        value["time"] in accepted_times, value
-
-
 def assert_primary_accounting(path):
     flows = matching_flow(path, 0x0A000001, 0x0A000002, 1000, 2000)
     assert len(flows) == 1, len(flows)
@@ -422,28 +392,10 @@ def assert_primary_accounting(path):
 
     source = value["source"]
     destination = value["destination"]
-    assert source["flags"] & (PRP_LAN_A | PRP_LAN_B | PRP_MALFORMED | PRP_FLOW_SCOPE) == \
-        (PRP_LAN_A | PRP_LAN_B | PRP_MALFORMED | PRP_FLOW_SCOPE)
-    assert destination["flags"] & (PRP_LAN_A | PRP_MALFORMED | PRP_FLOW_SCOPE) == \
-        (PRP_LAN_A | PRP_MALFORMED | PRP_FLOW_SCOPE)
-    assert source["malformed"] == 1
-    assert destination["malformed"] == 1
-
-    assert (source["lan_a"]["packets"], source["lan_a"]["gaps"],
-            source["lan_a"]["out_of_order"], source["lan_a"]["duplicates"]) == (5, 1, 1, 1)
-    assert_rct(source["lan_a"]["first"], 103, expected["lan_a_size"], (1, 50000))
-    assert_rct(source["lan_a"]["last"], 101, expected["lan_a_size"], (1, 140000))
-
-    assert (source["lan_b"]["packets"], source["lan_b"]["gaps"],
-            source["lan_b"]["out_of_order"], source["lan_b"]["duplicates"]) == (4, 1, 0, 0)
-    assert_rct(source["lan_b"]["first"], 100, expected["lan_b_size"], (1, 110000))
-    assert_rct(source["lan_b"]["last"], 104, expected["lan_b_size"], (1, 205000))
-
-    assert (destination["lan_a"]["packets"], destination["lan_a"]["gaps"],
-            destination["lan_a"]["out_of_order"], destination["lan_a"]["duplicates"]) == (2, 0, 1, 0)
-    assert_rct(destination["lan_a"]["first"], 500, expected["lan_a_size"], (1, 160000))
-    assert_rct(destination["lan_a"]["last"], 499, expected["lan_a_size"], (1, 170000))
-    assert destination["lan_b"]["packets"] == 0
+    assert source["flags"] == (PRP_LAN_A | PRP_LAN_B | PRP_MALFORMED)
+    assert destination["flags"] == (PRP_LAN_A | PRP_MALFORMED)
+    assert (source["lan_a_packets"], source["lan_b_packets"]) == (5, 4)
+    assert (destination["lan_a_packets"], destination["lan_b_packets"]) == (2, 0)
 
 
 assert_primary_accounting(cli_path)
@@ -459,9 +411,8 @@ assert (ordinary_mac["subtype"], ordinary_mac["qualifier"], ordinary_mac["words"
 # PRP parsing still runs, but it must not add any MAC DSR to emitted records.
 assert not [item for _, dsrs in records(nomac_path) for item in dsr(dsrs, MAC_TYPE)]
 
-# A status report between the two LAN-A packets clears report-window values but
-# preserves the hidden per-flow cursor.  Thus the new window sees seq 102 as a
-# one-packet gap after seq 100, not as its initial sequence.
+# A status report clears the report-window PRP status and LAN totals.  Each
+# output window therefore contains only its own LAN-A observation.
 reset_flows = matching_flow(reset_path, 0x0A000001, 0x0A000002, 1000, 2000)
 windows = []
 for flow in reset_flows:
@@ -469,15 +420,11 @@ for flow in reset_flows:
     if value["subtype"] != MAC_V2:
         continue
     for side in (value["source"], value["destination"]):
-        if side["lan_a"]["packets"]:
+        if side["lan_a_packets"]:
             windows.append(side)
-assert any(side["lan_a"]["first"]["sequence"] == 100 and
-           side["lan_a"]["packets"] == 1 and side["lan_a"]["gaps"] == 0
-           for side in windows), windows
-assert any(side["lan_a"]["first"]["sequence"] == 102 and
-           side["lan_a"]["packets"] == 1 and side["lan_a"]["gaps"] == 1 and
-           not (side["flags"] & PRP_LAN_A_RESEED)
-           for side in windows), windows
+assert len(windows) >= 2, windows
+assert all((side["flags"], side["lan_a_packets"], side["lan_b_packets"]) ==
+           (PRP_LAN_A, 1, 0) for side in windows), windows
 
 # DLT_LINUX_SLL has no physical Ethernet header in the capture.  Its synthetic
 # Ethernet header must not make the RCT look 14 bytes early or alter the LSDU.
@@ -488,13 +435,12 @@ assert sll_mac["subtype"] == MAC_V2
 src_packets, src_bytes, dst_packets, dst_bytes = metric_totals(sll_flows[0])
 assert (src_packets + dst_packets, src_bytes + dst_bytes) == (1, expected["sll_bytes"])
 sll_sides = (sll_mac["source"], sll_mac["destination"])
-assert any(side["lan_a"]["packets"] == 1 and
-           side["lan_a"]["first"]["sequence"] == 333 and
-           side["lan_a"]["first"]["lan_size"] == expected["lan_a_size"]
-           for side in sll_sides), sll_sides
+assert any(side["flags"] == PRP_LAN_A and side["lan_a_packets"] == 1 and
+            side["lan_b_packets"] == 0
+            for side in sll_sides), sll_sides
 PY
 then
-   pass "PRP MAC-v2 wire format, accounting, reset behavior, SLL parsing, and MAC gate are correct"
+    pass "PRP MAC-v2 wire format, LAN totals, reset behavior, SLL parsing, and MAC gate are correct"
 else
    fail "PRP MAC-v2 output validation failed"
 fi

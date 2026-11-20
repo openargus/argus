@@ -238,6 +238,28 @@ struct ArgusARPObject {
    unsigned char respaddr[6];    
    unsigned short pad; 
 };  
+
+/*
+ * Bounded per-flow PRP supervision summary.  The reporter is the Ethernet
+ * source that emitted the supervision frame; node_a/node_b, redbox, and vdan
+ * are distinct claims carried by its TLVs.  They deliberately remain separate
+ * even when their byte values are equal.
+ */
+struct ArgusPrpSupervisionObject {
+   unsigned int flags;
+   unsigned short version;
+   unsigned short sequence;
+   unsigned char path;
+   unsigned char node_mode;
+   unsigned char reporter[6];
+   unsigned char node_a[6];
+   unsigned char node_b[6];
+   unsigned char redbox[6];
+   unsigned char vdan[6];
+};
+
+/* Four-byte DSR header plus the fixed 40-byte object above. */
+#define ARGUS_PRP_SUPERVISION_DSR_LEN 11
  
 struct ArgusDHCPObject {     
    unsigned int respaddr;   
@@ -700,50 +722,26 @@ struct ArgusJitterStruct {
 };
 
 /*
- * MAC DSR v2 PRP-1 extension.  All fields through dst_prp are serialized
- * when hdr.subtype is ARGUS_MAC_DSR_V2.  prp_state is flow-local working
- * state and deliberately sits beyond the DSR's declared wire length.
+ * MAC DSR v2 PRP-1 extension.  It records whether each flow direction used
+ * LAN A or LAN B (or contained a malformed RCT), plus the observed packet
+ * totals for each LAN.  PRP sequence tracking is intentionally not retained.
  */
-struct ArgusMacPrpRct {
-   unsigned short sequence;
-   unsigned short lan_id_and_lsdu_size;
-   struct ArgusTime time;
-};
-
 struct ArgusMacPrpLan {
-   unsigned long long packets;
-   unsigned long long gaps;
-   unsigned long long out_of_order;
-   unsigned long long duplicates;
-   struct ArgusMacPrpRct first, last;
+   unsigned int packets;
 };
 
 struct ArgusMacPrpDirection {
    unsigned int flags;
-   unsigned long long malformed_rcts;
    struct ArgusMacPrpLan lan_a, lan_b;
-};
-
-struct ArgusMacPrpLanState {
-   unsigned short sequence;
-   unsigned char initialized;
-   unsigned char pad;
-   struct ArgusTime lasttime;
-};
-
-struct ArgusMacPrpState {
-   struct ArgusMacPrpLanState src_lan_a, src_lan_b;
-   struct ArgusMacPrpLanState dst_lan_a, dst_lan_b;
 };
 
 struct ArgusMacStruct {
    struct ArgusDSRHeader hdr;
    struct ArgusMacFlow mac;
    struct ArgusMacPrpDirection src_prp, dst_prp;
-   struct ArgusMacPrpState prp_state;
 };
 
-#define ARGUS_MAC_DSR_V2_LEN ((sizeof(struct ArgusMacStruct) - sizeof(struct ArgusMacPrpState)) / 4)
+#define ARGUS_MAC_DSR_V2_LEN (sizeof(struct ArgusMacStruct) / 4)
 
 struct ArgusVxLanStruct {
    struct ArgusDSRHeader hdr;
@@ -1061,10 +1059,11 @@ struct ArgusNetworkStruct {
       struct ArgusRTPObject    rtp;
       struct ArgusRTCPObject   rtcp;
       struct ArgusIGMPObject   igmp;
-      struct ArgusDHCPObject   dhcp;
-      struct ArgusESPObject    esp;
-      struct ArgusARPObject    arp;
-      struct ArgusAHObject     ah;
+       struct ArgusDHCPObject   dhcp;
+       struct ArgusESPObject    esp;
+       struct ArgusARPObject    arp;
+       struct ArgusPrpSupervisionObject prp;
+       struct ArgusAHObject     ah;
       struct ArgusFragObject   frag;
       struct ArgusLCPObject    lcp;
       struct ArgusIsisObject   isis;

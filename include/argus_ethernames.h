@@ -269,6 +269,7 @@ struct ArgusEtherTypeStruct argus_ethertype_names [] = {
    { "35020", "lldp", "IEEE 802.1 Link Layer Discovery Protocol" }, 
    { "35026", "3gpp", "CDMA2000(R) Access Network" }, 
    { "35478-35479", "invis", "Invisible Software" }, 
+   { "35067", "prp", "Parallel Redundancy Protocol" }, 
    { "36864", "loop", "Loopback" }, 
    { "36865", "xnssm", "3Com(Bridge) XNS Sys Mgmt" }, 
    { "36866", "3coms", "3Com(Bridge) TCP-IP Sys" }, 

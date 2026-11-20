@@ -336,34 +336,20 @@ void ArgusHtoN (struct ArgusRecord *);
 #include <argus_def.h>
 
 static void
-ArgusHtoNMacPrpRct(struct ArgusMacPrpRct *rct)
-{
-   rct->sequence = htons(rct->sequence);
-   rct->lan_id_and_lsdu_size = htons(rct->lan_id_and_lsdu_size);
-   rct->time.tv_sec = htonl(rct->time.tv_sec);
-   rct->time.tv_usec = htonl(rct->time.tv_usec);
-}
-
-
-static void
-ArgusHtoNMacPrpLan(struct ArgusMacPrpLan *lan)
-{
-   lan->packets = htonll(lan->packets);
-   lan->gaps = htonll(lan->gaps);
-   lan->out_of_order = htonll(lan->out_of_order);
-   lan->duplicates = htonll(lan->duplicates);
-   ArgusHtoNMacPrpRct(&lan->first);
-   ArgusHtoNMacPrpRct(&lan->last);
-}
-
-
-static void
 ArgusHtoNMacPrpDirection(struct ArgusMacPrpDirection *direction)
 {
    direction->flags = htonl(direction->flags);
-   direction->malformed_rcts = htonll(direction->malformed_rcts);
-   ArgusHtoNMacPrpLan(&direction->lan_a);
-   ArgusHtoNMacPrpLan(&direction->lan_b);
+   direction->lan_a.packets = htonl(direction->lan_a.packets);
+   direction->lan_b.packets = htonl(direction->lan_b.packets);
+}
+
+
+static void
+ArgusHtoNPrpSupervision(struct ArgusPrpSupervisionObject *prp)
+{
+   prp->flags = htonl(prp->flags);
+   prp->version = htons(prp->version);
+   prp->sequence = htons(prp->sequence);
 }
 
 
@@ -786,6 +772,11 @@ ArgusHtoN (struct ArgusRecord *argus)
                   case ARGUS_NETWORK_DSR: {
                      struct ArgusNetworkStruct *net = (struct ArgusNetworkStruct *)dsr;
                      switch (net->hdr.subtype) {
+                        case ARGUS_NETWORK_SUBTYPE_PRP:
+                           if (net->hdr.argus_dsrvl8.len == ARGUS_PRP_SUPERVISION_DSR_LEN)
+                              ArgusHtoNPrpSupervision(&net->net_union.prp);
+                           break;
+
                         case ARGUS_TCP_INIT: {
                            struct ArgusTCPInitStatus *tcp = (void *)&net->net_union.tcpinit;
                            tcp->status       = htonl(tcp->status);
@@ -894,7 +885,7 @@ ArgusHtoN (struct ArgusRecord *argus)
                       /* MAC DSR v0 has no converted fields here.  Its bytes
                        * are retained unchanged for wire compatibility. */
                       if ((mac->hdr.subtype == ARGUS_MAC_DSR_V2) &&
-                          (mac->hdr.argus_dsrvl8.len >= ARGUS_MAC_DSR_V2_LEN)) {
+                          (mac->hdr.argus_dsrvl8.len == ARGUS_MAC_DSR_V2_LEN)) {
                          ArgusHtoNMacPrpDirection(&mac->src_prp);
                          ArgusHtoNMacPrpDirection(&mac->dst_prp);
                       }

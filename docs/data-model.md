@@ -270,7 +270,7 @@ document for why the split exists.
 | 2 | `ARGUS_TIME_DSR` | `0x03` | `ArgusTimeObject` | **Sensor** | Start/end timestamps, src & dst |
 | 3 | `ARGUS_METER_DSR` (metric) | `0x10` | `ArgusMetricStruct` | **Sensor** | Packet/byte/appbyte counters, src & dst — direct packet-dynamics measurement |
 | 4 | `ARGUS_AGR_DSR` | `0x60` | `ArgusAgrStruct` | **Client** (`racluster`, `racount`) | Aggregation count + activity/idle stats across *multiple* records — inherently a multi-record client capability, not a per-packet sensor one |
-| 5 | `ARGUS_NETWORK_DSR` | `0x30` | `ArgusNetworkStruct` (union: TCP/ICMP/UDT/RTP/IGMP/DHCP/ESP/ARP/AH/LCP/ISIS) | **Sensor** | Protocol-specific state (e.g. TCP handshake/seq/ack), all derived from packet content |
+| 5 | `ARGUS_NETWORK_DSR` | `0x30` | `ArgusNetworkStruct` (union: TCP/ICMP/UDT/RTP/IGMP/DHCP/ESP/ARP/PRP/AH/LCP/ISIS) | **Sensor** | Protocol-specific state (e.g. TCP handshake/seq/ack or bounded PRP supervision observations), all derived from packet content |
 | 5 *(shares slot)* | `ARGUS_FRAG_DSR` | — | `ArgusFragObject` | **Sensor** | IP fragmentation reassembly state — mutually exclusive with `ARGUS_NETWORK_DSR` per record (a record is either about fragmentation or normal protocol state, never both), so the shared index is safe |
 | 6 | `ARGUS_VLAN_DSR` | `0x40` | `ArgusVlanStruct` | **Sensor** | Source/dest VLAN IDs, read directly from the 802.1Q header |
 | 7 | `ARGUS_MPLS_DSR` | `0x44` | `ArgusMplsStruct` | **Sensor** | Source/dest MPLS labels, read directly from the MPLS shim header |
@@ -279,7 +279,7 @@ document for why the split exists.
 | 10 | `ARGUS_PSIZE_DSR` | `0x12` | `ArgusPacketSizeStruct` | **Sensor** | Packet-size distribution histogram — computed from observed packet lengths |
 | 11 | `ARGUS_DATA_DSR` (src) | `0x50` | `ArgusDataStruct` | **Sensor** | Captured source user/application data (raw payload bytes, if capture is enabled) |
 | 12 | `ARGUS_DATA_DSR` (dst) | `0x50` | `ArgusDataStruct` | **Sensor** | Captured destination user/application data |
-| 13 | `ARGUS_MAC_DSR` | `0x42` | `ArgusMacStruct` | **Sensor** | Layer-2 MAC header info; MAC-v2 also carries flow-local PRP-1 trailer observations |
+| 13 | `ARGUS_MAC_DSR` | `0x42` | `ArgusMacStruct` | **Sensor** | Layer-2 MAC header info; MAC-v2 also carries compact PRP-1 RCT LAN observations |
 | 14 | `ARGUS_ICMP_DSR` | `0x34` | `ArgusIcmpStruct` | **Sensor** (`ArgusIcmp.c`) | ICMP type/code/etc. |
 | 15 | `ARGUS_ENCAPS_DSR` | `0x20` | `ArgusEncapsStruct` | **Sensor** | Encapsulation byte counts/buffers (tunneling overhead accounting) |
 | 16 | *(time-adjust, `ARGUS_TIME_ADJ_INDEX`)* | — | — | **Sensor** | Clock-drift adjustment bookkeeping (see MAR `drift` field, §6) |
@@ -319,25 +319,24 @@ The original MAC DSR is preserved exactly for non-PRP observations:
 | MAC subtype | DSR length | Meaning |
 |---|---:|---|
 | `0x00` (`ARGUS_MAC_DSR_BASE`) | 5 words / 20 bytes | Legacy DSR header plus `ArgusMacFlow`; this is byte-for-byte the pre-extension format. |
-| `0x02` (`ARGUS_MAC_DSR_V2`) | 67 words / 268 bytes | The same 20-byte legacy prefix followed by two PRP-1 direction objects. |
+| `0x02` (`ARGUS_MAC_DSR_V2`) | 11 words / 44 bytes | The same 20-byte legacy prefix followed by two compact PRP-1 direction objects. |
 
 MAC-v2 is a v5 `ARGUS_MAC_DSR` (`type=0x42`), not a legacy Argus-v2 DSR and not a new DSR-chain slot. Its
 serialized layout, measured from the first byte of the MAC DSR, is:
 
 | Offset | Size | Field |
 |---:|---:|---|
-| 0 | 4 | Normal DSR header (`type=0x42`, `subtype=0x02`, qualifier, `len=67`) |
+| 0 | 4 | Normal DSR header (`type=0x42`, `subtype=0x02`, qualifier, `len=11`) |
 | 4 | 16 | Existing `ArgusMacFlow` prefix |
-| 20 | 124 | `src_prp` (`ArgusMacPrpDirection`) |
-| 144 | 124 | `dst_prp` (`ArgusMacPrpDirection`) |
+| 20 | 12 | `src_prp` (`ArgusMacPrpDirection`) |
+| 32 | 12 | `dst_prp` (`ArgusMacPrpDirection`) |
 
-Each direction object contains a 32-bit `flags`, a 64-bit `malformed_rcts` count, then LAN A and LAN B
-objects. Each 56-byte LAN object contains four 64-bit counters (`packets`, `gaps`, `out_of_order`,
-`duplicates`) followed by `first` and `last` 12-byte RCT snapshots. An RCT snapshot contains the original
-16-bit PRP sequence number, the original 16-bit LAN-ID/LSDU-size field, and an `ArgusTime` capture timestamp.
-All multi-byte fields in the PRP extension are in network byte order on the wire; the retained legacy MAC
-prefix preserves its pre-existing wire behavior. The RCT timestamps use the sensor's selected microsecond or
-nanosecond timestamp precision, consistent with its time DSRs.
+Each direction object contains a 32-bit `flags`, a 32-bit unsigned LAN A packet total, and a 32-bit unsigned
+LAN B packet total. All multi-byte fields in the PRP extension are in network byte order on the wire; the
+retained legacy MAC prefix preserves its pre-existing wire behavior. Client aggregation promotes the two
+packet totals to 64-bit `long long` counters before combining records. Generated or modified client records
+use the 15-word canonical MAC-v2 form; an unmodified raw record pass-through retains the sensor's 11-word
+wire form.
 
 The MAC DSR qualifier retains its existing multipath bits (`0x01` source, `0x02` destination). MAC-v2 adds
 `0x04` when a source-direction PRP observation was emitted and `0x08` for a destination-direction observation.
@@ -348,9 +347,6 @@ The direction flags are:
 | `0x00000001` | At least one valid LAN A RCT was observed in this report window. |
 | `0x00000002` | At least one valid LAN B RCT was observed in this report window. |
 | `0x00000004` | At least one recognized but malformed RCT was observed in this direction. |
-| `0x00000008` | Sequence values are scoped to this Argus flow/direction, never to a sender globally. |
-| `0x00000010` / `0x00000020` | LAN A / LAN B sequence cursor was reseeded after the idle timeout. |
-| `0x00000040` | A direction counter reached its 64-bit saturation limit. |
 
 The sensor recognizes PRP-1's six-byte RCT only on a fully captured Ethernet frame: a 16-bit sequence, a
 LAN-ID/LSDU-size word (LAN A=`0xA`, LAN B=`0xB`), and suffix `0x88fb`. The LSDU size must match the frame after
@@ -358,24 +354,66 @@ excluding the Ethernet header, any VLAN headers, and an optional four-byte FCS. 
 normal-tail and RCT-before-FCS placements. For Linux cooked (SLL) captures, Argus uses its synthetic Ethernet
 header only to locate the trailer; the original SLL payload remains the physical metric length. A truncated
 candidate, or a frame for which both placements are valid, is **unknown** and does not increment
-`malformed_rcts`. A recognized suffix with an invalid LAN ID or LSDU size is malformed and is counted only in
-the packet's canonical flow direction.
+any PRP total. A recognized suffix with an invalid LAN ID or LSDU size sets the malformed-RCT flag only in the
+packet's canonical flow direction.
 
-LAN A and LAN B have independent sequence cursors. A sequence equal to that LAN's cursor is a same-LAN
-duplicate; a forward modular 16-bit jump contributes `jump - 1` to `gaps`; a backward/half-range jump is
-`out_of_order`. LANs are deliberately never cross-matched, so the normal PRP copy on the other LAN is not a
-duplicate. `first` and `last` retain the chronologically earliest and latest valid RCT in the report window,
-including duplicate or out-of-order observations. After 60 seconds of inactivity on a LAN cursor, the next
-valid sequence reseeds it rather than generating a gap.
-
-The visible PRP counters and snapshots are report-window values. A FAR status reset clears them and returns
-the MAC DSR to the five-word v0 form until another PRP observation arrives, but retains the hidden per-flow
-LAN cursors so sequence accounting continues across reports. Metric DSR packet and byte totals are not
+PRP sequence values, duplicate/gap/out-of-order diagnostics, and RCT snapshots are not retained. The PRP
+flags and LAN packet totals are report-window values. A FAR status reset clears them and returns the MAC DSR
+to the five-word v0 form until another PRP observation arrives. Metric DSR packet and byte totals are not
 deduplicated or trailer-adjusted: they continue to describe observed physical packets and bytes.
 
 PRP trailers are parsed for every processed Ethernet packet regardless of configuration. Their data is emitted
 only when `ARGUS_GENERATE_MAC_DATA=yes` (or `argus -m`) enables the MAC DSR; without that option, no MAC-v2
 data is added to the output stream.
+
+---
+
+## 4.2 PRP supervision Network DSR
+
+An Ethernet frame whose **post-VLAN** EtherType is `0x88fb` is a PRP supervision observation. Argus emits it
+as an ordinary FAR with the existing `ARGUS_NETWORK_DSR` (`type=0x30`), subtype
+`ARGUS_NETWORK_SUBTYPE_PRP` (`0x46`), and a fixed 11-word/44-byte layout. It does **not** create a new
+top-level record type or a persistent topology database.
+
+| Offset | Size | Field |
+|---:|---:|---|
+| 0 | 4 | DSR header (`type=0x30`, `subtype=0x46`, `len=11`) |
+| 4 | 4 | Supervision flags |
+| 8 | 2 | Supervision version |
+| 10 | 2 | Supervision sequence, when the `HAS_SEQUENCE` flag is set |
+| 12 | 1 | Path |
+| 13 | 1 | Node mode (`20` duplicate-discard or `21` duplicate-accept), when observed |
+| 14 | 6 | Reporter Ethernet source MAC |
+| 20 | 6 | Claimed node MAC A |
+| 26 | 6 | Claimed node MAC B |
+| 32 | 6 | Claimed RedBox MAC |
+| 38 | 6 | Claimed VDAN MAC |
+
+The 32-bit flags, version, and sequence are network byte order on the wire. `PRESENT`, `VALID`,
+`MALFORMED`, `TRUNCATED`, `HAS_SEQUENCE`, the five role-presence flags, `EOT`, `PADDING`, and
+`CLAIM_CONFLICT` are defined as `ARGUS_PRP_SUPERVISION_*` in `include/argus_def.h`. The Ethernet source is
+the **reporter**, while node A, node B, RedBox, and VDAN are distinct, unauthenticated claims. Consumers must
+not merge equal MAC byte strings into a single asserted identity. Within a report window Argus retains the
+first observed value for each role and sets `CLAIM_CONFLICT` if a later observation for that role differs.
+
+PRP-1 supervision has a two-byte path/version header followed by a two-byte supervision sequence. PRP-0 has
+the same path/version header but no sequence. Argus validates known TLVs: node types `20`/`21` have a 6- or
+12-byte value, RedBox type `30` and VDAN type `31` have a 6-byte value, and EOT is exactly type `0`/length
+`0`. Unknown TLVs are skipped only after their declared length is verified. EOT and Ethernet padding are
+tolerated. A PRP-0 two-address node may be followed by a RedBox or VDAN announcement; a PRP-0 RedBox/VDAN
+ends the TLV data and leaves the remainder as padding.
+
+The parser never guesses that trailing bytes are an RCT boundary. It stops before a trailer only when the
+regular PRP RCT parser has independently validated its LAN ID, LSDU size, and optional FCS placement; the
+supervision sequence is therefore independent of an RCT sequence. Short captures set `TRUNCATED`; malformed
+known TLVs set `MALFORMED`; neither condition represents a fully valid supervision body. With control-plane
+capture enabled (`ARGUS_CAPTURE_FULL_CONTROL_DATA` / `argus -C`), the supervision body is also retained
+through the existing User Data DSR path.
+
+The Network DSR is independent of the optional MAC-v2 gate. It is a bounded report-window summary and is
+dropped on the next status-window reset, so a later unrelated Ethernet observation cannot inherit stale PRP
+supervision claims. Clients retain the same role separation when clustering records: they preserve the first
+claim, set `CLAIM_CONFLICT` for incompatible later claims, and retain the latest supervision-header sequence.
 
 ---
 

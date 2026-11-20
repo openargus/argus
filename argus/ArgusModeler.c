@@ -321,7 +321,7 @@ ArgusCloseModeler(struct ArgusModelerStruct *model)
       }
 
       ArgusModelerCleanUp (model); 
-   
+
       if (model->ArgusHashTable) {
          struct ArgusHashTable *htbl = model->ArgusHashTable;
          if (htbl != NULL) {
@@ -760,6 +760,7 @@ int ArgusProcessPPPoEHdr (struct ArgusModelerStruct *, char *, int);
 int ArgusProcessLLCHdr (struct ArgusModelerStruct *, char *, int);
 int ArgusProcess80211Hdr (struct ArgusModelerStruct *, char *, int);
 int ArgusProcessUDToEHdr (struct ArgusModelerStruct *, char *, int);
+static void ArgusParsePrpSupervision(struct ArgusModelerStruct *, const unsigned char *);
 
 
 int
@@ -800,7 +801,10 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
             model->ArgusThisUpHdr = (void *)p;
          break;
 
-      case ETHERTYPE_8021Q: {
+       case ETHERTYPE_8021Q:
+       case 0x88A8:             /* IEEE 802.1ad provider bridging */
+       case ETHERTYPE_VMAN:
+       case 0x9200: {
          model->ArgusThisNetworkFlowType = type;
 
          /* Bug found during Tier 1b verification (same root-cause class as F-9/
@@ -965,14 +969,24 @@ ArgusProcessPacketHdrs (struct ArgusModelerStruct *model, char *p, int length, i
          break;
       }
 
-      case ETHERTYPE_ARP:
-      case ETHERTYPE_REVARP: {
-         model->ArgusThisNetworkFlowType = type;
-         retn = 0;
-         break;
-      }
+       case ETHERTYPE_ARP:
+       case ETHERTYPE_REVARP: {
+           model->ArgusThisNetworkFlowType = type;
+           retn = 0;
+           break;
+       }
 
-      default:
+       case ETHERTYPE_PRP:
+          /* EtherType 0x88fb is supervision at this point: an RCT can only
+           * occur at the already-classified Ethernet tail.  Leave
+           * ArgusThisUpHdr at the supervision body so -C captures that body
+           * through the normal User Data DSR path. */
+          model->ArgusThisNetworkFlowType = type;
+          ArgusParsePrpSupervision(model, (const unsigned char *)p);
+          retn = 0;
+          break;
+
+       default:
          model->ArgusThisUpHdr = (void *)p;
          retn = 0;
          break;
@@ -1132,6 +1146,14 @@ ArgusResetPrpPacketState(struct ArgusModelerStruct *model)
 }
 
 
+static void
+ArgusResetPrpRctPacketState(struct ArgusModelerStruct *model)
+{
+   if (model != NULL)
+      memset(&model->ArgusThisPrp.rct, 0, sizeof(model->ArgusThisPrp.rct));
+}
+
+
 static int
 ArgusPrpVlanEtherType(unsigned short type)
 {
@@ -1171,7 +1193,7 @@ ArgusPrpVlanLength(const unsigned char *frame, unsigned int frame_len,
  */
 static int
 ArgusPrpReadRct(const unsigned char *rct, unsigned int expected_lsdu,
-                struct ArgusPrpPacketState *state)
+                 struct ArgusPrpRctPacketState *state)
 {
    unsigned short lan_id_and_lsdu_size, lan_id;
 
@@ -1181,9 +1203,7 @@ ArgusPrpReadRct(const unsigned char *rct, unsigned int expected_lsdu,
 
    memset(state, 0, sizeof(*state));
    state->status = ARGUS_PRP_RCT_INVALID;
-   state->sequence = EXTRACT_16BITS(rct);
-   state->lan_id_and_lsdu_size = EXTRACT_16BITS(rct + 2);
-   lan_id_and_lsdu_size = state->lan_id_and_lsdu_size;
+   lan_id_and_lsdu_size = EXTRACT_16BITS(rct + 2);
    lan_id = (lan_id_and_lsdu_size & ARGUS_PRP_LAN_ID_MASK) >> 12;
    state->lan_id = lan_id;
 
@@ -1205,15 +1225,15 @@ ArgusPrpReadRct(const unsigned char *rct, unsigned int expected_lsdu,
  */
 static void
 ArgusParsePrpRct(struct ArgusModelerStruct *model, struct ether_header *ep,
-                 int length)
+                  int length)
 {
    const unsigned char *frame, *rct;
    unsigned int frame_len, capture_len, vlan_len;
    unsigned int expected_lsdu;
    int normal = 0, with_fcs = 0;
-   struct ArgusPrpPacketState normal_state, fcs_state;
+   struct ArgusPrpRctPacketState normal_state, fcs_state;
 
-   ArgusResetPrpPacketState(model);
+   ArgusResetPrpRctPacketState(model);
 
    if ((model == NULL) || (ep == NULL) || (length <= 0) ||
        (model->ArgusThisSnapEnd == NULL))
@@ -1231,12 +1251,17 @@ ArgusParsePrpRct(struct ArgusModelerStruct *model, struct ether_header *ep,
     * the original SLL payload length for its physical packet accounting.
     * Restore that synthetic header only for trailer positioning and LSDU
     * validation; do not alter model->ArgusThisBytes or metric accounting. */
-   if ((model->ArgusThisEncaps & ARGUS_ENCAPS_SLL) &&
-       !(model->ArgusThisEncaps & ARGUS_ENCAPS_ETHER)) {
+    if ((model->ArgusThisEncaps & ARGUS_ENCAPS_SLL) &&
+        !(model->ArgusThisEncaps & ARGUS_ENCAPS_ETHER)) {
       if (frame_len > (UINT_MAX - ETHER_HDRLEN))
          return;
       frame_len += ETHER_HDRLEN;
    }
+
+   /* Keep the original synthetic-or-physical Ethernet extent so the
+    * supervision parser can distinguish a truncated capture from a malformed
+    * TLV even after the regular dispatcher has advanced ArgusThisUpHdr. */
+   model->ArgusThisPrp.rct.frame_length = frame_len;
 
    if ((frame_len > capture_len) || (frame_len < (ETHER_HDRLEN + ARGUS_PRP_RCT_LEN)))
       return;
@@ -1264,15 +1289,276 @@ ArgusParsePrpRct(struct ArgusModelerStruct *model, struct ether_header *ep,
 
    if ((normal == 2) && (with_fcs == 2)) {
       /* Do not guess whether four trailing bytes are FCS or payload. */
-      ArgusResetPrpPacketState(model);
+      ArgusResetPrpRctPacketState(model);
    } else if (normal == 2) {
-      model->ArgusThisPrp = normal_state;
+      model->ArgusThisPrp.rct = normal_state;
+      model->ArgusThisPrp.rct.offset = frame_len - ARGUS_PRP_RCT_LEN;
    } else if (with_fcs == 2) {
-      model->ArgusThisPrp = fcs_state;
+      model->ArgusThisPrp.rct = fcs_state;
+      model->ArgusThisPrp.rct.offset = frame_len - ARGUS_PRP_FCS_LEN - ARGUS_PRP_RCT_LEN;
    } else if (normal == 1) {
-      model->ArgusThisPrp = normal_state;
+      model->ArgusThisPrp.rct = normal_state;
    } else if (with_fcs == 1) {
-      model->ArgusThisPrp = fcs_state;
+      model->ArgusThisPrp.rct = fcs_state;
+   }
+
+   model->ArgusThisPrp.rct.frame_length = frame_len;
+}
+
+
+static int
+ArgusPrpBytesAreZero(const unsigned char *ptr, unsigned int length)
+{
+   unsigned int i;
+
+   for (i = 0; i < length; i++)
+      if (ptr[i] != 0)
+         return (0);
+
+   return (1);
+}
+
+
+static void
+ArgusPrpSetClaim(struct ArgusPrpSupervisionPacketState *state,
+                 unsigned char *target, unsigned int flag,
+                 const unsigned char *value)
+{
+   if (!(state->flags & flag)) {
+      bcopy(value, target, 6);
+      state->flags |= flag;
+   } else if (bcmp(target, value, 6)) {
+      state->flags |= ARGUS_PRP_SUPERVISION_CLAIM_CONFLICT;
+   }
+}
+
+
+static void
+ArgusPrpSetMalformedSupervision(struct ArgusPrpSupervisionPacketState *state)
+{
+   state->flags |= ARGUS_PRP_SUPERVISION_MALFORMED;
+   state->flags &= ~ARGUS_PRP_SUPERVISION_VALID;
+   state->status = ARGUS_PRP_SUPERVISION_PARSE_INVALID;
+}
+
+
+static void
+ArgusPrpSetShortSupervision(struct ArgusPrpSupervisionPacketState *state,
+                            unsigned int visible_end,
+                            unsigned int logical_end)
+{
+   if (visible_end < logical_end)
+      state->flags |= ARGUS_PRP_SUPERVISION_TRUNCATED;
+   else
+      state->flags |= ARGUS_PRP_SUPERVISION_MALFORMED;
+   state->flags &= ~ARGUS_PRP_SUPERVISION_VALID;
+   state->status = ARGUS_PRP_SUPERVISION_PARSE_INVALID;
+}
+
+
+/*
+ * Decode an EtherType 0x88fb supervision payload.  The regular Ethernet
+ * parser has already classified a trailing RCT independently.  When that RCT
+ * was fully validated, it supplies a hard end-of-supervision boundary so its
+ * sequence and bytes can never be interpreted as TLVs.
+ */
+static void
+ArgusParsePrpSupervision(struct ArgusModelerStruct *model,
+                         const unsigned char *payload)
+{
+   struct ArgusPrpSupervisionPacketState *state;
+   const unsigned char *frame;
+   unsigned int capture_len, frame_len, visible_end, logical_end;
+   unsigned int start, end, offset;
+
+   if (model == NULL)
+      return;
+
+   state = &model->ArgusThisPrp.supervision;
+   memset(state, 0, sizeof(*state));
+   state->status = ARGUS_PRP_SUPERVISION_PARSE_INVALID;
+   state->flags = ARGUS_PRP_SUPERVISION_PRESENT;
+
+   if (model->ArgusThisEpHdr != NULL) {
+      ArgusPrpSetClaim(state, state->reporter,
+                       ARGUS_PRP_SUPERVISION_REPORTER,
+                       (const unsigned char *)model->ArgusThisEpHdr->ether_shost);
+   }
+
+   if ((model->ArgusThisEpHdr == NULL) || (payload == NULL) ||
+       (model->ArgusThisSnapEnd == NULL)) {
+      state->flags |= ARGUS_PRP_SUPERVISION_TRUNCATED;
+      return;
+   }
+
+   frame = (const unsigned char *)model->ArgusThisEpHdr;
+   if (((unsigned char *)frame > model->ArgusThisSnapEnd) ||
+       (payload < frame) || (payload > model->ArgusThisSnapEnd)) {
+      state->flags |= ARGUS_PRP_SUPERVISION_TRUNCATED;
+      return;
+   }
+
+   capture_len = (unsigned int)(model->ArgusThisSnapEnd - (unsigned char *)frame);
+   frame_len = model->ArgusThisPrp.rct.frame_length;
+   start = (unsigned int)(payload - frame);
+   if ((frame_len == 0) || (start > frame_len) || (start > capture_len)) {
+      state->flags |= ARGUS_PRP_SUPERVISION_TRUNCATED;
+      return;
+   }
+
+   visible_end = (frame_len < capture_len) ? frame_len : capture_len;
+   logical_end = frame_len;
+   end = visible_end;
+
+   /* A short capture remains a short observation even when the fields that
+    * happened to be captured form complete TLVs. */
+   if (visible_end < logical_end)
+      state->flags |= ARGUS_PRP_SUPERVISION_TRUNCATED;
+
+   if ((model->ArgusThisPrp.rct.status == ARGUS_PRP_RCT_VALID) &&
+       (model->ArgusThisPrp.rct.offset >= start) &&
+       (model->ArgusThisPrp.rct.offset <= visible_end)) {
+      end = model->ArgusThisPrp.rct.offset;
+      logical_end = end;
+   }
+
+   if (end < start) {
+      ArgusPrpSetShortSupervision(state, end, logical_end);
+      return;
+   }
+
+   offset = start;
+   if ((end - offset) < 2) {
+      ArgusPrpSetShortSupervision(state, end, logical_end);
+      return;
+   }
+
+   {
+      unsigned short path_version = EXTRACT_16BITS(frame + offset);
+
+      state->path = (path_version >> 12) & 0x0F;
+      state->version = path_version & 0x0FFF;
+      if (!(state->flags & (ARGUS_PRP_SUPERVISION_MALFORMED |
+                            ARGUS_PRP_SUPERVISION_TRUNCATED))) {
+         state->flags |= ARGUS_PRP_SUPERVISION_VALID;
+         state->status = ARGUS_PRP_SUPERVISION_PARSE_VALID;
+      }
+      offset += 2;
+   }
+
+   if (state->version > 0) {
+      if ((end - offset) < 2) {
+         ArgusPrpSetShortSupervision(state, end, logical_end);
+         return;
+      }
+      state->sequence = EXTRACT_16BITS(frame + offset);
+      state->flags |= ARGUS_PRP_SUPERVISION_HAS_SEQUENCE;
+      offset += 2;
+   }
+
+   while (offset < end) {
+      unsigned int remaining = end - offset;
+      unsigned char type, length;
+      const unsigned char *value;
+
+      /* Zero-filled Ethernet padding may leave an odd byte after a complete
+       * TLV.  It is not a malformed TLV list. */
+      if (remaining < 2) {
+         if (ArgusPrpBytesAreZero(frame + offset, remaining))
+            state->flags |= ARGUS_PRP_SUPERVISION_PADDING;
+         else
+            ArgusPrpSetShortSupervision(state, end, logical_end);
+         break;
+      }
+
+      type = frame[offset++];
+      length = frame[offset++];
+
+      if ((type == ARGUS_PRP_SUPERVISION_TLV_EOT) && (length == 0)) {
+         state->flags |= ARGUS_PRP_SUPERVISION_EOT;
+         if (offset < end)
+            state->flags |= ARGUS_PRP_SUPERVISION_PADDING;
+         break;
+      }
+
+      if (length > (end - offset)) {
+         ArgusPrpSetShortSupervision(state, end, logical_end);
+         break;
+      }
+
+      value = frame + offset;
+      switch (type) {
+         case ARGUS_PRP_SUPERVISION_NODE_DISCARD:
+         case ARGUS_PRP_SUPERVISION_NODE_ACCEPT:
+            if ((length != 6) && (length != 12)) {
+               ArgusPrpSetMalformedSupervision(state);
+            } else {
+               if (state->node_mode == 0)
+                  state->node_mode = type;
+               else if (state->node_mode != type)
+                  state->flags |= ARGUS_PRP_SUPERVISION_CLAIM_CONFLICT;
+
+               ArgusPrpSetClaim(state, state->node_a,
+                                ARGUS_PRP_SUPERVISION_NODE_A, value);
+               if (length == 12)
+                  ArgusPrpSetClaim(state, state->node_b,
+                                   ARGUS_PRP_SUPERVISION_NODE_B, value + 6);
+            }
+            break;
+
+         case ARGUS_PRP_SUPERVISION_TLV_REDBOX:
+            if (length != 6)
+               ArgusPrpSetMalformedSupervision(state);
+            else
+               ArgusPrpSetClaim(state, state->redbox,
+                                ARGUS_PRP_SUPERVISION_REDBOX, value);
+            break;
+
+         case ARGUS_PRP_SUPERVISION_TLV_VDAN:
+            if (length != 6)
+               ArgusPrpSetMalformedSupervision(state);
+            else
+               ArgusPrpSetClaim(state, state->vdan,
+                                ARGUS_PRP_SUPERVISION_VDAN, value);
+            break;
+
+         case ARGUS_PRP_SUPERVISION_TLV_EOT:
+            /* EOT is specifically type 0 / length 0. */
+            ArgusPrpSetMalformedSupervision(state);
+            break;
+
+         default:
+            /* Unknown, bounded TLVs are intentionally skipped. */
+            break;
+      }
+
+      offset += length;
+
+      /* PRP-0 has no sequence number.  A RedBox or VDAN announcement ends
+       * its TLV data, but a two-address node announcement can be followed by
+       * a RedBox/VDAN TLV.  Only treat the remaining bytes after a node as
+       * padding when they are actually all zero, so a valid follow-on claim
+       * is not hidden by an early stop. */
+      if ((state->version == 0) &&
+          ((type == ARGUS_PRP_SUPERVISION_TLV_REDBOX) ||
+           (type == ARGUS_PRP_SUPERVISION_TLV_VDAN)) && (length == 6)) {
+         if (offset < end)
+            state->flags |= ARGUS_PRP_SUPERVISION_PADDING;
+         break;
+      }
+
+      if ((state->version == 0) &&
+          (((type == ARGUS_PRP_SUPERVISION_NODE_DISCARD) ||
+            (type == ARGUS_PRP_SUPERVISION_NODE_ACCEPT)) && (length == 12)) &&
+          (offset < end) && ArgusPrpBytesAreZero(frame + offset, end - offset)) {
+         if ((end - offset) >= 2) {
+            state->flags |= ARGUS_PRP_SUPERVISION_EOT;
+            offset += 2;
+         }
+         if (offset < end)
+            state->flags |= ARGUS_PRP_SUPERVISION_PADDING;
+         break;
+      }
    }
 }
 
@@ -2466,14 +2752,21 @@ ArgusNewFlow (struct ArgusModelerStruct *model, struct ArgusSystemFlow *flow, st
                flowstr->userlen = ARGUS_MAXSNAPLEN;
             break;
  
-         case ARGUS_ISIS:
-            timeout = ARGUS_OTHERTIMEOUT;
-            model->ArgusTotalNonIPFlows++;
-            if (getArgusControlMonitor(model))
-               flowstr->userlen = ARGUS_MAXSNAPLEN;
-            break;
- 
-         default:
+          case ARGUS_ISIS:
+             timeout = ARGUS_OTHERTIMEOUT;
+             model->ArgusTotalNonIPFlows++;
+             if (getArgusControlMonitor(model))
+                flowstr->userlen = ARGUS_MAXSNAPLEN;
+             break;
+
+          case ETHERTYPE_PRP:
+             timeout = ARGUS_OTHERTIMEOUT;
+             model->ArgusTotalNonIPFlows++;
+             if (getArgusControlMonitor(model))
+                flowstr->userlen = ARGUS_MAXSNAPLEN;
+             break;
+
+          default:
             model->ArgusTotalNonIPFlows++;
             timeout = ARGUS_OTHERTIMEOUT;
             break;
@@ -3367,153 +3660,6 @@ ArgusTallyStats (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow)
 }
 
 
-static int
-ArgusPrpTimeBefore(const struct ArgusTime *left, const struct ArgusTime *right)
-{
-   return ((left->tv_sec < right->tv_sec) ||
-           ((left->tv_sec == right->tv_sec) &&
-            (left->tv_usec < right->tv_usec)));
-}
-
-
-static int
-ArgusPrpTimeAfter(const struct ArgusTime *left, const struct ArgusTime *right)
-{
-   return ((left->tv_sec > right->tv_sec) ||
-           ((left->tv_sec == right->tv_sec) &&
-            (left->tv_usec > right->tv_usec)));
-}
-
-
-static void
-ArgusPrpSetRct(struct ArgusMacPrpRct *rct,
-               const struct ArgusPrpPacketState *packet,
-               const struct timeval *time)
-{
-   rct->sequence = packet->sequence;
-   rct->lan_id_and_lsdu_size = packet->lan_id_and_lsdu_size;
-   rct->time.tv_sec = time->tv_sec;
-   rct->time.tv_usec = time->tv_usec;
-}
-
-
-static void
-ArgusPrpIncrement(unsigned long long *counter, unsigned int *flags)
-{
-   if (*counter == ULLONG_MAX) {
-      *flags |= ARGUS_MAC_PRP_COUNTER_SATURATED;
-   } else {
-      (*counter)++;
-      if (*counter == ULLONG_MAX)
-         *flags |= ARGUS_MAC_PRP_COUNTER_SATURATED;
-   }
-}
-
-
-static void
-ArgusPrpAdd(unsigned long long *counter, unsigned int value, unsigned int *flags)
-{
-   if ((ULLONG_MAX - *counter) < value) {
-      *counter = ULLONG_MAX;
-      *flags |= ARGUS_MAC_PRP_COUNTER_SATURATED;
-   } else {
-      *counter += value;
-      if (*counter == ULLONG_MAX)
-         *flags |= ARGUS_MAC_PRP_COUNTER_SATURATED;
-   }
-}
-
-
-static int
-ArgusPrpSequenceIdle(const struct ArgusModelerStruct *model,
-                     const struct ArgusMacPrpLanState *state)
-{
-   const struct timeval *now = &model->ArgusGlobalTime;
-   unsigned long long seconds;
-
-   if (!state->initialized || (now->tv_sec < 0))
-      return (0);
-
-   if ((unsigned long long)now->tv_sec < state->lasttime.tv_sec)
-      return (0);
-   if (((unsigned long long)now->tv_sec == state->lasttime.tv_sec) &&
-       ((unsigned long long)now->tv_usec < state->lasttime.tv_usec))
-      return (0);
-
-   seconds = (unsigned long long)now->tv_sec - state->lasttime.tv_sec;
-   return ((seconds > ARGUS_PRP_SEQUENCE_IDLE_TIMEOUT) ||
-           ((seconds == ARGUS_PRP_SEQUENCE_IDLE_TIMEOUT) &&
-            ((unsigned long long)now->tv_usec >= state->lasttime.tv_usec)));
-}
-
-
-static void
-ArgusPrpUpdateLastTime(struct ArgusMacPrpLanState *state,
-                       const struct timeval *time)
-{
-   struct ArgusTime now;
-
-   now.tv_sec = time->tv_sec;
-   now.tv_usec = time->tv_usec;
-   if (ArgusPrpTimeAfter(&now, &state->lasttime))
-      state->lasttime = now;
-}
-
-
-static void
-ArgusPrpUpdateLan(struct ArgusModelerStruct *model,
-                  struct ArgusMacPrpDirection *direction,
-                  struct ArgusMacPrpLan *lan,
-                  struct ArgusMacPrpLanState *state,
-                  const struct ArgusPrpPacketState *packet,
-                  unsigned int lan_flag)
-{
-   struct ArgusTime now;
-   unsigned int distance;
-   int reseed = 0;
-
-   now.tv_sec = model->ArgusGlobalTime.tv_sec;
-   now.tv_usec = model->ArgusGlobalTime.tv_usec;
-
-   if (lan->packets == 0) {
-      ArgusPrpSetRct(&lan->first, packet, &model->ArgusGlobalTime);
-      ArgusPrpSetRct(&lan->last,  packet, &model->ArgusGlobalTime);
-   } else {
-      if (ArgusPrpTimeBefore(&now, &lan->first.time))
-         ArgusPrpSetRct(&lan->first, packet, &model->ArgusGlobalTime);
-      if (ArgusPrpTimeAfter(&now, &lan->last.time))
-         ArgusPrpSetRct(&lan->last, packet, &model->ArgusGlobalTime);
-   }
-   ArgusPrpIncrement(&lan->packets, &direction->flags);
-
-   if (state->initialized) {
-      reseed = ArgusPrpSequenceIdle(model, state);
-      if (reseed) {
-         direction->flags |= (lan_flag == ARGUS_MAC_PRP_LAN_A) ?
-                             ARGUS_MAC_PRP_LAN_A_RESEED :
-                             ARGUS_MAC_PRP_LAN_B_RESEED;
-      } else {
-         distance = (unsigned short)(packet->sequence - state->sequence);
-         if (distance == 0) {
-            ArgusPrpIncrement(&lan->duplicates, &direction->flags);
-         } else if (distance < 0x8000) {
-            if (distance > 1)
-               ArgusPrpAdd(&lan->gaps, distance - 1, &direction->flags);
-            state->sequence = packet->sequence;
-         } else {
-            ArgusPrpIncrement(&lan->out_of_order, &direction->flags);
-         }
-      }
-   }
-
-   if (!state->initialized || reseed) {
-      state->sequence = packet->sequence;
-      state->initialized = 1;
-   }
-   ArgusPrpUpdateLastTime(state, &model->ArgusGlobalTime);
-}
-
-
 void ArgusUpdateMACState (struct ArgusModelerStruct *, struct ArgusFlowStruct *, unsigned char *);
 
 void
@@ -3525,7 +3671,7 @@ ArgusUpdateMACState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
    (void)state;
 
    if ((model == NULL) || (flowstr == NULL) || !getArgusmflag(model) ||
-       (model->ArgusThisPrp.status == ARGUS_PRP_RCT_NONE))
+        (model->ArgusThisPrp.rct.status == ARGUS_PRP_RCT_NONE))
       return;
 
    if ((mac = (struct ArgusMacStruct *)flowstr->dsrs[ARGUS_MAC_INDEX]) == NULL)
@@ -3542,26 +3688,114 @@ ArgusUpdateMACState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
       direction = &mac->dst_prp;
    }
 
-   direction->flags |= ARGUS_MAC_PRP_FLOW_SCOPE;
-   if (model->ArgusThisPrp.status == ARGUS_PRP_RCT_INVALID) {
+   if (model->ArgusThisPrp.rct.status == ARGUS_PRP_RCT_INVALID) {
       direction->flags |= ARGUS_MAC_PRP_MALFORMED_RCT;
-      ArgusPrpIncrement(&direction->malformed_rcts, &direction->flags);
-   } else if (model->ArgusThisPrp.status == ARGUS_PRP_RCT_VALID) {
-      if (model->ArgusThisPrp.lan_id == ARGUS_PRP_LAN_A_ID) {
+   } else if (model->ArgusThisPrp.rct.status == ARGUS_PRP_RCT_VALID) {
+      if (model->ArgusThisPrp.rct.lan_id == ARGUS_PRP_LAN_A_ID) {
          direction->flags |= ARGUS_MAC_PRP_LAN_A;
-         ArgusPrpUpdateLan(model, direction, &direction->lan_a,
-                           model->ArgusThisDir ? &mac->prp_state.src_lan_a :
-                                                 &mac->prp_state.dst_lan_a,
-                           &model->ArgusThisPrp, ARGUS_MAC_PRP_LAN_A);
-      } else if (model->ArgusThisPrp.lan_id == ARGUS_PRP_LAN_B_ID) {
+         direction->lan_a.packets++;
+      } else if (model->ArgusThisPrp.rct.lan_id == ARGUS_PRP_LAN_B_ID) {
          direction->flags |= ARGUS_MAC_PRP_LAN_B;
-         ArgusPrpUpdateLan(model, direction, &direction->lan_b,
-                           model->ArgusThisDir ? &mac->prp_state.src_lan_b :
-                                                 &mac->prp_state.dst_lan_b,
-                           &model->ArgusThisPrp, ARGUS_MAC_PRP_LAN_B);
+         direction->lan_b.packets++;
       }
    }
 
+}
+
+
+static void
+ArgusMergePrpSupervisionClaim(struct ArgusPrpSupervisionObject *prp,
+                              unsigned char *target, unsigned int flag,
+                              const unsigned char *value)
+{
+   if (!(prp->flags & flag)) {
+      bcopy(value, target, 6);
+   } else if (bcmp(target, value, 6)) {
+      prp->flags |= ARGUS_PRP_SUPERVISION_CLAIM_CONFLICT;
+   }
+}
+
+
+static void
+ArgusUpdatePrpSupervisionState(struct ArgusModelerStruct *model,
+                               struct ArgusFlowStruct *flowstr)
+{
+   const struct ArgusPrpSupervisionPacketState *state;
+   struct ArgusNetworkStruct *net;
+   struct ArgusPrpSupervisionObject *prp;
+
+   if ((model == NULL) || (flowstr == NULL) ||
+       ((model->ArgusThisNetworkFlowType & 0xFFFF) != ETHERTYPE_PRP))
+      return;
+
+   state = &model->ArgusThisPrp.supervision;
+   if (!(state->flags & ARGUS_PRP_SUPERVISION_PRESENT))
+      return;
+
+   net = (struct ArgusNetworkStruct *)flowstr->dsrs[ARGUS_NETWORK_INDEX];
+   if (net == NULL) {
+      net = &flowstr->canon.net;
+      flowstr->dsrs[ARGUS_NETWORK_INDEX] = &net->hdr;
+      flowstr->dsrindex |= 1 << ARGUS_NETWORK_INDEX;
+   }
+
+   if ((net->hdr.type != ARGUS_NETWORK_DSR) ||
+       (net->hdr.subtype != ARGUS_NETWORK_SUBTYPE_PRP)) {
+      memset(net, 0, sizeof(*net));
+      net->hdr.type              = ARGUS_NETWORK_DSR;
+      net->hdr.subtype           = ARGUS_NETWORK_SUBTYPE_PRP;
+      net->hdr.argus_dsrvl8.qual = 0;
+      net->hdr.argus_dsrvl8.len  = ARGUS_PRP_SUPERVISION_DSR_LEN;
+   }
+
+   prp = &net->net_union.prp;
+   if (state->flags & ARGUS_PRP_SUPERVISION_VALID) {
+      if (!(prp->flags & ARGUS_PRP_SUPERVISION_VALID)) {
+         prp->version = state->version;
+         prp->path = state->path;
+      } else if ((prp->version != state->version) ||
+                 (prp->path != state->path)) {
+         prp->flags |= ARGUS_PRP_SUPERVISION_CLAIM_CONFLICT;
+      }
+   }
+
+   if (state->node_mode != 0) {
+      if (prp->node_mode == 0)
+         prp->node_mode = state->node_mode;
+      else if (prp->node_mode != state->node_mode)
+         prp->flags |= ARGUS_PRP_SUPERVISION_CLAIM_CONFLICT;
+   }
+
+   /* The supervision sequence is deliberately independent of the RCT.  It
+    * changes per announcement, so retain the most recently observed value. */
+   if (state->flags & ARGUS_PRP_SUPERVISION_HAS_SEQUENCE)
+      prp->sequence = state->sequence;
+
+   if (state->flags & ARGUS_PRP_SUPERVISION_REPORTER)
+      ArgusMergePrpSupervisionClaim(prp, prp->reporter,
+                                    ARGUS_PRP_SUPERVISION_REPORTER,
+                                    state->reporter);
+   if (state->flags & ARGUS_PRP_SUPERVISION_NODE_A)
+      ArgusMergePrpSupervisionClaim(prp, prp->node_a,
+                                    ARGUS_PRP_SUPERVISION_NODE_A,
+                                    state->node_a);
+   if (state->flags & ARGUS_PRP_SUPERVISION_NODE_B)
+      ArgusMergePrpSupervisionClaim(prp, prp->node_b,
+                                    ARGUS_PRP_SUPERVISION_NODE_B,
+                                    state->node_b);
+   if (state->flags & ARGUS_PRP_SUPERVISION_REDBOX)
+      ArgusMergePrpSupervisionClaim(prp, prp->redbox,
+                                    ARGUS_PRP_SUPERVISION_REDBOX,
+                                    state->redbox);
+   if (state->flags & ARGUS_PRP_SUPERVISION_VDAN)
+      ArgusMergePrpSupervisionClaim(prp, prp->vdan,
+                                    ARGUS_PRP_SUPERVISION_VDAN,
+                                    state->vdan);
+
+   /* Fixed fields make this a bounded report-window summary.  Claim bytes are
+    * retained only for the first value in each role; a later distinct value
+    * is represented by the conflict bit for client-side inventory handling. */
+   prp->flags |= state->flags;
 }
 
 
@@ -3593,6 +3827,7 @@ ArgusUpdateState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow
    }
 
    ArgusUpdateMACState(model, flowstr, &state);
+   ArgusUpdatePrpSupervisionState(model, flowstr);
 
    flow = (struct ArgusSystemFlow *) flowstr->dsrs[ARGUS_FLOW_INDEX];
 

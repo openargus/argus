@@ -1114,9 +1114,8 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
             case ARGUS_MAC_INDEX: {
                struct ArgusMacStruct *mac = (struct ArgusMacStruct *)flow->dsrs[i];
 
-               /* The MAC prefix remains sticky as before.  PRP counters and
-                * RCT snapshots are report-window values, while prp_state is
-                * intentionally retained as the flow-local sequence cursor. */
+               /* The MAC prefix remains sticky as before.  PRP status and
+                * LAN packet totals are report-window values. */
                if ((mac->hdr.type == ARGUS_MAC_DSR) &&
                    (mac->hdr.subtype == ARGUS_MAC_DSR_V2)) {
                   bzero(&mac->src_prp, sizeof(mac->src_prp));
@@ -1166,19 +1165,30 @@ ArgusZeroRecord (struct ArgusFlowStruct *flow)
                   switch (net->hdr.type) {
                      case ARGUS_NETWORK_DSR: {
                         switch (net->hdr.subtype) {
-                           case ARGUS_NETWORK_SUBTYPE_FRAG: {
-                              struct ArgusFragObject *frag = &net->net_union.frag;
-                              struct ArgusFragOffsetStruct *fragOffset = frag->offsets.nxt;
+                            case ARGUS_NETWORK_SUBTYPE_FRAG: {
+                               struct ArgusFragObject *frag = &net->net_union.frag;
+                               struct ArgusFragOffsetStruct *fragOffset = frag->offsets.nxt;
 
                               while ((fragOffset = frag->offsets.nxt) != NULL) {
                                  frag->offsets.nxt = fragOffset->nxt;
                                  free(fragOffset);
                               }
-                              bzero((char *)frag, sizeof(struct ArgusFragObject));
-                              break;
-                           }
+                               bzero((char *)frag, sizeof(struct ArgusFragObject));
+                               break;
+                            }
 
-                           case ARGUS_TCP_INIT:
+                            case ARGUS_NETWORK_SUBTYPE_PRP:
+                               /* Supervision claims are bounded report-window
+                                * observations.  Drop the DSR entirely so a
+                                * later non-PRP packet sharing an outer L2 key
+                                * cannot inherit stale supervision metadata. */
+                               bzero(&net->net_union.prp,
+                                     sizeof(net->net_union.prp));
+                               flow->dsrs[i] = NULL;
+                               flow->dsrindex &= ~(1U << i);
+                               break;
+
+                            case ARGUS_TCP_INIT:
                            case ARGUS_TCP_STATUS:
                            case ARGUS_TCP_PERF: {
                               struct ArgusTCPObject *tcp = &net->net_union.tcp;
