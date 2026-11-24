@@ -312,30 +312,31 @@ current usage in source before relying on them: `ARGUS_IB_DSR (0x35)`,
 
 ---
 
-## 4.1 MAC DSR v0 and v2 PRP-1 extension
+## 4.1 MAC DSR v0 and v2 PRP extension
 
 The original MAC DSR is preserved exactly for non-PRP observations:
 
 | MAC subtype | DSR length | Meaning |
 |---|---:|---|
 | `0x00` (`ARGUS_MAC_DSR_BASE`) | 5 words / 20 bytes | Legacy DSR header plus `ArgusMacFlow`; this is byte-for-byte the pre-extension format. |
-| `0x02` (`ARGUS_MAC_DSR_V2`) | 11 words / 44 bytes | The same 20-byte legacy prefix followed by two compact PRP-1 direction objects. |
+| `0x02` (`ARGUS_MAC_DSR_V2`) | 17 words / 68 bytes | The same 20-byte legacy prefix followed by two compact PRP direction objects. |
 
 MAC-v2 is a v5 `ARGUS_MAC_DSR` (`type=0x42`), not a legacy Argus-v2 DSR and not a new DSR-chain slot. Its
 serialized layout, measured from the first byte of the MAC DSR, is:
 
 | Offset | Size | Field |
 |---:|---:|---|
-| 0 | 4 | Normal DSR header (`type=0x42`, `subtype=0x02`, qualifier, `len=11`) |
+| 0 | 4 | Normal DSR header (`type=0x42`, `subtype=0x02`, qualifier, `len=17`) |
 | 4 | 16 | Existing `ArgusMacFlow` prefix |
-| 20 | 12 | `src_prp` (`ArgusMacPrpDirection`) |
-| 32 | 12 | `dst_prp` (`ArgusMacPrpDirection`) |
+| 20 | 24 | `src_prp` (`ArgusMacPrpDirection`) |
+| 44 | 24 | `dst_prp` (`ArgusMacPrpDirection`) |
 
 Each direction object contains a 32-bit `flags`, a 32-bit unsigned LAN A packet total, and a 32-bit unsigned
-LAN B packet total. All multi-byte fields in the PRP extension are in network byte order on the wire; the
+LAN B packet total, a 32-bit unsigned `matched_pairs` count and a signed 64-bit `skew_sum_us`.
+All multi-byte fields in the PRP extension are in network byte order on the wire; the
 retained legacy MAC prefix preserves its pre-existing wire behavior. Client aggregation promotes the two
-packet totals to 64-bit `long long` counters before combining records. Generated or modified client records
-use the 15-word canonical MAC-v2 form; an unmodified raw record pass-through retains the sensor's 11-word
+packet totals and match count to 64-bit `long long` counters before combining records. Generated or modified client records
+use the 23-word canonical MAC-v2 form; an unmodified raw record pass-through retains the sensor's 17-word
 wire form.
 
 The MAC DSR qualifier retains its existing multipath bits (`0x01` source, `0x02` destination). MAC-v2 adds
@@ -357,8 +358,22 @@ candidate, or a frame for which both placements are valid, is **unknown** and do
 any PRP total. A recognized suffix with an invalid LAN ID or LSDU size sets the malformed-RCT flag only in the
 packet's canonical flow direction.
 
-PRP sequence values, duplicate/gap/out-of-order diagnostics, and RCT snapshots are not retained. The PRP
-flags and LAN packet totals are report-window values. A FAR status reset clears them and returns the MAC DSR
+PRP-0 uses a four-byte sequence and LAN/size trailer without the PRP-1 suffix.
+By default Argus checks a known payload boundary (IPv4, non-jumbo IPv6, IEEE 802.3 length,
+or a recognized version-zero supervision announcement). Zero padding on minimum-size frames
+may precede or follow the trailer. On opaque EtherTypes `ARGUS_PRP0_HEURISTIC=yes` allows
+tail-only recognition; it is off by default because payload bytes can match by coincidence.
+Both versions use the same counters and wire layout.
+
+Each flow direction has one pending (version, sequence, LAN, capture timestamp) slot. A valid opposite-LAN
+copy of the same version and sequence within one second completes a match and clears the slot. A same-LAN repeat
+keeps the first timestamp. A changed sequence, expired slot, or backwards timestamp replaces the slot.
+Pending state survives status reports; the completing packet's report gets the match and signed
+skew (LAN B minus LAN A, microseconds). `skew_sum_us / matched_pairs` is mean signed skew when matches
+are nonzero; opposite signs can cancel. Across complete windows, `2 * matched_pairs / (lan_a + lan_b)`
+is observed match coverage when the denominator is nonzero. Interleaving can overwrite a pending copy,
+so low coverage does not establish packet loss. Capture timestamps must be comparable across LANs.
+The PRP flags, counts, and skew sum are report-window values. A FAR status reset clears them and returns the MAC DSR
 to the five-word v0 form until another PRP observation arrives. Metric DSR packet and byte totals are not
 deduplicated or trailer-adjusted: they continue to describe observed physical packets and bytes.
 

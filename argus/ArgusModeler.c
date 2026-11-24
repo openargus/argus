@@ -1210,12 +1210,92 @@ ArgusPrpReadRct(const unsigned char *rct, unsigned int expected_lsdu,
    if (((lan_id == ARGUS_PRP_LAN_A_ID) || (lan_id == ARGUS_PRP_LAN_B_ID)) &&
        ((lan_id_and_lsdu_size & ARGUS_PRP_LSDU_SIZE_MASK) == expected_lsdu)) {
       state->status = ARGUS_PRP_RCT_VALID;
+      state->version = 1;
+      state->sequence = EXTRACT_16BITS(rct);
       return (2);
    }
 
    return (1);
 }
 
+
+static int ArgusPrpBytesAreZero(const unsigned char *, unsigned int);
+
+/* Return the independently known payload extent. Never fall back to the
+ * opaque-frame heuristic for a malformed header of a recognized protocol. */
+static int
+ArgusPrp0Payload(unsigned int type, const unsigned char *p, unsigned int n,
+                 unsigned int *used, int heuristic)
+{
+   if (type == ETHERTYPE_IP) {
+      if (n < 20 || (p[0] >> 4) != 4 || (p[0] & 15) < 5)
+         return 0;
+      *used = EXTRACT_16BITS(p + 2);
+      return *used >= (p[0] & 15) * 4U && *used <= n;
+   } else if (type == ETHERTYPE_IPV6) {
+      if (n < 40 || (p[0] >> 4) != 6 || !EXTRACT_16BITS(p + 4))
+         return 0;
+      *used = 40U + EXTRACT_16BITS(p + 4);
+      return *used <= n;
+   } else if (type <= 1500) {
+      *used = type;
+      return *used <= n;
+   } else if (type == ETHERTYPE_PRP) {
+      unsigned int pos;
+      if (n < 4 || (EXTRACT_16BITS(p) & 0xfff) != 0 ||
+          (p[2] != ARGUS_PRP_SUPERVISION_NODE_ACCEPT && p[2] != ARGUS_PRP_SUPERVISION_NODE_DISCARD) ||
+          (p[3] != 6 && p[3] != 12))
+         return 0;
+      pos = 4U + p[3];
+      if (pos + 2 <= n && (p[pos] == ARGUS_PRP_SUPERVISION_TLV_REDBOX ||
+                            p[pos] == ARGUS_PRP_SUPERVISION_TLV_VDAN) && p[pos+1] == 6)
+         pos += 8;
+      *used = pos;
+      return pos <= n;
+   }
+   *used = 0;
+   return heuristic;
+}
+
+/* A suffixless four-byte trailer must lie outside the advertised payload.
+ * Only allow intervening/following padding on minimum-sized frames. A
+ * placement supported by two FCS interpretations counts just once. */
+static void
+ArgusParsePrp0(struct ArgusModelerStruct *model, const unsigned char *frame,
+               unsigned int len, unsigned int vlan)
+{
+   unsigned int start = ETHER_HDRLEN + vlan, used, fcs, found = 0;
+   const unsigned char *p = frame + start;
+   if (!ArgusPrp0Payload(EXTRACT_16BITS(p-2), p, len-start, &used, model->ArgusPrp0Heuristic))
+      return;
+   for (fcs = 0; fcs <= 4; fcs += 4) {
+      unsigned int end = len-fcs, pos;
+      if (end < start + used + 4)
+         continue;
+      for (pos = (used && end <= 60+vlan) ? start+used : end-4; pos <= end-4; pos++) {
+         unsigned int word = EXTRACT_16BITS(frame+pos+2);
+         unsigned int lan = word >> 12;
+         if ((lan != ARGUS_PRP_LAN_A_ID && lan != ARGUS_PRP_LAN_B_ID) ||
+             (word & 0xfff) != pos+4-start)
+            continue;
+         if (used && pos != start+used &&
+             (end > 60+vlan || !ArgusPrpBytesAreZero(p+used, pos-start-used)))
+            continue;
+         if (!ArgusPrpBytesAreZero(frame+pos+4, end-pos-4))
+            continue;
+         if (found && found != pos)
+            return;
+         found = pos;
+      }
+   }
+   if (found) {
+      struct ArgusPrpRctPacketState *s = &model->ArgusThisPrp.rct;
+      s->offset = found;
+      s->sequence = EXTRACT_16BITS(frame+found);
+      s->lan_id = frame[found+2] >> 4;
+      s->status = ARGUS_PRP_RCT_VALID;
+   }
+}
 
 /*
  * PRP-1's LSDU size includes the RCT and excludes the Ethernet header, VLAN
@@ -1296,10 +1376,14 @@ ArgusParsePrpRct(struct ArgusModelerStruct *model, struct ether_header *ep,
    } else if (with_fcs == 2) {
       model->ArgusThisPrp.rct = fcs_state;
       model->ArgusThisPrp.rct.offset = frame_len - ARGUS_PRP_FCS_LEN - ARGUS_PRP_RCT_LEN;
-   } else if (normal == 1) {
-      model->ArgusThisPrp.rct = normal_state;
-   } else if (with_fcs == 1) {
-      model->ArgusThisPrp.rct = fcs_state;
+   } else {
+      ArgusParsePrp0(model, frame, frame_len, vlan_len);
+      if (model->ArgusThisPrp.rct.status != ARGUS_PRP_RCT_VALID) {
+         if (normal == 1)
+            model->ArgusThisPrp.rct = normal_state;
+         else if (with_fcs == 1)
+            model->ArgusThisPrp.rct = fcs_state;
+      }
    }
 
    model->ArgusThisPrp.rct.frame_length = frame_len;
@@ -3691,6 +3775,32 @@ ArgusUpdateMACState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *f
    if (model->ArgusThisPrp.rct.status == ARGUS_PRP_RCT_INVALID) {
       direction->flags |= ARGUS_MAC_PRP_MALFORMED_RCT;
    } else if (model->ArgusThisPrp.rct.status == ARGUS_PRP_RCT_VALID) {
+      const struct ArgusPrpRctPacketState *rct = &model->ArgusThisPrp.rct;
+      struct ArgusPrpPending *pending = &flowstr->prp_pending[!!model->ArgusThisDir];
+      long long now = (long long)model->ArgusGlobalTime.tv_sec * 1000000;
+#if defined(ARGUS_NANOSECONDS)
+      now += model->ArgusGlobalTime.tv_usec / 1000;
+#else
+      now += model->ArgusGlobalTime.tv_usec;
+#endif
+
+      /* Pair only within one second of the first observation. A same-LAN
+       * repeat does not refresh its timestamp or extend its lifetime. */
+      if (pending->lan_id && pending->version == rct->version && pending->sequence == rct->sequence &&
+          now >= pending->time_us && now - pending->time_us <= 1000000) {
+         if (pending->lan_id != rct->lan_id) {
+            long long delta = now - pending->time_us;
+            direction->matched_pairs++;
+            direction->skew_sum_us += (rct->lan_id == ARGUS_PRP_LAN_B_ID) ? delta : -delta;
+            pending->lan_id = 0;
+         }
+      } else {
+         pending->lan_id = rct->lan_id;
+         pending->version = rct->version;
+         pending->sequence = rct->sequence;
+         pending->time_us = now;
+      }
+
       if (model->ArgusThisPrp.rct.lan_id == ARGUS_PRP_LAN_A_ID) {
          direction->flags |= ARGUS_MAC_PRP_LAN_A;
          direction->lan_a.packets++;
@@ -3826,7 +3936,6 @@ ArgusUpdateState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow
       }
    }
 
-   ArgusUpdateMACState(model, flowstr, &state);
    ArgusUpdatePrpSupervisionState(model, flowstr);
 
    flow = (struct ArgusSystemFlow *) flowstr->dsrs[ARGUS_FLOW_INDEX];
@@ -3840,6 +3949,7 @@ ArgusUpdateState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow
             ip_p = flow->ip_flow.ip_p;
             
          if (model->ArgusThisFlow->hdr.argus_dsrvl8.qual & ARGUS_FRAGMENT) {
+            ArgusUpdateMACState(model, flowstr, &state);
             ArgusTallyStats (model, flowstr);
             if (ArgusUpdateFRAGState (model, flowstr, state, proto)) {
                ArgusDeleteObject(flowstr);
@@ -3907,8 +4017,10 @@ ArgusUpdateState (struct ArgusModelerStruct *model, struct ArgusFlowStruct *flow
    }
 
    if (update) {
-      if (!(model->ArgusThisFlow->hdr.argus_dsrvl8.qual & ARGUS_FRAGMENT))
+      if (!(model->ArgusThisFlow->hdr.argus_dsrvl8.qual & ARGUS_FRAGMENT)) {
+         ArgusUpdateMACState(model, flowstr, &state);
          ArgusTallyStats (model, flowstr);
+      }
 
       ArgusUpdateAppState (model, flowstr, state); 
    }

@@ -128,14 +128,17 @@ def add_main(sec, usec, frame, direction, captured_length=None):
         destination_frames.append(frame)
 
 
-add_main(1, 100000, prp(100, 0xA, forward), "source")
-add_main(1, 110000, prp(100, 0xB, forward), "source")
+add_main(1, 100000, prp(65535, 0xA, forward), "source")
+add_main(1, 110000, prp(65535, 0xB, forward), "source")
 add_main(1, 120000, prp(102, 0xA, forward), "source")
 add_main(1, 130000, prp(102, 0xA, forward), "source")
 add_main(1, 140000, prp(101, 0xA, forward), "source")
 add_main(1, 150000, prp(102, 0xB, forward), "source")
 add_main(1, 160000, prp(500, 0xA, reverse, src=DST_MAC, dst=SRC_MAC), "destination")
 add_main(1, 170000, prp(499, 0xA, reverse, src=DST_MAC, dst=SRC_MAC), "destination")
+add_main(1, 171000, prp(0, 0xB, reverse, src=DST_MAC, dst=SRC_MAC), "destination")
+add_main(1, 172000, prp(0, 0xB, reverse, src=DST_MAC, dst=SRC_MAC), "destination")
+add_main(1, 175000, prp(0, 0xA, reverse, src=DST_MAC, dst=SRC_MAC), "destination")
 # A known suffix with a non-PRP LAN ID is malformed in the source direction.
 add_main(1, 180000, prp(900, 0xC, forward), "source")
 # A known suffix with an invalid LSDU length is malformed in the destination direction.
@@ -152,12 +155,49 @@ add_main(1, 220000, ambiguous_prp(forward), "source")
 add_main(1, 50000, prp(103, 0xA, forward), "source")
 main.append((1, 230000, ethernet(ordinary, OTHER_SRC_MAC, OTHER_DST_MAC), None))
 
+# The bytes look like a PRP-0 trailer but lie inside the IPv4 payload.
+lookalike = ipv4_udp(OTHER_SRC_IP, OTHER_DST_IP, 3000, 4000, bytes.fromhex('0001a020'))
+assert len(lookalike) == 32
+main.append((1, 231000, ethernet(lookalike, OTHER_SRC_MAC, OTHER_DST_MAC), None))
+
+def prp0(seq, lan, payload, **kw):
+    trailer = struct.pack('!HH', seq, lan << 12 | (len(payload) + 4))
+    return ethernet(payload + trailer, **kw)
+
+# A VLAN-tagged pair, including an FCS and minimum-frame padding after RCT.
+add_main(1, 240000, prp0(301, 10, forward, vlan=True).ljust(64, b'\0') + b'\x12\x34\x56\x78', 'source')
+add_main(1, 241000, prp0(301, 11, forward), 'source')
+# Same sequence and opposite LAN, but different versions: not a match.
+add_main(1, 242000, prp0(302, 10, forward), 'source')
+add_main(1, 243000, prp(302, 11, forward), 'source')
+add_main(1, 244000, prp0(303, 11, reverse, src=DST_MAC, dst=SRC_MAC), 'destination')
+add_main(1, 245000, prp0(303, 10, reverse, src=DST_MAC, dst=SRC_MAC), 'destination')
+
 write_pcap(f"{workdir}/main.pcap", main)
+
+# TCP restart on a reused tuple re-enters flow initialization on the SYN.
+# Its PRP observation belongs only to the window that tallies that packet.
+tcp_frames = []
+for i, (rev, flags) in enumerate([(False, 0x10), (True, 0x04), (False, 0x18),
+                                  (False, 0x02), (True, 0x12), (False, 0x10)]):
+    src, dst = (DST_IP, SRC_IP) if rev else (SRC_IP, DST_IP)
+    sport, dport = (830, 12345) if rev else (12345, 830)
+    tcp = struct.pack('!HHIIBBHHH', sport, dport, 100+i, 101, 0x50, flags, 4096, 0, 0)
+    ip = struct.pack('!BBHHHBBH4s4s', 0x45, 0, 40, 0, 0, 64, 6, 0, src, dst) + tcp
+    frame = prp(i, 11, ip, src=DST_MAC if rev else SRC_MAC, dst=SRC_MAC if rev else DST_MAC)
+    tcp_frames.append((6, i*1000, frame, None))
+write_pcap(f"{workdir}/tcp.pcap", tcp_frames)
+
+opaque = DST_MAC + SRC_MAC + bytes.fromhex('88b5') + bytes(42) + bytes.fromhex('0001a02e')
+write_pcap(f"{workdir}/opaque.pcap", [(7, 0, opaque, None)])
 
 reset_payload = ipv4_udp(SRC_IP, DST_IP, 1000, 2000, b"reset")
 write_pcap(f"{workdir}/reset.pcap", [
-    (1, 0, prp(100, 0xA, reset_payload), None),
-    (3, 0, prp(102, 0xA, reset_payload), None),
+    (1, 0, ethernet(reset_payload), None),
+    (1, 900000, prp(100, 0xA, reset_payload), None),
+    (2, 100000, prp(100, 0xB, reset_payload), None),
+    (4, 0, prp(102, 0xA, reset_payload), None),
+    (5, 500000, prp(102, 0xB, reset_payload), None),
 ])
 
 # Linux cooked capture omits the physical Ethernet header.  Argus synthesizes
@@ -218,15 +258,19 @@ run_sensor "PRP config-MAC replay" "$WORKDIR/main.pcap" "$WORKDIR/main-config.ar
 run_sensor "PRP no-MAC replay" "$WORKDIR/main.pcap" "$WORKDIR/main-nomac.argus"
 run_sensor "PRP report-window replay" "$WORKDIR/reset.pcap" "$WORKDIR/reset.argus" -m -S 1
 run_sensor "PRP Linux-SLL replay" "$WORKDIR/sll.pcap" "$WORKDIR/sll.argus" -m
+run_sensor "TCP restart replay" "$WORKDIR/tcp.pcap" "$WORKDIR/tcp.argus" -m
+run_sensor "opaque default replay" "$WORKDIR/opaque.pcap" "$WORKDIR/default.argus" -m
+echo ARGUS_PRP0_HEURISTIC=yes >> "$CONF"
+run_sensor "opaque opt-in replay" "$WORKDIR/opaque.pcap" "$WORKDIR/optin.argus" -F "$CONF"
 
 if python3 - "$WORKDIR/main-cli.argus" "$WORKDIR/main-config.argus" \
                "$WORKDIR/main-nomac.argus" "$WORKDIR/reset.argus" \
-               "$WORKDIR/sll.argus" "$WORKDIR/expected.json" <<'PY'
+               "$WORKDIR/sll.argus" "$WORKDIR/expected.json" "$WORKDIR" <<'PY'
 import json
 import struct
 import sys
 
-cli_path, config_path, nomac_path, reset_path, sll_path, expected_path = sys.argv[1:]
+cli_path, config_path, nomac_path, reset_path, sll_path, expected_path, workdir = sys.argv[1:]
 with open(expected_path, encoding="utf-8") as input_file:
     expected = json.load(input_file)
 
@@ -235,7 +279,7 @@ METER_TYPE = 0x10
 MAC_TYPE = 0x42
 FAR_TYPE = 0x10
 MAC_V2 = 2
-MAC_V2_WORDS = 11
+MAC_V2_WORDS = 17
 MAC_SRC_PRP = 0x04
 MAC_DST_PRP = 0x08
 PRP_LAN_A = 0x01
@@ -308,11 +352,13 @@ def matching_flow(path, source, destination, sport, dport):
 
 
 def direction(data, offset):
-    flags, lan_a_packets, lan_b_packets = struct.unpack_from("!III", data, offset)
+    flags, lan_a_packets, lan_b_packets, matches, skew = struct.unpack_from("!IIIIq", data, offset)
     return {
         "flags": flags,
         "lan_a_packets": lan_a_packets,
         "lan_b_packets": lan_b_packets,
+        "matched_pairs": matches,
+        "skew_sum_us": skew,
     }
 
 
@@ -328,10 +374,10 @@ def mac(dsrs):
     }
     if item["subtype"] == MAC_V2:
         if item["words"] != MAC_V2_WORDS:
-            raise AssertionError("MAC-v2 DSR did not have the declared 11-word length")
+            raise AssertionError("unexpected MAC-v2 length")
         # Four-byte DSR header plus the legacy 16-byte MAC payload.
         result["source"] = direction(item["data"], item["offset"] + 20)
-        result["destination"] = direction(item["data"], item["offset"] + 32)
+        result["destination"] = direction(item["data"], item["offset"] + 44)
     return result
 
 
@@ -393,13 +439,26 @@ def assert_primary_accounting(path):
     source = value["source"]
     destination = value["destination"]
     assert source["flags"] == (PRP_LAN_A | PRP_LAN_B | PRP_MALFORMED)
-    assert destination["flags"] == (PRP_LAN_A | PRP_MALFORMED)
-    assert (source["lan_a_packets"], source["lan_b_packets"]) == (5, 4)
-    assert (destination["lan_a_packets"], destination["lan_b_packets"]) == (2, 0)
+    assert destination["flags"] == (PRP_LAN_A | PRP_LAN_B | PRP_MALFORMED)
+    assert (source["lan_a_packets"], source["lan_b_packets"]) == (7, 6)
+    assert (destination["lan_a_packets"], destination["lan_b_packets"]) == (4, 3)
+    assert (source["matched_pairs"], source["skew_sum_us"]) == (2, 11000), source
+    assert (destination["matched_pairs"], destination["skew_sum_us"]) == (2, -5000), destination
 
 
 assert_primary_accounting(cli_path)
 assert_primary_accounting(config_path)
+
+total = 0
+for _, flow in records(f"{workdir}/tcp.argus"):
+    m = mac(flow)
+    sp, _, dp, _ = metric_totals(flow)
+    assert (m['source']['lan_b_packets'], m['destination']['lan_b_packets']) == (sp, dp)
+    total += sp+dp
+assert total == 6
+for name, subtype in [('default', 0), ('optin', MAC_V2)]:
+    v, = [mac(f) for _, f in records(f"{workdir}/{name}.argus")]
+    assert v['subtype'] == subtype
 
 # A non-PRP Ethernet flow continues to use the byte-for-byte legacy v0 MAC DSR.
 ordinary_flows = matching_flow(cli_path, 0x0A000101, 0x0A000102, 3000, 4000)
@@ -411,8 +470,7 @@ assert (ordinary_mac["subtype"], ordinary_mac["qualifier"], ordinary_mac["words"
 # PRP parsing still runs, but it must not add any MAC DSR to emitted records.
 assert not [item for _, dsrs in records(nomac_path) for item in dsr(dsrs, MAC_TYPE)]
 
-# A status report clears the report-window PRP status and LAN totals.  Each
-# output window therefore contains only its own LAN-A observation.
+# The first pair crosses a status report. The second is too far apart.
 reset_flows = matching_flow(reset_path, 0x0A000001, 0x0A000002, 1000, 2000)
 windows = []
 for flow in reset_flows:
@@ -420,11 +478,11 @@ for flow in reset_flows:
     if value["subtype"] != MAC_V2:
         continue
     for side in (value["source"], value["destination"]):
-        if side["lan_a_packets"]:
+        if side["lan_a_packets"] or side["lan_b_packets"]:
             windows.append(side)
-assert len(windows) >= 2, windows
-assert all((side["flags"], side["lan_a_packets"], side["lan_b_packets"]) ==
-           (PRP_LAN_A, 1, 0) for side in windows), windows
+assert [(s["lan_a_packets"], s["lan_b_packets"], s["matched_pairs"], s["skew_sum_us"])
+        for s in windows] == [(1, 0, 0, 0), (0, 1, 1, 200000),
+                              (1, 0, 0, 0), (0, 1, 0, 0)], windows
 
 # DLT_LINUX_SLL has no physical Ethernet header in the capture.  Its synthetic
 # Ethernet header must not make the RCT look 14 bytes early or alter the LSDU.

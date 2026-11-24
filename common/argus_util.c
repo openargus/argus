@@ -341,6 +341,8 @@ ArgusHtoNMacPrpDirection(struct ArgusMacPrpDirection *direction)
    direction->flags = htonl(direction->flags);
    direction->lan_a.packets = htonl(direction->lan_a.packets);
    direction->lan_b.packets = htonl(direction->lan_b.packets);
+   direction->matched_pairs = htonl(direction->matched_pairs);
+   direction->skew_sum_us = htonll(direction->skew_sum_us);
 }
 
 

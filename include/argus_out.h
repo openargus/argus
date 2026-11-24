@@ -722,9 +722,9 @@ struct ArgusJitterStruct {
 };
 
 /*
- * MAC DSR v2 PRP-1 extension.  It records whether each flow direction used
+ * MAC DSR v2 PRP extension.  It records whether each flow direction used
  * LAN A or LAN B (or contained a malformed RCT), plus the observed packet
- * totals for each LAN.  PRP sequence tracking is intentionally not retained.
+ * totals for each LAN and cross-LAN pair statistics.
  */
 struct ArgusMacPrpLan {
    unsigned int packets;
@@ -733,6 +733,8 @@ struct ArgusMacPrpLan {
 struct ArgusMacPrpDirection {
    unsigned int flags;
    struct ArgusMacPrpLan lan_a, lan_b;
+   unsigned int matched_pairs;
+   long long skew_sum_us;  /* sum of B timestamp minus A timestamp */
 };
 
 struct ArgusMacStruct {

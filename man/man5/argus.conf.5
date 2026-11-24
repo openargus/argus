@@ -690,9 +690,11 @@ and audit is not a requirement.
 
 The default value is to not generate this data.
 
-When enabled, a PRP-1 Ethernet redundancy-control trailer is reported in
+When enabled, a recognized PRP-0 or PRP-1 Ethernet redundancy-control trailer is reported in
 the version 2 MAC DSR extension, including per-flow, per-direction LAN A/B
-packet totals and PRP status flags.  Non-PRP MAC records remain in the
+packet totals, matched sequence pairs, signed cross-LAN skew sum (B minus A,
+in microseconds), and PRP status flags.  Pairing retains one pending trailer
+per flow direction for up to one second. Non-PRP MAC records remain in the
 original MAC DSR format.  PRP trailer recognition runs for processed Ethernet
 frames whether or not this option is enabled; this option controls whether the
 MAC/PRP data is emitted.
@@ -702,6 +704,12 @@ Commandline equivalent  -m
 .nf
 \fBARGUS_GENERATE_MAC_DATA=\fPno
 .fi
+
+PRP-0 trailers have no signature. By default the sensor requires a known
+payload boundary (IPv4, IPv6, IEEE 802.3 length, or PRP-0 supervision),
+a valid LAN and matching size. Set \fBARGUS_PRP0_HEURISTIC=yes\fP to also
+accept tail-only matches on opaque Ethernet payloads; these can match ordinary
+traffic by coincidence. The default is no. Pairing never mixes PRP versions.
 
 
 .SH ARGUS_GENERATE_APPBYTE_METRIC

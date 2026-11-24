@@ -229,9 +229,10 @@ struct ArgusPrpRctPacketState {
     * supervision sequence carried in the EtherType 0x88fb payload. */
    unsigned char status;
    unsigned char lan_id;
-   unsigned short pad;
+   unsigned short sequence;
    unsigned int offset;
    unsigned int frame_length;
+   unsigned char version;
 };
 
 struct ArgusPrpSupervisionPacketState {
@@ -369,6 +370,7 @@ struct ArgusModelerStruct {
    int ArgusOSFingerPrinting;
    int ArgusUserDataLen;
    int ArgusAflag, ArgusTCPflag, Argusmflag;
+   int ArgusPrp0Heuristic;
    int ArgusHashflag, ArgusCreationTime;
    int ArgusSelfSynchronize, vflag;
 
@@ -438,6 +440,13 @@ struct ArgusKeyStrokeState {
    struct ArgusTime prev_c_ts, prev_s_ts;
 };
 
+struct ArgusPrpPending {
+   long long time_us;
+   unsigned short sequence;
+   unsigned char lan_id;   /* zero means empty; all sequence values are valid */
+   unsigned char version;
+};
+
 struct ArgusFlowStruct {
    struct ArgusQueueHeader qhdr;
    struct ArgusHashTableHeader htblbuf;
@@ -456,6 +465,7 @@ struct ArgusFlowStruct {
 
 
    struct ArgusTimeStat stime, dtime;
+   struct ArgusPrpPending prp_pending[2]; /* survives report-window reset */
    struct ArgusKeyStrokeState skey;
    struct ArgusCanonRecord canon;
 };

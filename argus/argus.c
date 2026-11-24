@@ -1110,7 +1110,7 @@ getArguspidflag ()
    return (pidflag);
 }
 
-#define ARGUS_RCITEMS				70
+#define ARGUS_RCITEMS				71
 
 #define ARGUS_MONITOR_ID			0
 #define ARGUS_MONITOR_ID_INCLUDE_INF		1
@@ -1182,6 +1182,7 @@ getArguspidflag ()
 #define ARGUS_TCP_FALLOW_TIMEOUT		67
 #define ARGUS_SFLOW_MAX_EXPORTERS		68
 #define ARGUS_GENERATE_CREATION_TIME		69
+#define ARGUS_PRP0_HEURISTIC                    70
 
 char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_MONITOR_ID=",
@@ -1253,7 +1254,8 @@ char *ArgusResourceFileStr [ARGUS_RCITEMS] = {
    "ARGUS_ENCAPS_CAPTURE=",
    "ARGUS_TCP_FALLOW_TIMEOUT=",
    "ARGUS_SFLOW_MAX_EXPORTERS=",
-   "ARGUS_GENERATE_CREATION_TIME="
+   "ARGUS_GENERATE_CREATION_TIME=",
+   "ARGUS_PRP0_HEURISTIC="
 };
 
 
@@ -1626,6 +1628,10 @@ ArgusParseResourceFile (struct ArgusModelerStruct *model, char *file,
                               setArgusmflag (model, 1);
                            else
                               setArgusmflag (model, 0);
+                           break;
+
+                        case ARGUS_PRP0_HEURISTIC:
+                           model->ArgusPrp0Heuristic = !strncasecmp(optarg, "yes", 3);
                            break;
 
                         case ARGUS_DEBUG_LEVEL:
@@ -2108,6 +2114,7 @@ clearArgusConfiguration (struct ArgusModelerStruct *model)
    setArgusResponseStatus (model, 0);
    setArgusGenerateTime (model, 0);
    setArgusmflag (model, 0);
+   model->ArgusPrp0Heuristic = 0;
    setArgusOflag (ArgusSourceTask, 1);
    setArgusCaptureFlag (ArgusSourceTask, 0);
    setArgusAflag(model, 0);
