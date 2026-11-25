@@ -4819,13 +4819,12 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
 
                      case ARGUS_ENCAPS_INDEX: {
                         struct ArgusEncapsStruct *encaps = (struct ArgusEncapsStruct *) dsr;
-                        unsigned char *elen = (unsigned char *)&encaps->hdr.argus_dsrvl8.len;
+                        struct ArgusDSRHeader *hdr = (struct ArgusDSRHeader *)dsrptr;
                         int x, i, slen = 0, dlen = 0;
 
                         if ((encaps->slen > 0) || (encaps->dlen > 0)) {
                            slen = ((encaps->slen + 3) / 4);
 			   dlen = ((encaps->dlen + 3) / 4);
-                           *elen += (1 + slen + dlen);
                         }
 
                         len = 3;
@@ -4848,6 +4847,8 @@ ArgusGenerateRecord (struct ArgusModelerStruct *model, struct ArgusRecordStruct 
                               }
                            }
                         }
+                        /* The same record may be serialized for several outputs. */
+                        hdr->argus_dsrvl8.len = len;
                         break;
                      }
 
